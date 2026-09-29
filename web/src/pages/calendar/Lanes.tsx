@@ -94,6 +94,9 @@ export function Lanes() {
   // submission so the new candidate appears immediately.
   const [searchRefreshKey, setSearchRefreshKey] = useState(0)
   const [showSuggestDate, setShowSuggestDate] = useState(false)
+  // V2.11 — Month-tab add-to-main-calendar shortcut. Clicking the "+"
+  // on a day cell opens the SuggestDateModal pre-filled with that date.
+  const [suggestDateInitial, setSuggestDateInitial] = useState<string | undefined>(undefined)
   // Reused Open Planning modal (Slice 3) — also used by SearchPanel
   const [openPlanningFor, setOpenPlanningFor] = useState<{ brandId: string; candidateId: string } | null>(null)
 
@@ -272,7 +275,10 @@ export function Lanes() {
               onAddToMainCalendar={approveCandidate}
               onOpenPlanning={openPlanningByCandidateId}
               onOpenIntelligence={openPlanningByCandidateId}
-              onOpenSuggestDateModal={() => setShowSuggestDate(true)}
+              onOpenSuggestDateModal={() => {
+                setSuggestDateInitial(undefined)
+                setShowSuggestDate(true)
+              }}
               refreshKey={searchRefreshKey}
             />
           ) : null}
@@ -314,6 +320,10 @@ export function Lanes() {
           monthParam={monthParam}
           monthView={monthView}
           onMonthChange={setMonthParam}
+          onSuggestDate={(iso) => {
+            setSuggestDateInitial(iso)
+            setShowSuggestDate(true)
+          }}
         />
       ) : null}
       {/* V2.9 §5 — Operator date suggestion. Submits to /api/calendar/candidates
@@ -322,14 +332,19 @@ export function Lanes() {
         <SuggestDateModal
           brand={brandLabel}
           brandId={scopeBrand}
-          onClose={() => setShowSuggestDate(false)}
+          onClose={() => {
+            setShowSuggestDate(false)
+            setSuggestDateInitial(undefined)
+          }}
           onSubmitted={(result) => {
             if (result.ok) {
               setSearchRefreshKey((k) => k + 1)
               setRefreshKey((k) => k + 1)
               setShowSuggestDate(false)
+              setSuggestDateInitial(undefined)
             }
           }}
+          initialDate={suggestDateInitial}
         />
       ) : null}
 

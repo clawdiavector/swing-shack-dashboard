@@ -17,14 +17,15 @@ type Props = {
   brandId: string
   onClose: () => void
   onSubmitted: (result: { ok: boolean; record_id?: string; error?: string }) => void
+  initialDate?: string // V2.11 — pre-fill the start date from the day cell the operator clicked
 }
 
 type SourceKind = 'OPERATOR' | 'CLIENT' | 'GOLF_CLUB' | 'WEBSITE' | 'OTHER'
 type Importance = 'ASSESS' | 'A-PIN' | 'B-PIN' | 'C-PIN'
 
-export function SuggestDateModal({ brand, brandId, onClose, onSubmitted }: Props) {
+export function SuggestDateModal({ brand, brandId, onClose, onSubmitted, initialDate }: Props) {
   const [title, setTitle] = useState('')
-  const [startDate, setStartDate] = useState('')
+  const [startDate, setStartDate] = useState(initialDate || '')
   const [endDate, setEndDate] = useState('')
   const [location, setLocation] = useState('')
   const [why, setWhy] = useState('')

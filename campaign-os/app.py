@@ -43316,6 +43316,75 @@ def planning_month_view(brand_id):
     except Exception:
         pass
 
+    # V2.11 — Surface spine events as planned_content on the month grid.
+    # The previous build only loaded items from the sample month file
+    # or marketing_lanes.list_extended_content. For Stick, neither has
+    # September 2026 events, so the month grid rendered empty even
+    # though the timeline shows 25+ events for 2026.
+    #
+    # Strategy: read the brand's spine events file(s) and inject every
+    # event that starts in this month as a planned_content row. The
+    # React DayDrawer + LaneMonthPanel already render whatever sits in
+    # days[iso], so this immediately gives the operator a populated
+    # grid without changing the front-end.
+    try:
+        planning_dir = _planning_dir()
+        spine_files: List[str] = []
+        for candidate_year in (year - 1, year, year + 1):
+            spine_files.extend(
+                sorted(glob.glob(os.path.join(planning_dir, f"{brand_id}-events-{candidate_year}.json")))
+            )
+        for sf in spine_files:
+            try:
+                with open(sf, "r", encoding="utf-8") as fp:
+                    spine = json.load(fp)
+            except Exception:
+                continue
+            for ev in (spine.get("events") or []):
+                start_iso = (ev.get("start") or ev.get("public_peak") or "")[:10]
+                if not start_iso.startswith(month):
+                    continue
+                lanes = ev.get("lanes") or {}
+                lane = (
+                    lanes.get("primary")
+                    or lanes.get("retail")
+                    or lanes.get("fitting")
+                    or lanes.get("coaching")
+                    or ev.get("category")
+                    or "spine"
+                )
+                spine_item = {
+                    "id": ev.get("id") or ev.get("event_key") or start_iso,
+                    "title": ev.get("name") or ev.get("title") or "(spine event)",
+                    "subtitle": ev.get("summary") or ev.get("notes") or "",
+                    "lane": lane,
+                    "channel": ev.get("category") or "spine",
+                    "status": "SPINE",
+                    "cta": "",
+                    "purpose": ev.get("why") or "Approved spine event",
+                    "is_paid_supported": False,
+                    "scheduled_date": start_iso,
+                    "is_demo": False,
+                    "execution_type": "spine",
+                    "source": "spine",
+                    "tier": ev.get("tier"),
+                    "event_key": ev.get("event_key") or ev.get("id"),
+                    "public_peak": (ev.get("public_peak") or "")[:10],
+                    "phases": ev.get("phases"),
+                }
+                days.setdefault(start_iso, []).append(spine_item)
+                # Also push into days_extended.planned_content
+                if start_iso in days_extended:
+                    days_extended[start_iso].setdefault("planned_content", []).append(spine_item)
+                else:
+                    days_extended[start_iso] = {
+                        "planned_content": [spine_item],
+                        "strategic_moments": [],
+                        "planning_milestones": [],
+                    }
+    except Exception:
+        pass
+
     return jsonify({
         "ok": True,
         "brand_id": brand_id,

@@ -167,11 +167,13 @@ export function LaneMonthPanel({
   monthParam,
   monthView,
   onMonthChange,
+  onSuggestDate,
 }: {
   brand: string
   monthParam: string
   monthView: PlanningMonthView | null
   onMonthChange: (next: string) => void
+  onSuggestDate?: (iso: string) => void
 }) {
   const [laneFilter, setLaneFilter] = useState('')
   const [drawerIso, setDrawerIso] = useState<string | null>(null)
@@ -342,11 +344,37 @@ export function LaneMonthPanel({
                 <span className={`text-xs font-bold ${cell.isToday ? 'text-yel' : 'text-tx'}`}>
                   {cell.dayNum}
                 </span>
-                {allItems.length > 0 ? (
-                  <span className="text-[9px] text-tx3">
-                    {allItems.length} {allItems.length === 1 ? 'lane' : 'lanes'}
-                  </span>
-                ) : null}
+                <div className="flex items-center gap-1">
+                  {allItems.length > 0 ? (
+                    <span className="text-[9px] text-tx3">
+                      {allItems.length} {allItems.length === 1 ? 'lane' : 'lanes'}
+                    </span>
+                  ) : null}
+                  {/* V2.11 — single-click add affordance. The day cell
+                      still opens the drawer on click; this is a
+                      separate "+ add" pip that fires SuggestDate. */}
+                  {onSuggestDate && cell.inMonth ? (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onSuggestDate(cell.iso)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.stopPropagation()
+                          onSuggestDate(cell.iso)
+                        }
+                      }}
+                      className="inline-flex h-4 min-w-4 cursor-pointer items-center justify-center rounded-full bg-yel/20 px-1 text-[9px] font-bold text-yel hover:bg-yel/30"
+                      data-testid="month-day-add"
+                      title="Add to Main Calendar"
+                    >
+                      +
+                    </span>
+                  ) : null}
+                </div>
               </div>
               {items.length === 0 && cell.inMonth ? (
                 <span className="text-[9px] text-tx3 italic">no content</span>
