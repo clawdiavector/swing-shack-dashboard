@@ -14471,6 +14471,29 @@ def publish_sandbox_approve_route():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@app.route('/api/publish/sandbox/sync-asset', methods=['POST'])
+def publish_sandbox_sync_asset_route():
+    """POST body: brand_id, asset_id — refresh queue rows from approved draft."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        from _lib.brand_validate import validate_brand_id
+        from _lib.publish_sandbox import sync_queue_rows_for_asset
+
+        brand_id = validate_brand_id(body.get("brand_id") or body.get("brand"))
+        asset_id = str(body.get("asset_id") or "").strip()
+        if not asset_id:
+            return jsonify({"ok": False, "error": "asset_id required"}), 400
+        result = sync_queue_rows_for_asset(brand_id=brand_id, asset_id=asset_id)
+        return jsonify(result), 200
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception as exc:
+        _app_log.exception("publish sandbox sync-asset failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @app.route('/api/publish/sandbox/reschedule', methods=['POST'])
 def publish_sandbox_reschedule_route():
     """POST body: idempotency_key, would_publish_at (ISO), optional event_date YYYY-MM-DD."""
@@ -17831,6 +17854,11 @@ try:
         from _lib.jobs.publish_dispatch import run as _publish_dispatch_run
         return _publish_dispatch_run(brand=brand)
 
+    def _run_backfill_dual_channel_queue(brand=None):
+        from _lib.jobs.backfill_dual_channel_queue import run as _backfill_run
+
+        return _backfill_run(brand=brand)
+
     def _run_auto_release_job(brand=None):
         from _lib.jobs.auto_release import run as _auto_release_run
 
@@ -17858,6 +17886,16 @@ try:
         writes=("publish-sandbox/",),
         brand_mode="per_brand",
         requires_integrations=("postiz",),
+    ))
+    _register_job(_JobSpec(
+        name="backfill_dual_channel_queue",
+        fn=_run_backfill_dual_channel_queue,
+        every_seconds=86400,
+        timeout_seconds=180,
+        criticality="LOW",
+        best_effort=True,
+        writes=("publish-sandbox/",),
+        brand_mode="global",
     ))
     _JOBS_AVAILABLE = True
 except Exception as _jobs_exc:  # noqa: BLE001

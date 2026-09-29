@@ -590,6 +590,15 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 },
             })
             meta = out[-1]["meta"]
+            from _lib.publish_sandbox import compose_publish_channels  # noqa: PLC0415
+
+            composed_map = meta.get("composed") if isinstance(meta.get("composed"), dict) else {}
+            if composed_map:
+                meta["publish_targets"] = [
+                    ch for ch in compose_publish_channels(brand_id) if ch in composed_map
+                ] or list(compose_publish_channels(brand_id))
+            else:
+                meta["publish_targets"] = list(compose_publish_channels(brand_id))
             if sidecar.get("photo_candidates"):
                 meta["photo_candidates"] = sidecar["photo_candidates"]
             if sidecar.get("qc"):
@@ -1758,6 +1767,36 @@ def approve_item(
         campaign["updatedAt"] = now
         _write_campaign_data(data)
         brand_id = str(item.get("brand_id") or "")
+        queue_rows: list[dict[str, Any]] = []
+        caption = str(asset.get("caption") or "")
+        sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+        sidecar_doc: dict[str, Any] = {}
+        if sidecar_path.is_file():
+            try:
+                loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    sidecar_doc = loaded
+            except (OSError, json.JSONDecodeError):
+                pass
+        inbox_ref = str(sidecar_doc.get("source_inbox_item_id") or "")
+        if brand_id and caption.strip():
+            from _lib import publish_sandbox  # noqa: PLC0415
+
+            queue_rows = publish_sandbox.enqueue_for_intended_channels(
+                brand_id=brand_id,
+                caption_preview=caption,
+                inbox_item_id=inbox_ref,
+                asset_id=asset_id,
+                asset=asset,
+                sidecar=sidecar_doc,
+            )
+            publish_sandbox.sync_queue_rows_for_asset(
+                brand_id=brand_id,
+                asset_id=asset_id,
+                caption=caption,
+                asset=asset,
+                sidecar=sidecar_doc,
+            )
         _append_jsonl(_human_edits_path(), {
             "schema": HUMAN_EDIT_SCHEMA,
             "ts": now,
@@ -1767,7 +1806,12 @@ def approve_item(
             "item_type": item_type,
             "brand_id": brand_id,
         })
-        return {"ok": True, "item_id": item_id, "asset_id": asset_id}
+        return {
+            "ok": True,
+            "item_id": item_id,
+            "asset_id": asset_id,
+            "publish_queue_rows": len(queue_rows),
+        }
 
     if item_type == "publish_request":
         from _lib import publish_sandbox  # noqa: PLC0415
@@ -2001,6 +2045,15 @@ def edit_item(
                 asset["updatedAt"] = _utc_now_iso()
                 campaign["updatedAt"] = asset["updatedAt"]
                 _write_campaign_data(data)
+                if "caption" in changed and brand_id:
+                    from _lib import publish_sandbox  # noqa: PLC0415
+
+                    publish_sandbox.sync_queue_rows_for_asset(
+                        brand_id=brand_id,
+                        asset_id=asset_id,
+                        caption=str(fields.get("caption") or asset.get("caption") or ""),
+                        asset=asset,
+                    )
 
     refreshed = find_item(item_id)
     out: dict[str, Any] = {

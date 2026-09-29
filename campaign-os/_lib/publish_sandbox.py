@@ -22,6 +22,9 @@ INTENDED_CHANNELS_FALLBACK: dict[str, list[str]] = {
     "bag-drop": [],
 }
 
+# Match L5 compose_post_for_channels — social feed channels only (GBP is separate).
+COMPOSE_PUBLISH_CHANNEL_EXCLUDE = frozenset({"gbp"})
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -102,6 +105,62 @@ def platform_allowed(brand_id: str, platform: str) -> bool:
     return want in allowed
 
 
+def compose_publish_channels(brand_id: str) -> list[str]:
+    """IG + FB (etc.) for one creative — same set L5 uses when composing PNGs."""
+    brand_id = validate_brand_id(brand_id)
+    out: list[str] = []
+    seen: set[str] = set()
+    for ch in intended_publish_channels(brand_id):
+        norm = _normalize_platform(str(ch))
+        if norm in COMPOSE_PUBLISH_CHANNEL_EXCLUDE:
+            continue
+        if not platform_allowed(brand_id, norm):
+            continue
+        if norm in seen:
+            continue
+        seen.add(norm)
+        out.append(norm)
+    return out
+
+
+def _load_draft_sidecar(asset_id: str) -> dict[str, Any]:
+    path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+    if not path.is_file():
+        return {}
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def _composed_url_for_platform(
+    *,
+    platform: str,
+    asset: dict[str, Any] | None,
+    sidecar: dict[str, Any] | None,
+) -> str | None:
+    plat = _normalize_platform(platform)
+    composed: dict[str, Any] = {}
+    for src in (sidecar, asset):
+        if not isinstance(src, dict):
+            continue
+        block = src.get("composed")
+        if isinstance(block, dict):
+            composed.update(block)
+    for key in (plat, platform):
+        raw = composed.get(key)
+        if raw:
+            return str(raw).strip() or None
+    if isinstance(asset, dict):
+        from _lib.unified_inbox import _asset_image_meta  # noqa: PLC0415
+
+        _path, url = _asset_image_meta(asset)
+        if url:
+            return str(url).strip() or None
+    return None
+
+
 def _would_publish_at_from_event_date(
     event_date: str,
     *,
@@ -173,16 +232,219 @@ def enqueue_for_intended_channels(
     asset_id: str,
     asset_platform: str = "",
     lodged_title: str = "",
+    asset: dict[str, Any] | None = None,
+    sidecar: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """Backward-compatible alias — one row on primary_channel only."""
-    return enqueue_for_primary_channel(
-        brand_id=brand_id,
-        caption_preview=caption_preview,
-        inbox_item_id=inbox_item_id,
-        asset_id=asset_id,
-        asset_platform=asset_platform,
-        lodged_title=lodged_title,
+    """One sandbox row per compose channel (typically instagram + facebook)."""
+    from _lib.jobs.layer5.image_draft_context import (  # noqa: PLC0415
+        calendar_event_date_for_item,
+        lodged_title_for_item,
     )
+    from _lib.unified_inbox import _campaign_asset_for_id, _load_campaign_data  # noqa: PLC0415
+
+    brand_id = validate_brand_id(brand_id)
+    inbox_ref = str(inbox_item_id or "")
+    side = sidecar if sidecar is not None else _load_draft_sidecar(asset_id)
+    camp_asset = asset
+    if camp_asset is None and asset_id:
+        _cid, camp_asset = _campaign_asset_for_id(_load_campaign_data(), asset_id)
+
+    title = lodged_title_for_item(
+        brand_id,
+        inbox_ref,
+        sidecar_title=str(side.get("title") or ""),
+        asset_name=str((camp_asset or {}).get("name") or ""),
+    )
+    if not title and lodged_title:
+        title = lodged_title
+    event_date = calendar_event_date_for_item(brand_id, inbox_ref)
+    would_publish_at = _would_publish_at_from_event_date(event_date)
+    provenance = _provenance_from_draft_asset(asset_id)
+
+    items: list[dict[str, Any]] = []
+    for platform in compose_publish_channels(brand_id):
+        image_url = _composed_url_for_platform(
+            platform=platform,
+            asset=camp_asset,
+            sidecar=side,
+        )
+        item = enqueue_item(
+            brand_id=brand_id,
+            platform=platform,
+            caption_preview=caption_preview,
+            inbox_item_id=inbox_item_id,
+            human_approved=False,
+            would_publish_at=would_publish_at,
+            idempotency_key=f"qc-{asset_id}-{platform}",
+            lodged_title=title or None,
+            event_date=event_date or None,
+            provenance=provenance,
+            image_url=image_url,
+        )
+        items.append(item)
+    if camp_asset and str(camp_asset.get("caption") or "").strip():
+        sync_queue_rows_for_asset(
+            brand_id=brand_id,
+            asset_id=asset_id,
+            asset=camp_asset,
+            sidecar=side,
+        )
+    return items
+
+
+def backfill_dual_channel_queue(*, brand: str | None = None) -> dict[str, Any]:
+    """Ensure pending queue rows exist for every compose channel on QC-passed drafts."""
+    from _lib.unified_inbox import _campaign_asset_for_id, _load_campaign_data  # noqa: PLC0415
+
+    campaign_data = _load_campaign_data()
+    sidecars = sorted((_data_dir() / "draft-assets").glob("*.json"))
+    enqueued = 0
+    skipped = 0
+    brands_touched: set[str] = set()
+
+    for path in sidecars:
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            skipped += 1
+            continue
+        if not isinstance(sidecar, dict):
+            skipped += 1
+            continue
+        brand_id = str(sidecar.get("brand_id") or "")
+        if not brand_id:
+            skipped += 1
+            continue
+        if brand and brand_id != brand:
+            continue
+        asset_id = str(sidecar.get("asset_id") or path.stem)
+        qc = sidecar.get("qc") if isinstance(sidecar.get("qc"), dict) else {}
+        if str(qc.get("verdict") or "").lower() in ("fail", "failed", "reject"):
+            skipped += 1
+            continue
+        _cid, asset = _campaign_asset_for_id(campaign_data, asset_id)
+        caption = str((asset or {}).get("caption") or "")
+        if not caption.strip():
+            skipped += 1
+            continue
+        inbox_item_id = str(sidecar.get("source_inbox_item_id") or "")
+        rows = enqueue_for_intended_channels(
+            brand_id=brand_id,
+            caption_preview=caption,
+            inbox_item_id=inbox_item_id,
+            asset_id=asset_id,
+            asset=asset,
+            sidecar=sidecar,
+        )
+        sync_queue_rows_for_asset(
+            brand_id=brand_id,
+            asset_id=asset_id,
+            caption=caption,
+            asset=asset,
+            sidecar=sidecar,
+        )
+        if rows:
+            brands_touched.add(brand_id)
+            enqueued += len(rows)
+
+    return {
+        "ok": True,
+        "enqueued_rows": enqueued,
+        "skipped_sidecars": skipped,
+        "brands": sorted(brands_touched),
+    }
+
+
+def sync_queue_rows_for_asset(
+    *,
+    brand_id: str,
+    asset_id: str,
+    caption: str = "",
+    asset: dict[str, Any] | None = None,
+    sidecar: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Align pending publish-queue rows with the approved draft (caption + composed URLs)."""
+    from _lib.unified_inbox import _campaign_asset_for_id, _load_campaign_data  # noqa: PLC0415
+
+    brand_id = validate_brand_id(brand_id)
+    asset_id = str(asset_id or "").strip()
+    if not asset_id:
+        return {"ok": False, "error": "asset_id required", "updated": 0}
+
+    side = sidecar if sidecar is not None else _load_draft_sidecar(asset_id)
+    camp_asset = asset
+    if camp_asset is None:
+        _cid, camp_asset = _campaign_asset_for_id(_load_campaign_data(), asset_id)
+    cap = (caption or str((camp_asset or {}).get("caption") or "")).strip()[:500]
+
+    rows = _read_jsonl(_queue_path())
+    updated = 0
+    prefix = f"qc-{asset_id}-"
+    for row in rows:
+        if str(row.get("status") or "") != "pending":
+            continue
+        if validate_brand_id(str(row.get("brand_id") or "")) != brand_id:
+            continue
+        key = str(row.get("idempotency_key") or "")
+        if not key.startswith(prefix):
+            continue
+        platform = str(row.get("platform") or "instagram")
+        if cap:
+            row["caption_preview"] = cap
+        url = _composed_url_for_platform(platform=platform, asset=camp_asset, sidecar=side)
+        if url:
+            row["image_url"] = url
+        updated += 1
+    if updated:
+        _rewrite_jsonl(_queue_path(), rows)
+    return {"ok": True, "updated": updated, "asset_id": asset_id, "brand_id": brand_id}
+
+
+def refresh_queue_row_from_draft(row: dict[str, Any]) -> dict[str, Any]:
+    """Refresh one pending row from campaign-data + sidecar before dispatch."""
+    from _lib.unified_inbox import asset_id_from_queue_row, _campaign_asset_for_id, _load_campaign_data  # noqa: PLC0415
+
+    asset_id = asset_id_from_queue_row(row)
+    if not asset_id:
+        return row
+    brand_id = str(row.get("brand_id") or "")
+    try:
+        brand_id = validate_brand_id(brand_id)
+    except ValueError:
+        return row
+    side = _load_draft_sidecar(asset_id)
+    _cid, asset = _campaign_asset_for_id(_load_campaign_data(), asset_id)
+    cap = str((asset or {}).get("caption") or "").strip()
+    if cap:
+        row["caption_preview"] = cap[:500]
+    platform = str(row.get("platform") or "instagram")
+    url = _composed_url_for_platform(platform=platform, asset=asset, sidecar=side)
+    if url:
+        row["image_url"] = url
+    return row
+
+
+def preflight_queue_row(row: dict[str, Any]) -> tuple[bool, str]:
+    """Gate live dispatch — caption + composed image must be present."""
+    from _lib.unified_inbox import asset_id_from_queue_row, _campaign_asset_for_id, _load_campaign_data  # noqa: PLC0415
+
+    if not str(row.get("caption_preview") or "").strip():
+        return False, "empty caption_preview"
+    if not str(row.get("image_url") or "").strip():
+        return False, "missing image_url"
+    asset_id = asset_id_from_queue_row(row)
+    if not asset_id:
+        return False, "unparseable idempotency_key"
+    _cid, asset = _campaign_asset_for_id(_load_campaign_data(), asset_id)
+    draft_cap = str((asset or {}).get("caption") or "").strip()
+    queue_cap = str(row.get("caption_preview") or "").strip()
+    if draft_cap and draft_cap[:500] != queue_cap:
+        return False, "caption drift vs approved draft — run sync_queue_rows_for_asset"
+    side = _load_draft_sidecar(asset_id)
+    platform = str(row.get("platform") or "instagram")
+    if not _composed_url_for_platform(platform=platform, asset=asset, sidecar=side):
+        return False, f"no composed image for platform={platform}"
+    return True, ""
 
 
 def ensure_sandbox_layout() -> Path:
@@ -281,6 +543,8 @@ def enqueue_item(
     lodged_title: Optional[str] = None,
     event_date: Optional[str] = None,
     provenance: Optional[dict[str, Any]] = None,
+    image_url: Optional[str] = None,
+    image_path: Optional[str] = None,
 ) -> dict[str, Any]:
     """Append a pending queue row (no network)."""
     ensure_sandbox_layout()
@@ -314,6 +578,10 @@ def enqueue_item(
     for key in ("pillar_id", "campaign_id", "lane", "origin", "process"):
         if prov.get(key) is not None:
             item[key] = prov[key]
+    if image_url:
+        item["image_url"] = str(image_url).strip()
+    if image_path:
+        item["image_path"] = str(image_path).strip()
     _append_jsonl(_queue_path(), item)
     return item
 
@@ -564,6 +832,7 @@ def dispatch_pending() -> dict[str, Any]:
             skipped += 1
             updated_rows.append(row)
             continue
+        row = refresh_queue_row_from_draft(row)
         key = str(row.get("idempotency_key") or "")
         if key in receipts_index:
             _stamp_queue_row_dispatched(row, receipts_index[key])
@@ -660,7 +929,13 @@ def list_queue(*, brand: str | None = None, limit: int = 50) -> dict[str, Any]:
         image_url: Any = None
         if asset_id:
             campaign_id, asset = _campaign_asset_for_id(campaign_data, asset_id)
-            image_path, image_url = _asset_image_meta(asset)
+            row_url = str(row.get("image_url") or "").strip()
+            row_path = str(row.get("image_path") or "").strip()
+            if row_url:
+                image_url = row_url
+                image_path = row_path or None
+            else:
+                image_path, image_url = _asset_image_meta(asset)
         pending_rows.append(
             {
                 "queue_id": row.get("queue_id"),

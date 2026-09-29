@@ -213,6 +213,21 @@ def dispatch_pending(*, brand: str | None = None) -> dict[str, Any]:
             updated_rows.append(row)
             continue
         enriched = next((t for t in targets if str(t.get("idempotency_key") or "") == key), row)
+        enriched = sandbox.refresh_queue_row_from_draft(dict(enriched))
+        row["caption_preview"] = enriched.get("caption_preview")
+        row["image_url"] = enriched.get("image_url")
+        ok, pre_err = sandbox.preflight_queue_row(enriched)
+        if not ok:
+            refused += 1
+            errors.append(f"{key}: preflight: {pre_err}")
+            row.update(
+                {
+                    "caption_preview": enriched.get("caption_preview"),
+                    "image_url": enriched.get("image_url"),
+                }
+            )
+            updated_rows.append(row)
+            continue
         receipt, err = _dispatch_row_live(enriched, integrations_cache)
         if err:
             refused += 1
