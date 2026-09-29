@@ -1,45 +1,10 @@
 import { brandDisplayName } from '../../../lib/planning'
 import type { PlanningBigIdeaResponse } from '../../../lib/planningTypes'
 
-// Swing Shack operating areas — sourced from canonical
-// data/brand-planning/swing-shack.json#operating_areas. Rendered when brand=swing-shack.
-// Each `key` is the always-on header; `tagline` is the one-line human description.
-// These map 1:1 to lane IDs in the same file so the React component does not invent
-// a parallel taxonomy.
-const SWING_SHACK_AREAS = [
-  { key: 'FITTING', color: 'text-[#f0a030]', tagline: 'fit first, buy second' },
-  { key: 'COACHING', color: 'text-[#14b8a6]', tagline: 'TrackMan-backed sessions, real numbers' },
-  { key: 'LESSONS', color: 'text-[#f0a030]', tagline: 'the actual lesson moments' },
-  { key: 'ON-COURSE', color: 'text-[#f0a030]', tagline: 'where the data meets the grass' },
-  { key: 'HUMAN', color: 'text-tx3', tagline: 'the real coaches, the real golfers' },
-  { key: 'MEASUREMENT', color: 'text-tx3', tagline: 'TrackMan data, what the numbers mean' },
-]
-
-// Stick standard — pre-existing always-on headers for brand=stick.
-// DO NOT add "ask Stick" / "built at Stick" cross-brand copy.
-const STICK_AREAS = [
-  { key: 'RETAIL', color: 'text-[#f0a030]', tagline: 'real stock only — earns its place' },
-  { key: 'FITTING', color: 'text-[#14b8a6]', tagline: 'fit first, buy second' },
-  { key: 'COACHING', color: 'text-[#f0a030]', tagline: 'coaching that proves itself' },
-  { key: 'WORKSHOP', color: 'text-tx3', tagline: 'built in our workshop' },
-  { key: 'HUMAN', color: 'text-tx3', tagline: 'the real people behind it' },
-  { key: 'APPAREL', color: 'text-tx3', tagline: 'style that belongs' },
-]
-
-// Bag Drop — e-commerce store, different again.
-const BAG_DROP_AREAS = [
-  { key: 'CURATED', color: 'text-[#f0a030]', tagline: 'quality used clubs, demo models, essentials' },
-  { key: 'CONDITION', color: 'text-[#14b8a6]', tagline: 'honest A/B/C grade on every club' },
-  { key: 'DROP', color: 'text-[#f0a030]', tagline: 'weekly stock release' },
-  { key: 'PROOF', color: 'text-tx3', tagline: 'OUT THE DOOR — packed, shipped, gone' },
-]
-
-function areasFor(brand: string): { key: string; color: string; tagline: string }[] {
-  if (brand === 'swing-shack') return SWING_SHACK_AREAS
-  if (brand === 'stick') return STICK_AREAS
-  if (brand === 'bag-drop') return BAG_DROP_AREAS
-  return []
-}
+// V2.9 §1+§2 — Brand hero is driven by canonical data from
+// /api/planning/<brand>/big-idea. No hard-coded brand arrays.
+// All per-brand areas, goals, north star, and big idea come from the
+// response payload. The component never invents cross-brand copy.
 
 function bigIdeaFallback(brand: string): string {
   if (brand === 'stick') return 'Better Begins Here.'
@@ -52,6 +17,38 @@ function northStarFallback(brand: string): string {
   // or are absent. Empty string = no north star on file.
   if (brand === 'swing-shack') return 'Know the golfer better.\nMake golf more enjoyable.'
   return ''
+}
+
+// Brand-aware area color — uses the same colour palette as the canonical
+// planning lanes (orange for primary, teal for fitting/measurement, grey
+// for human/context). The actual list of areas is from the API.
+function areaColor(key: string): string {
+  const k = (key || '').toUpperCase()
+  if (k === 'FITTING' || k === 'CONDITION' || k === 'MEASUREMENT') return 'text-[#14b8a6]'
+  if (
+    k === 'COACHING' ||
+    k === 'WORKSHOP' ||
+    k === 'LESSONS' ||
+    k === 'ON-COURSE' ||
+    k === 'CURATED' ||
+    k === 'DROP' ||
+    k === 'RETAIL' ||
+    k === 'PROOF' ||
+    k === 'HUMAN' ||
+    k === 'APPAREL'
+  ) {
+    return 'text-[#f0a030]'
+  }
+  return 'text-tx3'
+}
+
+function metricFromGoal(g: { metric?: string; label?: string }): { value: string; unit: string } {
+  const raw = (g.metric || g.label || '').trim()
+  if (!raw) return { value: '', unit: '' }
+  // Try to split "160 coaching / month" → { value: '160', unit: 'coaching / month' }
+  const m = raw.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/)
+  if (m) return { value: m[1], unit: m[2] }
+  return { value: '', unit: raw }
 }
 
 export function PlanningHero({
@@ -79,8 +76,8 @@ export function PlanningHero({
   // Operating goals: read from canonical response. Show all that exist.
   const operatingGoals = bigIdea?.operating_goals || []
 
-  // Operating areas: rendered tagline strip. Brand-aware.
-  const areas = areasFor(brand)
+  // Operating areas: canonical response. V2.9 §2 — never hard-coded.
+  const areas = bigIdea?.operating_areas || []
 
   return (
     <section className="relative overflow-hidden rounded-2xl border border-[#004d5a]/60 bg-gradient-to-br from-[#0d0d0d] to-[#1a1a1a] p-6 md:p-8">
@@ -127,36 +124,53 @@ export function PlanningHero({
           </div>
         ) : null}
 
-        {/* OPERATING GOALS — separate, measurable targets */}
+        {/* OPERATING GOALS — measurable targets. V2.9 §2 — show numeric
+            value as a stat tile so the black block holds real business
+            direction, not just slogans. */}
         {operatingGoals.length > 0 ? (
           <div data-testid="hero-operating-goals">
             <p className="mb-2 text-[11px] font-bold tracking-widest text-[#f0a030] uppercase">
               Operating goals
             </p>
-            <ul className="space-y-1.5">
-              {operatingGoals.map((g) => (
-                <li key={g.id} className="flex flex-wrap items-baseline gap-x-2 text-sm">
-                  <span className="font-bold text-[#f5f5f0]">{g.label}</span>
-                  <span className="text-[#f5f5f0]">{g.metric}</span>
-                  <span className="text-[10px] font-bold tracking-wider text-[#8a8a8a] uppercase">
-                    · {g.outcome_measurement === 'PENDING' ? 'pending connector' : g.outcome_measurement}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              {operatingGoals.slice(0, 6).map((g) => {
+                const m = metricFromGoal(g)
+                return (
+                  <div
+                    key={g.id}
+                    className="rounded-lg border border-[#f0a030]/25 bg-[#0d0d0d]/60 p-3"
+                  >
+                    {m.value ? (
+                      <p className="font-display text-2xl font-black text-[#f0a030]">
+                        {m.value}
+                      </p>
+                    ) : null}
+                    <p className="text-[11px] font-bold tracking-wider text-[#f5f5f0] uppercase">
+                      {m.unit || g.label}
+                    </p>
+                    {g.outcome_measurement ? (
+                      <p className="mt-1 text-[9px] font-bold tracking-wider text-[#8a8a8a] uppercase">
+                        · {g.outcome_measurement === 'PENDING' ? 'pending connector' : g.outcome_measurement}
+                      </p>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         ) : null}
 
-        {/* OPERATING AREAS — always-on tagline strip. Brand-specific, no cross-brand copy. */}
+        {/* OPERATING AREAS — canonical tagline strip, brand-aware. */}
         {areas.length > 0 ? (
           <div data-testid="hero-operating-areas">
             <p className="mb-3 text-[11px] font-bold tracking-widest text-[#f0a030] uppercase">
-              Always on · {brandDisplayName(brand)} standard
+              Always on
             </p>
-            <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
               {areas.map((row) => (
-                <p key={row.key} className="text-sm text-[#f5f5f0]">
-                  <span className={`font-bold ${row.color}`}>{row.key}</span> · {row.tagline}
+                <p key={row.key} className="text-sm text-[#f5f5f0]" data-area-key={row.key}>
+                  <span className={`font-bold ${areaColor(row.key)}`}>{row.key}</span>
+                  {row.tagline ? <> · {row.tagline}</> : null}
                 </p>
               ))}
             </div>

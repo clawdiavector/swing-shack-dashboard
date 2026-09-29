@@ -43228,6 +43228,79 @@ def planning_month_view(brand_id):
             "planning_milestones": planning_milestones.get(d, []),
         }
 
+    # V2.10 §5 — Main Calendar means visible Calendar. Operator-approved
+    # records (the human-approved Main Calendar events) MUST appear on
+    # the month grid. The previous build only read the static spine
+    # and the sample month file. Add the operator-store layer here so
+    # any approved event shows up the moment it is approved.
+    operator_approved_events: List[Dict[str, Any]] = []
+    operator_approved_days: Dict[str, List[Dict[str, Any]]] = {}
+    try:
+        from _lib import marketing_calendar as _mc_month
+        try:
+            _op_records = _mc_month.list_records(brand_id) or []
+        except Exception:
+            _op_records = []
+        for r in _op_records:
+            if r.get("status") != "approved":
+                continue
+            # Use event_start for the canonical day. Fall back to
+            # public_peak, then to start (spine-shape).
+            start_iso = (
+                r.get("event_start")
+                or r.get("public_peak")
+                or r.get("start")
+                or ""
+            )[:10]
+            if not start_iso.startswith(month):
+                continue
+            ek = r.get("event_key")
+            lane = r.get("lane") or "operator"
+            item = {
+                "id": ek or start_iso,
+                "title": r.get("title") or r.get("name") or "(operator-approved)",
+                "subtitle": r.get("summary") or r.get("relevance_reason") or "",
+                "lane": lane,
+                "channel": r.get("channel") or "main-calendar",
+                "status": "APPROVED",
+                "cta": r.get("cta") or "",
+                "purpose": r.get("purpose") or "Operator-approved Main Calendar event",
+                "is_paid_supported": bool(r.get("is_paid_supported")),
+                "scheduled_date": start_iso,
+                "is_demo": False,
+                "execution_type": "operator_approved",
+                "source": r.get("source_origin") or "operator-store",
+                "tier": r.get("tier"),
+                "event_key": ek,
+            }
+            operator_approved_events.append(item)
+            operator_approved_days.setdefault(start_iso, []).append(item)
+            # Surface in `days` so the existing DayDrawer picks it up.
+            days.setdefault(start_iso, []).append({
+                "id": item["id"],
+                "scheduled_date": start_iso,
+                "lane": lane,
+                "title": item["title"],
+                "subtitle": item["subtitle"],
+                "status": "APPROVED",
+                "is_demo": False,
+                "execution_type": "operator_approved",
+                "source": "operator-store",
+                "channel": "main-calendar",
+            })
+            # Also surface in days_extended for the three-layer panel.
+            if start_iso in days_extended:
+                days_extended[start_iso].setdefault("operator_approved", []).append(item)
+            else:
+                days_extended[start_iso] = {
+                    "planned_content": days.get(start_iso, []),
+                    "strategic_moments": [],
+                    "planning_milestones": [],
+                    "operator_approved": [item],
+                }
+    except Exception:
+        pass
+
     return jsonify({
         "ok": True,
         "brand_id": brand_id,
@@ -43245,7 +43318,11 @@ def planning_month_view(brand_id):
             "planned_content": sorted(days.keys()),
             "strategic_moments": sorted(set(important_key_dates(important))),
             "planning_milestones": sorted(planning_milestones.keys()),
+            "operator_approved": sorted(operator_approved_days.keys()),
         },
+        "operator_approved_events": operator_approved_events,
+        # V2.10 §5 — every layer must surface on the calendar.
+        "operator_approved_count": len(operator_approved_events),
         "production_runway_note": "T-21 to T-28: monthly theme. T-14 to T-21: briefs. T-7 to T-14: capture. T-4 to T-7: edit. T-2 to T-4: review. T-1: schedule.",
         "reminder": "PARALLEL LANES — every important lane remains active. Monthly theme gives those lanes a shared idea.",
     }), 200
@@ -44814,6 +44891,340 @@ def planning_candidates(brand_id):
 # Idempotent. Writes one immutable audit row per call. NEVER approves a
 # research_lead (no date = raise 400). 401 if not authed.
 # ──────────────────────────────────────────────────────────────────────
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.9 §3+§4+§6+§7+§9 — Search Dates endpoint.
+# GET /api/planning/<brand>/search?q=<query>
+#
+# Cross-layer search over the 5 layers specified in the operator brief:
+#   1. Existing approved Calendar (spine + operator-approved records)
+#   2. Existing Candidates / Watchlist (intelligence)
+#   3. Existing Research Leads (intelligence without verified date)
+#   4. Strategic Moments / important dates
+#   5. Existing Scout intelligence (intake store)
+#
+# Each result carries a deterministic `state` field so the React panel
+# can render the right action buttons per row (V2.9 §7).
+# Search is read-only — it never mutates any store. Add to Main Calendar
+# uses the existing /candidates/<id>/approve endpoint.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/search", methods=["GET"])
+def planning_search(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return jsonify({
+            "ok": True,
+            "query": "",
+            "brand_id": brand_id,
+            "counts": {"ON_MAIN_CALENDAR": 0, "CANDIDATE": 0, "WATCHLIST": 0, "RESEARCH_LEAD": 0, "STRATEGIC_MOMENT": 0},
+            "results": [],
+            "search_more_available": False,
+        }), 200
+    q_low = q.lower()
+    q_tokens = [t for t in q_low.split() if len(t) >= 2]
+
+    # planning_dir is used by Layers 2/3/5. Resolve once.
+    planning_dir: Optional[str] = None
+    try:
+        planning_dir = _planning_dir()
+    except Exception:
+        planning_dir = None
+
+    def matches(*fields: Any) -> bool:
+        if not q_tokens:
+            return True
+        hay = " ".join(str(f or "") for f in fields).lower()
+        return all(tok in hay for tok in q_tokens) or (len(q_low) >= 4 and q_low in hay)
+
+    results: List[Dict[str, Any]] = []
+
+    # Layer 1 — Existing approved Calendar
+    #   Spine (curated): data/brand-planning/<brand>-events-YYYY.json
+    #   Operator-approved: marketing_calendar.upsert_event() store
+    try:
+        from _lib import marketing_calendar as _mc_search
+        # operator store
+        try:
+            mc_records = _mc_search.list_records(brand_id) or []
+        except Exception:
+            mc_records = []
+        for r in mc_records:
+            if r.get("status") != "approved":
+                continue
+            if not matches(r.get("title"), r.get("name"), r.get("summary"), r.get("venue"), r.get("location"), r.get("category"), r.get("source")):
+                continue
+            ek = r.get("event_key")
+            results.append({
+                "state": "ON_MAIN_CALENDAR",
+                "title": r.get("title") or r.get("name") or "(untitled)",
+                "date": r.get("event_start") or r.get("public_peak") or r.get("start"),
+                "end_date": r.get("event_end") or r.get("end") or None,
+                "location": r.get("venue") or r.get("location"),
+                "source": r.get("source_origin") or r.get("source") or "operator-store",
+                "source_url": r.get("source_url"),
+                "confidence": "high",
+                "why_it_matters": r.get("summary") or r.get("relevance_reason"),
+                "suggested_tier": r.get("tier"),
+                "recommended_lead_time_weeks": r.get("recommended_lead_time_weeks"),
+                "brand_id": brand_id,
+                "event_key": ek,
+                "category": r.get("category"),
+                "origin": "operator-store",
+            })
+        # spine (curated) — load all year files
+        if planning_dir:
+            try:
+                spine_files = sorted(glob.glob(os.path.join(planning_dir, f"{brand_id}-events-*.json")))
+                for sf in spine_files:
+                    try:
+                        with open(sf, "r", encoding="utf-8") as fp:
+                            spine = json.load(fp)
+                    except Exception:
+                        continue
+                    for ev in (spine.get("events") or []):
+                        if not matches(
+                            ev.get("name"), ev.get("title"), ev.get("summary"),
+                            ev.get("venue"), ev.get("location"), ev.get("category"),
+                            ev.get("source"),
+                        ):
+                            continue
+                        results.append({
+                            "state": "ON_MAIN_CALENDAR",
+                            "title": ev.get("name") or ev.get("title") or "(untitled)",
+                            "date": ev.get("start") or ev.get("public_peak"),
+                            "end_date": ev.get("end"),
+                            "location": ev.get("venue") or ev.get("location"),
+                            "source": "spine",
+                            "confidence": "high",
+                            "why_it_matters": ev.get("summary") or ev.get("notes"),
+                            "suggested_tier": ev.get("tier"),
+                            "brand_id": brand_id,
+                            "event_key": ev.get("event_key") or ev.get("id"),
+                            "category": ev.get("category"),
+                            "origin": "spine",
+                        })
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    # Layer 2+3 — Candidates / Watchlist / Research Leads
+    #   data/brand-planning/<brand>-candidates-*.json
+    try:
+        if planning_dir:
+            cand_files = sorted(glob.glob(os.path.join(planning_dir, f"{brand_id}-candidates-*.json")))
+            for cf in cand_files:
+                try:
+                    with open(cf, "r", encoding="utf-8") as fp:
+                        payload = json.load(fp)
+                except Exception:
+                    continue
+                for c in (payload.get("candidates") or []):
+                    if not matches(
+                        c.get("name"), c.get("title"), c.get("category"),
+                        c.get("geography"), c.get("source"), c.get("opportunity"),
+                        c.get("relevance_to_swing_shack"), c.get("why_it_matters"),
+                    ):
+                        continue
+                    cid = c.get("id")
+                    if c.get("added_to_spine") or c.get("spine_event_id"):
+                        continue
+                    source_kind = c.get("source_type") or c.get("source_kind") or ""
+                    state = "WATCHLIST" if (source_kind in ("watchlist",) or c.get("status") == "watchlist") else "CANDIDATE"
+                    results.append({
+                        "state": state,
+                        "title": c.get("name") or c.get("title") or "(untitled)",
+                        "date": c.get("public_peak") or c.get("start"),
+                        "end_date": c.get("end"),
+                        "location": c.get("geography") or c.get("venue") or c.get("location"),
+                        "source": c.get("source") or source_kind or "candidate",
+                        "source_url": c.get("source_url"),
+                        "confidence": c.get("confidence"),
+                        "why_it_matters": c.get("relevance_to_swing_shack") or c.get("opportunity") or c.get("why_it_matters"),
+                        "suggested_tier": c.get("suggested_tier"),
+                        "recommended_lead_time_weeks": c.get("recommended_lead_time_weeks"),
+                        "brand_id": brand_id,
+                        "candidate_id": cid,
+                        "category": c.get("category"),
+                        "origin": "candidates-file",
+                        "evidence_kind": (
+                            "OPERATOR_PROVIDED"
+                            if c.get("source") == "OPERATOR_PROVIDED"
+                            or c.get("source_kind") == "operator"
+                            else "EXTERNAL_VERIFIED"
+                        ),
+                        "is_suggested": bool(c.get("is_suggested")) or c.get("source") == "OPERATOR_PROVIDED",
+                    })
+                for rl in (payload.get("research_leads") or []):
+                    if not matches(
+                        rl.get("name"), rl.get("title"), rl.get("category"),
+                        rl.get("geography"), rl.get("inferred_pattern"),
+                        rl.get("relevance_to_swing_shack"), rl.get("opportunity_if_promoted"),
+                    ):
+                        continue
+                    results.append({
+                        "state": "RESEARCH_LEAD",
+                        "title": rl.get("name") or "(research lead)",
+                        "date": None,
+                        "end_date": None,
+                        "location": rl.get("geography"),
+                        "source": "research",
+                        "confidence": rl.get("confidence"),
+                        "why_it_matters": rl.get("relevance_to_swing_shack") or rl.get("opportunity_if_promoted"),
+                        "suggested_tier": rl.get("suggested_tier_if_promoted"),
+                        "recommended_lead_time_weeks": rl.get("recommended_lead_time_weeks"),
+                        "brand_id": brand_id,
+                        "candidate_id": rl.get("id"),
+                        "category": rl.get("category"),
+                        "origin": "research_leads",
+                        "evidence_kind": "SCOUT",
+                    })
+    except Exception:
+        pass
+
+    # Layer 5 — Existing Scout intelligence (intake store)
+    try:
+        if planning_dir:
+            intake_path = os.path.join(planning_dir, f"intake-{brand_id}.jsonl")
+            if os.path.exists(intake_path):
+                with open(intake_path, "r", encoding="utf-8") as fp:
+                    for line in fp:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            rec = json.loads(line)
+                        except Exception:
+                            continue
+                        if not matches(
+                            rec.get("title"), rec.get("name"), rec.get("category"),
+                            rec.get("geography"), rec.get("source"),
+                        ):
+                            continue
+                        results.append({
+                            "state": "CANDIDATE" if rec.get("status") == "candidate" else "WATCHLIST",
+                            "title": rec.get("title") or rec.get("name") or "(intake)",
+                            "date": rec.get("start") or rec.get("public_peak") or rec.get("event_date"),
+                            "end_date": rec.get("end") or rec.get("event_end"),
+                            "location": rec.get("geography") or rec.get("venue") or rec.get("location"),
+                            "source": rec.get("source_type") or rec.get("created_by") or "intake",
+                            "source_url": rec.get("source_url"),
+                            "confidence": rec.get("confidence"),
+                            "why_it_matters": rec.get("relevance_reason") or rec.get("why_it_matters"),
+                            "suggested_tier": rec.get("suggested_tier") or rec.get("tier"),
+                            "brand_id": brand_id,
+                            "candidate_id": rec.get("id") or rec.get("calendar_id"),
+                            "category": rec.get("category"),
+                            "origin": "intake-store",
+                            "evidence_kind": "SCOUT",
+                        })
+    except Exception:
+        pass
+
+    # Layer 4 — Strategic Moments / important dates
+    try:
+        from datetime import date as _date
+        today = _date.today()
+        years = [today.year, today.year + 1]
+        seen: set = set()
+        for yr in years:
+            for d in _read_important_dates(yr):
+                if d.get("status") == "demo":
+                    continue
+                title = d.get("event_name") or d.get("title") or d.get("name")
+                if not matches(title, d.get("type"), d.get("event_type"), d.get("venue"), d.get("category"), d.get("region")):
+                    continue
+                key = (d.get("start_date"), title)
+                if key in seen:
+                    continue
+                seen.add(key)
+                results.append({
+                    "state": "STRATEGIC_MOMENT",
+                    "title": title,
+                    "date": d.get("start_date") or d.get("date"),
+                    "end_date": d.get("end_date"),
+                    "location": d.get("venue") or d.get("region"),
+                    "source": d.get("source_name") or d.get("type") or "strategic-moment",
+                    "confidence": "deterministic",
+                    "why_it_matters": d.get("description") or d.get("relevance_reason"),
+                    "brand_id": brand_id,
+                    "category": d.get("type") or d.get("event_type"),
+                    "origin": "important-dates",
+                    "evidence_kind": "DETERMINISTIC",
+                })
+            for m in _read_golf_moments(yr):
+                title = m.get("event_name")
+                if not matches(title, m.get("venue"), m.get("status"), m.get("tier")):
+                    continue
+                key = (m.get("start_date"), title)
+                if key in seen:
+                    continue
+                seen.add(key)
+                results.append({
+                    "state": "STRATEGIC_MOMENT",
+                    "title": title,
+                    "date": m.get("start_date"),
+                    "end_date": m.get("end_date"),
+                    "location": m.get("venue"),
+                    "source": m.get("source_name") or "golf-moment",
+                    "confidence": "deterministic",
+                    "why_it_matters": m.get("notes"),
+                    "brand_id": brand_id,
+                    "category": "golf-moment",
+                    "origin": "golf-moments",
+                    "evidence_kind": "DETERMINISTIC",
+                })
+    except Exception:
+        pass
+
+    # Dedupe by (state, title, date)
+    seen_keys: set = set()
+    deduped: List[Dict[str, Any]] = []
+    for r in results:
+        k = (r.get("state"), r.get("title"), r.get("date"))
+        if k in seen_keys:
+            continue
+        seen_keys.add(k)
+        deduped.append(r)
+
+    state_order: Dict[str, int] = {
+        "ON_MAIN_CALENDAR": 0,
+        "CANDIDATE": 1,
+        "WATCHLIST": 2,
+        "RESEARCH_LEAD": 3,
+        "STRATEGIC_MOMENT": 4,
+    }
+    deduped.sort(key=lambda r: (state_order.get(str(r.get("state") or ""), 9), r.get("date") or "9999-99-99"))
+
+    counts: Dict[str, int] = {k: 0 for k in state_order.keys()}
+    for r in deduped:
+        s = str(r.get("state") or "")
+        counts[s] = counts.get(s, 0) + 1
+
+    search_more_available = (
+        len(deduped) == 0
+        or (
+            counts.get("CANDIDATE", 0) == 0
+            and counts.get("WATCHLIST", 0) == 0
+            and counts.get("ON_MAIN_CALENDAR", 0) == 0
+        )
+    )
+
+    return jsonify({
+        "ok": True,
+        "query": q,
+        "brand_id": brand_id,
+        "counts": counts,
+        "results": deduped[:50],
+        "search_more_available": search_more_available,
+        "search_more_action": "scout-research-existing-path",
+    }), 200
+
 
 @app.route("/api/planning/<brand_id>/candidates/<candidate_id>/approve", methods=["POST"])
 def planning_approve_candidate(brand_id, candidate_id):
