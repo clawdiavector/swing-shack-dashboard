@@ -388,6 +388,10 @@
           ],
           "description": "Key into typography/fonts.json scale. compose_post never hard-codes a px size."
         },
+        "font_file": {
+          "type": "string",
+          "description": "Brand-relative path to a .ttf; overrides font_role when set."
+        },
         "max_lines": {
           "type": "integer",
           "minimum": 1

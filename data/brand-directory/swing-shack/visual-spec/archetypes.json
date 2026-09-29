@@ -885,6 +885,7 @@
           "kind": "text",
           "source": "price_labels",
           "font_role": "h3",
+          "font_file": "typography/fonts/Montserrat-Italic.ttf",
           "max_font_px": 72,
           "min_font_px": 72,
           "max_lines": 4,
@@ -915,12 +916,7 @@
           "text_transform": "uppercase",
           "align": "left",
           "valign": "top",
-          "colour_options": [
-            "ss_green",
-            "ss_orange",
-            "ss_blue",
-            "ss_purple"
-          ],
+          "colour": "ss_green",
           "h_scale": 0.97,
           "wrap": "explicit"
         },
@@ -952,12 +948,7 @@
           "text_transform": "uppercase",
           "align": "left",
           "valign": "top",
-          "colour_options": [
-            "ss_green",
-            "ss_orange",
-            "ss_blue",
-            "ss_purple"
-          ],
+          "colour": "ss_green",
           "h_scale": 0.9
         },
         "url": {
@@ -981,6 +972,82 @@
           "valign": "top",
           "colour": "white",
           "h_scale": 0.9
+        }
+      },
+      "canvas_overrides": {
+        "ig_story": {
+          "logo": {
+            "kind": "image",
+            "rect": {
+              "x0": 0.0972,
+              "y0": 0.2353,
+              "x1": 0.2609,
+              "y1": 0.2822
+            }
+          },
+          "title": {
+            "kind": "text",
+            "rect": {
+              "x0": 0.0796,
+              "y0": 0.2999,
+              "x1": 0.6725,
+              "y1": 0.3941
+            }
+          },
+          "rule_top": {
+            "kind": "band",
+            "rect": {
+              "x0": 0.0768,
+              "y0": 0.4222,
+              "x1": 0.8844,
+              "y1": 0.4264
+            }
+          },
+          "list_labels": {
+            "kind": "text",
+            "rect": {
+              "x0": 0.0777,
+              "y0": 0.4732,
+              "x1": 0.5014,
+              "y1": 0.6106
+            }
+          },
+          "list_values": {
+            "kind": "text",
+            "rect": {
+              "x0": 0.629,
+              "y0": 0.4732,
+              "x1": 0.88,
+              "y1": 0.6106
+            }
+          },
+          "rule_bottom": {
+            "kind": "band",
+            "rect": {
+              "x0": 0.0768,
+              "y0": 0.6507,
+              "x1": 0.8844,
+              "y1": 0.6548
+            }
+          },
+          "cta": {
+            "kind": "text",
+            "rect": {
+              "x0": 0.0768,
+              "y0": 0.6934,
+              "x1": 0.7354,
+              "y1": 0.7152
+            }
+          },
+          "url": {
+            "kind": "text",
+            "rect": {
+              "x0": 0.0796,
+              "y0": 0.7381,
+              "x1": 0.7327,
+              "y1": 0.7573
+            }
+          }
         }
       },
       "logo_anchor": {

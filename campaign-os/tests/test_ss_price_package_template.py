@@ -14,6 +14,8 @@ from _lib.archetypes import archetype_by_id
 
 BRAND = "swing-shack"
 GREEN = np.array([0x74, 0xCB, 0x46])
+BLUE = np.array([0x64, 0xA3, 0xF0])
+WHITE = np.array([255, 255, 255])
 
 
 PACKAGE_FIELDS = {
@@ -29,7 +31,7 @@ LIST_FIELDS = {
     "caption_hook": "Coaching packages",
     "price_labels": "1x session|3x sessions|5x sessions|10x sessions",
     "price_values": "R 820|R 2350|R 3850|R 7200",
-    "cta": "DM us for details",
+    "cta": "Book online or DM us",
     "accent": "ss_blue",
 }
 
@@ -97,6 +99,77 @@ def test_accent_is_deterministic_with_override(pkg: dict):
 def test_rate_list_renders(rate_list: dict):
     out = _render(rate_list, LIST_FIELDS, ["instagram"])
     assert out["instagram"].size == (1080, 1350)
+
+
+def test_price_list_platform_canvases(rate_list: dict):
+    out = _render(rate_list, LIST_FIELDS, ["instagram", "instagram_story", "facebook"])
+    assert {k: v.size for k, v in out.items()} == {
+        "instagram": (1080, 1350),
+        "instagram_story": (1080, 1920),
+        "facebook": (1080, 1350),
+    }
+
+
+def test_price_list_story_url_not_clipped(rate_list: dict):
+    img = np.asarray(_render(rate_list, LIST_FIELDS, ["instagram_story"])["instagram_story"]).astype(int)
+    y0 = int(0.7381 * 1920)
+    y1 = int(0.7573 * 1920)
+    band = img[y0:y1, :, :]
+    white = np.abs(band - WHITE).sum(axis=2) < 60
+    rows = np.nonzero(white.any(axis=1))[0]
+    assert rows.size > 0, "URL line not drawn in story url band"
+    assert int(rows.max()) + y0 < 1920 - 34, "story URL clipped below frame inset"
+
+
+def test_price_list_value_column_not_clipped(rate_list: dict):
+    fields = {
+        **LIST_FIELDS,
+        "price_values": "R 820|R 2350|R 3850|R 9500",
+    }
+    img = np.asarray(_render(rate_list, fields, ["instagram"])["instagram"]).astype(int)
+    mask = np.abs(img - GREEN).sum(axis=2) < 80
+    cols = np.nonzero(mask.any(axis=0))[0]
+    assert cols.size > 0
+    assert int(cols.max()) < 1080 - 36
+
+
+def test_price_list_rows_align(rate_list: dict):
+    img = np.asarray(_render(rate_list, LIST_FIELDS, ["instagram"])["instagram"]).astype(int)
+    label_rows: list[int] = []
+    value_rows: list[int] = []
+    for y in range(620, 890):
+        labels = img[y, 80:540, :]
+        values = img[y, 679:936, :]
+        if np.abs(labels - WHITE).sum(axis=1).min() < 60:
+            if not label_rows or y - label_rows[-1] > 8:
+                label_rows.append(y)
+        if np.abs(values - GREEN).sum(axis=1).min() < 80:
+            if not value_rows or y - value_rows[-1] > 8:
+                value_rows.append(y)
+    assert len(label_rows) >= 4 and len(value_rows) >= 4
+    for ly, vy in zip(label_rows[:4], value_rows[:4]):
+        assert abs(ly - vy) <= 4, f"row misaligned at label y={ly} value y={vy}"
+
+
+def test_price_list_accent_is_deterministic(rate_list: dict):
+    a = compose_post_for_channels(
+        brand_id=BRAND, archetype=rate_list, channels=["instagram"], fields=LIST_FIELDS, photo_bytes=None
+    )["instagram"]
+    b = compose_post_for_channels(
+        brand_id=BRAND, archetype=rate_list, channels=["instagram"], fields=LIST_FIELDS, photo_bytes=None
+    )["instagram"]
+    assert a == b
+
+
+def test_price_list_title_and_prices_use_two_accents(rate_list: dict):
+    img = np.asarray(_render(rate_list, LIST_FIELDS, ["instagram"])["instagram"]).astype(int)
+    title_band = img[289:472, 80:730, :]
+    blue_hit = np.abs(title_band - BLUE).sum(axis=2) < 80
+    assert blue_hit.any(), "title should use ss_blue accent"
+    price_band = img[623:886, 679:936, :]
+    green_hit = np.abs(price_band - GREEN).sum(axis=2) < 80
+    assert green_hit.any(), "price column should stay ss_green"
+    assert not (np.abs(title_band - GREEN).sum(axis=2) < 80).any(), "title should not be green"
 
 
 def _ctx(monkeypatch, *, pillar_id: str, post_type: str = "", template_id: str = "") -> str:

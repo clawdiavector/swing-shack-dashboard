@@ -184,6 +184,21 @@ def _load_brand_font(brand_id: str, role: str, size: int):
         return None
 
 
+def _load_zone_font(brand_id: str, zone: dict, role: str, size: int):
+    """Load font for a zone; optional font_file overrides font_role lookup."""
+    ff = zone.get("font_file") if isinstance(zone, dict) else None
+    if isinstance(ff, str) and ff.strip():
+        path = _resolve_brand_relative(brand_id, ff.strip())
+        if path and ImageFont is not None:
+            layout = getattr(ImageFont, "Layout", None)
+            engine = layout.RAQM if layout is not None else ImageFont.LAYOUT_BASIC
+            try:
+                return ImageFont.truetype(str(path), size=size, layout_engine=engine)
+            except Exception:
+                pass
+    return _load_brand_font(brand_id, role, size)
+
+
 def _load_font(font_path: Optional[str], size: int, *, allow_default: bool = True):
     if ImageFont is None:
         return None

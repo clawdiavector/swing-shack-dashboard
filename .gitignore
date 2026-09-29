@@ -63,3 +63,7 @@ data/paid-media-v24/
 data/analytics/ga4-sessions.json
 data/analytics/ga4-pages.json
 
+
+# Agent job kit (per skill: copy-kit)
+.agent-job.json
+.agent-job/

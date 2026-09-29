@@ -43,15 +43,6 @@ PACKAGE_CASES = [
     },
 ]
 
-LIST_FIELDS = {
-    "caption_hook": "Coaching packages",
-    "price_labels": "1x session|3x sessions|5x sessions|10x sessions",
-    "price_values": "R 820|R 2350|R 3850|R 7200",
-    "cta": "DM us for details",
-    "accent": "ss_blue",
-}
-
-
 def _sheet(*, pack: Path, arch_id: str, cases: list[dict], ref_count: int) -> None:
     arch = archetype_by_id("swing-shack", arch_id)
     if not arch:
@@ -88,12 +79,6 @@ def main() -> int:
         arch_id="ss-price-package",
         cases=PACKAGE_CASES,
         ref_count=3,
-    )
-    _sheet(
-        pack=ROOT / "data/brand-directory/swing-shack/templates/price-list",
-        arch_id="ss-price-list",
-        cases=[LIST_FIELDS],
-        ref_count=1,
     )
     return 0
 

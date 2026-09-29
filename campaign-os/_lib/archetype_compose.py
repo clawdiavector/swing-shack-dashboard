@@ -16,6 +16,7 @@ from _lib.brand_overlay import (
     _find_logo,
     _hex_to_rgba,
     _load_brand_font,
+    _load_zone_font,
     _load_image,
     _load_image_from_bytes,
 )
@@ -286,10 +287,10 @@ def _fit_font_size(
     best_emph = None
     while lo <= hi:
         mid = (lo + hi) // 2
-        body = _load_brand_font(brand_id, role, mid)
+        body = _load_zone_font(brand_id, zone, role, mid)
         if body is None:
             raise ComposeError(f"unresolved font role {role}")
-        emph = _load_brand_font(brand_id, emph_role, mid) if emphasis else None
+        emph = _load_zone_font(brand_id, zone, emph_role, mid) if emphasis else None
         track = _tracking_px(zone, mid)
         try:
             wrap_mode = str(zone.get("wrap") or "")
