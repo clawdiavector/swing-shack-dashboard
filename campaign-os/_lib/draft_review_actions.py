@@ -94,11 +94,34 @@ def _load_brand_rel_photo(brand_id: str, rel: str) -> bytes | None:
     return None
 
 
+def _first_library_photo_bytes(brand_id: str, library_rel: str) -> bytes | None:
+    from _lib.brand_overlay import _candidate_brand_dirs
+
+    rel_dir = library_rel.strip().strip("/")
+    if not rel_dir:
+        return None
+    suffixes = (".jpg", ".jpeg", ".png", ".webp")
+    for root in _candidate_brand_dirs(brand_id):
+        base = root / rel_dir
+        if not base.is_dir():
+            continue
+        files = sorted(p for p in base.iterdir() if p.is_file() and p.suffix.lower() in suffixes)
+        if files:
+            return files[0].read_bytes()
+    return None
+
+
 def _default_template_venue_bytes(brand_id: str, archetype_id: str) -> bytes | None:
     rel = _SS_TEMPLATE_VENUE_REL.get(archetype_id or "")
-    if not rel:
-        return None
-    return _load_brand_rel_photo(brand_id, rel)
+    if rel:
+        return _load_brand_rel_photo(brand_id, rel)
+    from _lib.archetypes import archetype_by_id
+
+    arch = archetype_by_id(brand_id, archetype_id) or {}
+    bg = arch.get("background") if isinstance(arch.get("background"), dict) else {}
+    if bg.get("kind") == "photo_full_bleed" and bg.get("library"):
+        return _first_library_photo_bytes(brand_id, str(bg.get("library") or ""))
+    return None
 
 
 def resolve_compose_photo_bytes(

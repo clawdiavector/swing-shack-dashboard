@@ -37,7 +37,12 @@ def create_actions_for_moment(
         image_actions.append("draft_gen_slots")
     else:
         archetype = select_archetype(brand_id, item_id)
-        if archetype.get("applies_to", {}).get("needs_photo", True):
+        needs_photo = archetype.get("applies_to", {}).get("needs_photo", True)
+        bg = archetype.get("background") if isinstance(archetype.get("background"), dict) else {}
+        template_library = (
+            bg.get("kind") == "photo_full_bleed" and bool(str(bg.get("library") or "").strip())
+        )
+        if needs_photo and not template_library:
             image_actions.append("draft_photo")
     image_actions.append("compose_post")
 
