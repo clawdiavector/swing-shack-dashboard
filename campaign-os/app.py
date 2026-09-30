@@ -112,6 +112,7 @@ DUAL_AUTH_PREFIXES = (
     '/api/calendar/context/',
     '/api/calendar/v3/scout/',
     '/api/ops/images-today/',
+    '/api/ops/moments/',
     '/api/drafts/',
 )
 
