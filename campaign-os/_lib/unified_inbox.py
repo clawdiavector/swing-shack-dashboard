@@ -1199,6 +1199,29 @@ def _compute_flags(
     return flags
 
 
+def _planning_review_inbox_item_id(
+    draft: dict[str, Any] | None,
+    queue_rows: list[dict[str, Any]],
+) -> str | None:
+    """Deep-link id for Planning → Review when draft left review_inbox but sandbox has QC rows."""
+    if queue_rows:
+        for row in queue_rows:
+            key = str(row.get("idempotency_key") or row.get("queue_id") or "")
+            if not key:
+                continue
+            platform = str(row.get("platform") or "").lower()
+            if platform == "instagram" or key.endswith("-instagram"):
+                return _item_id("publish_request", key)
+        row = queue_rows[0]
+        key = str(row.get("idempotency_key") or row.get("queue_id") or "")
+        if key:
+            return _item_id("publish_request", key)
+    if draft:
+        link = str(draft.get("inbox_item_id") or "").strip()
+        return link or None
+    return None
+
+
 def _next_action_for_state(state: str, *, needs_fix_reason: str | None) -> str:
     if state == "needs_fix" and needs_fix_reason:
         return needs_fix_reason
@@ -1275,9 +1298,9 @@ def post_state(
         "stage": stage,
         "go_live_date": go_live,
         "inbox_item_id": (
-            draft.get("inbox_item_id")
-            if draft
-            else _inbox_ref_for_cal(brand_id=index.brand_id, cal_id=cal_id)
+            _planning_review_inbox_item_id(draft, queue_rows)
+            or (draft.get("inbox_item_id") if draft else None)
+            or _inbox_ref_for_cal(brand_id=index.brand_id, cal_id=cal_id)
         ),
         "asset_id": draft.get("asset_id") if draft else None,
         "image_url": image_url,

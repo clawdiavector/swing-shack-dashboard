@@ -330,11 +330,15 @@ def _is_job_authed():
 
 
 def _is_inbox_dual_auth_path(path: str) -> bool:
-    """L4 unified inbox: list + per-item approve/reject/edit (not stub routes)."""
+    """L4 unified inbox: list + lookup + per-item approve/reject/edit."""
     if path == '/api/inbox/unified':
         return True
-    if path.startswith('/api/inbox/unified/') and path.endswith(_INBOX_DUAL_AUTH_SUFFIXES):
-        return True
+    if path.startswith('/api/inbox/unified/'):
+        if path.endswith(_INBOX_DUAL_AUTH_SUFFIXES):
+            return True
+        rest = path[len('/api/inbox/unified/'):]
+        if rest and '/' not in rest:
+            return True
     return False
 
 
@@ -18681,6 +18685,25 @@ def inbox_unified_list():
         return jsonify(payload), 200
     except Exception as e:
         _app_log.exception("inbox_unified_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified/<path:item_id>', methods=['GET'])
+def inbox_unified_get_item(item_id: str):
+    """GET /api/inbox/unified/<id> — resolve one inbox row (incl. calendar-only drafts)."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+
+        item = _unified_inbox_mod.find_item(item_id)
+        if not item:
+            return jsonify({"ok": False, "error": "inbox item not found", "item": None}), 404
+        return jsonify({"ok": True, "item": item}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_unified_get_item failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

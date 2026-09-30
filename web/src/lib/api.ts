@@ -500,8 +500,27 @@ export function matchInboxItem(item: InboxItem, id: string) {
 }
 
 export async function fetchInboxItem(id: string, brand?: string) {
+  const brandQ = brand?.trim() ? `?brand=${encodeURIComponent(brand.trim())}` : ''
+  try {
+    const lookup = await getJson<{ ok?: boolean; item?: InboxItem | null }>(
+      `/api/inbox/unified/${encodeURIComponent(id)}${brandQ}`,
+    )
+    if (lookup.item) return lookup.item
+  } catch {
+    /* fall back to list scan */
+  }
   const all = await fetchInbox('all', brand)
-  return (all.items || []).find((item) => matchInboxItem(item, id)) || null
+  let found = (all.items || []).find((item) => matchInboxItem(item, id)) ?? null
+  if (!found && id.startsWith('draft_asset:')) {
+    const assetId = id.split(':').pop() || ''
+    if (assetId) {
+      found =
+        (all.items || []).find(
+          (item) => item.type === 'publish_request' && item.meta?.asset_id === assetId,
+        ) ?? null
+    }
+  }
+  return found
 }
 
 /** Review piece route — carry brand so all-brands inbox lookups stay scoped. */

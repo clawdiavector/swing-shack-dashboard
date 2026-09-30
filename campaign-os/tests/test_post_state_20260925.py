@@ -366,6 +366,78 @@ class PostStateTests(unittest.TestCase):
         assert found is not None
         self.assertEqual(found["meta"]["image_url"], composed_url)
 
+    def test_planning_links_publish_request_when_sandbox_queued(self):
+        """Posts enqueued for QC should open publish_request in Review, not missing draft_asset."""
+        from _lib import publish_sandbox, unified_inbox
+
+        cal_id = "cal-stick-queued-link"
+        self._write_moment(
+            {
+                "calendar_id": cal_id,
+                "brand_id": "stick",
+                "type": "moment",
+                "status": "approved",
+                "title": "COACHING @ stick — service start",
+                "event_date": "2026-10-01",
+                "primary_channel": "instagram",
+            }
+        )
+        campaign_id = "cos-drafts-stick"
+        asset_id = "draft-queued-link"
+        (self.tmpdir / "campaign-data.json").write_text(
+            json.dumps(
+                {
+                    "campaigns": {
+                        campaign_id: {
+                            "assets": {
+                                asset_id: {
+                                    "caption": "Caption",
+                                    "approvalStatus": "draft",
+                                    "platform": "instagram",
+                                }
+                            }
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        sidecar_dir = self.tmpdir / "draft-assets"
+        sidecar_dir.mkdir(parents=True, exist_ok=True)
+        inbox_ref = f"calendar_candidate:stick:{cal_id}"
+        (sidecar_dir / f"{asset_id}.json").write_text(
+            json.dumps(
+                {
+                    "asset_id": asset_id,
+                    "campaign_id": campaign_id,
+                    "brand_id": "stick",
+                    "source_inbox_item_id": inbox_ref,
+                    "composed": {"instagram": "https://cdn.example.com/x.png"},
+                }
+            ),
+            encoding="utf-8",
+        )
+        publish_sandbox.enqueue_item(
+            brand_id="stick",
+            inbox_item_id=inbox_ref,
+            human_approved=False,
+            idempotency_key=f"qc-{asset_id}-instagram",
+        )
+
+        index = unified_inbox.build_post_index(brand_id="stick")
+        record = next(
+            r
+            for r in __import__("_lib.marketing_calendar", fromlist=["canonical_records"]).canonical_records(
+                "stick"
+            )
+            if r.get("calendar_id") == cal_id
+        )
+        out = unified_inbox.post_state(record, index=index)
+        self.assertEqual(
+            out.get("inbox_item_id"),
+            f"publish_request:qc-{asset_id}-instagram",
+        )
+
     def test_week_past_window_and_undated(self):
         from _lib import unified_inbox
 

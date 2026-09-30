@@ -37,16 +37,62 @@ describe('fetchInboxItem', () => {
     vi.unstubAllGlobals()
   })
 
-  it('uses one status=all unified fetch scoped by brand', async () => {
+  it('uses lookup then status=all unified fetch scoped by brand', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+          json: async () => ({ ok: false, item: null }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: [{ id: 'draft_asset:swing-shack:1', brand_id: 'swing-shack' }],
+          }),
+        }),
+    )
     const item = await fetchInboxItem('draft_asset:swing-shack:1', 'swing-shack')
     expect(item?.id).toBe('draft_asset:swing-shack:1')
     const fetchMock = vi.mocked(fetch)
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    const url = String(fetchMock.mock.calls[0]?.[0])
-    expect(url).toContain('/api/inbox/unified?')
-    expect(url).toContain('status=all')
-    expect(url).toContain('brand=swing-shack')
-    expect(url).not.toContain('status=pending')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const lookupUrl = String(fetchMock.mock.calls[0]?.[0])
+    expect(lookupUrl).toContain('/api/inbox/unified/draft_asset%3Aswing-shack%3A1')
+    const listUrl = String(fetchMock.mock.calls[1]?.[0])
+    expect(listUrl).toContain('/api/inbox/unified?')
+    expect(listUrl).toContain('status=all')
+    expect(listUrl).toContain('brand=swing-shack')
+  })
+
+  it('falls back to publish_request when draft_asset id missing from list', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+          json: async () => ({ ok: false }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: [
+              {
+                id: 'publish_request:qc-draft-x-instagram',
+                type: 'publish_request',
+                meta: { asset_id: 'draft-x' },
+              },
+            ],
+          }),
+        }),
+    )
+    const item = await fetchInboxItem('draft_asset:cos-drafts-stick:draft-x', 'stick')
+    expect(item?.id).toBe('publish_request:qc-draft-x-instagram')
   })
 })
 
