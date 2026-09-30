@@ -9,6 +9,7 @@ import { Publish } from './pages/Publish'
 import { Results } from './pages/Results'
 import { Review } from './pages/Review'
 import { LongFormReview } from './pages/LongFormReview'
+import { default as PublishLongForm } from './pages/PublishLongForm'
 import { ReviewPiece } from './pages/ReviewPiece'
 import { Shelf } from './pages/Shelf'
 import { Ops } from './pages/Ops'
@@ -43,6 +44,9 @@ export default function App() {
         <Route path="review" element={<Review />} />
         <Route path="review/long-form" element={<LongFormReview />} />
         <Route path="review/long-form/:draftId" element={<LongFormReview />} />
+        <Route path="publish/long-form" element={<PublishLongForm />} />
+        <Route path="publish/long-form/:brandId/:publishId" element={<PublishLongForm />} />
+        <Route path="publish/long-form/:publishId" element={<PublishLongForm />} />
         <Route path="review/:itemId" element={<ReviewPiece />} />
         <Route path="shelf" element={<Shelf />} />
         <Route path="create" element={<Create />} />
