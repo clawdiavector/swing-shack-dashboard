@@ -36,7 +36,10 @@ def _p06a_dir() -> Path:
 
 
 def _brand_dir(brand_id: str) -> Path:
-    return Path(_data_dir()) / "brand-directory" / brand_id
+    runtime = Path(_data_dir()) / "brand-directory" / brand_id
+    if runtime.exists():
+        return runtime
+    return Path(__file__).resolve().parents[2] / "data" / "brand-directory" / brand_id
 
 
 # ─── Constants ──────────────────────────────────────────────────────────
@@ -836,23 +839,14 @@ def _load_brand_rules(brand_id: str) -> dict:
 
 
 def _extract_banned_terms(brand_id: str) -> List[str]:
-    from _lib.caption_copy_contract import merged_banned_terms  # noqa: PLC0415
+    from _lib.caption_copy_contract import (  # noqa: PLC0415
+        merged_banned_terms,
+        parse_dont_say_markdown,
+    )
 
     bdir = _brand_dir(brand_id) / "voice" / "do-say-dont-say.md"
     txt = _read_text(bdir)
-    banned: list[str] = []
-    if txt:
-        in_dont = False
-        for line in txt.split("\n"):
-            if "## Don't say" in line or "## Banned" in line:
-                in_dont = True
-                continue
-            if in_dont and line.startswith("## "):
-                in_dont = False
-            if in_dont and (line.strip().startswith("❌") or line.strip().startswith("- ❌")):
-                clean = re.sub(r"^[-\s❌]+", "", line).strip().strip('"').strip("'").strip("`")
-                if clean and len(clean) < 80:
-                    banned.append(clean)
+    banned = parse_dont_say_markdown(txt) if txt else []
     banned.append("—")
     return merged_banned_terms(brand_id, list({b for b in banned if b}))
 
@@ -870,7 +864,11 @@ def _extract_required_terms(brand_id: str) -> List[str]:
             continue
         if in_do and line.startswith("## "):
             in_do = False
-        if in_do and (line.strip().startswith("✅") or line.strip().startswith("- ✅")):
+        if in_do and (
+            line.strip().startswith("✅")
+            or line.strip().startswith("- ✅")
+            or line.strip().startswith("- ")
+        ):
             clean = re.sub(r"^[-\s✅]+", "", line).strip()
             if clean and len(clean) < 80:
                 required.append(clean)
@@ -1122,6 +1120,10 @@ def build_generation_context(
     brand_knowledge = _load_brand_knowledge(brand_id)
     is_session_brief = _is_subject_brief_session_fact(user_brief or "")
 
+    from _lib.brand_bible import bible_copy_slice  # noqa: PLC0415
+
+    bible_slice = bible_copy_slice(brand_id, "caption").get("copy_system") or {}
+
     # ── Split facts by relevance to brief_subject ───────────────────
     GLOBAL_FACTS = {
         "brand_id": brand_id,
@@ -1142,6 +1144,7 @@ def build_generation_context(
             if brand_id in ("stick", "bag-drop") else None
         ),
         "banned_terms": banned,
+        "bible": bible_slice,
     }
 
     # SERVICE FACTS — only relevant when brief matches a service keyword
@@ -1748,6 +1751,32 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
     structural_top = (ctx.get("structural_history", {}) or {}).get("families", [])[:3]
     structural_openers = [o.get("opener", "")[:40] for o in structural_top]
 
+    bible = b.get("bible") if isinstance(b.get("bible"), dict) else {}
+    bible_lines: list[str] = []
+    if bible.get("voice_in_5_words"):
+        bible_lines.append(
+            f"Voice in 5 words: {', '.join(bible['voice_in_5_words'])}"
+        )
+    if bible.get("humour"):
+        bible_lines.append(f"Humour rule: {bible['humour']}")
+    if bible.get("emoji_policy"):
+        bible_lines.append(f"Emoji policy: {bible['emoji_policy']}")
+    if bible.get("personality_never"):
+        bible_lines.append(
+            f"Never sound like: {', '.join(bible['personality_never'][:8])}"
+        )
+    if bible.get("signature_lines"):
+        bible_lines.append(
+            f"Signature lines: {' | '.join(bible['signature_lines'][:6])}"
+        )
+    if bible.get("approved_ctas"):
+        bible_lines.append(
+            f"Approved CTAs: {' | '.join(bible['approved_ctas'][:8])}"
+        )
+    if bible.get("master_message"):
+        bible_lines.append(f"Master message: {bible['master_message']}")
+    bible_block = ("\n".join(bible_lines) + "\n") if bible_lines else ""
+
     system = (
         f"You write captions for the brand {b['label']} ({b['brand_id']}).\n"
         f"Personality: {b['personality']}\n"
@@ -1755,6 +1784,7 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
         f"Allowed tones: {', '.join(b['allowed_tones'])}\n"
         f"Default CTA: {b['cta_default']}\n"
         f"Hashtags (use sparingly): {', '.join(b['hashtag_suggestions'])}\n"
+        f"{bible_block}"
         f"\n"
         f"BANNED phrases (never use): {' | '.join(b.get('banned_terms', [])[:10])}\n"
         f"EM DASH BANNED. Use pipes | / commas / full stops / colons.\n"
@@ -2088,10 +2118,13 @@ def _check_fact(candidate: str, ctx: dict) -> dict:
     causal_terms = ["proves", "guarantee", "guarantees", "guaranteed",
                     "the truth", "nobody tells", "the only way"]
     cl = candidate.lower()
+    brand_id = str(ctx.get("brand_id") or "")
+    from _lib.caption_copy_contract import allow_signature_line  # noqa: PLC0415
+
     for t in causal_terms:
         if t in cl:
-            # Allow "the truth" only when paired with the structural family;
-            # otherwise flag as unsupported causal claim.
+            if t == "the truth" and brand_id and allow_signature_line(brand_id, candidate):
+                continue
             fails.append(f"causal_certainty:{t}")
     # 5. Unguarded specific dates
     if re.search(r"\b\d{1,2}\s+(January|February|March|April|May|June|July|"
@@ -2325,7 +2358,7 @@ def run_caption_pipeline(request: dict) -> dict:
     survivors = []
     rejects = {"exact": [], "structural": [], "semantic": [],
                "brand": [], "fact": [], "brief_fidelity": [], "locale": [],
-               "copy_contract": [], "alignment": []}
+               "copy_contract": [], "alignment": [], "phrase_gate": []}
     locale_rejects = 0
     detailed_rejects = []
 
@@ -2394,6 +2427,15 @@ def run_caption_pipeline(request: dict) -> dict:
                 checks["alignment"] = al
                 if not al["passed"]:
                     rejects["alignment"].append(c["candidate_id"])
+                    passed_all = False
+            if passed_all:
+                from _lib.caption_copy_contract import gate_copy_package  # noqa: PLC0415
+
+                pkg = c.get("copy_package") if isinstance(c.get("copy_package"), dict) else None
+                pg = gate_copy_package(ctx["brand_id"], pkg, ctx=ctx)
+                checks["phrase_gate"] = pg
+                if not pg["passed"]:
+                    rejects["phrase_gate"].append(c["candidate_id"])
                     passed_all = False
 
         # Extract proposition + tension + evidence for survivors

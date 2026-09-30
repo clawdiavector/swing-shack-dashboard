@@ -10,10 +10,9 @@
 
 ## Soft CTAs (no URL, awareness-only)
 1. `TrackMan doesn't lie.`
-2. `Your clubs deserve better than you.`
-3. `The bay doesn't lie.`
-4. `Data over hope.`
-5. `Fit first. Hit second.`
+2. `The bay doesn't lie.`
+3. `Data over hope.`
+4. `Fit first. Hit second.`
 
 ## CTA selection rules
 - **Educational posts** → use a hard CTA (book a session).

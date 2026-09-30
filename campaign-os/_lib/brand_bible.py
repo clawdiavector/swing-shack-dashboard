@@ -20,9 +20,9 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime
+from os import environ
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
 
 STRUCTURED_FIELDS = [
     "voice", "visual_language", "colours", "typography",
@@ -31,42 +31,44 @@ STRUCTURED_FIELDS = [
     "approved_examples", "rejected_examples",
 ]
 
-
-def _data_root() -> Path:
-    from os import environ
-    candidates = []
-    bundled = environ.get("BUNDLED_DATA_DIR")
-    if bundled:
-        candidates.append(Path(bundled))
-    candidates.append(Path(environ.get("DATA_DIR") or "/data/campaign-os"))
-    candidates.append(Path(
-        "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data"
-    ))
-    for c in candidates:
-        if c.exists():
-            return c
-    return candidates[-1]
+_REPO_DATA = Path(__file__).resolve().parents[2] / "data"
 
 
-def _bible_path(brand_id: str) -> Path:
-    return _data_root() / "brand-directory" / brand_id / "bible-intelligence.json"
+def _runtime_data_dir() -> Path:
+    return Path(environ.get("DATA_DIR") or "/data/campaign-os")
+
+
+def _bible_path(brand_id: str) -> Path | None:
+    """Resolve bible-intelligence.json: runtime volume first, then bundled repo data."""
+    runtime = _runtime_data_dir() / "brand-directory" / brand_id / "bible-intelligence.json"
+    if runtime.exists():
+        return runtime
+    bundled = _REPO_DATA / "brand-directory" / brand_id / "bible-intelligence.json"
+    if bundled.exists():
+        return bundled
+    return None
+
+
+def _save_bible_path(brand_id: str) -> Path:
+    p = _runtime_data_dir() / "brand-directory" / brand_id / "bible-intelligence.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    return p
 
 
 def get_bible(brand_id: str) -> Optional[Dict[str, Any]]:
     """Return the structured brand bible, or None if not yet uploaded."""
     p = _bible_path(brand_id)
-    if not p.exists():
+    if not p:
         return None
     try:
-        return json.loads(p.read_text())
+        return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return None
 
 
 def save_bible(brand_id: str, bible: Dict[str, Any], *, format: str = "structured") -> Dict[str, Any]:
     """Save a structured brand bible. Returns the saved bible with metadata."""
-    p = _bible_path(brand_id)
-    p.parent.mkdir(parents=True, exist_ok=True)
+    p = _save_bible_path(brand_id)
 
     # If format is "markdown", parse it
     if format == "markdown":
@@ -89,8 +91,10 @@ def save_bible(brand_id: str, bible: Dict[str, Any], *, format: str = "structure
     # Ensure all structured fields exist
     for f in STRUCTURED_FIELDS:
         bible.setdefault(f, [] if f in ("colours", "creative_properties", "approved_examples", "rejected_examples") else "")
+    bible.setdefault("copy_system", {})
+    bible.setdefault("litmus_test", [])
 
-    p.write_text(json.dumps(bible, indent=2, default=str))
+    p.write_text(json.dumps(bible, indent=2, default=str), encoding="utf-8")
     return bible
 
 
@@ -168,6 +172,19 @@ def extract_from_freeform(text: str) -> Dict[str, Any]:
     return out
 
 
+_CAPTION_COPY_KEYS = (
+    "voice_in_5_words", "sentence_length", "humour", "technical_depth",
+    "emoji_policy", "punctuation", "personality_never", "signature_lines",
+    "master_message", "supporting_messages", "approved_ctas",
+    "approved_headlines", "banned_phrases",
+)
+
+_POSTER_COPY_KEYS = (
+    "signature_lines", "approved_ctas", "approved_headlines",
+    "banned_phrases", "punctuation",
+)
+
+
 def retrieve_for_job(brand_id: str, *, lane: str = "product", job_type: str = "apparel", product_category: str = "") -> Dict[str, Any]:
     """Return only the bible fields relevant to a specific job.
 
@@ -184,6 +201,20 @@ def retrieve_for_job(brand_id: str, *, lane: str = "product", job_type: str = "a
         "last_updated": bible.get("last_updated"),
         "fields": {},
     }
+
+    if lane == "caption":
+        cs = bible.get("copy_system") or {}
+        out["fields"]["copy_system"] = {
+            k: cs.get(k) for k in _CAPTION_COPY_KEYS if cs.get(k)
+        }
+        return out
+
+    if lane == "poster":
+        cs = bible.get("copy_system") or {}
+        out["fields"]["copy_system"] = {
+            k: cs.get(k) for k in _POSTER_COPY_KEYS if cs.get(k)
+        }
+        return out
 
     # Always-on: voice, visual_language, logo_rules
     out["fields"]["voice"] = bible.get("voice", "")
@@ -211,6 +242,18 @@ def retrieve_for_job(brand_id: str, *, lane: str = "product", job_type: str = "a
         out["fields"]["creative_properties"] = bible.get("creative_properties", [])
 
     return out
+
+
+def bible_copy_slice(brand_id: str, lane: str) -> dict[str, Any]:
+    """Thin wrapper for P11 / gates; never raises."""
+    try:
+        row = retrieve_for_job(brand_id, lane=lane)
+        if not row.get("available"):
+            return {}
+        fields = row.get("fields")
+        return fields if isinstance(fields, dict) else {}
+    except Exception:
+        return {}
 
 
 def get_bible_meta(brand_id: str) -> Dict[str, Any]:

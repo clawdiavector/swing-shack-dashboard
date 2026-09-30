@@ -3,14 +3,16 @@
   "version": "1.0",
   "owner": "caption_studio_v2",
   "description": "Voice personas for Swing Shack content. Each voice carries tone templates, CTA defaults, allowed tones, and meme fit signals drawn from meme_knowledge.json voice_fit tags. Used by Caption Studio v2 to generate voice-aware captions.",
-  "updated": "2026-07-28T00:00:00Z",
+  "updated": "2026-09-30T00:00:00Z",
+  "note": "Personality, CTAs, and signature lines authority moved to bible-intelligence.json#copy_system per cos-brand-bible 2026-09-30.",
   "voices": {
     "swing-shack": {
       "id": "swing-shack",
       "label": "Swing Shack",
-      "description": "Data-driven coach voice. Confident, educational, no-nonsense. References TrackMan data, fitting truth, evidence-based results.",
-      "personality": "data-driven coach, confident, educational, no-nonsense",
-      "template_prefix": "⛳ Here's the data-backed truth:",
+      "authority": "bible-intelligence.json#copy_system",
+      "description": "Warm, data-backed coach voice. TrackMan and fitting truth with wit; never at the golfer's expense.",
+      "personality": "warm, knowledgeable, witty, useful, confident",
+      "template_prefix": "",
       "template_suffix": "TrackMan doesn't lie.",
       "cta_default": "Book your session → swingshack.co.za",
       "cta_alternatives": [
@@ -27,20 +29,21 @@
     "stick": {
       "id": "stick",
       "label": "Stick",
-      "description": "Sarcastic, golf insider voice. Calls out bad habits, off-rack clubs, range myths. Meme-aware, provokes thought with irony.",
-      "personality": "sarcastic, golf insider, calling out bad habits, meme-aware",
-      "template_prefix": "🚩 Reality check:",
-      "template_suffix": "Not sure why you'd do it any other way.",
-      "cta_default": "Get fitted. Your game deserves better.",
+      "authority": "bible-intelligence.json#copy_system",
+      "description": "Smart Rebel: edge and brains. Modern golf performance and culture. Not a punk brand, not an engineering robot.",
+      "personality": "sharp, confident, direct, smart, rebellious",
+      "template_prefix": "",
+      "template_suffix": "",
+      "cta_default": "Book a fitting",
       "cta_alternatives": [
-        "Stop guessing. Get fitted.",
-        "Your clubs deserve better than you.",
-        "Book a fitting before your next round → swingshack.co.za"
+        "Find your fit",
+        "Enquire",
+        "Get your spec done"
       ],
-      "allowed_tones": ["sarcastic", "funny", "confident", "relatable", "provocative"],
+      "allowed_tones": ["confident", "direct", "wry", "relatable", "provocative"],
       "meme_fit": ["stick"],
-      "example_caption": "Off-rack clubs. The budget option that costs you strokes. Change my mind.",
-      "callout_style": "contrarian, calling out, meme-reference",
+      "example_caption": "Everything has to earn its place. This is why we stock it.",
+      "callout_style": "direct, informed, confident",
       "hashtag_suggestions": ["#OffRackProblems", "#ClubTruth", "#FittingFirst"]
     },
     "bag-drop": {

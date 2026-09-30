@@ -1,0 +1,97 @@
+{
+  "_schema": "https://campaign-os/brand-directory/bible-intelligence/v1",
+  "brand_id": "stick",
+  "version": "1.0.0",
+  "confidence": "verified_current",
+  "last_updated": "2026-09-30T00:00:00Z",
+  "format": "structured",
+  "sources": [
+    {
+      "path": "data/brand-directory/stick/bible-source.txt",
+      "label": "STICK Full Brand Bible Draft v3"
+    },
+    {
+      "path": "data/brand-directory/swing-shack/workbook-source.txt",
+      "label": "Campaign OS Full Brand Bible Workbook, STICK section D+E+K",
+      "offsets": [50831, 96297]
+    }
+  ],
+  "voice": "",
+  "visual_language": "",
+  "colours": [],
+  "typography": "",
+  "logo_rules": "",
+  "photography": "",
+  "product_fidelity": "",
+  "positive_prompts": "",
+  "negative_prompts": "",
+  "creative_properties": [],
+  "approved_examples": [],
+  "rejected_examples": [],
+  "copy_system": {
+    "voice_in_5_words": ["sharp", "confident", "direct", "smart", "rebellious"],
+    "sentence_length": "Short to medium. One idea per sentence. Get to the point.",
+    "humour": "Wry, confident. Never clownish or gag-driven. Edge comes from attitude, not punchlines.",
+    "technical_depth": "High where it serves the reader. Low where it distracts.",
+    "emoji_policy": "Rare. Only when tone genuinely needs it. Never as a substitute for personality.",
+    "punctuation": "Sentence case headlines. No full stops where brevity serves. Commas tight. No em dashes.",
+    "personality_never": ["stuffy", "snobbish", "corporate", "try-hard", "fake luxury", "old-money", "salesy"],
+    "signature_lines": [
+      "Better Begins Here",
+      "Everything has to earn its place",
+      "Fit First. Buy Second.",
+      "Why It's Here",
+      "Respect the Player"
+    ],
+    "master_message": "STICK is where modern golfers come to get better, and everything has to earn its place.",
+    "supporting_messages": [
+      {"knowledge_fact": "verified_tagline"},
+      "Equipment matched to the player, not the other way around.",
+      "TrackMan data in every fitting.",
+      "Modern golf culture without the old guard.",
+      "Respect the player."
+    ],
+    "approved_ctas": [
+      "Book a fitting",
+      "Enquire",
+      "Find your fit",
+      "View product",
+      "Try it on",
+      "Visit us",
+      "Message to order",
+      "Ask us",
+      "Shop the drop",
+      "Get your spec done"
+    ],
+    "approved_headlines": [
+      "Everything has to earn its place.",
+      "This is why we stock it.",
+      "Better Begins Here.",
+      "Fit first. Buy second.",
+      "Your driver is telling you something."
+    ],
+    "banned_phrases": [
+      "we are passionate about golf",
+      "your journey",
+      "unlock your potential",
+      "world-class",
+      "bespoke",
+      "game changer",
+      "next level",
+      "the perfect driver",
+      "join the club",
+      "become a member"
+    ],
+    "not_us_examples": [
+      "We are passionate about helping you on your golf journey.",
+      "Unlock your potential with the perfect driver.",
+      "World-class bespoke service for the next level of your game."
+    ],
+    "internal_only": ["Modern golf. Real improvement."]
+  },
+  "litmus_test": [
+    "Does this help golfers get better?",
+    "Does everything in the line earn its place?",
+    "Would this feel like Stick, not a generic golf shop?"
+  ]
+}
