@@ -676,7 +676,9 @@ def _publish_request_items(*, brand: str | None, status: str, now: datetime) -> 
         title = lodged_title or str(row.get("caption_preview") or "")[:120] or key
         event_date = str(row.get("event_date") or "").strip()
         goes_out = row.get("would_publish_at") or (
-            f"{event_date}T09:00:00Z" if event_date and "T" not in event_date else event_date
+            publish_sandbox._would_publish_at_from_event_date(event_date)
+            if event_date and "T" not in event_date
+            else event_date
         )
         out.append({
             "id": _item_id("publish_request", key),
@@ -918,6 +920,7 @@ def _index_publish_by_cal(
                 "inbox_item_id": inbox_ref,
                 "status": row.get("status"),
                 "human_approved": bool(row.get("human_approved")),
+                "would_publish_at": row.get("would_publish_at"),
             }
         )
     receipts_by: dict[str, list[dict[str, Any]]] = {}
@@ -1202,6 +1205,7 @@ def post_state(
             "idempotency_key": r.get("idempotency_key"),
             "status": r.get("status"),
             "human_approved": r.get("human_approved"),
+            "would_publish_at": r.get("would_publish_at"),
         }
         for r in queue_rows
     ]
@@ -2054,6 +2058,16 @@ def edit_item(
                         caption=str(fields.get("caption") or asset.get("caption") or ""),
                         asset=asset,
                     )
+                    try:
+                        from _lib import draft_review_actions  # noqa: PLC0415
+
+                        draft_review_actions.enqueue_recompose_after_caption_edit(
+                            brand_id=brand_id,
+                            asset_id=asset_id,
+                            reason="caption-edit",
+                        )
+                    except Exception:
+                        pass
 
     refreshed = find_item(item_id)
     out: dict[str, Any] = {

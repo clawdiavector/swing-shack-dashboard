@@ -1883,6 +1883,7 @@
         ],
         "needs_photo": false
       },
+      "poster_copy_mode": "from_lodge_title",
       "channel_canvas": {
         "facebook": "ig_post"
       },

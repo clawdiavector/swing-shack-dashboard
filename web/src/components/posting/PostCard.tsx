@@ -6,6 +6,7 @@ import { BrandChip } from '../BrandChip'
 import { useBrand, useBrandScope } from '../BrandSwitch'
 import {
   formatGoesOut,
+  formatSastClock,
   linkForPostState,
   nextActionFromStages,
   postFlagLabel,
@@ -118,7 +119,9 @@ export function PostCard({
     post.state === 'needs_fix'
       ? post.needs_fix_reason || (nextAction !== 'Needs fix' ? nextAction : null) || 'Image or draft failed — open in Review'
       : null
-  const factLine = `${formatGoesOut(dayDate, weekday)} · ${nextAction}`
+  const goesOutAt = (post.sandbox ?? []).map((row) => row.would_publish_at).find((value) => value)
+  const sastClock = formatSastClock(goesOutAt)
+  const factLine = [formatGoesOut(dayDate, weekday), sastClock, nextAction].filter(Boolean).join(' · ')
   const tone = postStateTone(post.state)
   const templateMeta = templateMetaFromPost(post)
   const toneClass =

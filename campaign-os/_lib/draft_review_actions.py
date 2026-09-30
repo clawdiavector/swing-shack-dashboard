@@ -334,6 +334,44 @@ def regenerate_photo(draft_id: str, *, note: str) -> dict[str, Any]:
     }
 
 
+def enqueue_recompose_after_caption_edit(
+    *,
+    brand_id: str,
+    asset_id: str,
+    reason: str = "caption-edit",
+) -> dict[str, Any]:
+    """Queue compose_post when an already-composed draft caption changes."""
+    try:
+        sidecar = _load_sidecar(asset_id)
+        if not sidecar:
+            return {"ok": True, "enqueued": False, "reason": "no_sidecar"}
+        moment_id = str(sidecar.get("source_inbox_item_id") or "").strip()
+        if not moment_id:
+            return {"ok": True, "enqueued": False, "reason": "no_moment"}
+
+        from _lib.jobs.layer5 import draft_assets  # noqa: PLC0415
+
+        if not draft_assets._moment_has_composed(brand_id, moment_id):
+            return {"ok": True, "enqueued": False, "reason": "not_composed"}
+
+        src = str(sidecar.get("_poster_copy_source") or sidecar.get("poster_copy_mode") or "")
+        if src in ("llm_hook", "caption_fallback", "from_llm_hook"):
+            sidecar.pop("compose_headline", None)
+            sidecar["_poster_copy_source"] = "caption_fallback"
+            _save_sidecar(asset_id, sidecar)
+
+        from _lib.l5_create_enqueue import enqueue_compose_post_for_moment  # noqa: PLC0415
+
+        enqueued = enqueue_compose_post_for_moment(
+            item_id=moment_id,
+            brand_id=brand_id,
+            reason=reason,
+        )
+        return {"ok": True, "enqueued": bool(enqueued), "reason": reason if enqueued else "already_queued"}
+    except Exception as exc:
+        return {"ok": False, "enqueued": False, "reason": str(exc)[:120]}
+
+
 def swap_candidate(draft_id: str, *, candidate_index: int) -> dict[str, Any]:
     sidecar = resolve_draft(draft_id)["sidecar"]
     candidates = sidecar.get("photo_candidates") if isinstance(sidecar.get("photo_candidates"), list) else []

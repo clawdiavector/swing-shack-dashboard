@@ -7,6 +7,7 @@ import os
 import secrets
 import uuid
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any, Optional
 
@@ -161,11 +162,19 @@ def _composed_url_for_platform(
     return None
 
 
+_SAST = ZoneInfo("Africa/Johannesburg")
+
+
 def _would_publish_at_from_event_date(
     event_date: str,
     *,
     release_time_sast: str = "09:00",
 ) -> Optional[str]:
+    """Turn a calendar day plus a SAST wall time into a real UTC instant.
+
+    13:00 SAST is 11:00Z. Stamping the SAST clock with Z made the dashboard
+    show two hours later.
+    """
     raw = (event_date or "").strip()
     if not raw:
         return None
@@ -175,7 +184,8 @@ def _would_publish_at_from_event_date(
     time_part = (release_time_sast or "09:00").strip() or "09:00"
     if len(time_part) == 5:
         time_part = f"{time_part}:00"
-    return f"{day}T{time_part}Z"
+    local = datetime.fromisoformat(f"{day}T{time_part}").replace(tzinfo=_SAST)
+    return local.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def enqueue_for_primary_channel(

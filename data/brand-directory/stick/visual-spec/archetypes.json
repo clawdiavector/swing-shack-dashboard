@@ -96,6 +96,10 @@
         ],
         "needs_photo": false
       },
+      "poster_copy_mode": "fixed",
+      "poster_copy": {
+        "fixed_headline": "FITTINGS\nCOACHING\nEQUIPMENT\nAPPAREL"
+      },
       "background": {
         "kind": "solid",
         "fill": "navy_deep"

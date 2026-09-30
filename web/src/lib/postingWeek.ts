@@ -81,6 +81,7 @@ export type PostingWeekPost = {
   template_name?: string
   template_label?: string
   template_reference_urls?: string[]
+  sandbox?: { would_publish_at?: string | null; platform?: string | null }[]
 }
 
 export type PostingWeekDay = {
@@ -207,6 +208,21 @@ export function postingChannelLabel(raw?: string | null): string | null {
     .toLowerCase()
   if (!key) return null
   return POSTING_CHANNEL_LABELS[key] ?? null
+}
+
+/** 13:00 SAST from a real UTC instant. Does not use the browser timezone. */
+export function formatSastClock(iso?: string | null): string | null {
+  const raw = String(iso ?? '').trim()
+  if (!raw) return null
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return null
+  const clock = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Johannesburg',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(d)
+  return `${clock} SAST`
 }
 
 /** Card line: "Goes out Thu 24 Sep" (weekday hint from API when present). */

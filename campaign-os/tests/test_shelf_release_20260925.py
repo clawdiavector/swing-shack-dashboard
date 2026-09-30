@@ -149,8 +149,10 @@ class ShelfReleaseTests(unittest.TestCase):
         from _lib.publish_sandbox import _would_publish_at_from_event_date
 
         out = _would_publish_at_from_event_date("2026-10-01T00:00:00+02:00")
-        self.assertEqual(out, "2026-10-01T09:00:00Z")
+        self.assertEqual(out, "2026-10-01T07:00:00Z")
         datetime.fromisoformat(out.replace("Z", "+00:00"))
+        at_13 = _would_publish_at_from_event_date("2026-09-30", release_time_sast="13:00")
+        self.assertEqual(at_13, "2026-09-30T11:00:00Z")
 
     def test_calendar_event_date_slices_to_day(self):
         from _lib.jobs.layer5.image_draft_context import calendar_event_date_for_item
