@@ -17494,6 +17494,76 @@ def today_panel():
     if longform_review_card is not None:
         cards.insert(0, longform_review_card)
 
+    # V2.11 — Long-form Publish V1 queue card. Surface four canonical publish
+    # states: approved-ready-to-stage, CMS draft waiting, scheduled, failed.
+    # CTA opens the specific Publish item at /publish/long-form/<publish_id>.
+    longform_publish_card = None
+    try:
+        from _lib import publish_v1 as _publish_v1_mod
+        from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+        _now = _dt.now(_tz.utc)
+        _tomorrow = (_now + _td(days=1)).date().isoformat()
+        pub_queue = _publish_v1_mod.list_publish_records(active_brand_id) or []
+        ready_to_stage = [p for p in pub_queue if p.get('status') == 'READY_TO_STAGE']
+        staged_drafts = [p for p in pub_queue if p.get('status') == 'STAGED_AS_DRAFT']
+        scheduled = [p for p in pub_queue if p.get('status') == 'SCHEDULED']
+        failed = [p for p in pub_queue if p.get('status') == 'PUBLISH_FAILED']
+        # Pick highest-priority first
+        first = None
+        type_ = None
+        priority = 'medium'
+        title_ = None
+        if failed:
+            first = failed[0]
+            title_ = f"{len(failed)} Publish V1 failure{'s' if len(failed) != 1 else ''} — needs attention"
+            priority = 'high'
+            type_ = 'longform_publish_failed'
+        elif scheduled:
+            first = scheduled[0]
+            sched_at = (first.get('scheduled_publish_at') or '')[:16]
+            title_ = f"{len(scheduled)} article{'s' if len(scheduled) != 1 else ''} scheduled for publishing"
+            type_ = 'longform_publish_scheduled'
+        elif staged_drafts:
+            first = staged_drafts[0]
+            title_ = f"{len(staged_drafts)} CMS draft{'s' if len(staged_drafts) != 1 else ''} waiting for publish"
+            type_ = 'longform_publish_staged'
+        elif ready_to_stage:
+            first = ready_to_stage[0]
+            title_ = f"{len(ready_to_stage)} approved article{'s' if len(ready_to_stage) != 1 else ''} ready to stage"
+            type_ = 'longform_publish_ready'
+        if first and title_ and type_:
+            first_title = first.get('article_title') or first.get('brief_id') or 'Long-form publish item'
+            target = first.get('cms_target') or ''
+            longform_publish_card = {
+                'id': f"longform-publish-{first.get('publish_id', '')}",
+                'type': type_,
+                'priority': priority,
+                'campaignId': 'Long-form Publish',
+                'title': title_,
+                'subtitle': f"{first_title}{(' · ' + target) if target else ''}",
+                'context_url': f"/publish/long-form/{first.get('publish_id', '')}",
+                'cta_label': 'Open Publish item',
+                'updatedAt': first.get('updated_at') or panel_ts,
+                'stamp': panel_ts,
+                'stampKind': 'as_of',
+                'brand_id': active_brand_id,
+                'meta': {
+                    'publish_id': first.get('publish_id'),
+                    'status': first.get('status'),
+                    'cms_target': target,
+                    'ready_to_stage_count': len(ready_to_stage),
+                    'staged_drafts_count': len(staged_drafts),
+                    'scheduled_count': len(scheduled),
+                    'failed_count': len(failed),
+                    'scheduled_publish_at': first.get('scheduled_publish_at'),
+                },
+            }
+    except Exception as exc:
+        _app_log.warning("today_panel: longform publish card build failed: %s", exc)
+
+    if longform_publish_card is not None:
+        cards.insert(0, longform_publish_card)
+
     return jsonify({
         'ok': True,
         'ts': panel_ts,

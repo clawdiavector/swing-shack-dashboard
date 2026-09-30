@@ -262,5 +262,45 @@ def register_routes(app):
         result = cancel_publish(rec)
         return jsonify(result), 200 if result.get("ok") else 400
 
+    @bp.route("/api/publish/v1/<brand_id>/<publish_id>/attach-media", methods=["POST"])
+    def attach_media(brand_id, publish_id):
+        """Attach an existing CMS media id as the publish record's featured image.
+
+        Body: {"media_id": 3756} — must be a real WP media id. The media must
+        already exist in the CMS (uploads happen out-of-band via the standard
+        WP /wp/v2/media endpoint).
+        """
+        gate = _auth_gate()
+        if gate:
+            return gate
+        from _lib.brand_validate import validate_brand_id
+        try:
+            brand_id = validate_brand_id(brand_id)
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        body = request.get_json(silent=True) or {}
+        media_id = body.get("media_id")
+        if not isinstance(media_id, int) or media_id <= 0:
+            return jsonify({"ok": False, "error": "media_id must be a positive integer"}), 400
+        from _lib.publish_v1 import (
+            get_publish_record,
+            _record_path,
+            ACTION_ATTACH_MEDIA,
+            _append_history,
+        )
+        rec = get_publish_record(brand_id, publish_id)
+        if not rec:
+            return jsonify({"ok": False, "error": "publish record not found"}), 404
+        rec["approved_featured_image_media_id"] = int(media_id)
+        _append_history(rec, ACTION_ATTACH_MEDIA, actor="operator",
+                        from_status=rec.get("status"), to_status=rec.get("status"),
+                        result={"media_id": media_id})
+        import time as _t
+        rec["updated_at"] = _t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime())
+        _record_path(rec["brand_id"], rec["publish_id"]).write_text(
+            json.dumps(rec, indent=2, ensure_ascii=False)
+        )
+        return jsonify({"ok": True, "approved_featured_image_media_id": int(media_id), "publish_id": publish_id}), 200
+
     app.register_blueprint(bp)
     return bp

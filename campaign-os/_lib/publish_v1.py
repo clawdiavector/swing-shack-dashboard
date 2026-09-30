@@ -67,6 +67,7 @@ ACTION_CANCEL_SCHEDULE     = "CANCEL_SCHEDULE"
 ACTION_PUBLISH             = "PUBLISH"
 ACTION_PUBLISH_FAILED      = "PUBLISH_FAILED"
 ACTION_CANCEL              = "CANCEL"
+ACTION_ATTACH_MEDIA        = "ATTACH_FEATURED_MEDIA"
 
 
 # --------------------------------------------------------------------------- #
@@ -549,33 +550,40 @@ def stage_to_cms(rec: dict, *, actor: str = "operator") -> dict:
         # only when the operator has not requested a URL change.
         payload["slug"] = rec["cms_slug"]
 
-    # SEO metadata
+    # Featured media — attach if operator uploaded + recorded an approved media id.
+    # V1.1: media upload is operator-driven (UI/external). Publish just attaches
+    # the existing media id via the standard featured_media field.
+    if rec.get("approved_featured_image_media_id"):
+        payload["featured_media"] = int(rec["approved_featured_image_media_id"])
+
+    # SEO metadata — V1.1: detect installed SEO plugin and route meta keys
+    # accordingly. The standard WP REST `meta_input` is filtered through the
+    # plugin's show_in_rest/auth callback whitelist; Yoast rejects unknown keys
+    # silently and returns empty values for its own keys via REST. So the only
+    # reliable write is when the plugin exposes writable routes (rare). For
+    # Yoast, we record the desired values internally and surface that they were
+    # NOT WRITTEN TO CMS in the audit. See _lib/seo_meta_strategy.py for the
+    # per-site decision.
     seo_block: dict = rec.get("seo_metadata") or {}
     seo_written: list[str] = []
     seo_unsupported: list[str] = []
+    seo_plugin: str | None = None
     if seo_block and target.get("seo_metadata_supported"):
-        meta_input: dict[str, Any] = {}
-        if seo_block.get("seo_title"):
-            meta_input["seo_title"] = seo_block["seo_title"]
-            seo_written.append("seo_title")
-        if seo_block.get("meta_description"):
-            meta_input["meta_description"] = seo_block["meta_description"]
-            seo_written.append("meta_description")
-        if seo_block.get("canonical"):
-            meta_input["canonical"] = seo_block["canonical"]
-            seo_written.append("canonical")
-        if seo_block.get("target_query"):
-            meta_input["target_query"] = seo_block["target_query"]
-            seo_written.append("target_query")
-        if seo_block.get("schema"):
-            meta_input["schema"] = seo_block["schema"]
-            seo_written.append("schema")
-        if meta_input:
-            payload["meta_input"] = meta_input
+        try:
+            from _lib.seo_meta_strategy import detect_seo_plugin, build_meta_input
+            seo_plugin = detect_seo_plugin(rec["brand_id"])
+            meta_input, seo_written, seo_unsupported = build_meta_input(rec["brand_id"], seo_block)
+            if meta_input:
+                payload["meta_input"] = meta_input
+        except Exception:
+            # Strategy module not available — fall back to the conservative
+            # "not written" path.
+            seo_unsupported = list(seo_block.keys())
     elif seo_block and not target.get("seo_metadata_supported"):
         seo_unsupported = list(seo_block.keys())
     rec["checks"]["seo_metadata_written"] = seo_written
     rec["checks"]["seo_metadata_unsupported"] = seo_unsupported
+    rec["checks"]["seo_metadata_plugin"] = seo_plugin
 
     # Send to CMS via wp_publisher adapter
     from _lib.wp_publisher import send_to_cms
