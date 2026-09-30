@@ -942,6 +942,28 @@ def approve_for_publishing(
     record["status"] = STATUS_APPROVED_FOR_PUBLISHING
     record["approved_for_publishing_at"] = _now_iso()
     record["approved_by"] = actor
+    # V2.11 — Publish V1 revision lock: capture the exact content body and
+    # revision that was approved. Publish V1 re-hashes on every CMS write and
+    # blocks with CONTENT_CHANGED_AFTER_APPROVAL if the body drifts.
+    import hashlib as _hl
+    try:
+        _art, _ = _load_writer_artifact(brand_id, record.get("brief_id") or "")
+        _body = ""
+        if _art:
+            _body = (_art.get("human_facing_article") or {}).get("body_markdown") or _art.get("body_markdown") or ""
+        if not _body:
+            _art_dict = assemble_human_facing_article(record)
+            _body = _art_dict.get("body_markdown", "")
+    except Exception:
+        _body = ""
+    record["approved_content_hash"] = _hl.sha256(_body.encode("utf-8")).hexdigest()
+    record["approved_revision_id"] = (
+        record.get("approved_revision_id")
+        or (record.get("revisions") or [{}])[-1].get("revision_id")
+        or f"approval-{_now_iso()}"
+    )
+    record["approved_brief_id"] = record.get("brief_id")
+    record["approved_brand_id"] = brand_id
     _save_review(record)
     return {
         "ok": True,

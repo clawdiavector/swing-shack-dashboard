@@ -51051,6 +51051,23 @@ if __name__ == '__main__':
         _v211_fixture_cleanup()
     except Exception as _e:
         print(f'[boot] v2.11 review fixture cleanup failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — Publish V1: seed brand→CMS publishing-target config.
+        # Idempotent (marker file gates re-runs).
+        from patch_publish_v1_brand_targets_v211 import main as _v211_publish_targets
+        _v211_publish_targets()
+        print('[boot] v2.11 publish-v1 brand targets seeded', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] v2.11 publish-v1 brand targets failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — Publish V1 routes. Wire the new Blueprint so Review-approved
+        # articles can be staged / scheduled / published via /api/publish/v1/*.
+        # Auth: same cos_session cookie as Review V1.
+        from _lib.publish_v1_routes import register_routes as _register_publish_v1_routes
+        _register_publish_v1_routes(app)
+        print('[boot] publish-v1 routes registered', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] publish-v1 routes failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     port = int(os.environ.get('PORT', 8000))
     print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
     try:

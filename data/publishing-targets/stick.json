@@ -1,0 +1,22 @@
+{
+  "brand_id": "stick",
+  "operating_brand": "stick",
+  "cms_target": "stickgolf.co.za",
+  "cms_kind": "wordpress",
+  "wp_api_base": "https://stickgolf.co.za/wp-json/wp/v2",
+  "wp_user_env": "STICKGOLF_WP_USER",
+  "wp_app_password_env": "STICKGOLF_WP_APP_PASSWORD",
+  "default_post_type": "post",
+  "default_status_on_stage": "draft",
+  "timezone": "Africa/Johannesburg",
+  "internal_link_allowlist": [
+    "https://stickgolf.co.za/",
+    "https://swingshack.co.za/"
+  ],
+  "seo_metadata_supported": true,
+  "scheduling_supported": true,
+  "media_upload_supported": true,
+  "enabled": true,
+  "source": "operator directive (Discord, 2026-09-30, msg 1554476057191645236)",
+  "updated": "2026-09-30"
+}
