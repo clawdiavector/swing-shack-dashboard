@@ -1,3 +1,4 @@
+# V1.1 build rebuild trigger: 1790779954
 # Campaign Heroes UI (Vite + Tailwind) — built first so Railway still
 # auto-deploys from GitHub. Source-only Vite without this stage would
 # ship an unbuilt /app.
