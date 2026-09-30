@@ -42,6 +42,10 @@ COPY assets/ /app/assets/
 COPY scripts/ /app/scripts/
 # Built Campaign Heroes SPA
 COPY --from=web /web/dist /app/web/dist
+# Postbuild writes the inlined shell to /campaign-os/campaign-os.html in the
+# web stage (cwd is /web, so ../campaign-os is /campaign-os). Overlay it on
+# the source tree copy above.
+COPY --from=web /campaign-os/campaign-os.html /app/campaign-os/campaign-os.html
 
 # Module-gap gate (Tier: deploy determinism, 2026-09-09 / P0a t05).
 # Missing imported _lib modules fail the image build.

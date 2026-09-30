@@ -21,7 +21,10 @@ const DIST = path.join(process.cwd(), 'dist');
 const OUT = path.join(ROOT, 'campaign-os', 'campaign-os.html');
 
 function read(p) { return fs.readFileSync(p, 'utf8'); }
-function write(p, content) { fs.writeFileSync(p, content); }
+function write(p, content) {
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, content);
+}
 
 const indexHtml = read(path.join(DIST, 'index.html'));
 const assetsDir = path.join(DIST, 'assets');
