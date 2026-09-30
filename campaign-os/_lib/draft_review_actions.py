@@ -76,6 +76,14 @@ def resolve_draft(draft_id: str) -> dict[str, Any]:
 
 
 def _photo_bytes_for_sidecar(sidecar: dict[str, Any]) -> bytes | None:
+    venue = sidecar.get("venue_photo")
+    if venue:
+        path = Path(str(venue))
+        if not path.is_file():
+            alt = _data_dir() / str(venue).lstrip("/")
+            path = alt if alt.is_file() else path
+        if path.is_file():
+            return path.read_bytes()
     qc = sidecar.get("qc") if isinstance(sidecar.get("qc"), dict) else {}
     candidates = sidecar.get("photo_candidates") if isinstance(sidecar.get("photo_candidates"), list) else []
     if not candidates:
@@ -202,11 +210,9 @@ def recompose_draft(
         sidecar["compose_service_label"] = str(service_label).strip()
 
     needs_photo = archetype.get("applies_to", {}).get("needs_photo", True)
-    photo_bytes: bytes | None = None
-    if needs_photo:
-        photo_bytes = _photo_bytes_for_sidecar(sidecar)
-        if photo_bytes is None:
-            return {"ok": False, "error": "no photo candidate available for compose"}
+    photo_bytes: bytes | None = _photo_bytes_for_sidecar(sidecar)
+    if needs_photo and photo_bytes is None:
+        return {"ok": False, "error": "no photo candidate available for compose"}
 
     fields = _fields_for_compose(
         brand_id=brand_id,

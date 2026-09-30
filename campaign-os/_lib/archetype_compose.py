@@ -676,6 +676,21 @@ def _background(base, archetype: dict[str, Any], brand_id: str) -> None:
 _PHOTO_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp")
 
 
+def _filter_library_photo_paths(files: list[Path]) -> list[Path]:
+    """Prefer real venue shots over stand-ins and finished-post crops."""
+    venue = sorted(
+        (p for p in files if p.name.startswith(("venue-taildrop-", "venue-"))),
+        key=lambda p: p.name,
+    )
+    if venue:
+        return venue
+    non_standin = sorted(
+        (p for p in files if not p.name.startswith("standin-")),
+        key=lambda p: p.name,
+    )
+    return non_standin if non_standin else files
+
+
 def _library_photo(brand_id: str, rel_dir: str, seed: str):
     rel = rel_dir.strip().strip("/")
     merged: dict[str, Path] = {}
@@ -701,6 +716,7 @@ def _library_photo(brand_id: str, rel_dir: str, seed: str):
             files = ref_files
         elif files and ref_files and all(p.name.startswith("standin-") for p in files):
             files = ref_files
+    files = _filter_library_photo_paths(files)
     if files:
         return _load_image(files[zlib.crc32(seed.encode("utf-8")) % len(files)])
     return None
