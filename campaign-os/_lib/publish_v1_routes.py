@@ -302,5 +302,46 @@ def register_routes(app):
         )
         return jsonify({"ok": True, "approved_featured_image_media_id": int(media_id), "publish_id": publish_id}), 200
 
+    @bp.route("/api/publish/v1/<brand_id>/<publish_id>/set-seo-metadata", methods=["POST"])
+    def set_seo_metadata(brand_id, publish_id):
+        """Set the desired SEO metadata block on the Publish record.
+
+        Body: {"seo_metadata": {"seo_title": "...", "meta_description": "...",
+        "canonical": "...", "schema": "...", "target_query": "..."}}
+        These values are recorded internally. At stage time, the seo_meta_strategy
+        decides what is writable to the CMS (per Yoast/RankMath detection). Anything
+        not writable is surfaced in rec.checks.seo_metadata_unsupported.
+        """
+        gate = _auth_gate()
+        if gate:
+            return gate
+        from _lib.brand_validate import validate_brand_id
+        try:
+            brand_id = validate_brand_id(brand_id)
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        body = request.get_json(silent=True) or {}
+        seo = body.get("seo_metadata")
+        if not isinstance(seo, dict):
+            return jsonify({"ok": False, "error": "seo_metadata must be an object"}), 400
+        from _lib.publish_v1 import (
+            get_publish_record,
+            _record_path,
+            _append_history,
+        )
+        import time as _t
+        rec = get_publish_record(brand_id, publish_id)
+        if not rec:
+            return jsonify({"ok": False, "error": "publish record not found"}), 404
+        rec["seo_metadata"] = seo
+        _append_history(rec, "SET_SEO_METADATA", actor="operator",
+                        from_status=rec.get("status"), to_status=rec.get("status"),
+                        result={"seo_keys": list(seo.keys())})
+        rec["updated_at"] = _t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime())
+        _record_path(rec["brand_id"], rec["publish_id"]).write_text(
+            json.dumps(rec, indent=2, ensure_ascii=False)
+        )
+        return jsonify({"ok": True, "publish_id": publish_id, "seo_metadata_keys": list(seo.keys())}), 200
+
     app.register_blueprint(bp)
     return bp
