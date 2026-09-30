@@ -68,21 +68,19 @@ def _campaign_asset_for_id(
     return None, {}
 
 
-def _is_caption_only_l5_draft(asset_id: str, asset: dict[str, Any]) -> bool:
+def _is_caption_only_l5_draft(
+    asset_id: str,
+    asset: dict[str, Any],
+    sidecar: dict[str, Any] | None = None,
+) -> bool:
     """True for pending L5 caption sidecars without persisted image bytes."""
-    image_path, image_url = _asset_image_meta(asset)
-    if image_path or image_url:
+    side = sidecar if sidecar is not None else _load_draft_sidecar(asset_id)
+    _path, url = _asset_image_meta_with_sidecar(asset, side)
+    if _path or url:
         return False
-    sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
-    if not sidecar_path.is_file():
+    if not side:
         return False
-    try:
-        sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return False
-    if not isinstance(sidecar, dict):
-        return False
-    return str(sidecar.get("action") or "") in ("draft_caption", "fill_slot")
+    return str(side.get("action") or "") in ("draft_caption", "fill_slot")
 
 
 def _resolve_image_path(asset: dict[str, Any]) -> Path | None:
@@ -156,6 +154,62 @@ def _asset_image_meta(asset: dict[str, Any]) -> tuple[Any, Any]:
     if not image_path and not image_url:
         return None, None
     return image_path, image_url
+
+
+def _coerce_visual_url(value: Any) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    if isinstance(value, dict):
+        for key in ("url", "image_url", "mediaUrl", "visualUrl"):
+            raw = value.get(key)
+            if isinstance(raw, str) and raw.strip():
+                return raw.strip()
+    return None
+
+
+def _composed_channel_url(composed: Any, channel: str | None = None) -> str | None:
+    if not isinstance(composed, dict) or not composed:
+        return None
+    if channel:
+        url = _coerce_visual_url(composed.get(channel))
+        if url:
+            return url
+    for ch in ("instagram", "facebook", "gbp", "twitter"):
+        url = _coerce_visual_url(composed.get(ch))
+        if url:
+            return url
+    for value in composed.values():
+        url = _coerce_visual_url(value)
+        if url:
+            return url
+    return None
+
+
+def _asset_image_meta_with_sidecar(
+    asset: dict[str, Any],
+    sidecar: dict[str, Any] | None,
+) -> tuple[Any, Any]:
+    path, url = _asset_image_meta(asset)
+    if path or url:
+        return path, url
+    if not isinstance(sidecar, dict):
+        return None, None
+    composed = sidecar.get("composed")
+    url = _composed_channel_url(composed) if composed else None
+    if url:
+        return None, url
+    return None, None
+
+
+def _load_draft_sidecar(asset_id: str) -> dict[str, Any]:
+    sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+    if not sidecar_path.is_file():
+        return {}
+    try:
+        loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
 
 
 def _draft_item_title(row: dict[str, Any], asset: dict[str, Any], aid: str) -> str:
@@ -530,19 +584,15 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                     if isinstance(maybe_asset, dict):
                         asset = maybe_asset
             full_caption = str(asset.get("caption") or row.get("caption") or "")
-            image_path, image_url = _asset_image_meta(asset)
+            sidecar = _load_draft_sidecar(aid)
+            if not brand_id:
+                brand_id = str(sidecar.get("brand_id") or asset.get("brand") or "")
+            image_path, image_url = _asset_image_meta_with_sidecar(asset, sidecar)
             platform = str(row.get("platform") or asset.get("platform") or "")
-            if bucket_name == "pending" and platform != "gbp" and _is_caption_only_l5_draft(aid, asset):
+            if bucket_name == "pending" and platform != "gbp" and _is_caption_only_l5_draft(
+                aid, asset, sidecar
+            ):
                 continue
-            sidecar_path = _data_dir() / "draft-assets" / f"{aid}.json"
-            sidecar: dict[str, Any] = {}
-            if sidecar_path.is_file():
-                try:
-                    loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
-                    if isinstance(loaded, dict):
-                        sidecar = loaded
-                except (OSError, json.JSONDecodeError):
-                    pass
             source_item = str(sidecar.get("source_inbox_item_id") or "")
             if platform == "gbp" and _sibling_draft_has_composed_gbp(source_item, exclude_asset_id=aid):
                 continue
@@ -593,12 +643,15 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
             from _lib.publish_sandbox import compose_publish_channels  # noqa: PLC0415
 
             composed_map = meta.get("composed") if isinstance(meta.get("composed"), dict) else {}
-            if composed_map:
-                meta["publish_targets"] = [
-                    ch for ch in compose_publish_channels(brand_id) if ch in composed_map
-                ] or list(compose_publish_channels(brand_id))
+            if brand_id:
+                if composed_map:
+                    meta["publish_targets"] = [
+                        ch for ch in compose_publish_channels(brand_id) if ch in composed_map
+                    ] or list(compose_publish_channels(brand_id))
+                else:
+                    meta["publish_targets"] = list(compose_publish_channels(brand_id))
             else:
-                meta["publish_targets"] = list(compose_publish_channels(brand_id))
+                meta["publish_targets"] = list(composed_map.keys()) if composed_map else []
             if sidecar.get("photo_candidates"):
                 meta["photo_candidates"] = sidecar["photo_candidates"]
             if sidecar.get("qc"):
@@ -640,8 +693,10 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                     "selected_because": first.get("selected_because"),
                 }
             composed = meta.get("composed")
-            if isinstance(composed, dict) and meta.get("primary_channel") in composed:
-                meta["image_url"] = composed[meta["primary_channel"]]
+            if isinstance(composed, dict):
+                channel_url = _composed_channel_url(composed, str(meta.get("primary_channel") or ""))
+                if channel_url:
+                    meta["image_url"] = channel_url
     return out
 
 
@@ -883,7 +938,7 @@ def _index_draft_sidecars(*, brand_id: str) -> tuple[dict[str, dict[str, Any]], 
         approval = str(asset.get("approvalStatus") or asset.get("approval_status") or "draft").lower()
         bucket = "approved" if approval == "approved" else "pending"
         caption = str(asset.get("caption") or "")
-        image_path, image_url = _asset_image_meta(asset)
+        image_path, image_url = _asset_image_meta_with_sidecar(asset, doc)
         inbox_item_id = _item_id("draft_asset", f"{cid}:{asset_id}")
         row = {
             "calendar_id": cal_id,
@@ -1601,12 +1656,122 @@ def _promote_proposal_to_moment(
     return str(created.get("calendar_id") or "")
 
 
+def _draft_asset_item_by_campaign_key(key: str, *, now: datetime) -> Optional[dict[str, Any]]:
+    """Resolve calendar-linked drafts missing from intelligence review_inbox."""
+    if ":" not in key:
+        return None
+    cid, aid = key.split(":", 1)
+    if not aid:
+        return None
+    campaign_data = _load_campaign_data()
+    found_cid, asset = _campaign_asset_for_id(campaign_data, aid)
+    if found_cid:
+        cid = found_cid
+    sidecar = _load_draft_sidecar(aid)
+    if not asset and not sidecar:
+        return None
+    image_path, image_url = _asset_image_meta_with_sidecar(asset, sidecar)
+    caption = str(asset.get("caption") or sidecar.get("caption") or "")
+    composed = sidecar.get("composed") if isinstance(sidecar.get("composed"), dict) else {}
+    if not caption.strip() and not image_url and not composed:
+        return None
+    brand_id = str(sidecar.get("brand_id") or asset.get("brand") or "")
+    campaigns = campaign_data.get("campaigns") if isinstance(campaign_data, dict) else {}
+    if not brand_id and isinstance(campaigns, dict):
+        camp = campaigns.get(cid)
+        if isinstance(camp, dict):
+            brand_id = str(camp.get("brand") or camp.get("brand_id") or "")
+    approval = str(asset.get("approvalStatus") or asset.get("approval_status") or "draft").lower()
+    item_status = "approved" if approval == "approved" else "pending"
+    source_item = str(sidecar.get("source_inbox_item_id") or "")
+    from _lib.jobs.layer5.image_draft_context import (  # noqa: PLC0415
+        calendar_event_date_for_item,
+        lodged_title_for_item,
+        primary_channel_for_item,
+    )
+
+    platform = str(asset.get("platform") or sidecar.get("platform") or "")
+    primary_channel = primary_channel_for_item(
+        brand_id,
+        source_item,
+        fallback=platform or "instagram",
+    )
+    lodged_title = lodged_title_for_item(
+        brand_id,
+        source_item,
+        sidecar_title=str(sidecar.get("title") or ""),
+        asset_name=str(asset.get("name") or ""),
+    )
+    event_date = calendar_event_date_for_item(brand_id, source_item)
+    display_title = lodged_title or (caption[:80] if caption else aid)
+    ts = asset.get("updatedAt") or sidecar.get("updated_at") or sidecar.get("created_at")
+    item: dict[str, Any] = {
+        "id": _item_id("draft_asset", f"{cid}:{aid}"),
+        "type": "draft_asset",
+        "brand_id": brand_id,
+        "title": display_title,
+        "summary": caption[:240],
+        "evidence": [{"source": "campaign_asset", "ref": f"{cid}/{aid}"}],
+        "created_at": ts,
+        "updated_at": ts,
+        "status": item_status,
+        "sla_state": _sla_state(str(ts) if ts else None, now=now),
+        "actions": ["approve", "edit", "reject"] if item_status == "pending" else ["edit"],
+        "meta": {
+            "campaign_id": cid,
+            "asset_id": aid,
+            "platform": primary_channel or platform,
+            "primary_channel": primary_channel,
+            "event_date": event_date or None,
+            "approval_status": approval,
+            "caption": caption,
+            "image_path": image_path,
+            "image_url": image_url,
+        },
+    }
+    meta = item["meta"]
+    from _lib.publish_sandbox import compose_publish_channels  # noqa: PLC0415
+
+    if composed:
+        meta["composed"] = composed
+        if brand_id:
+            meta["publish_targets"] = [
+                ch for ch in compose_publish_channels(brand_id) if ch in composed
+            ] or list(compose_publish_channels(brand_id))
+        else:
+            meta["publish_targets"] = list(composed.keys())
+        channel_url = _composed_channel_url(composed, str(primary_channel or ""))
+        if channel_url:
+            meta["image_url"] = channel_url
+    elif brand_id:
+        meta["publish_targets"] = list(compose_publish_channels(brand_id))
+    else:
+        meta["publish_targets"] = []
+    if sidecar.get("photo_candidates"):
+        meta["photo_candidates"] = sidecar["photo_candidates"]
+    if sidecar.get("qc"):
+        meta["qc"] = sidecar["qc"]
+    if sidecar.get("archetype"):
+        meta["archetype"] = sidecar["archetype"]
+    from _lib.template_catalog import attach_template_fields  # noqa: PLC0415
+
+    attach_template_fields(
+        brand_id,
+        meta,
+        archetype_meta=sidecar.get("archetype") if isinstance(sidecar.get("archetype"), dict) else None,
+        source_inbox_item_id=source_item or None,
+    )
+    return item
+
+
 def find_item(item_id: str) -> Optional[dict[str, Any]]:
-    item_type, _key = _parse_item_id(item_id)
+    item_type, key = _parse_item_id(item_id)
     payload = list_items(status="all", item_type=item_type)
     for item in payload.get("items") or []:
         if item.get("id") == item_id:
             return item
+    if item_type == "draft_asset":
+        return _draft_asset_item_by_campaign_key(key, now=datetime.now(timezone.utc))
     return None
 
 
