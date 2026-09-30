@@ -502,8 +502,8 @@ def stage_to_cms(rec: dict, *, actor: str = "operator") -> dict:
       - SEO metadata: seo_title, meta_description, target_query, canonical, schema
         are set via WP meta_input if the target.seo_metadata_supported is True
     """
-    if rec["status"] != STATUS_READY_TO_STAGE:
-        return {"ok": False, "code": "WRONG_STATE", "error": f"status is {rec['status']}, expected {STATUS_READY_TO_STAGE}"}
+    if rec["status"] not in (STATUS_READY_TO_STAGE, STATUS_STAGED_AS_DRAFT):
+        return {"ok": False, "code": "WRONG_STATE", "error": f"status is {rec['status']}, expected READY_TO_STAGE or STAGED_AS_DRAFT (idempotent re-stage)"}
 
     # Revision lock
     ok, reason = verify_revision_lock(rec, rec.get("article_body", ""))
