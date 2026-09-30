@@ -32,6 +32,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY campaign-os/ /app/campaign-os/
 # Copy data dir (brands.json, voice_bible.json, etc. live at repo root in data/)
 COPY data/ /app/data/
+# Copy repo-root outbox/ (V2.11+ Review writer artifacts via LOCAL_OUTBOX naming)
+COPY outbox/ /app/outbox/
 # Copy repo-root assets/ (campaign visuals, etc. — referenced by /assets/ route)
 COPY assets/ /app/assets/
 # Copy scripts/ (fetchers: fetch_ig_business.py, fetch_ubersuggest.py, etc.
