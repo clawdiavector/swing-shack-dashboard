@@ -224,12 +224,34 @@ def create_from_review(brand_id: str, brief_id: str, *, actor: str = "operator")
             "error": f"no publishing target configured for brand {brand_id!r}",
         }
 
-    # Pull the canonical article body from the writer artifact. The approved revision
-    # only carries the section deltas + accepted Writer sections, so the assembled
-    # body_markdown is the source of truth.
-    article_body = (review.get("article") or {}).get("body_markdown") or rec.get("article_body") or ""
-    article_title = (review.get("article") or {}).get("title") or rec.get("title") or brief_id
-    content_hash = _hash_content(article_body)
+    # Pull the canonical article body + title from the writer artifact. We
+    # read it directly rather than via get_review_detail because the article
+    # view is the source of truth for the body_markdown that will go to CMS.
+    title = ""
+    body = ""
+    try:
+        from _lib.review import _load_writer_artifact
+        _art, _ = _load_writer_artifact(brand_id, brief_id)
+        if _art:
+            title = (_art.get("human_facing_article") or {}).get("title") or _art.get("title") or brief_id
+            body = (_art.get("human_facing_article") or {}).get("body_markdown") or _art.get("body_markdown") or ""
+    except Exception:
+        pass
+    if not body:
+        # Fallback: assemble from the approved Review record sections.
+        try:
+            _art_dict = review.get("article") or {}
+            body = _art_dict.get("body_markdown", "")
+            title = title or _art_dict.get("title") or brief_id
+        except Exception:
+            pass
+    if not body:
+        return {
+            "ok": False,
+            "code": "EMPTY_ARTICLE",
+            "error": f"no body found in writer artifact or Review record for {brand_id}/{brief_id}",
+        }
+    content_hash = _hash_content(body)
 
     approved_revision_id = rec.get("approved_revision_id")
     approved_content_hash = rec.get("approved_content_hash") or content_hash
@@ -254,8 +276,8 @@ def create_from_review(brand_id: str, brief_id: str, *, actor: str = "operator")
         "approved_by": approved_by,
         "approved_at": approved_at,
         "content_hash": content_hash,
-        "article_title": article_title,
-        "article_body": article_body,
+        "article_title": title,
+        "article_body": body,
         "cms_target": target.get("cms_target"),
         "cms_kind": target.get("cms_kind"),
         "wp_api_base": target.get("wp_api_base"),
