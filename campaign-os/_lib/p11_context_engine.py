@@ -1508,6 +1508,7 @@ def _call_llm_chat_completions(
     model: str = None,
     temperature: float = 0.7,
     max_tokens: int = 350,
+    response_format: dict | None = None,
 ) -> Optional[str]:
     """Call OpenAI chat completions via the configured provider. Returns the
     assistant text or None on failure."""
@@ -1525,6 +1526,8 @@ def _call_llm_chat_completions(
             {"role": "user", "content": user},
         ],
     }
+    if response_format:
+        body["response_format"] = response_format
     req = urllib.request.Request(
         "https://api.openai.com/v1/chat/completions",
         method="POST",
@@ -1540,6 +1543,138 @@ def _call_llm_chat_completions(
         return resp["choices"][0]["message"]["content"]
     except (urllib.error.URLError, urllib.error.HTTPError, KeyError, json.JSONDecodeError):
         return None
+
+
+_US_SPELLINGS = (
+    "personalized",
+    "personalize",
+    "optimized",
+    "optimize",
+    "specialized",
+    "color",
+    "colors",
+    "favorite",
+    "behavior",
+    "center",
+    "centered",
+    "meter",
+    "traveled",
+    "traveling",
+    "modeling",
+    "analyze",
+    "organized",
+    "practicing",
+    "specialty",
+    "gotten",
+    "math class",
+)
+_US_HYPE = (
+    "spoiler alert",
+    "let's be real",
+    "here's the thing",
+    "game-changer",
+    "game changer",
+    "level up",
+    "unlock your",
+    "elevate your game",
+    "pro tip",
+    "buckle up",
+    "no cap",
+)
+
+
+def _en_za_locale_block(*, hook_cap: int, cta_cap: int) -> str:
+    return (
+        "\nLOCALE: South African English (en-ZA, British conventions).\n"
+        "Spelling: -ise / -isation (personalised, optimise, specialised), -our "
+        "(colour, favour, behaviour), -re (centre, metre), -lled/-lling "
+        "(travelled, modelling), practise (verb) / practice (noun), programme "
+        "(not program), whilst is acceptable, maths not math.\n"
+        "NEVER use US spellings: personalized, optimize, color, center, meter, "
+        "traveled, modeling, program (for a scheme), specialty, gotten.\n"
+        "Currency is Rand: write R450, never $450. Dates are 30 September 2026.\n"
+        "Register: plain, dry, understated. No US hype openers — no Spoiler "
+        "alert, Let's be real, Here's the thing, Game-changer, Level up, "
+        "Unlock, Elevate your game, Pro tip.\n"
+        f"LENGTH: caption_body at most 3 sentences and 320 characters.\n"
+        f"poster_hook at most {hook_cap} characters, at most 6 words, and must "
+        f"read correctly in ALL CAPS. cta_line at most {cta_cap} characters.\n"
+    )
+
+
+def _parse_copy_package(raw: str | None) -> dict[str, str] | None:
+    if not raw or not str(raw).strip():
+        return None
+    text = str(raw).strip()
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start < 0 or end <= start:
+            return None
+        try:
+            data = json.loads(text[start : end + 1])
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(data, dict):
+        return None
+    caption_body = str(data.get("caption_body") or "").strip()
+    if not caption_body:
+        return None
+    return {
+        "caption_body": caption_body,
+        "poster_hook": str(data.get("poster_hook") or "").strip(),
+        "cta_line": str(data.get("cta_line") or "").strip(),
+    }
+
+
+def _check_locale(
+    copy_package: dict[str, str] | None,
+    *,
+    hook_cap: int = 72,
+    cta_cap: int = 48,
+) -> dict:
+    """Hard-fail US spellings/hype; soft warnings for length."""
+    warnings: list[str] = []
+    if not copy_package:
+        return {"passed": True, "reason": "no_package", "warnings": warnings}
+    parts = [
+        copy_package.get("caption_body") or "",
+        copy_package.get("poster_hook") or "",
+        copy_package.get("cta_line") or "",
+    ]
+    blob = " ".join(parts)
+    low = blob.lower()
+    for word in _US_SPELLINGS:
+        if re.search(rf"\b{re.escape(word)}\b", low):
+            return {"passed": False, "reason": f"us_spelling:{word}", "warnings": warnings}
+    for phrase in _US_HYPE:
+        if phrase in low:
+            return {"passed": False, "reason": f"us_hype:{phrase}", "warnings": warnings}
+    if re.search(r"\$\s*\d", blob):
+        return {"passed": False, "reason": "usd_currency", "warnings": warnings}
+    body = copy_package.get("caption_body") or ""
+    if len(body) > 320:
+        warnings.append("caption_body_over_320")
+    sentences = [s for s in re.split(r"[.!?]+", body) if s.strip()]
+    if len(sentences) > 3:
+        warnings.append("caption_body_over_3_sentences")
+    hook = copy_package.get("poster_hook") or ""
+    if len(hook) > hook_cap:
+        warnings.append("poster_hook_over_cap")
+    if len(hook.split()) > 6:
+        warnings.append("poster_hook_over_6_words")
+    cta = copy_package.get("cta_line") or ""
+    if cta and len(cta) > cta_cap:
+        warnings.append("cta_line_over_cap")
+    return {"passed": True, "reason": "ok", "warnings": warnings}
+
+
+def _locale_warning_count(checks: dict) -> int:
+    loc = checks.get("locale") if isinstance(checks.get("locale"), dict) else {}
+    ws = loc.get("warnings") if isinstance(loc.get("warnings"), list) else []
+    return len(ws)
 
 
 # ─── PROMPT BUILDER ───────────────────────────────────────────────────
@@ -1625,6 +1760,10 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
         f"promote it to permanent brand truth.\n"
         + (f"DO NOT reference other operating brands.\n" if rs.get("cross_brand_text_banned") else "")
     )
+    caps = ctx.get("copy_caps") if isinstance(ctx.get("copy_caps"), dict) else {}
+    hook_cap = int(caps.get("poster_hook_cap") or 72)
+    cta_cap = int(caps.get("poster_cta_cap") or 48)
+    system += _en_za_locale_block(hook_cap=hook_cap, cta_cap=cta_cap)
 
     # Build the user message — relevance-aware
     user_parts = [
@@ -1653,8 +1792,11 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
             "do not assert them as permanent brand truth."
         )
     user_parts.append(
-        f"\nReturn ONLY the caption text. No commentary. No emoji beyond what fits the voice. "
-        f"End with the brand's default CTA."
+        "\nReturn ONLY a JSON object with keys caption_body, poster_hook, cta_line. "
+        "No commentary. caption_body is the feed caption WITHOUT the default CTA "
+        "(the pipeline appends the brand CTA). poster_hook is the poster headline; "
+        f"cta_line is a short poster CTA (max {cta_cap} chars). "
+        "Respect the LENGTH and LOCALE rules in the system message."
     )
     user = "\n".join(user_parts)
     return system, user
@@ -1669,25 +1811,52 @@ def _generate_candidate(ctx: dict, route: dict) -> dict:
     rheto = route.get("rhetorical_structure_suggestion", "observation_callout")
     brief_subject = ctx.get("product_service", {}).get("brief_subject") or ""
     system, user = _build_llm_prompt(ctx, route)
-    body = _call_llm_chat_completions(system, user)
-    if body:
-        body = body.strip().strip('"').strip("`")
-        # Strip any leading labels like "Caption:" or "Here is..." that the
-        # model sometimes prepends.
-        body = re.sub(r"^(Caption|Output|Result)\s*:\s*", "", body, flags=re.I).strip()
-        # Append CTA if not present
+    raw = _call_llm_chat_completions(
+        system,
+        user,
+        response_format={"type": "json_object"},
+        max_tokens=700,
+    )
+    copy_package: dict | None = None
+    body = ""
+    if raw:
+        pkg = _parse_copy_package(raw)
         b = ctx["brand"]
-        cta = b.get("cta_default") or ""
-        if cta and cta.lower() not in body.lower():
-            body = f"{body}\n\n{cta}"
+        cta_default = b.get("cta_default") or ""
+
+        def _finalize_caption(text: str) -> str:
+            out = text.strip().strip('"').strip("`")
+            out = re.sub(r"^(Caption|Output|Result)\s*:\s*", "", out, flags=re.I).strip()
+            if cta_default and cta_default.lower() not in out.lower():
+                out = f"{out}\n\n{cta_default}"
+            return out
+
+        if pkg:
+            body = _finalize_caption(pkg["caption_body"])
+            copy_package = {
+                **pkg,
+                "caption_body": pkg["caption_body"],
+                "locale": "en-ZA",
+                "source": "llm",
+            }
+        else:
+            prose = raw.strip().strip('"').strip("`")
+            prose = re.sub(r"^(Caption|Output|Result)\s*:\s*", "", prose, flags=re.I).strip()
+            body = _finalize_caption(prose)
+            copy_package = {
+                "caption_body": body.split("\n\n")[0] if body else prose,
+                "poster_hook": "",
+                "cta_line": "",
+                "locale": "en-ZA",
+                "source": "fallback",
+            }
     else:
-        # Honest fallback so the pipeline can still surface what was asked.
         body = (
             f"[LLM unavailable — route={mech}, structure={rheto}, "
             f"subject={brief_subject or 'unspecified'}, "
             f"brand={brand_id}]"
         )
-    return {
+    out = {
         "candidate_id": "c-" + _hash(f"{ctx.get('context_id')}|{route['route_id']}|{body}")[:10],
         "route": route["route_id"],
         "mechanism": mech,
@@ -1699,6 +1868,9 @@ def _generate_candidate(ctx: dict, route: dict) -> dict:
         "body": body,
         "context_id": ctx.get("context_id"),
     }
+    if copy_package is not None:
+        out["copy_package"] = copy_package
+    return out
 
 
 # ─── CHECKS ────────────────────────────────────────────────────────────
@@ -2039,6 +2211,10 @@ def run_caption_pipeline(request: dict) -> dict:
     if not ctx.get("ok"):
         return ctx
 
+    hook_cap = int(request.get("poster_hook_cap") or 72)
+    cta_cap = int(request.get("poster_cta_cap") or 48)
+    ctx["copy_caps"] = {"poster_hook_cap": hook_cap, "poster_cta_cap": cta_cap}
+
     n_survivors = min(int(request.get("n_survivors", 5)), 10)
     n_candidates = max(int(request.get("n_candidates", 12)), n_survivors)
     avoid = request.get("avoid_mechanisms", [])
@@ -2090,7 +2266,8 @@ def run_caption_pipeline(request: dict) -> dict:
 
     survivors = []
     rejects = {"exact": [], "structural": [], "semantic": [],
-               "brand": [], "fact": [], "brief_fidelity": []}
+               "brand": [], "fact": [], "brief_fidelity": [], "locale": []}
+    locale_rejects = 0
     detailed_rejects = []
 
     for c in candidates:
@@ -2132,6 +2309,14 @@ def run_caption_pipeline(request: dict) -> dict:
             checks["fact"] = r
             if not r["passed"]:
                 rejects["fact"].append(c["candidate_id"])
+                passed_all = False
+        if passed_all and request.get("enforce_locale_check", True):
+            pkg = c.get("copy_package") if isinstance(c.get("copy_package"), dict) else None
+            r = _check_locale(pkg, hook_cap=hook_cap, cta_cap=cta_cap)
+            checks["locale"] = r
+            if not r.get("passed"):
+                rejects["locale"].append(c["candidate_id"])
+                locale_rejects += 1
                 passed_all = False
 
         # Extract proposition + tension + evidence for survivors
@@ -2254,8 +2439,7 @@ def run_caption_pipeline(request: dict) -> dict:
                 sibling_sims.append(round(sim, 4))
     max_sibling_sim = max(sibling_sims) if sibling_sims else 0.0
 
-    # Final survivors can be < n_survivors if too many failed — we do NOT
-    # lower the gates.
+    survivors.sort(key=lambda s: _locale_warning_count(s.get("checks") or {}))
     final_survivors = survivors[:n_survivors]
     quality_warning = (
         None if len(final_survivors) >= n_survivors
@@ -2275,6 +2459,20 @@ def run_caption_pipeline(request: dict) -> dict:
         "brand_rejects": len(rejects["brand"]),
         "fact_rejects": len(rejects["fact"]),
         "brief_fidelity_rejects": len(rejects["brief_fidelity"]),
+        "locale_rejects": locale_rejects,
+        "copy_package": {
+            "structured": sum(
+                1
+                for c in candidates
+                if (c.get("copy_package") or {}).get("source") == "llm"
+            ),
+            "fallback": sum(
+                1
+                for c in candidates
+                if (c.get("copy_package") or {}).get("source") == "fallback"
+            ),
+            "unavailable": sum(1 for c in candidates if c.get("copy_package") is None),
+        },
         "claim_grounding_rejects": sum(
             1 for c in detailed_rejects
             if c.get("rejected_by") == "claim_grounding"
