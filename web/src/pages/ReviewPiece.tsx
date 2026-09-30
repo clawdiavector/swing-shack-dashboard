@@ -6,6 +6,7 @@ import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, Button, PressIcon, QueueItem, Tip } from '../components/ui'
 import {
+  draftRegenerateCaption,
   draftRegeneratePhoto,
   enqueueOpsQueue,
   fetchBrandImagesToday,
@@ -19,6 +20,7 @@ import {
   inboxItemThumbUrl,
   inboxMediaTag,
   resolvedInboxVisualUrl,
+  reviewPieceDraftId,
   reviewPiecePath,
   type CampaignAsset,
   type InboxItem,
@@ -59,6 +61,7 @@ export function ReviewPiece() {
   const [item, setItem] = useState<InboxItem | null>(null)
   const [queue, setQueue] = useState<InboxItem[]>([])
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [asset, setAsset] = useState<CampaignAsset | null>(null)
@@ -69,6 +72,7 @@ export function ReviewPiece() {
   const [captionDraft, setCaptionDraft] = useState('')
   const [captionSaving, setCaptionSaving] = useState(false)
   const [drafting, setDrafting] = useState(false)
+  const [captionRegenerating, setCaptionRegenerating] = useState(false)
   const [imageCap, setImageCap] = useState<{ at_cap: boolean; cap: number } | null>(null)
   const { trackLoad, waitForLoad } = useLoadGate()
 
@@ -228,10 +232,39 @@ export function ReviewPiece() {
     load()
   }
 
+  async function regenerateCaption() {
+    if (!item || captionRegenerating) return
+    const draftId = reviewPieceDraftId(item)
+    if (!draftId) {
+      setError('Could not resolve a draft id for caption regenerate')
+      setSuccess('')
+      return
+    }
+    setCaptionRegenerating(true)
+    setError('')
+    setSuccess('')
+    const reason = 'Regenerate caption from review'
+    try {
+      const result = await draftRegenerateCaption(draftId, reason, true)
+      setCaptionRegenerating(false)
+      if (!result.ok) {
+        setError(result.error || 'Could not queue caption regenerate')
+        return
+      }
+      setSuccess(
+        'A new caption is queued. This card may stay here until the updated draft appears.',
+      )
+    } catch (err) {
+      setCaptionRegenerating(false)
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
   async function regenerateImage() {
     if (!item || atImageCap || drafting) return
     setDrafting(true)
     setError('')
+    setSuccess('')
     const note = 'Regenerate from review piece'
     try {
       const assetId = item.meta?.asset_id
@@ -294,6 +327,11 @@ export function ReviewPiece() {
       </Tip>
 
       {error ? <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">{error}</p> : null}
+      {success ? (
+        <p className="rounded-2xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
+          {success}
+        </p>
+      ) : null}
 
       {item ? (
         <section className="glass rounded-2xl border-[1.5px] border-ac/35 p-5 shadow-[0_0_0_3px_rgba(52,211,153,.08)] backdrop-blur-xl">
@@ -344,12 +382,14 @@ export function ReviewPiece() {
               captionDraft={captionDraft}
               captionSaving={captionSaving}
               drafting={drafting}
+              captionRegenerating={captionRegenerating}
               regenerateDisabled={atImageCap}
               regenerateTip={regenerateTip}
               onStartEditCaption={startEditCaption}
               onCancelEditCaption={() => setEditingCaption(false)}
               onCaptionDraftChange={setCaptionDraft}
               onSaveCaption={() => void saveCaption()}
+              onRegenerateCaption={() => void regenerateCaption()}
               onRegenerate={() => void regenerateImage()}
               onImgBroken={() => setImgBroken(true)}
             />

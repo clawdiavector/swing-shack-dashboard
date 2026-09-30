@@ -707,6 +707,43 @@ export async function draftRegeneratePhoto(draftId: string, note: string) {
   return { ...data, status: res.status }
 }
 
+export type DraftRegenerateCaptionResult = {
+  ok?: boolean
+  error?: string
+  enqueued?: string[]
+}
+
+/** Draft id accepted by POST /api/drafts/.../regenerate-caption (photo regen uses the same shape). */
+export function reviewPieceDraftId(item: InboxItem): string | null {
+  const cid = item.meta?.campaign_id?.trim()
+  const aid = item.meta?.asset_id?.trim()
+  if (item.type === 'draft_asset' && aid) return aid
+  if (cid && aid) return `${cid}:${aid}`
+  if (item.id.startsWith('draft_asset:')) return item.id
+  return null
+}
+
+export async function draftRegenerateCaption(
+  draftId: string,
+  reason: string,
+  recompose = true,
+) {
+  const res = await fetch(
+    `/api/drafts/${encodeURIComponent(draftId)}/regenerate-caption`,
+    {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason, recompose }),
+    },
+  )
+  const data = (await res.json()) as DraftRegenerateCaptionResult
+  if (!res.ok && !data.error) {
+    data.error = `regenerate-caption ${res.status}`
+  }
+  return { ...data, status: res.status }
+}
+
 export type DraftRecomposeResult = {
   ok?: boolean
   error?: string

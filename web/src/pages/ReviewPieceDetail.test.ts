@@ -26,12 +26,14 @@ function renderDetail(overrides: Partial<Parameters<typeof ReviewPieceDetail>[0]
       captionDraft: '',
       captionSaving: false,
       drafting: false,
+      captionRegenerating: false,
       regenerateDisabled: false,
       regenerateTip: 'Queue a new draft image',
       onStartEditCaption: noop,
       onCancelEditCaption: noop,
       onCaptionDraftChange: noop,
       onSaveCaption: noop,
+      onRegenerateCaption: noop,
       onRegenerate: noop,
       onImgBroken: noop,
       ...overrides,
@@ -43,8 +45,10 @@ describe('ReviewPieceDetail', () => {
   it('shows Edit caption and Regenerate controls', () => {
     const html = renderDetail()
     expect(html).toContain('Edit caption')
+    expect(html).toContain('Regenerate caption')
     expect(html).toContain('Regenerate')
     expect(html).toContain('data-testid="edit-caption-btn"')
+    expect(html).toContain('data-testid="regenerate-caption-btn"')
     expect(html).toContain('data-testid="regenerate-btn"')
   })
 

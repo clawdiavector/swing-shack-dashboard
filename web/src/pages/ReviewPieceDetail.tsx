@@ -19,12 +19,14 @@ export type ReviewPieceDetailProps = {
   captionDraft: string
   captionSaving: boolean
   drafting: boolean
+  captionRegenerating: boolean
   regenerateDisabled: boolean
   regenerateTip: string
   onStartEditCaption: () => void
   onCancelEditCaption: () => void
   onCaptionDraftChange: (value: string) => void
   onSaveCaption: () => void
+  onRegenerateCaption: () => void
   onRegenerate: () => void
   onImgBroken: () => void
 }
@@ -43,12 +45,14 @@ export function ReviewPieceDetail({
   captionDraft,
   captionSaving,
   drafting,
+  captionRegenerating,
   regenerateDisabled,
   regenerateTip,
   onStartEditCaption,
   onCancelEditCaption,
   onCaptionDraftChange,
   onSaveCaption,
+  onRegenerateCaption,
   onRegenerate,
   onImgBroken,
 }: ReviewPieceDetailProps) {
@@ -58,21 +62,36 @@ export function ReviewPieceDetail({
   return (
     <div className="grid gap-6 md:grid-cols-2 md:items-start">
       <div className="space-y-3">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <h2 className="font-display text-lg font-semibold text-tx">Caption</h2>
           {!editingCaption ? (
-            <Tip text="Edit the caption on this draft.">
-              <button
-                type="button"
-                data-testid="edit-caption-btn"
-                title="Edit caption"
-                className="inline-flex items-center gap-1.5 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac"
-                onClick={onStartEditCaption}
-              >
-                <Pencil className="h-4 w-4" strokeWidth={2.5} />
-                Edit caption
-              </button>
-            </Tip>
+            <div className="flex flex-wrap items-center gap-2">
+              <Tip text="Edit the caption on this draft.">
+                <button
+                  type="button"
+                  data-testid="edit-caption-btn"
+                  title="Edit caption"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac"
+                  onClick={onStartEditCaption}
+                >
+                  <Pencil className="h-4 w-4" strokeWidth={2.5} />
+                  Edit caption
+                </button>
+              </Tip>
+              <Tip text="Queue a fresh caption for this draft (keeps the current image).">
+                <button
+                  type="button"
+                  data-testid="regenerate-caption-btn"
+                  title="Regenerate caption"
+                  disabled={captionRegenerating}
+                  onClick={onRegenerateCaption}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {captionRegenerating ? 'Queuing…' : 'Regenerate caption'}
+                </button>
+              </Tip>
+            </div>
           ) : null}
         </div>
         {editingCaption ? (
