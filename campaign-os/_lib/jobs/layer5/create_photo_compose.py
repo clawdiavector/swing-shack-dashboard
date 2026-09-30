@@ -471,9 +471,9 @@ def process_compose_post_row(
                 else:
                     return None, None
     if photo_bytes is None:
-        from _lib.draft_review_actions import _photo_bytes_for_sidecar  # noqa: PLC0415
+        from _lib.draft_review_actions import resolve_compose_photo_bytes  # noqa: PLC0415
 
-        photo_bytes = _photo_bytes_for_sidecar(sidecar)
+        photo_bytes = resolve_compose_photo_bytes(brand_id, archetype_id, sidecar)
 
     _, caption_text = _find_caption_draft_for_item(item_id)
     if not caption_text and asset_id:

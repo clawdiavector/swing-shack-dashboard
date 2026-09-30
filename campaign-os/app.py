@@ -18628,6 +18628,8 @@ def api_drafts_recompose(draft_id: str):
             cta=body.get("cta"),
             service_label=body.get("service_label"),
             archetype_id=(body.get("archetype_id") or None),
+            candidate_index=body.get("candidate_index"),
+            venue_photo=body.get("venue_photo"),
         )
         code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
         return jsonify(result), code
