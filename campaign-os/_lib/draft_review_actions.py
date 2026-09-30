@@ -75,6 +75,48 @@ def resolve_draft(draft_id: str) -> dict[str, Any]:
     }
 
 
+# Default real-venue files for SS template compose (not stand-ins).
+_SS_TEMPLATE_VENUE_REL: dict[str, str] = {
+    "ss-service-promo": "templates/service-promo/photos/venue-taildrop-service-promo.png",
+    "ss-did-you-know": "templates/did-you-know/photos/venue-taildrop-coaching.png",
+    "ss-fitting-headline": "templates/fitting-headline/photos/venue-taildrop-fitting.png",
+}
+
+
+def _load_brand_rel_photo(brand_id: str, rel: str) -> bytes | None:
+    from _lib.brand_overlay import _candidate_brand_dirs
+
+    rel_path = rel.strip().strip("/")
+    for root in _candidate_brand_dirs(brand_id):
+        path = root / rel_path
+        if path.is_file():
+            return path.read_bytes()
+    return None
+
+
+def _default_template_venue_bytes(brand_id: str, archetype_id: str) -> bytes | None:
+    rel = _SS_TEMPLATE_VENUE_REL.get(archetype_id or "")
+    if not rel:
+        return None
+    return _load_brand_rel_photo(brand_id, rel)
+
+
+def resolve_compose_photo_bytes(
+    brand_id: str,
+    archetype_id: str,
+    sidecar: dict[str, Any],
+) -> bytes | None:
+    """Explicit sidecar venue / candidates, then known Taildrop, then pack default."""
+    explicit = _photo_bytes_for_sidecar(sidecar)
+    if explicit:
+        return explicit
+    if brand_id == "swing-shack" and archetype_id == "ss-service-promo":
+        legacy = _data_dir() / "draft-assets" / "images" / "swing-shack" / "ss-venue-draft-5f71e71f280b.png"
+        if legacy.is_file():
+            return legacy.read_bytes()
+    return _default_template_venue_bytes(brand_id, archetype_id)
+
+
 def _photo_bytes_for_sidecar(sidecar: dict[str, Any]) -> bytes | None:
     venue = sidecar.get("venue_photo")
     if venue:
@@ -174,6 +216,7 @@ def recompose_draft(
     service_label: str | None = None,
     archetype_id: str | None = None,
     candidate_index: int | None = None,
+    venue_photo: str | None = None,
 ) -> dict[str, Any]:
     """Synchronous compose_post only — returns composed URL map."""
     from _lib.archetype_compose import compose_post_for_channels
@@ -187,6 +230,9 @@ def recompose_draft(
     asset = ctx["asset"]
     sidecar = dict(ctx["sidecar"])
     moment_id = ctx["moment_id"]
+
+    if venue_photo and str(venue_photo).strip():
+        sidecar["venue_photo"] = str(venue_photo).strip()
 
     if candidate_index is not None:
         qc = sidecar.get("qc") if isinstance(sidecar.get("qc"), dict) else {}
@@ -210,7 +256,10 @@ def recompose_draft(
         sidecar["compose_service_label"] = str(service_label).strip()
 
     needs_photo = archetype.get("applies_to", {}).get("needs_photo", True)
-    photo_bytes: bytes | None = _photo_bytes_for_sidecar(sidecar)
+    archetype_id_resolved = str(archetype.get("id") or archetype_id or "")
+    photo_bytes: bytes | None = resolve_compose_photo_bytes(
+        brand_id, archetype_id_resolved, sidecar
+    )
     if needs_photo and photo_bytes is None:
         return {"ok": False, "error": "no photo candidate available for compose"}
 
