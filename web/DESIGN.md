@@ -80,6 +80,14 @@ not type ids, and each select keeps a "type an id instead" escape. Products come
 `/api/products/line-items?brand_id=` — the catalog `POST /api/build-post/draft`
 resolves against. `/api/lanes/products` is a different catalog and is not used here.
 
+## Library
+
+Native `/app/library` with `?tab=drafts|sandbox|templates` (malformed tab → `drafts`, `replace:true`).
+Read-only inventory — no approve, dispatch, delete, or archive controls. Caption presence is a
+green **Caption** / mute **No caption** badge on every draft and sandbox row. Sandbox tab states
+**sandbox / mock — not live** once. Entry lives under Other → Brand (not the phone rail).
+**ClassicLink** to `/visualizer` for the DNA photo roster.
+
 ## Calendar
 
 Native surfaces: `/app/calendar` (parked-posts month — P2 schedule grid),

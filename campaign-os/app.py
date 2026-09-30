@@ -7203,6 +7203,39 @@ def brand_template_gallery(brand_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+from _lib import library_shelf as _library_shelf  # noqa: E402
+
+
+@app.route('/api/brands/<brand_id>/library', methods=['GET'])
+def brand_library_shelf(brand_id):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        view = (request.args.get("view") or "all").strip()
+        limit_raw = request.args.get("limit")
+        limit = None
+        if limit_raw:
+            try:
+                limit = int(limit_raw)
+            except ValueError:
+                limit = None
+        caption = (request.args.get("caption") or "any").strip()
+        status = (request.args.get("status") or "any").strip()
+        payload = _library_shelf.build_library_shelf(
+            brand_id,
+            view=view,
+            limit=limit,
+            caption_filter=caption,
+            status_filter=status,
+        )
+        return jsonify({"ok": True, **payload}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    except Exception as e:
+        _app_log.exception("brand_library_shelf failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/brand-directory-media/<brand_id>/<path:relpath>', methods=['GET'])
 def brand_directory_media(brand_id, relpath):
     """Serve brand-directory assets (template refs, goldens) with traversal guard."""

@@ -1811,6 +1811,107 @@ export type TemplateGalleryPayload = {
   error?: string
 }
 
+export type LibraryReferenceImage = {
+  url: string
+  provenance: 'declared' | 'disk'
+}
+
+export type LibraryDraftRow = {
+  asset_id: string
+  campaign_id?: string
+  inbox_item_id?: string
+  title?: string
+  status?: string
+  platform?: string
+  primary_channel?: string
+  caption?: string
+  caption_present?: boolean
+  caption_chars?: number
+  image_url?: string | null
+  image_path?: string | null
+  image_present?: boolean
+  compose_pending?: boolean
+  orphan?: boolean
+  template_id?: string
+  template_label?: string
+  review_href?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export type LibrarySandboxRow = {
+  queue_id?: string | null
+  idempotency_key?: string
+  platform?: string
+  channel?: string
+  status?: string
+  human_approved?: boolean
+  caption_preview?: string
+  caption_present?: boolean
+  caption_truncated?: boolean
+  lodged_title?: string
+  sandbox_post_id?: string | null
+  dispatched_at?: string | null
+  receipt_only?: boolean
+  image_url?: string | null
+  image_present?: boolean
+  sandbox_href?: string
+}
+
+export type LibraryTemplateRow = {
+  template_id: string
+  template_label?: string
+  template_name?: string
+  section?: string
+  canvas?: string
+  needs_photo?: boolean
+  reference_images?: LibraryReferenceImage[]
+  references_undeclared?: boolean
+  templates_href?: string
+}
+
+export type LibraryLaneCounts = {
+  total: number
+  returned: number
+  with_caption: number
+  without_caption: number
+}
+
+export type LibraryPayload = {
+  ok?: boolean
+  brand_id?: string
+  generated_at?: string
+  counts?: {
+    drafts?: LibraryLaneCounts & {
+      with_image?: number
+      without_image?: number
+      orphans?: number
+      by_status?: Record<string, number>
+    }
+    sandbox?: LibraryLaneCounts & {
+      by_status?: Record<string, number>
+      receipts_without_queue_row?: number
+    }
+    templates?: LibraryLaneCounts & {
+      reference_images?: number
+      declared_only?: number
+      disk_only?: number
+      without_references?: number
+    }
+  }
+  drafts?: LibraryDraftRow[]
+  sandbox?: LibrarySandboxRow[]
+  templates?: LibraryTemplateRow[]
+  truncated?: Record<string, boolean>
+  notes?: string[]
+  error?: string
+}
+
+export function fetchBrandLibrary(brandId: string, params?: { view?: string }) {
+  const q = params?.view ? `?view=${encodeURIComponent(params.view)}` : ''
+  return getJson<LibraryPayload>(`/api/brands/${encodeURIComponent(brandId)}/library${q}`)
+}
+
 export function fetchTemplateGallery(brandId: string) {
   return getJson<TemplateGalleryPayload>(
     `/api/brands/${encodeURIComponent(brandId)}/template-gallery`,
