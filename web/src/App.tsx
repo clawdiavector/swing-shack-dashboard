@@ -32,6 +32,7 @@ import { Week } from './pages/results/Week'
 import { Templates } from './pages/results/Templates'
 import { Worked } from './pages/results/Worked'
 import { BrandVisuals } from './pages/BrandVisuals'
+import { Library } from './pages/Library'
 
 export default function App() {
   return (
@@ -73,6 +74,7 @@ export default function App() {
         <Route path="other" element={<Other />} />
         <Route path="desk" element={<Desk />} />
         <Route path="brand/visuals" element={<BrandVisuals />} />
+        <Route path="library" element={<Library />} />
         <Route path="tool/:slug" element={<Tool />} />
         <Route path="*" element={<Navigate to="/daily" replace />} />
       </Route>

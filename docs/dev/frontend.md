@@ -8,6 +8,7 @@ Three user-facing surfaces share one Flask app and one `$DATA_DIR`.
 - Product intent: `web/PRODUCT.md`. Visual vocabulary: **`web/DESIGN.md`** (do not fork tokens in docs).
 - Docker: Node stage builds `web/dist`; Flask serves under `/app` and aliases (`/daily`, `/review`, `/create`, `/calendar`, `/publish`, `/results`, `/other`).
 - Desk routing, tools, brand switch: see `web/src/` and in-flight Heroes tickets in [`state-of-play.md`](state-of-play.md).
+- **Library** — `/app/library?tab=drafts|sandbox|templates` read-only brand inventory (draft assets, sandbox posts, template reference art). Nav: Other → Brand → Library.
 
 **Branch note:** `web/` is on **`integrate/campaign-os-brand-lanes-v1`**; verify on `origin/main` before assuming Heroes is in prod.
 

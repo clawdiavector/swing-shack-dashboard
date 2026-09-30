@@ -59,6 +59,7 @@ export const OTHER_GROUPS = [
       { href: '/?page=campaigns', label: 'Brand directory', icon: Building2 },
       { href: '/?page=brand-settings', label: 'Brand settings', icon: Palette },
       { href: '/brand/visuals', label: 'Visuals', icon: Palette },
+      { href: '/library', label: 'Library', icon: FileStack },
       { href: '/strategy', label: 'Strategy', icon: Flag },
       { href: '/governance', label: 'Governance', icon: ClipboardCheck },
       { href: '/?page=products', label: 'Products', icon: FolderKanban },
