@@ -123,6 +123,7 @@
     "month_view": true,
     "default_horizon_days": 120,
     "show_north_star_top_of_calendar": true,
-    "watchlist_visible_by_default": true
+    "watchlist_visible_by_default": true,
+    "release_time_sast": "01:00"
   }
 }

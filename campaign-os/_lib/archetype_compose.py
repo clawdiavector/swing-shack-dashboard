@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import zlib
 from itertools import combinations
+from pathlib import Path
 from typing import Any
 
 from _lib import archetypes_v2 as archetypes
@@ -677,6 +678,8 @@ _PHOTO_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp")
 
 def _library_photo(brand_id: str, rel_dir: str, seed: str):
     rel = rel_dir.strip().strip("/")
+    merged: dict[str, Path] = {}
+    ref_by_name: dict[str, Path] = {}
     for d in _candidate_brand_dirs(brand_id):
         folder = d / rel
         if not folder.is_dir():
@@ -685,17 +688,21 @@ def _library_photo(brand_id: str, rel_dir: str, seed: str):
         if rel.endswith("/photos"):
             ref_rel = rel[: -len("photos")] + "references"
             ref_folder = d / ref_rel.strip("/")
-            ref_files = (
-                sorted(p for p in ref_folder.iterdir() if p.suffix.lower() in _PHOTO_SUFFIXES)
-                if ref_folder.is_dir()
-                else []
-            )
-            if not files and ref_files:
-                files = ref_files
-            elif files and ref_files and all(p.name.startswith("standin-") for p in files):
-                files = ref_files
-        if files:
-            return _load_image(files[zlib.crc32(seed.encode("utf-8")) % len(files)])
+            if ref_folder.is_dir():
+                for p in ref_folder.iterdir():
+                    if p.suffix.lower() in _PHOTO_SUFFIXES:
+                        ref_by_name.setdefault(p.name, p)
+        for p in files:
+            merged.setdefault(p.name, p)
+    files = sorted(merged.values(), key=lambda p: p.name)
+    ref_files = sorted(ref_by_name.values(), key=lambda p: p.name)
+    if rel.endswith("/photos"):
+        if not files and ref_files:
+            files = ref_files
+        elif files and ref_files and all(p.name.startswith("standin-") for p in files):
+            files = ref_files
+    if files:
+        return _load_image(files[zlib.crc32(seed.encode("utf-8")) % len(files)])
     return None
 
 
