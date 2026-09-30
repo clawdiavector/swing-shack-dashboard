@@ -794,6 +794,7 @@ def _maybe_enqueue_image_pipeline_after_caption(
 
 def _moment_photo_ready_for_compose(brand_id: str, item_id: str) -> bool:
     from _lib.archetypes import select_archetype  # noqa: PLC0415
+    from _lib.draft_review_actions import resolve_compose_photo_bytes  # noqa: PLC0415
 
     archetype = select_archetype(brand_id, item_id)
     if not archetype.get("applies_to", {}).get("needs_photo", True):
@@ -801,6 +802,9 @@ def _moment_photo_ready_for_compose(brand_id: str, item_id: str) -> bool:
     sidecar = _sidecar_for_moment(item_id)
     if not sidecar:
         return False
+    archetype_id = str(archetype.get("id") or "")
+    if resolve_compose_photo_bytes(brand_id, archetype_id, sidecar):
+        return True
     gen_slots = sidecar.get("gen_slots")
     if isinstance(gen_slots, dict) and gen_slots:
         return True
@@ -1019,6 +1023,18 @@ def _count_pending_rows(moment_items: list[tuple[tuple[str, str], list[tuple[dic
     return total
 
 
+# Row-local failures: skip the queue row; do not fail the whole draft_assets run.
+_ROW_SOFT_ERRORS = (
+    "compose-only archetype requires caption draft first",
+)
+
+
+def _is_row_soft_error(err: str | None) -> bool:
+    if not err:
+        return False
+    return any(token in err for token in _ROW_SOFT_ERRORS)
+
+
 def _apply_stop_error(
     err: str,
     *,
@@ -1032,6 +1048,8 @@ def _apply_stop_error(
     if "missing OPENAI_API_KEY" in err:
         errors.append(err)
         return stop_cap, True
+    if _is_row_soft_error(err):
+        return stop_cap, stop_auth
     errors.append(err)
     return stop_cap, stop_auth
 
@@ -1541,6 +1559,9 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 if err:
                     stop_cap, stop_auth = _apply_stop_error(err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth)
                     skipped += 1
+                    if _is_row_soft_error(err):
+                        photo_row["status"] = "skipped"
+                        photo_row["note"] = err[:240]
                     if stop_cap or stop_auth:
                         halted = True
                         skipped += _count_pending_rows(moment_items, idx)
@@ -1556,8 +1577,19 @@ def run(brand: str | None = None) -> dict[str, Any]:
             photo_waiting = photo_rows and str(photo_rows[0][0].get("status") or "").lower() == "waiting"
             gen_waiting = gen_rows and str(gen_rows[0][0].get("status") or "").lower() == "waiting"
             photo_ready = _moment_photo_ready_for_compose(brand_id, item_id)
+            sidecar_for_compose = _sidecar_for_moment(item_id)
+            from _lib.archetypes import select_archetype as _select_archetype  # noqa: PLC0415
+            from _lib.draft_review_actions import resolve_compose_photo_bytes  # noqa: PLC0415
 
-            if compose_rows and not _moment_has_composed(brand_id, item_id) and not photo_waiting and not gen_waiting and photo_ready:
+            archetype_id = str(_select_archetype(brand_id, item_id).get("id") or "")
+            has_library_photo = bool(
+                sidecar_for_compose
+                and resolve_compose_photo_bytes(brand_id, archetype_id, sidecar_for_compose)
+            )
+            can_compose = photo_ready and not gen_waiting and (
+                not photo_waiting or has_library_photo
+            )
+            if compose_rows and not _moment_has_composed(brand_id, item_id) and can_compose:
                 compose_row = compose_rows[0][0]
                 try:
                     asset_id, err = process_compose_post_row(
@@ -1571,6 +1603,9 @@ def run(brand: str | None = None) -> dict[str, Any]:
                     asset_id, err = None, _exc_label(exc)
                 if err:
                     skipped += 1
+                    if _is_row_soft_error(err):
+                        compose_row["status"] = "skipped"
+                        compose_row["note"] = err[:240]
                 elif asset_id:
                     compose_row["status"] = "done"
                     drafted += 1
