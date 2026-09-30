@@ -238,6 +238,82 @@ class PublishSandboxTests(unittest.TestCase):
         receipts = publish_sandbox._read_jsonl(publish_sandbox._receipts_path())
         self.assertEqual(receipts[0].get("postiz_post_id"), "postiz-123")
 
+    def test_live_dispatch_skips_future_schedule(self) -> None:
+        os.environ["PUBLISH_MODE"] = "live"
+        publish_sandbox.enqueue_item(
+            brand_id="stick",
+            platform="instagram",
+            caption_preview="Later caption",
+            human_approved=True,
+            idempotency_key="qc-future-instagram",
+            image_url="/brand-images/stick/x.png",
+            would_publish_at="2099-01-01T11:00:00Z",
+        )
+        with patch("_lib.publish_live.postiz_status", return_value={"configured": True}):
+            with patch("_lib.publish_live.create_post") as create_post:
+                result = publish_dispatch_job.run()
+        create_post.assert_not_called()
+        self.assertTrue(result.get("ok"))
+        self.assertEqual(result.get("dispatched"), 0)
+        queue = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
+        self.assertEqual(queue[0].get("status"), "pending")
+
+    def test_dispatch_now_sends_future_row(self) -> None:
+        os.environ["PUBLISH_MODE"] = "live"
+        asset_id = "draft-now-1"
+        (self._root / "draft-assets").mkdir(exist_ok=True)
+        (self._root / "draft-assets" / f"{asset_id}.json").write_text(
+            json.dumps(
+                {
+                    "asset_id": asset_id,
+                    "brand_id": "stick",
+                    "composed": {"instagram": "/brand-images/stick/x.png"},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (self._root / "campaign-data.json").write_text(
+            json.dumps(
+                {
+                    "campaigns": {
+                        "camp": {
+                            "assets": {
+                                asset_id: {
+                                    "caption": "Now caption",
+                                    "composed": {"instagram": "/brand-images/stick/x.png"},
+                                }
+                            }
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        key = f"qc-{asset_id}-instagram"
+        publish_sandbox.enqueue_item(
+            brand_id="stick",
+            platform="instagram",
+            caption_preview="Now caption",
+            human_approved=True,
+            idempotency_key=key,
+            image_url="/brand-images/stick/x.png",
+            would_publish_at="2099-01-01T11:00:00Z",
+        )
+        from _lib.publish_live import dispatch_now
+
+        fake_integrations = [{"id": "ig-1", "identifier": "instagram", "name": "Instagram"}]
+        with patch("_lib.publish_live.postiz_status", return_value={"configured": True}):
+            with patch("_lib.publish_live.list_integrations", return_value=(fake_integrations, None)):
+                with patch(
+                    "_lib.publish_live.create_post",
+                    return_value=({"id": "postiz-now"}, None),
+                ) as create_post:
+                    result = dispatch_now([key])
+        self.assertTrue(result.get("ok"))
+        self.assertEqual(result.get("dispatched"), 1)
+        _args, kwargs = create_post.call_args
+        self.assertIsNone(kwargs.get("publish_date"))
+
     def test_integration_match_uses_identifier_not_first_channel(self) -> None:
         from _lib.publish_live import _integration_for_platform
 

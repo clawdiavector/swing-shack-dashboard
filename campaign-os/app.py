@@ -14494,6 +14494,45 @@ def publish_sandbox_sync_asset_route():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@app.route('/api/publish/dispatch-now', methods=['POST'])
+def publish_dispatch_now_route():
+    """POST body: idempotency_key or idempotency_keys. Sends those rows now."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    keys = body.get("idempotency_keys")
+    if not isinstance(keys, list):
+        one = str(body.get("idempotency_key") or "").strip()
+        keys = [one] if one else []
+    keys = [str(k).strip() for k in keys if str(k).strip()]
+    if not keys:
+        return jsonify({"ok": False, "error": "idempotency_key required"}), 400
+    try:
+        from _lib.publish_mode import is_sandbox_mode
+        if is_sandbox_mode():
+            from _lib.publish_sandbox import approve_item, dispatch_one
+            dispatched = []
+            errors = []
+            for key in keys:
+                _row, approve_err = approve_item(key)
+                if approve_err:
+                    errors.append(f"{key}: {approve_err}")
+                    continue
+                _receipt, err = dispatch_one(key)
+                if err:
+                    errors.append(f"{key}: {err}")
+                else:
+                    dispatched.append(key)
+            return jsonify({"ok": not errors, "mode": "sandbox", "dispatched": len(dispatched), "errors": errors}), 200
+        from _lib.publish_live import dispatch_now
+        result = dispatch_now(keys)
+        status = 200 if result.get("ok", True) else 400
+        return jsonify(result), status
+    except Exception as exc:
+        _app_log.exception("publish dispatch-now failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @app.route('/api/publish/sandbox/reschedule', methods=['POST'])
 def publish_sandbox_reschedule_route():
     """POST body: idempotency_key, would_publish_at (ISO), optional event_date YYYY-MM-DD."""

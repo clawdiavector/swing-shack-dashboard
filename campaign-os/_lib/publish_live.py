@@ -167,27 +167,53 @@ def _dispatch_row_live(
     return receipt, None
 
 
-def dispatch_pending(*, brand: str | None = None) -> dict[str, Any]:
-    """Process human-approved pending queue rows via Postiz."""
+def dispatch_pending(
+    *,
+    brand: str | None = None,
+    force_keys: set[str] | None = None,
+) -> dict[str, Any]:
+    """Send human-approved pending rows whose would_publish_at is due.
+
+    force_keys publishes those rows immediately even if the schedule is still
+    in the future (Publish now). Future rows stay pending for the hourly tick.
+    """
     sandbox.ensure_sandbox_layout()
     brand_filter = validate_brand_id(brand) if brand else None
+    forced = {str(k) for k in (force_keys or set()) if str(k).strip()}
 
-    queue_view = sandbox.list_queue(limit=200, brand=brand_filter)
-    targets = [
-        it for it in (queue_view.get("items") or [])
-        if it.get("human_approved") and str(it.get("status") or "") == "pending"
-    ]
-    if brand_filter:
-        targets = [t for t in targets if validate_brand_id(t.get("brand_id") or "") == brand_filter]
+    targets: list[dict[str, Any]] = []
+    for row in sandbox._read_jsonl(sandbox._queue_path()):
+        if str(row.get("status") or "") != "pending" or not row.get("human_approved"):
+            continue
+        if brand_filter:
+            try:
+                if validate_brand_id(row.get("brand_id") or "") != brand_filter:
+                    continue
+            except ValueError:
+                continue
+        key = str(row.get("idempotency_key") or "")
+        if forced:
+            if key not in forced:
+                continue
+        elif not sandbox.row_is_due(str(row.get("would_publish_at") or "")):
+            continue
+        targets.append(row)
+
+    missing: list[str] = []
+    if forced:
+        found = {str(t.get("idempotency_key") or "") for t in targets}
+        missing = sorted(k for k in forced if k not in found)
 
     if not targets:
+        miss_errors = [f"{k}: not an approved pending row" for k in missing]
         return {
-            "ok": True,
+            "ok": not miss_errors,
             "mode": "live",
             "dispatched": 0,
             "refused": 0,
             "skipped_unapproved": 0,
-            "errors": [],
+            "errors": miss_errors,
+            "error": miss_errors[0] if miss_errors else None,
             "brand": brand_filter,
             "writes": [],
         }
@@ -225,6 +251,10 @@ def dispatch_pending(*, brand: str | None = None) -> dict[str, Any]:
             continue
         enriched = next((t for t in targets if str(t.get("idempotency_key") or "") == key), row)
         enriched = sandbox.refresh_queue_row_from_draft(dict(enriched))
+        # Due or Publish-now: hand Postiz type=now. A past schedule date is what
+        # left Swing Shack posts in ERROR.
+        if key in forced or sandbox.row_is_due(str(enriched.get("would_publish_at") or "")):
+            enriched["would_publish_at"] = None
         row["caption_preview"] = enriched.get("caption_preview")
         row["image_url"] = enriched.get("image_url")
         ok, pre_err = sandbox.preflight_queue_row(enriched)
@@ -250,13 +280,36 @@ def dispatch_pending(*, brand: str | None = None) -> dict[str, Any]:
         updated_rows.append(row)
 
     sandbox._rewrite_jsonl(sandbox._queue_path(), updated_rows)
+    errors.extend(f"{k}: not an approved pending row" for k in missing)
     return {
-        "ok": True,
+        "ok": dispatched > 0 and not errors,
         "mode": "live",
         "dispatched": dispatched,
         "refused": refused,
         "skipped_unapproved": skipped,
         "errors": errors[:20],
+        "error": errors[0] if errors else None,
         "brand": brand_filter,
         "writes": ["publish-sandbox/queue.jsonl", "publish-sandbox/receipts.jsonl"],
     }
+
+
+def dispatch_now(idempotency_keys: list[str]) -> dict[str, Any]:
+    """Approve and publish specific pending rows immediately, ignoring a future schedule."""
+    keys = [str(k).strip() for k in idempotency_keys if str(k).strip()]
+    if not keys:
+        return {"ok": False, "error": "idempotency_key required", "dispatched": 0}
+    errors: list[str] = []
+    for key in keys:
+        _row, err = sandbox.approve_item(key)
+        if err:
+            errors.append(f"{key}: {err}")
+    if errors and len(errors) == len(keys):
+        return {"ok": False, "mode": "live", "dispatched": 0, "errors": errors, "error": errors[0]}
+    result = dispatch_pending(force_keys=set(keys))
+    if errors:
+        merged = list(result.get("errors") or []) + errors
+        result["errors"] = merged[:20]
+        result["error"] = merged[0]
+        result["ok"] = False
+    return result

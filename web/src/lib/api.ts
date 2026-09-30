@@ -470,6 +470,16 @@ export function fetchShelf(brand?: string) {
   return getJson<ShelfPayload>(`/api/inbox/shelf?${q}`)
 }
 
+export function publishDispatchNow(idempotencyKey: string) {
+  return postJsonWithStatus<{
+    ok?: boolean
+    error?: string
+    dispatched?: number
+    errors?: string[]
+    mode?: string
+  }>('/api/publish/dispatch-now', { idempotency_key: idempotencyKey })
+}
+
 export function releaseMoment(brandId: string, calendarId: string, editor = 'christelle') {
   return postJsonWithStatus<{
     ok?: boolean

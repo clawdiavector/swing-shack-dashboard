@@ -813,8 +813,28 @@ def release_moment(
     }
 
 
+def row_is_due(would_publish_at: str | None, *, now: datetime | None = None) -> bool:
+    """True when a queue row should be sent on this tick.
+
+    Missing schedule means due. A future would_publish_at waits for a later tick.
+    """
+    raw = str(would_publish_at or "").strip()
+    if not raw:
+        return True
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        when = datetime.fromisoformat(raw)
+    except ValueError:
+        return True
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    current = now or datetime.now(timezone.utc)
+    return when <= current
+
+
 def dispatch_pending() -> dict[str, Any]:
-    """Process all pending + human_approved queue rows. Job entrypoint helper."""
+    """Process pending + human-approved rows whose schedule is due."""
     ensure_sandbox_layout()
     rows = _read_jsonl(_queue_path())
     receipts_index = _receipt_index()
@@ -829,6 +849,10 @@ def dispatch_pending() -> dict[str, Any]:
             updated_rows.append(row)
             continue
         if not row.get("human_approved"):
+            skipped += 1
+            updated_rows.append(row)
+            continue
+        if not row_is_due(str(row.get("would_publish_at") or "")):
             skipped += 1
             updated_rows.append(row)
             continue

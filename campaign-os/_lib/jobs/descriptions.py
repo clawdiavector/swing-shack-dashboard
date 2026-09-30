@@ -257,11 +257,12 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
     },
     "publish_dispatch": {
         "title": "Publish dispatch",
-        "summary": "Ship human-approved sandbox queue rows (receipts in sandbox mode).",
+        "summary": "Send due approved posts on the hour, or immediately from Publish now.",
         "detail": (
-            "Processes pending queue rows with human_approved=true. In sandbox mode writes "
-            "local receipts only; live mode is Kyle-gated via PUBLISH_MODE. Follows auto_release "
-            "in the daily cron."
+            "Sends pending human-approved rows whose would_publish_at is due (or unset). "
+            "Future rows wait. Hourly GitHub cron plus the 07:15 SAST daily run. "
+            "Publish now on the Publish page sends one row immediately. "
+            "Live mode calls Postiz; sandbox mode writes receipts only."
         ),
     },
 }

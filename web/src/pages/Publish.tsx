@@ -10,6 +10,7 @@ import {
   fetchPublishMode,
   fetchSandboxQueue,
   fetchToday,
+  publishDispatchNow,
   resolveAssetUrl,
   type PublishMode,
   type SandboxQueueItem,
@@ -30,6 +31,35 @@ export function Publish() {
   const [sandboxTotal, setSandboxTotal] = useState(0)
   const [queueErr, setQueueErr] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
+  const [publishingKey, setPublishingKey] = useState('')
+  const [publishNote, setPublishNote] = useState('')
+
+  function publishNowButton(idem: string) {
+    if (!idem) return undefined
+    return (
+      <button
+        type="button"
+        disabled={publishingKey === idem}
+        className="shrink-0 rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          setPublishingKey(idem)
+          setPublishNote('')
+          void publishDispatchNow(idem)
+            .then(({ data: body }) => {
+              const err = body.errors?.join('; ') || body.error
+              setPublishNote(err ? String(err) : 'Sent.')
+              loadPanelAndQueue()
+            })
+            .catch((e: unknown) => setPublishNote(e instanceof Error ? e.message : 'Publish failed'))
+            .finally(() => setPublishingKey(''))
+        }}
+      >
+        Publish now
+      </button>
+    )
+  }
 
   useEffect(() => {
     fetchPublishMode()
@@ -186,7 +216,7 @@ export function Publish() {
             {!queueErr ? <Badge tone="gold">{queueCountLabel}</Badge> : null}
           </div>
           <p className="mb-3 text-xs text-tx3">
-            Pending sandbox rows for {isAll ? 'all brands' : scope} — receipts only until dispatch runs.
+            Approved rows go out on the hour when their time is due. Publish now sends that row immediately.
           </p>
           {queueErr ? (
             <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
@@ -203,11 +233,12 @@ export function Publish() {
                   const caption = String(row.caption || row.caption_preview || '').trim()
                   const goesOut = sandboxGoesOutIso(row)
                   const platform = String(row.platform || 'post')
+                  const idem = String(row.idempotency_key || '')
                   return (
                     <QueueItem
                       key={`rel-${id || sandboxTitle(row)}`}
                       to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
-                      tip="Human-approved — dispatch job writes the receipt."
+                      tip="Approved. The hourly job sends it when the time is due."
                       badge="released"
                       tone="green"
                       channelBadge={platform}
@@ -219,12 +250,14 @@ export function Publish() {
                       dateOnly={Boolean(goesOut)}
                       thumb={thumb || undefined}
                       thumbAlt={caption.slice(0, 80) || id}
+                      action={publishNowButton(idem)}
                     />
                   )
                 })}
+                {publishNote ? <li className="text-xs text-tx2">{publishNote}</li> : null}
                 {releasedWaiting.length === 0 ? (
                   <li className="rounded-2xl border border-dashed border-bd px-4 py-4 text-sm text-tx3">
-                    No released rows yet — use Release now on the Shelf.
+                    No released rows yet — use Release now on the Shelf, then Publish now here to send immediately.
                   </li>
                 ) : null}
               </ul>
@@ -236,11 +269,12 @@ export function Publish() {
                   const caption = String(row.caption || row.caption_preview || '').trim()
                   const goesOut = sandboxGoesOutIso(row)
                   const platform = String(row.platform || 'post')
+                  const idem = String(row.idempotency_key || '')
                   return (
                     <QueueItem
                       key={`nr-${id || sandboxTitle(row)}`}
                       to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
-                      tip="QC passed but not human-released."
+                      tip="Not released. Publish now approves it and sends it immediately."
                       badge="sandbox"
                       tone="gold"
                       channelBadge={platform}
@@ -252,6 +286,7 @@ export function Publish() {
                       dateOnly={Boolean(goesOut)}
                       thumb={thumb || undefined}
                       thumbAlt={caption.slice(0, 80) || id}
+                      action={publishNowButton(idem)}
                     />
                   )
                 })}
