@@ -227,14 +227,29 @@ def create_from_review(brand_id: str, brief_id: str, *, actor: str = "operator")
     # Pull the canonical article body + title from the writer artifact. We
     # read it directly rather than via get_review_detail because the article
     # view is the source of truth for the body_markdown that will go to CMS.
+    #
+    # Writer V1 stores the canonical article body under multiple possible keys
+    # depending on V1.x. We try them in order, falling back as we go.
     title = ""
     body = ""
     try:
         from _lib.review import _load_writer_artifact
         _art, _ = _load_writer_artifact(brand_id, brief_id)
         if _art:
-            title = (_art.get("human_facing_article") or {}).get("title") or _art.get("title") or brief_id
-            body = (_art.get("human_facing_article") or {}).get("body_markdown") or _art.get("body_markdown") or ""
+            _hfa = _art.get("human_facing_article") or {}
+            title = (
+                _hfa.get("title")
+                or _art.get("title")
+                or brief_id
+            )
+            body = (
+                _hfa.get("body_markdown")
+                or _hfa.get("body")
+                or _art.get("body_markdown")
+                or _art.get("body")
+                or _art.get("human_facing_article_draft")
+                or ""
+            )
     except Exception:
         pass
     if not body:

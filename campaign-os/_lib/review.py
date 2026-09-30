@@ -950,7 +950,15 @@ def approve_for_publishing(
         _art, _ = _load_writer_artifact(brand_id, record.get("brief_id") or "")
         _body = ""
         if _art:
-            _body = (_art.get("human_facing_article") or {}).get("body_markdown") or _art.get("body_markdown") or ""
+            _hfa = _art.get("human_facing_article") or {}
+            _body = (
+                _hfa.get("body_markdown")
+                or _hfa.get("body")
+                or _art.get("body_markdown")
+                or _art.get("body")
+                or _art.get("human_facing_article_draft")
+                or ""
+            )
         if not _body:
             _art_dict = assemble_human_facing_article(record)
             _body = _art_dict.get("body_markdown", "")
