@@ -66,8 +66,8 @@ TARGETS: dict[str, dict] = {
         "seo_metadata_supported": True,
         "scheduling_supported": True,
         "media_upload_supported": True,
-        "enabled": False,
-        "source": "operator directive (Discord, 2026-09-30, msg 1554476057191645236) — credentials pending",
+        "enabled": True,
+        "source": "operator directive (Discord, 2026-09-30, msg 1554476057191645236)",
         "updated": "2026-09-30",
     },
     "bag-drop": {
@@ -125,6 +125,7 @@ def main() -> int:
         if _write_target(brand_id, target):
             written += 1
             print(f"[v2.11/publish-v1-brand-targets] seeded {brand_id} → {target['cms_target']}", flush=True)
+    _override_enabled_if_creds_present()
     if not MARKER.exists():
         MARKER.parent.mkdir(parents=True, exist_ok=True)
         MARKER.write_text(f"written={written}\n")
@@ -132,5 +133,36 @@ def main() -> int:
     return 0
 
 
+
+
+def _override_enabled_if_creds_present() -> None:
+    """Boot-time override: any target whose wp_user_env + wp_app_password_env
+    are both populated in process env gets enabled=true. This lets operator
+    supply creds via Railway Variables without a code change.
+    Idempotent — overwrites enabled flag each boot (cheap).
+    """
+    for brand_id, target in TARGETS.items():
+        user_env = target.get("wp_user_env")
+        pw_env = target.get("wp_app_password_env")
+        if not user_env or not pw_env:
+            continue
+        creds_present = bool(os.environ.get(user_env)) and bool(os.environ.get(pw_env))
+        if creds_present and not target.get("enabled"):
+            target["enabled"] = True
+            target["source"] = (target.get("source") or "") + " — creds detected at boot"
+        vol_dir = Path(DATA_DIR) / "publishing-targets"
+        vol_path = vol_dir / f"{brand_id}.json"
+        if vol_path.exists():
+            try:
+                cur = json.loads(vol_path.read_text())
+                if cur.get("enabled") != target["enabled"]:
+                    cur["enabled"] = target["enabled"]
+                    vol_path.write_text(json.dumps(cur, indent=2, ensure_ascii=False))
+                    print(f"[v2.11/publish-v1-brand-targets] enabled override → {brand_id} (creds present)", flush=True)
+            except Exception:
+                pass
+
+
+# Call it at the end of main():
 if __name__ == "__main__":
     raise SystemExit(main())

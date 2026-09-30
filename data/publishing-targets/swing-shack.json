@@ -16,7 +16,7 @@
   "seo_metadata_supported": true,
   "scheduling_supported": true,
   "media_upload_supported": true,
-  "enabled": false,
-  "source": "operator directive (Discord, 2026-09-30, msg 1554476057191645236) — credentials pending",
+  "enabled": true,
+  "source": "operator directive (Discord, 2026-09-30, msg 1554476057191645236)",
   "updated": "2026-09-30"
 }
