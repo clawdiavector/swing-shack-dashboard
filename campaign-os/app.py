@@ -18687,6 +18687,54 @@ def api_drafts_regenerate(draft_id: str):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/drafts/<path:draft_id>/regenerate-caption', methods=['POST'])
+def api_drafts_regenerate_caption(draft_id: str):
+    """POST /api/drafts/<id>/regenerate-caption — retire caption sidecar + enqueue P11."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import draft_review_actions as _draft_actions
+
+        body = request.get_json(silent=True) or {}
+        result = _draft_actions.regenerate_caption(
+            draft_id=draft_id,
+            reason=str(body.get("reason") or "regenerate-caption"),
+            recompose=body.get("recompose", True) is not False,
+        )
+        code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
+        return jsonify(result), code
+    except LookupError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("api_drafts_regenerate_caption failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/moments/<path:item_id>/regenerate-caption', methods=['POST'])
+def ops_moment_regenerate_caption(item_id: str):
+    """POST /api/ops/moments/<calendar_candidate:…>/regenerate-caption — bearer bulk regen."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import draft_review_actions as _draft_actions
+
+        body = request.get_json(silent=True) or {}
+        result = _draft_actions.regenerate_caption(
+            moment_id=item_id,
+            reason=str(body.get("reason") or "regenerate-caption"),
+            recompose=body.get("recompose", True) is not False,
+        )
+        code = 200 if result.get("ok") else 400
+        return jsonify(result), code
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_moment_regenerate_caption failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/drafts/<path:draft_id>/recompose', methods=['POST'])
 def api_drafts_recompose(draft_id: str):
     """POST /api/drafts/<id>/recompose — synchronous compose_post only."""

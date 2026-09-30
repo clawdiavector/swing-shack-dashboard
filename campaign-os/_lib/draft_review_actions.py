@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -409,6 +410,143 @@ def regenerate_photo(draft_id: str, *, note: str) -> dict[str, Any]:
         "moment_id": moment_id,
         "enqueued": enqueued,
         **cap_info,
+    }
+
+
+def retire_caption_drafts_for_moment(moment_id: str) -> list[str]:
+    """Clear caption drafts so draft_assets will rerun P11 for this moment."""
+    from _lib import unified_inbox as ui
+
+    moment_id = (moment_id or "").strip()
+    if not moment_id:
+        return []
+
+    draft_dir = _data_dir() / "draft-assets"
+    if not draft_dir.is_dir():
+        return []
+
+    data = ui._load_campaign_data()  # noqa: SLF001
+    retired: list[str] = []
+    now = datetime.now(timezone.utc).isoformat()
+
+    for path in sorted(draft_dir.glob("*.json")):
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(sidecar, dict):
+            continue
+        if str(sidecar.get("source_inbox_item_id") or "") != moment_id:
+            continue
+        if str(sidecar.get("action") or "") not in ("draft_caption", "fill_slot"):
+            continue
+        asset_id = str(sidecar.get("asset_id") or path.stem)
+        for campaign in (data.get("campaigns") or {}).values():
+            if not isinstance(campaign, dict):
+                continue
+            asset = (campaign.get("assets") or {}).get(asset_id)
+            if isinstance(asset, dict):
+                asset["caption"] = ""
+                asset.pop("copy_package", None)
+        sidecar["action"] = "superseded_caption"
+        sidecar["superseded_at"] = now
+        sidecar["superseded_for_moment"] = moment_id
+        _save_sidecar(asset_id, sidecar)
+        retired.append(asset_id)
+
+    if retired:
+        ui._write_campaign_data(data)  # noqa: SLF001
+    return retired
+
+
+def regenerate_caption(
+    *,
+    moment_id: str | None = None,
+    draft_id: str | None = None,
+    reason: str = "regenerate-caption",
+    recompose: bool = True,
+) -> dict[str, Any]:
+    """Retire caption sidecars and enqueue fresh draft_caption (+ optional compose_post)."""
+    from _lib import ops_agents
+    from _lib.l5_create_enqueue import create_actions_for_moment
+
+    resolved_moment = (moment_id or "").strip()
+    brand_id = ""
+    if draft_id:
+        ctx = resolve_draft(draft_id)
+        brand_id = str(ctx["brand_id"] or "")
+        resolved_moment = str(ctx["moment_id"] or resolved_moment)
+    if not resolved_moment:
+        return {"ok": False, "error": "moment_id required (or draft with source moment)"}
+    if not brand_id:
+        from _lib import unified_inbox as ui
+
+        item_type, key = ui._parse_item_id(resolved_moment)  # noqa: SLF001
+        if item_type == "calendar_candidate":
+            brand_id = key.split(":", 1)[0]
+
+    if not brand_id:
+        return {"ok": False, "error": "could not resolve brand_id"}
+
+    retired = retire_caption_drafts_for_moment(resolved_moment)
+    reason_s = (reason or "regenerate-caption").strip()[:64]
+    stamp = hashlib.sha1(f"{reason_s}:{resolved_moment}".encode()).hexdigest()[:10]
+    item_hash = hashlib.sha1(resolved_moment.encode()).hexdigest()[:12]
+    data_dir = _data_dir()
+    enqueued: list[str] = []
+
+    cap_row = ops_agents.normalise_enqueue(
+        {
+            "agent": "cos-caption",
+            "brand": brand_id,
+            "reason": reason_s,
+            "action": "draft_caption",
+            "payload_ref": f"inbox/{resolved_moment}",
+            "dedupe_key": f"cap-regen-{stamp}-{item_hash}",
+        }
+    )
+    ops_agents.append_enqueue_row(data_dir, cap_row)
+    enqueued.append("draft_caption")
+
+    if recompose:
+        compose_row = ops_agents.normalise_enqueue(
+            {
+                "agent": "cos-image",
+                "brand": brand_id,
+                "reason": reason_s,
+                "action": "compose_post",
+                "payload_ref": f"inbox/{resolved_moment}",
+                "dedupe_key": f"compose-regen-{stamp}-{item_hash}",
+            }
+        )
+        ops_agents.append_enqueue_row(data_dir, compose_row)
+        enqueued.append("compose_post")
+
+    # Lodge-only extras (gbp) when applicable — skip draft_photo (template week).
+    for action in create_actions_for_moment(brand_id, resolved_moment, phase="lodge"):
+        if action in enqueued:
+            continue
+        if action == "draft_caption":
+            continue
+        row = ops_agents.normalise_enqueue(
+            {
+                "agent": "cos-caption" if action == "draft_gbp" else "cos-image",
+                "brand": brand_id,
+                "reason": reason_s,
+                "action": action,
+                "payload_ref": f"inbox/{resolved_moment}",
+                "dedupe_key": f"{action}-regen-{stamp}-{item_hash}",
+            }
+        )
+        ops_agents.append_enqueue_row(data_dir, row)
+        enqueued.append(action)
+
+    return {
+        "ok": True,
+        "brand_id": brand_id,
+        "moment_id": resolved_moment,
+        "retired_asset_ids": retired,
+        "enqueued": enqueued,
     }
 
 
