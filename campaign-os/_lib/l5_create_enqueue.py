@@ -13,21 +13,38 @@ def already_queued(existing: set[tuple[str, str]], action: str) -> bool:
     return any((n, s) in existing for n in names for s in ("pending", "waiting"))
 
 
-def create_actions_for_moment(brand_id: str, item_id: str) -> list[str]:
+def create_actions_for_moment(
+    brand_id: str,
+    item_id: str,
+    *,
+    phase: str = "all",
+) -> list[str]:
+    """``lodge``: caption (+ gbp) only; ``image``: gen/photo + compose; ``all``: full pipeline."""
     from _lib.archetypes import select_archetype
     from _lib.publish_sandbox import intended_publish_channels
     from _lib.template_recipe import load_recipe_for_moment
 
-    actions = ["draft_caption"]
+    if phase == "lodge":
+        actions = ["draft_caption"]
+        if "gbp" in intended_publish_channels(brand_id):
+            actions.append("draft_gbp")
+        return actions
+
+    image_actions: list[str] = []
     recipe = load_recipe_for_moment(brand_id, item_id)
     gen_slots = recipe.get("gen_slots") if isinstance(recipe, dict) else None
     if isinstance(gen_slots, list) and gen_slots:
-        actions.append("draft_gen_slots")
+        image_actions.append("draft_gen_slots")
     else:
         archetype = select_archetype(brand_id, item_id)
         if archetype.get("applies_to", {}).get("needs_photo", True):
-            actions.append("draft_photo")
-    actions.append("compose_post")
+            image_actions.append("draft_photo")
+    image_actions.append("compose_post")
+
+    if phase == "image":
+        return image_actions
+
+    actions = ["draft_caption", *image_actions]
     if "gbp" in intended_publish_channels(brand_id):
         actions.append("draft_gbp")
     return actions
@@ -39,6 +56,7 @@ def enqueue_create_actions(
     brand_id: str,
     reason: str,
     rows: list[dict[str, Any]] | None = None,
+    phase: str = "all",
 ) -> list[str]:
     from _lib import ops_agents
     from _lib.campaigns import provenance_for_inbox_item, write_create_payload  # noqa: PLC0415
@@ -57,7 +75,7 @@ def enqueue_create_actions(
                 continue
             existing.add((str(row.get("action") or ""), str(row.get("status") or "").lower()))
 
-    for action in create_actions_for_moment(brand_id, item_id):
+    for action in create_actions_for_moment(brand_id, item_id, phase=phase):
         if already_queued(existing, action):
             continue
         if action == "draft_photo":

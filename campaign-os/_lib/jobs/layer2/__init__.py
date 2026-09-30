@@ -67,10 +67,12 @@ def layer2_specs() -> list[JobSpec]:
             best_effort=False,
             criticality="LOW",
             credentials=(),
+            # V2.7 — holidays go to strategic-moments / important-dates store,
+            # NOT the operator/Main Calendar store.
             writes=(
-                "intelligence/marketing-calendar/stick.jsonl",
-                "intelligence/marketing-calendar/swing-shack.jsonl",
-                "intelligence/marketing-calendar/bag-drop.jsonl",
+                "intelligence/important-dates/stick.jsonl",
+                "intelligence/important-dates/swing-shack.jsonl",
+                "intelligence/important-dates/bag-drop.jsonl",
             ),
             brand_mode="per_brand",
             brands=_ALL_ACTIVE_BRANDS,

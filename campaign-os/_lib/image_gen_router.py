@@ -85,6 +85,8 @@ def _call_krea_generate(
     aspect_ratio: str = "1:1",
     extra: Optional[dict] = None,
     timeout_s: int = 120,
+    brand_id: Optional[str] = None,
+    background_plate: bool = False,
 ) -> dict:
     """Submit an image-generation job to Krea AI.
 
@@ -102,9 +104,11 @@ def _call_krea_generate(
     try:
         return _krea.image_generate(
             prompt=prompt,
+            brand=brand_id or "stick",
             model=model,
             aspect_ratio=aspect_ratio,
             extra=extra,
+            background_plate=background_plate,
         )
     except _krea.KreaNotConnectedError as e:
         raise ImageGenAuthError(f"Krea not connected: {e}")
@@ -836,6 +840,8 @@ def generate_image(
     post_cost_key: Optional[str] = None,
     line_id: Optional[str] = None,
     provider_job_id: Optional[str] = None,
+    background_plate: bool = False,
+    negative_prompt: Optional[str] = None,
 ) -> GenResult:
     """Generate an image. Brand-aware (recipe-injected) when brand_recipe supplied.
 
@@ -1019,36 +1025,48 @@ def generate_image(
         model = model or os.environ.get(
             "CAMPAIGN_OS_KREA_DEFAULT_MODEL", "bfl/flux-1.1-pro"
         )
-        enhanced = _compose_full_prompt(
-            prompt,
-            brand_id=brand_id,
-            brand_recipe=brand_recipe,
-            reference_dnas=reference_dnas,
-            product_service_items=product_service_items,
-            learned_signals=learned_signals,
-        )
         recipe_summary: dict = {}
-        # Add brand context if available
-        if brand_id:
-            try:
-                from _lib.brand_dna import (
-                    load_brand_context,
-                    build_system_message,
-                    build_recipe_summary,
-                )
-                brand_ctx = load_brand_context(brand_id)
-                if brand_ctx.ok:
-                    sys_msg = build_system_message(brand_ctx)
-                    enhanced = f"{sys_msg}\n\n---\n\nUSER REQUEST: {enhanced}"
-                recipe_summary = build_recipe_summary(brand_ctx)
-            except Exception as e:
-                _LOG.warning("brand_dna wiring failed for Krea path %s: %s", brand_id, e)
+        if background_plate:
+            enhanced = prompt.strip()
+            neg = (negative_prompt or "").strip()
+            if neg:
+                enhanced = f"{enhanced}\n\nAvoid: {neg}"
+        else:
+            enhanced = _compose_full_prompt(
+                prompt,
+                brand_id=brand_id,
+                brand_recipe=brand_recipe,
+                reference_dnas=reference_dnas,
+                product_service_items=product_service_items,
+                learned_signals=learned_signals,
+            )
+            if brand_id:
+                try:
+                    from _lib.brand_dna import (
+                        load_brand_context,
+                        build_system_message,
+                        build_recipe_summary,
+                    )
+
+                    brand_ctx = load_brand_context(brand_id)
+                    if brand_ctx.ok:
+                        sys_msg = build_system_message(brand_ctx)
+                        enhanced = f"{sys_msg}\n\n---\n\nUSER REQUEST: {enhanced}"
+                    recipe_summary = build_recipe_summary(brand_ctx)
+                except Exception as e:
+                    _LOG.warning("brand_dna wiring failed for Krea path %s: %s", brand_id, e)
         aspect_ratio = size.replace("x", ":")
+        # Flux models reject MCP input key negative_prompt (422). Negatives are
+        # already folded into enhanced prompt as "Avoid: …" for background_plate.
+        krea_extra: dict | None = None
         kresp = _call_krea_generate(
             prompt=enhanced,
             model=model,
             aspect_ratio=aspect_ratio,
             timeout_s=timeout_s,
+            extra=krea_extra or None,
+            brand_id=brand_id,
+            background_plate=background_plate,
         )
         # Krea returns the job_id in 3 places — top-level, content[0].text
         # JSON, and structuredContent. Try all three. Verified 2026-08-31.

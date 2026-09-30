@@ -8,6 +8,7 @@ import { Other } from './pages/Other'
 import { Publish } from './pages/Publish'
 import { Results } from './pages/Results'
 import { Review } from './pages/Review'
+import { LongFormReview } from './pages/LongFormReview'
 import { ReviewPiece } from './pages/ReviewPiece'
 import { Shelf } from './pages/Shelf'
 import { Ops } from './pages/Ops'
@@ -40,6 +41,8 @@ export default function App() {
         <Route path="inbox" element={<InboxPage />} />
         <Route path="week" element={<WeekBoard />} />
         <Route path="review" element={<Review />} />
+        <Route path="review/long-form" element={<LongFormReview />} />
+        <Route path="review/long-form/:draftId" element={<LongFormReview />} />
         <Route path="review/:itemId" element={<ReviewPiece />} />
         <Route path="shelf" element={<Shelf />} />
         <Route path="create" element={<Create />} />

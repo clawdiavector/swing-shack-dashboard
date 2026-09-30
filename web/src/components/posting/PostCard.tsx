@@ -195,7 +195,7 @@ export function PostCard({
           ) : null}
           {isReleased ? (
             <p className="pt-1 text-xs font-medium text-tx2">
-              Waiting to go out — dispatch runs on the daily cron.
+              Waiting to go out — the hourly job sends it at the scheduled time. Publish now is on the Publish page.
             </p>
           ) : null}
         </div>

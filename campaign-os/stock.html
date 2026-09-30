@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stock — Campaign OS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d;
+    --text: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
+    --ok: #3fb950; --warn: #d29922; --err: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }
+  header { padding: 16px 24px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  header h1 { margin: 0; font-size: 18px; }
+  header h1 .sub { color: var(--muted); font-size: 13px; font-weight: normal; margin-left: 12px; }
+  main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .tab { padding: 10px 16px; cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab.active { border-bottom-color: var(--accent); color: var(--accent); }
+  .tab:hover { color: var(--accent); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+           padding: 16px; margin-bottom: 16px; }
+  .panel h2 { margin: 0 0 12px 0; font-size: 14px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .stat { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 12px; }
+  .stat .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat .value { font-size: 22px; font-weight: 600; margin-top: 4px; }
+  .stat .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 500; }
+  td { padding: 8px; border-bottom: 1px solid var(--border); }
+  tr:hover { background: rgba(88, 166, 255, 0.08); }
+  .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 500; }
+  .badge.ok { background: rgba(63, 185, 80, 0.15); color: var(--ok); }
+  .badge.warn { background: rgba(210, 153, 34, 0.15); color: var(--warn); }
+  .badge.err { background: rgba(248, 81, 73, 0.15); color: var(--err); }
+  .badge.neutral { background: rgba(139, 148, 158, 0.15); color: var(--muted); }
+  .filter-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filter-row input, .filter-row select { padding: 6px 10px; background: var(--bg); color: var(--text);
+                                          border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+  .filter-row input { min-width: 240px; }
+  .btn { padding: 8px 16px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg);
+         color: var(--text); cursor: pointer; font-size: 13px; }
+  .btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .hidden { display: none; }
+  .upload-area { border: 2px dashed var(--border); border-radius: 6px; padding: 32px;
+                 text-align: center; background: var(--bg); }
+  .upload-area.dragover { border-color: var(--accent); background: rgba(88, 166, 255, 0.05); }
+  .preview-box { background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+                 padding: 16px; margin-top: 16px; font-family: monospace; font-size: 12px;
+                 max-height: 400px; overflow: auto; }
+  .warn-list { background: rgba(210, 153, 34, 0.08); border: 1px solid var(--warn);
+               border-radius: 4px; padding: 12px; margin-top: 8px; }
+  .warn-list li { margin-bottom: 4px; }
+  .empty { color: var(--muted); padding: 24px; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>STOCK <span class="sub">Campaign OS · Central Inventory Intelligence</span></h1>
+</header>
+
+<main>
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="current">Current Stock</div>
+    <div class="tab" data-tab="upload">Upload Stock List</div>
+    <div class="tab" data-tab="brands">Product Brands</div>
+    <div class="tab" data-tab="categories">Categories</div>
+    <div class="tab" data-tab="changes">Stock Changes</div>
+    <div class="tab" data-tab="history">Snapshot History</div>
+    <div class="tab" data-tab="freshness">Freshness Settings</div>
+  </div>
+
+  <!-- TAB: Current Stock -->
+  <section id="tab-current" class="tab-content">
+    <div class="panel">
+      <h2>Snapshot</h2>
+      <div id="snapshot-info">Loading…</div>
+    </div>
+
+    <div class="panel">
+      <h2>Counts</h2>
+      <div class="grid" id="counts-grid">
+        <div class="empty">Loading…</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Inventory Browser</h2>
+      <div class="filter-row">
+        <input type="text" id="search" placeholder="Search product_id, name, SKU, brand, category…">
+        <select id="filter-product-brand"><option value="">All product brands</option></select>
+        <select id="filter-category"><option value="">All categories</option></select>
+        <select id="filter-item-type">
+          <option value="">All item types</option>
+          <option value="RETAIL_PRODUCT">Retail Product</option>
+          <option value="INVENTORY_COMPONENT">Inventory Component</option>
+          <option value="SERVICE">Service</option>
+          <option value="COACHING">Coaching</option>
+          <option value="FITTING">Fitting</option>
+          <option value="LABOUR">Labour</option>
+          <option value="UNKNOWN">Unknown</option>
+        </select>
+      </div>
+      <div id="inventory-table">
+        <div class="empty">Loading inventory…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: Upload -->
+  <section id="tab-upload" class="tab-content hidden">
+    <div class="panel">
+      <h2>Upload a new stock list</h2>
+      <div class="filter-row" style="margin-bottom:16px;">
+        <label>Operating brand
+          <select id="upload-brand">
+            <option value="stick">stick</option>
+            <option value="swing-shack">swing-shack</option>
+            <option value="bag-drop">bag-drop</option>
+          </select>
+        </label>
+        <label>Snapshot date
+          <input type="date" id="upload-date" required>
+        </label>
+      </div>
+      <div class="upload-area" id="drop-zone">
+        <p>Drag &amp; drop a PDF, CSV, or XLSX file here</p>
+        <p style="color:var(--muted);font-size:12px;">or</p>
+        <input type="file" id="file-input" accept=".pdf,.csv,.xlsx,.xlsm" style="display:none">
+        <button class="btn primary" onclick="document.getElementById('file-input').click()">Choose file</button>
+        <p style="color:var(--muted);font-size:12px;margin-top:12px;" id="file-name"></p>
+      </div>
+      <div id="preview-area" class="hidden">
+        <h2 style="margin-top:16px;">Import Preview</h2>
+        <div class="preview-box" id="preview-json"></div>
+        <div class="warn-list hidden" id="warnings-box"><strong>Warnings:</strong><ul></ul></div>
+        <div style="margin-top:12px;">
+          <button class="btn primary" id="confirm-btn">Confirm import</button>
+          <button class="btn" id="cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: Brands -->
+  <section id="tab-brands" class="tab-content hidden">
+    <div class="panel">
+      <h2>Product brands carried by Stick</h2>
+      <div id="brands-list"><div class="empty">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- TAB: Categories -->
+  <section id="tab-categories" class="tab-content hidden">
+    <div class="panel">
+      <h2>Categories in current snapshot</h2>
+      <div id="categories-list"><div class="empty">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- TAB: Changes -->
+  <section id="tab-changes" class="tab-content hidden">
+    <div class="panel">
+      <h2>Stock changes vs previous snapshot</h2>
+      <div id="changes-info"><div class="empty">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- TAB: History -->
+  <section id="tab-history" class="tab-content hidden">
+    <div class="panel">
+      <h2>Snapshot history</h2>
+      <div id="history-list"><div class="empty">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- TAB: Freshness -->
+  <section id="tab-freshness" class="tab-content hidden">
+    <div class="panel">
+      <h2>Snapshot freshness thresholds (operator rule 13 — configurable per brand)</h2>
+      <p style="color:var(--muted);font-size:12px;">
+        A snapshot is CURRENT if its age is ≤ current_days.<br>
+        AGING if age ≤ aging_days.<br>
+        STALE if age &gt; aging_days.<br>
+        SNAPSHOT DATE and AGE IN DAYS are always displayed so humans can judge freshness themselves.
+      </p>
+      <div class="filter-row" style="margin-bottom:16px;">
+        <label>Current days <input type="number" id="th-current" min="1" max="365"></label>
+        <label>Aging days <input type="number" id="th-aging" min="1" max="365"></label>
+        <button class="btn primary" id="save-thresholds">Save</button>
+      </div>
+      <div id="freshness-status"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const BRAND = "stick";
+
+async function api(path, opts = {}) {
+  const resp = await fetch(path, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+  });
+  return await resp.json();
+}
+
+function fmtMoney(v) {
+  if (v == null) return "—";
+  return "R" + Number(v).toLocaleString("en-ZA", { maximumFractionDigits: 0 });
+}
+
+function freshnessBadge(freshness) {
+  if (freshness === "CURRENT") return `<span class="badge ok">${freshness}</span>`;
+  if (freshness === "AGING") return `<span class="badge warn">${freshness}</span>`;
+  if (freshness === "STALE") return `<span class="badge err">${freshness}</span>`;
+  return `<span class="badge neutral">${freshness || "UNKNOWN"}</span>`;
+}
+
+function confidenceBadge(c) {
+  if (c === "HIGH") return `<span class="badge ok">${c}</span>`;
+  if (c === "MEDIUM") return `<span class="badge warn">${c}</span>`;
+  if (c === "LOW") return `<span class="badge err">${c}</span>`;
+  return `<span class="badge neutral">${c}</span>`;
+}
+
+// ─── Tabs ────────────────────────────────────────────────
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.add("hidden"));
+    document.getElementById("tab-" + tab.dataset.tab).classList.remove("hidden");
+    loadTab(tab.dataset.tab);
+  });
+});
+
+let allInventory = [];
+
+async function loadTab(tabName) {
+  if (tabName === "current") await loadCurrent();
+  if (tabName === "upload")  initUpload();
+  if (tabName === "brands")  await loadBrands();
+  if (tabName === "categories") await loadCategories();
+  if (tabName === "changes") await loadChanges();
+  if (tabName === "history") await loadHistory();
+  if (tabName === "freshness") await loadFreshness();
+}
+
+// ─── Current Stock ───────────────────────────────────────
+
+async function loadCurrent() {
+  const summary = await api(`/api/stock/summary?brand_id=${BRAND}`);
+  if (!summary.ok || !summary.summary) {
+    document.getElementById("snapshot-info").innerHTML =
+      '<div class="empty">No snapshot available. Upload a stock list to begin.</div>';
+    document.getElementById("counts-grid").innerHTML = "";
+    document.getElementById("inventory-table").innerHTML = "";
+    return;
+  }
+
+  const s = summary.summary;
+  const f = summary.freshness;
+  const thr = f.thresholds || { current_days: 7, aging_days: 14 };
+  document.getElementById("snapshot-info").innerHTML = `
+    <div class="grid">
+      <div class="stat"><div class="label">Snapshot date</div>
+        <div class="value">${s.snapshot_date}</div></div>
+      <div class="stat"><div class="label">Age</div>
+        <div class="value">${f.age_days ?? "?"} days ${freshnessBadge(f.freshness)}</div></div>
+      <div class="stat"><div class="label">Source</div>
+        <div class="value" style="font-size:14px;">${s.source_file}</div>
+        <div class="meta">${s.source_format}</div></div>
+      <div class="stat"><div class="label">Freshness thresholds</div>
+        <div class="value" style="font-size:14px;">≤${thr.current_days}d CURRENT · ≤${thr.aging_days}d AGING</div></div>
+    </div>
+  `;
+
+  // Counts
+  const counts = s.item_types || {};
+  const brands = s.product_brands || {};
+  const cats = s.categories || {};
+  const priceConf = s.price_confidence || {};
+  document.getElementById("counts-grid").innerHTML = `
+    <div class="stat"><div class="label">Total records</div>
+      <div class="value">${s.total_records}</div></div>
+    <div class="stat"><div class="label">Unique products</div>
+      <div class="value">${s.unique_products}</div></div>
+    <div class="stat"><div class="label">Variants</div>
+      <div class="value">${s.variant_count}</div></div>
+    <div class="stat"><div class="label">House-brand records</div>
+      <div class="value">${s.house_brand_records || 0}</div></div>
+    <div class="stat"><div class="label">Retail products</div>
+      <div class="value">${counts.RETAIL_PRODUCT || 0}</div></div>
+    <div class="stat"><div class="label">Inventory components</div>
+      <div class="value">${counts.INVENTORY_COMPONENT || 0}</div></div>
+    <div class="stat"><div class="label">Services total</div>
+      <div class="value">${(counts.SERVICE || 0) + (counts.COACHING || 0) + (counts.FITTING || 0) + (counts.LABOUR || 0)}</div>
+      <div class="meta">coaching ${counts.COACHING || 0} · fitting ${counts.FITTING || 0} · labour ${counts.LABOUR || 0}</div></div>
+    <div class="stat"><div class="label">Price confidence</div>
+      <div class="value" style="font-size:14px;">${confidenceBadge('HIGH')} ${priceConf.HIGH || 0} · ${confidenceBadge('MEDIUM')} ${priceConf.MEDIUM || 0} · ${confidenceBadge('LOW')} ${priceConf.LOW || 0} · ${confidenceBadge('UNKNOWN')} ${priceConf.UNKNOWN || 0}</div></div>
+  `;
+
+  // Populate filter dropdowns
+  const pbSel = document.getElementById("filter-product-brand");
+  pbSel.innerHTML = '<option value="">All product brands</option>' +
+    Object.keys(brands).sort().map(b => `<option value="${b}">${b} (${brands[b]})</option>`).join("");
+  const catSel = document.getElementById("filter-category");
+  catSel.innerHTML = '<option value="">All categories</option>' +
+    Object.keys(cats).sort().map(c => `<option value="${c}">${c} (${cats[c]})</option>`).join("");
+
+  // Load inventory list
+  const inv = await api(`/api/stock/inventory?brand_id=${BRAND}`);
+  allInventory = inv.records || [];
+  renderInventory();
+}
+
+function renderInventory() {
+  const q = (document.getElementById("search").value || "").toLowerCase();
+  const pb = document.getElementById("filter-product-brand").value;
+  const cat = document.getElementById("filter-category").value;
+  const itype = document.getElementById("filter-item-type").value;
+  let rows = allInventory;
+  if (q) rows = rows.filter(r =>
+    (r.product_id || "").toLowerCase().includes(q) ||
+    (r.product_name || "").toLowerCase().includes(q) ||
+    (r.sku || "").toLowerCase().includes(q));
+  if (pb) rows = rows.filter(r => r.product_brand === pb);
+  if (cat) rows = rows.filter(r => r.category === cat);
+  if (itype) rows = rows.filter(r => r.item_type === itype);
+
+  if (rows.length === 0) {
+    document.getElementById("inventory-table").innerHTML = '<div class="empty">No records match.</div>';
+    return;
+  }
+  document.getElementById("inventory-table").innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Product ID</th><th>Name</th><th>Brand</th><th>Category</th>
+        <th>Type</th><th>SKU</th><th>Price</th><th>Conf</th><th>Stock State</th>
+      </tr></thead>
+      <tbody>
+        ${rows.slice(0, 500).map(r => `
+          <tr>
+            <td><code>${r.product_id}</code>${r.house_brand ? ' <span class="badge neutral">house</span>' : ''}</td>
+            <td>${(r.product_name || "").slice(0, 60)}</td>
+            <td>${r.product_brand || '<span style="color:var(--muted)">—</span>'}</td>
+            <td>${r.category || '<span style="color:var(--muted)">—</span>'}</td>
+            <td>${r.item_type}</td>
+            <td><code>${r.sku || ""}</code></td>
+            <td>${fmtMoney(r.price)}</td>
+            <td>${confidenceBadge(r.price_confidence)}</td>
+            <td>${r.stock_state || "UNKNOWN"}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>
+    ${rows.length > 500 ? `<div class="empty">Showing 500 of ${rows.length}. Refine filters to narrow.</div>` : ""}
+  `;
+}
+
+document.getElementById("search").addEventListener("input", renderInventory);
+document.getElementById("filter-product-brand").addEventListener("change", renderInventory);
+document.getElementById("filter-category").addEventListener("change", renderInventory);
+document.getElementById("filter-item-type").addEventListener("change", renderInventory);
+
+// ─── Upload ──────────────────────────────────────────────
+
+function initUpload() {
+  const dateInput = document.getElementById("upload-date");
+  if (!dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+  const dropZone = document.getElementById("drop-zone");
+  const fileInput = document.getElementById("file-input");
+  dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      handleFileSelect();
+    }
+  });
+  fileInput.addEventListener("change", handleFileSelect);
+  document.getElementById("confirm-btn").onclick = confirmImport;
+  document.getElementById("cancel-btn").onclick = () => {
+    document.getElementById("preview-area").classList.add("hidden");
+    document.getElementById("file-name").textContent = "";
+    fileInput.value = "";
+    currentPreviewId = null;
+  };
+}
+
+let currentPreviewId = null;
+
+function handleFileSelect() {
+  const file = document.getElementById("file-input").files[0];
+  if (!file) return;
+  document.getElementById("file-name").textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+  uploadPreview(file);
+}
+
+async function uploadPreview(file) {
+  const brand = document.getElementById("upload-brand").value;
+  const date = document.getElementById("upload-date").value;
+  if (!date) { alert("Please select a snapshot date."); return; }
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("operating_brand", brand);
+  formData.append("snapshot_date", date);
+  document.getElementById("preview-json").textContent = "Uploading and parsing…";
+  document.getElementById("preview-area").classList.remove("hidden");
+  document.getElementById("warnings-box").classList.add("hidden");
+
+  const resp = await fetch("/api/stock/preview", {
+    method: "POST", body: formData, credentials: "include",
+  });
+  const data = await resp.json();
+  if (!data.ok) {
+    document.getElementById("preview-json").textContent = "ERROR: " + (data.error || JSON.stringify(data));
+    return;
+  }
+  currentPreviewId = data.preview_id;
+  document.getElementById("preview-json").textContent = JSON.stringify(data, null, 2);
+  if (data.validation && data.validation.warnings && data.validation.warnings.length) {
+    const wb = document.getElementById("warnings-box");
+    wb.classList.remove("hidden");
+    wb.querySelector("ul").innerHTML = data.validation.warnings.map(w => `<li>${w}</li>`).join("");
+  }
+}
+
+async function confirmImport() {
+  if (!currentPreviewId) { alert("No preview to confirm."); return; }
+  const btn = document.getElementById("confirm-btn");
+  btn.disabled = true;
+  btn.textContent = "Committing…";
+  const resp = await fetch("/api/stock/commit", {
+    method: "POST", credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ preview_id: currentPreviewId, actor: "operator" }),
+  });
+  const data = await resp.json();
+  btn.disabled = false;
+  btn.textContent = "Confirm import";
+  if (!data.ok) {
+    alert("Commit failed: " + (data.error || JSON.stringify(data)));
+    return;
+  }
+  document.getElementById("preview-json").textContent = "COMMITTED.\n\n" + JSON.stringify(data, null, 2);
+  currentPreviewId = null;
+  document.getElementById("file-name").textContent = "";
+  document.getElementById("file-input").value = "";
+  // Refresh current snapshot view
+  setTimeout(() => loadCurrent(), 1500);
+}
+
+// ─── Brands / Categories / Changes / History / Freshness ─
+
+async function loadBrands() {
+  const summary = await api(`/api/stock/summary?brand_id=${BRAND}`);
+  if (!summary.ok || !summary.summary) {
+    document.getElementById("brands-list").innerHTML = '<div class="empty">No data.</div>';
+    return;
+  }
+  const brands = summary.summary.product_brands || {};
+  document.getElementById("brands-list").innerHTML = `
+    <table>
+      <thead><tr><th>Brand</th><th>Records</th><th>House brand?</th><th></th></tr></thead>
+      <tbody>
+        ${Object.entries(brands).sort((a, b) => b[1] - a[1]).map(([b, n]) => {
+          const isHouse = b && b.toLowerCase() === BRAND.toLowerCase();
+          return `<tr>
+            <td><strong>${b || '—'}</strong></td>
+            <td>${n}</td>
+            <td>${isHouse ? '<span class="badge neutral">house brand</span>' : ''}</td>
+            <td><button class="btn" onclick="viewBrand('${b}')">View inventory</button></td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+async function viewBrand(brand) {
+  const data = await api(`/api/stock/product-brand/${encodeURIComponent(brand)}?brand_id=${BRAND}`);
+  if (!data.ok) { alert(JSON.stringify(data)); return; }
+  const w = window.open("", "_blank");
+  w.document.write(`
+    <html><head><title>${brand} — Stick inventory</title>
+    <style>body{font-family:sans-serif;padding:24px;background:#0d1117;color:#c9d1d9}
+    table{border-collapse:collapse;width:100%}th,td{padding:8px;border-bottom:1px solid #30363d;text-align:left}
+    th{color:#8b949e}</style></head><body>
+    <h1>${brand} — Stick inventory</h1>
+    <p>Snapshot: ${data.snapshot_date} · ${data.freshness}</p>
+    <p>Unique products: ${data.unique_products} · Retail: ${data.retail_products} ·
+       Components: ${data.inventory_components} · Services: ${data.services} ·
+       House brand records: ${data.house_brand}</p>
+    ${data.price_range.min ? `<p>Price range: ${fmtMoney(data.price_range.min)} – ${fmtMoney(data.price_range.max)}</p>` : ""}
+    <table><thead><tr><th>Product ID</th><th>Name</th><th>Category</th><th>Price</th><th>SKU</th></tr></thead><tbody>
+    ${data.records.slice(0, 200).map(r => `
+      <tr><td><code>${r.product_id}</code></td>
+      <td>${(r.product_name || '').slice(0, 60)}</td>
+      <td>${r.category || ''}</td>
+      <td>${fmtMoney(r.price)}</td>
+      <td>${r.sku || ''}</td></tr>
+    `).join("")}
+    </tbody></table>
+    ${data.records.length > 200 ? `<p>Showing 200 of ${data.records.length}.</p>` : ""}
+    </body></html>
+  `);
+}
+
+async function loadCategories() {
+  const summary = await api(`/api/stock/summary?brand_id=${BRAND}`);
+  if (!summary.ok || !summary.summary) {
+    document.getElementById("categories-list").innerHTML = '<div class="empty">No data.</div>';
+    return;
+  }
+  const cats = summary.summary.categories || {};
+  document.getElementById("categories-list").innerHTML = `
+    <table>
+      <thead><tr><th>Category</th><th>Records</th><th></th></tr></thead>
+      <tbody>
+        ${Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([c, n]) => `
+          <tr><td><strong>${c}</strong></td><td>${n}</td>
+          <td><button class="btn" onclick="viewCategory('${c}')">View</button></td></tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+async function viewCategory(cat) {
+  const data = await api(`/api/stock/category/${encodeURIComponent(cat)}?brand_id=${BRAND}`);
+  if (!data.ok) { alert(JSON.stringify(data)); return; }
+  const w = window.open("", "_blank");
+  w.document.write(`
+    <html><head><title>${cat} — Stick inventory</title>
+    <style>body{font-family:sans-serif;padding:24px;background:#0d1117;color:#c9d1d9}
+    table{border-collapse:collapse;width:100%}th,td{padding:8px;border-bottom:1px solid #30363d;text-align:left}
+    th{color:#8b949e}</style></head><body>
+    <h1>${cat} — Stick</h1>
+    <p>Snapshot: ${data.snapshot_date} · ${data.freshness}</p>
+    <p>Retail: ${data.retail_products} · Components: ${data.inventory_components} ·
+       Services: ${data.services} · House: ${data.house_brand}</p>
+    <p>Brands in this category: ${Object.entries(data.product_brands).map(([b, n]) => `${b} (${n})`).join(', ')}</p>
+    <table><thead><tr><th>Product ID</th><th>Name</th><th>Brand</th><th>Price</th><th>SKU</th></tr></thead><tbody>
+    ${data.records.slice(0, 200).map(r => `
+      <tr><td><code>${r.product_id}</code></td>
+      <td>${(r.product_name || '').slice(0, 60)}</td>
+      <td>${r.product_brand || ''}</td>
+      <td>${fmtMoney(r.price)}</td>
+      <td>${r.sku || ''}</td></tr>
+    `).join("")}
+    </tbody></table></body></html>
+  `);
+}
+
+async function loadChanges() {
+  const data = await api(`/api/stock/changes?brand_id=${BRAND}`);
+  const el = document.getElementById("changes-info");
+  if (data.error === "NO_PREVIOUS_SNAPSHOT") {
+    el.innerHTML = `<div class="empty">${data.note}<br><br>Upload another stock snapshot to enable change detection.</div>`;
+    return;
+  }
+  const c = data.changes || {};
+  const cur = data.current_snapshot || {};
+  const prev = data.previous_snapshot || {};
+  el.innerHTML = `
+    <div class="grid">
+      <div class="stat"><div class="label">Comparing</div>
+        <div class="value" style="font-size:14px;">${cur.snapshot_date} vs ${prev.snapshot_date}</div></div>
+      <div class="stat"><div class="label">New products</div>
+        <div class="value">${(c.NEW_PRODUCTS || []).length}</div></div>
+      <div class="stat"><div class="label">Removed products</div>
+        <div class="value">${(c.REMOVED_PRODUCTS || []).length}</div></div>
+      <div class="stat"><div class="label">New variants</div>
+        <div class="value">${(c.NEW_VARIANTS || []).length}</div></div>
+      <div class="stat"><div class="label">Removed variants</div>
+        <div class="value">${(c.REMOVED_VARIANTS || []).length}</div></div>
+      <div class="stat"><div class="label">Price changes</div>
+        <div class="value">${(c.PRICE_CHANGES || []).length}</div></div>
+      <div class="stat"><div class="label">New brands</div>
+        <div class="value">${(c.NEW_BRANDS || []).length}</div></div>
+      <div class="stat"><div class="label">Removed brands</div>
+        <div class="value">${(c.REMOVED_BRANDS || []).length}</div></div>
+    </div>
+    ${(c.NEW_PRODUCTS && c.NEW_PRODUCTS.length) ? `<h3 style="margin-top:16px;">New products</h3><ul>${c.NEW_PRODUCTS.slice(0, 50).map(p => `<li><code>${p}</code></li>`).join("")}</ul>` : ""}
+    ${(c.REMOVED_PRODUCTS && c.REMOVED_PRODUCTS.length) ? `<h3>Removed products</h3><ul>${c.REMOVED_PRODUCTS.slice(0, 50).map(p => `<li><code>${p}</code></li>`).join("")}</ul>` : ""}
+    ${(c.PRICE_CHANGES && c.PRICE_CHANGES.length) ? `<h3>Price changes</h3>
+      <table><thead><tr><th>Product</th><th>Old</th><th>New</th></tr></thead><tbody>
+      ${c.PRICE_CHANGES.slice(0, 50).map(p => `<tr><td>${p.product_id}</td><td>${fmtMoney(p.old_price)}</td><td>${fmtMoney(p.new_price)}</td></tr>`).join("")}
+      </tbody></table>` : ""}
+  `;
+}
+
+async function loadHistory() {
+  const data = await api(`/api/stock/snapshots?brand_id=${BRAND}`);
+  if (!data.ok || !data.snapshots || !data.snapshots.length) {
+    document.getElementById("history-list").innerHTML = '<div class="empty">No snapshots yet.</div>';
+    return;
+  }
+  document.getElementById("history-list").innerHTML = `
+    <table>
+      <thead><tr><th>Snapshot</th><th>Age</th><th>Records</th><th>Source</th><th>Imported by</th></tr></thead>
+      <tbody>
+        ${data.snapshots.map(s => `
+          <tr>
+            <td><code>${s.snapshot_date}</code> ${freshnessBadge(s.freshness)}</td>
+            <td>${s.age_days ?? "?"} days</td>
+            <td>${s.record_count} (${s.unique_products} unique)</td>
+            <td>${s.source_file} <span class="badge neutral">${s.source_format}</span></td>
+            <td>${s.imported_by || "—"}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+async function loadFreshness() {
+  const data = await api(`/api/stock/freshness?brand_id=${BRAND}`);
+  if (!data.ok) return;
+  document.getElementById("th-current").value = data.thresholds.current_days;
+  document.getElementById("th-aging").value = data.thresholds.aging_days;
+  document.getElementById("freshness-status").innerHTML =
+    `<div class="badge ok">Loaded</div> Current: ≤${data.thresholds.current_days}d · Aging: ≤${data.thresholds.aging_days}d`;
+}
+
+document.getElementById("save-thresholds").addEventListener("click", async () => {
+  const current_days = parseInt(document.getElementById("th-current").value, 10);
+  const aging_days = parseInt(document.getElementById("th-aging").value, 10);
+  if (!Number.isFinite(current_days) || !Number.isFinite(aging_days) ||
+      current_days < 1 || aging_days < current_days) {
+    alert("Invalid thresholds. aging_days must be ≥ current_days ≥ 1."); return;
+  }
+  const resp = await fetch(`/api/stock/freshness?brand_id=${BRAND}`, {
+    method: "POST", credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ thresholds: { current_days, aging_days } }),
+  });
+  const data = await resp.json();
+  if (!data.ok) { alert(JSON.stringify(data)); return; }
+  document.getElementById("freshness-status").innerHTML =
+    `<div class="badge ok">Saved</div> Current: ≤${current_days}d · Aging: ≤${aging_days}d`;
+});
+
+// ─── Init ────────────────────────────────────────────────
+
+loadCurrent();
+</script>
+</body>
+</html>

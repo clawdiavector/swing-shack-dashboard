@@ -61,6 +61,8 @@ export type InboxItem = {
     asset_id?: string
     platform?: string
     primary_channel?: string
+    /** IG + FB targets for this draft (display + publish queue). */
+    publish_targets?: string[]
     event_date?: string
     goes_out_at?: string
     approval_status?: string
@@ -466,6 +468,16 @@ export function fetchShelf(brand?: string) {
   const q = new URLSearchParams()
   if (brand) q.set('brand', brand)
   return getJson<ShelfPayload>(`/api/inbox/shelf?${q}`)
+}
+
+export function publishDispatchNow(idempotencyKey: string) {
+  return postJsonWithStatus<{
+    ok?: boolean
+    error?: string
+    dispatched?: number
+    errors?: string[]
+    mode?: string
+  }>('/api/publish/dispatch-now', { idempotency_key: idempotencyKey })
 }
 
 export function releaseMoment(brandId: string, calendarId: string, editor = 'christelle') {
@@ -1219,11 +1231,33 @@ export type InboxMediaTag = {
   tone: 'green' | 'mute' | 'gold'
 }
 
-export function inboxChannelLabel(item?: InboxItem | null): string {
+function _channelDisplayLabel(channel: string): string {
+  const id = channel.trim().toLowerCase()
+  if (id === 'instagram') return 'Instagram'
+  if (id === 'facebook') return 'Facebook'
+  if (id === 'gbp') return 'GBP'
+  return channel.replace(/_/g, ' ')
+}
+
+export function inboxPublishTargets(item?: InboxItem | null): string[] {
   const meta = item?.meta
-  const raw = String(meta?.primary_channel || meta?.platform || '').trim()
-  if (!raw) return ''
-  return raw.replace(/_/g, ' ')
+  const targets = meta?.publish_targets
+  if (Array.isArray(targets) && targets.length) {
+    return targets.map((ch) => String(ch).trim()).filter(Boolean)
+  }
+  const composed = meta?.composed
+  if (composed && typeof composed === 'object') {
+    const keys = Object.keys(composed).filter((k) => Boolean(composed[k]))
+    if (keys.length) return keys
+  }
+  const raw = String(meta?.primary_channel || meta?.platform || 'instagram').trim()
+  return raw ? [raw] : []
+}
+
+export function inboxChannelLabel(item?: InboxItem | null): string {
+  const targets = inboxPublishTargets(item)
+  if (!targets.length) return ''
+  return targets.map(_channelDisplayLabel).join(' · ')
 }
 
 export function inboxGoesOutIso(item?: InboxItem | null): string | null {

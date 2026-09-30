@@ -7,12 +7,20 @@
     {
       "id": "background",
       "role": "full_bleed",
-      "prompt_template": "Photoreal indoor golf studio mood for {title}. NO text NO logos NO typography NO poster layout NO UI.",
+      "prompt_template": "{scene}",
       "negative": [
+        "text",
+        "letters",
+        "words",
         "typography",
-        "poster layout",
+        "poster",
+        "collage",
+        "split screen",
         "brochure",
-        "watermark"
+        "infographic",
+        "ui",
+        "watermark",
+        "logo"
       ],
       "optional": false
     }

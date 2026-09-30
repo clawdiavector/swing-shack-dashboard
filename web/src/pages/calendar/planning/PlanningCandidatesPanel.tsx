@@ -97,6 +97,7 @@ export function PlanningCandidatesPanel({
   researchLeads,
   researchLeadCount,
   horizon,
+  onApproved,
 }: {
   brand: string
   brandId: string
@@ -106,6 +107,10 @@ export function PlanningCandidatesPanel({
   researchLeads: ResearchLead[]
   researchLeadCount: number
   horizon: { start: string; end: string }
+  // V2.10 — parent Lanes owns the refresh + re-fetch. Notify it after
+  // a successful approval so the timeline + month grid update without
+  // a page reload.
+  onApproved?: (result: { ok: boolean; candidate_id: string; event_key?: string; error?: string }) => void
 }) {
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -187,6 +192,7 @@ export function PlanningCandidatesPanel({
             message: j.was_created ? 'Added to the strategic spine' : 'Already on the spine (idempotent)',
           },
         }))
+        onApproved?.({ ok: true, candidate_id: candidateId, event_key: j.event_key })
       } else if (r.status === 400 && j.is_research_lead) {
         setApprovalStates((s) => ({
           ...s,
@@ -195,15 +201,18 @@ export function PlanningCandidatesPanel({
             message: j.error || 'Research lead — verify the date first.',
           },
         }))
+        onApproved?.({ ok: false, candidate_id: candidateId, error: j.error })
       } else {
         setApprovalStates((s) => ({
           ...s,
           [candidateId]: { loading: false, message: j.error || 'approval failed' },
         }))
+        onApproved?.({ ok: false, candidate_id: candidateId, error: j.error })
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'network error'
       setApprovalStates((s) => ({ ...s, [candidateId]: { loading: false, message: msg } }))
+      onApproved?.({ ok: false, candidate_id: candidateId, error: msg })
     }
   }
 

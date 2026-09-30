@@ -23,17 +23,29 @@ def _brand_root() -> Path:
         root = Path(runtime) / "brand-directory"
         root.mkdir(parents=True, exist_ok=True)
         return root
-    bundled = Path(__file__).resolve().parents[2] / "data" / "brand-directory"
-    return bundled
+    return _bundled_brand_root()
+
+
+def _bundled_brand_root() -> Path:
+    bundled = os.environ.get("BUNDLED_DATA_DIR")
+    if bundled:
+        return Path(bundled) / "brand-directory"
+    return Path(__file__).resolve().parents[2] / "data" / "brand-directory"
 
 
 def _template_pack_dir(brand_id: str, template_pack: str) -> Path | None:
     rel = template_pack.strip().lstrip("/")
     if not rel:
         return None
-    root = _brand_root()
-    path = root / brand_id / rel
-    return path if path.is_dir() else None
+    seen: set[Path] = set()
+    for root in (_brand_root(), _bundled_brand_root()):
+        if root in seen:
+            continue
+        seen.add(root)
+        path = root / brand_id / rel
+        if path.is_dir():
+            return path
+    return None
 
 
 def load_recipe_json(brand_id: str, template_pack: str) -> dict[str, Any] | None:

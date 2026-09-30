@@ -433,8 +433,11 @@ def layer17_recipe(meta: dict, palette: dict, comp: dict, ocr: dict, typo: dict,
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
 
-def dissect(image_path: Path, bible_path: Path | None = None) -> dict[str, Any]:
+def dissect(image_path: Path | str, bible_path: Path | str | None = None) -> dict[str, Any]:
     """Run full visual DNA extraction. Returns dict ready to JSON-serialize."""
+    image_path = Path(image_path)
+    if bible_path is not None:
+        bible_path = Path(bible_path)
     if not image_path.exists():
         return {"error": "not_found", "path": str(image_path)}
 

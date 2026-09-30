@@ -61,9 +61,13 @@ def _moment_context(brand_id: str, item_id: str) -> dict[str, Any]:
         rid = str(record.get("calendar_id") or record.get("event_key") or "")
         if rid != cal_id:
             continue
-        pillar = str(record.get("pillar_id") or record.get("pillar") or "")
-        if pillar:
-            ctx["pillar_in"] = [pillar]
+        pillars = record.get("pillars")
+        if isinstance(pillars, list) and pillars:
+            ctx["pillar_in"] = [str(p).strip() for p in pillars if str(p).strip()]
+        else:
+            pillar = str(record.get("pillar_id") or record.get("pillar") or "")
+            if pillar:
+                ctx["pillar_in"] = [pillar]
         ctx["subject"] = str(record.get("subject") or record.get("topic") or "")
         ctx["post_type"] = str(record.get("post_type") or "").strip().lower()
         ctx["template_id"] = str(record.get("template_id") or record.get("archetype_id") or "").strip()

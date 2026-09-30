@@ -39,10 +39,12 @@ function ActivePinList({
 
 export function RightNowStrip({
   brand,
+  bigIdea,
   rightNow,
   onOpenEvent,
 }: {
   brand: string
+  bigIdea?: { operating_areas?: Array<{ key?: string }> } | null
   rightNow: PlanningRightNow | null
   onOpenEvent: (id: string) => void
 }) {
@@ -59,6 +61,38 @@ export function RightNowStrip({
   const rn = rightNow.right_now || {}
   const today = rightNow.today || ''
 
+  // V2.11 — Right Now labels are brand-specific. The previous build
+  // hard-coded RETAIL / FITTING / COACHING, which is correct for
+  // Stick but wrong for Swing Shack (no RETAIL area) and misleading
+  // for Bag Drop. Pull the labels from the canonical
+  // bigIdea.operating_areas[].key list (first 3) and fall back to
+  // whichever right_now keys have content. Each label gets the
+  // matching right_now key by lowercased label match.
+  const areaKeys = (bigIdea?.operating_areas || []).map((a) => (a.key || '').toUpperCase())
+  const fallbackLabels = ['RETAIL', 'FITTING', 'COACHING']
+  const labels = (areaKeys.length > 0 ? areaKeys : fallbackLabels).slice(0, 3)
+  const colorFor = (k: string): string => {
+    const u = (k || '').toUpperCase()
+    if (u === 'FITTING' || u === 'CONDITION' || u === 'MEASUREMENT') return '#14b8a6'
+    return '#f0a030'
+  }
+  const cardFor = (label: string): { color: string; text: string } => {
+    const color = colorFor(label)
+    // Prefer exact lowercased match (rightNow.retail). Fall back to
+    // common synonyms (e.g. 'lessons' for the right_now.retail
+    // slot). Then the generic copy as a last resort.
+    const key = label.toLowerCase()
+    const text = rn[key]
+      || (label === 'FITTING' ? (rn.fitting || null) : null)
+      || (label === 'COACHING' ? (rn.coaching || null) : null)
+      || (label === 'LESSONS' ? (rn.lessons || null) : null)
+      || (label === 'ON-COURSE' ? (rn.on_course || null) : null)
+      || (label === 'HUMAN' ? (rn.human || null) : null)
+      || (label === 'MEASUREMENT' ? (rn.measurement || null) : null)
+      || null
+    return { color, text: text || '—' }
+  }
+
   return (
     <section className="glass space-y-4 rounded-2xl border border-yel/20 bg-gradient-to-b from-yel/5 to-transparent p-4 md:p-5">
       <div className="flex items-baseline gap-2">
@@ -66,24 +100,23 @@ export function RightNowStrip({
         {today ? <p className="ml-auto text-[11px] text-tx3">{today}</p> : null}
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        {(
-          [
-            ['RETAIL', '#f0a030', rn.retail || 'Steady new arrivals + walk-in retail.'],
-            ['FITTING', '#14b8a6', rn.fitting || 'Iron / wedge / putter fitting on-ramp.'],
-            ['COACHING', '#f0a030', rn.coaching || 'Lessons + playing-coach sessions.'],
-          ] as const
-        ).map(([label, color, text]) => (
-          <div
-            key={label}
-            className="rounded-lg border-l-[3px] bg-bg2/80 px-4 py-3"
-            style={{ borderColor: color }}
-          >
-            <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color }}>
-              {label}
-            </p>
-            <p className="mt-1 text-sm leading-snug text-tx">{text}</p>
-          </div>
-        ))}
+        {labels.map((label) => {
+          const c = cardFor(label)
+          return (
+            <div
+              key={label}
+              data-testid="right-now-card"
+              data-area={label}
+              className="rounded-lg border-l-[3px] bg-bg2/80 px-4 py-3"
+              style={{ borderColor: c.color }}
+            >
+              <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: c.color }}>
+                {label}
+              </p>
+              <p className="mt-1 text-sm leading-snug text-tx">{c.text}</p>
+            </div>
+          )
+        })}
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <div>

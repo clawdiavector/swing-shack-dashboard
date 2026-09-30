@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, HeroPanel, PageIntro } from '../../components/chrome'
-import { ClassicLink, Tip } from '../../components/ui'
+import { Tip } from '../../components/ui'
 import {
   addCalendarCandidate,
   fetchOpportunities,
@@ -188,7 +188,6 @@ export function Ideas() {
             {genBusy ? 'Generating…' : 'Generate ideas'}
           </button>
         </Tip>
-        <ClassicLink href="/?page=ideas" label="ideas" />
       </HeroPanel>
 
       <FilterChips options={TAB_OPTIONS} value={tab} onChange={setTab} />

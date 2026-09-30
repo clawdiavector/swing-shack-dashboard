@@ -23,20 +23,195 @@ from .draft_assets import (
     _write_draft,
     _write_image_brief,
 )
-from .image_draft_context import ImageDraftContext, build_image_draft_context, image_url_for, primary_channel_for_item
+from .image_draft_context import (
+    ImageDraftContext,
+    background_plate_scene_prompt,
+    build_image_draft_context,
+    image_url_for,
+    primary_channel_for_item,
+)
 from .visual_qc import visual_check
 
 
 def _resolve_prompt(template: str, ctx: ImageDraftContext, *, brand_id: str, item_id: str) -> str:
+    scene = background_plate_scene_prompt(brand_id, item_id, ctx)
     calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
-    title = str(calendar.get("title") or "venue")
-    pillar = str(calendar.get("pillar") or "coaching")
+    pillar = str(calendar.get("pillar") or calendar.get("pillar_id") or "coaching")
+    pillars = calendar.get("pillars")
+    if isinstance(pillars, list) and pillars:
+        pillar = str(pillars[0] or pillar)
+    title = scene
     out = (
-        template.replace("{title}", title)
+        template.replace("{scene}", scene)
+        .replace("{title}", title)
         .replace("{pillar}", pillar)
         .replace("{brand_id}", brand_id)
     )
     return out.strip()
+
+
+def finalize_gen_slots_from_krea_poll(
+    row: dict[str, Any],
+    *,
+    item_id: str,
+    brand_id: str,
+    png_path: Path,
+    job_entry: dict[str, Any],
+) -> Optional[str]:
+    """Complete draft_gen_slots after krea_poll downloaded the async Krea PNG."""
+    from _lib.archetypes import select_archetype  # noqa: PLC0415
+
+    recipe = load_recipe_for_moment(brand_id, item_id)
+    if not recipe:
+        return None
+    slots = recipe.get("gen_slots")
+    if not isinstance(slots, list) or not slots:
+        return None
+    slot = next((s for s in slots if isinstance(s, dict) and str(s.get("id") or "") == "background"), None)
+    if not isinstance(slot, dict):
+        slot = slots[0] if isinstance(slots[0], dict) else None
+    if not isinstance(slot, dict):
+        return None
+    slot_id = str(slot.get("id") or "background").strip() or "background"
+
+    archetype = select_archetype(brand_id, item_id)
+    archetype_id = str(archetype.get("id") or recipe.get("archetype_id") or "")
+    template_pack = str(archetype.get("template_pack") or "")
+    ctx = build_image_draft_context(brand_id, item_id)
+    size = str(job_entry.get("size") or ctx.aspect or "1024x1024")
+    est = float(job_entry.get("est_usd") or 0.04)
+    gen_prompt_used = background_plate_scene_prompt(brand_id, item_id, ctx)
+
+    seed_bump = 0
+    _, existing_sidecar = _sidecar_for_item(item_id)
+    if isinstance(existing_sidecar, dict):
+        try:
+            seed_bump = int(existing_sidecar.get("gen_seed_bump") or 0)
+        except (TypeError, ValueError):
+            seed_bump = 0
+    policy_key = str(recipe.get("cache_policy") or "coaching_service_7d")
+    bucket_hash = cache_bucket_key(
+        brand_id=brand_id,
+        recipe=recipe,
+        item_id=item_id,
+        seed_bump=seed_bump,
+    )
+    cache_path = cache_file_path(
+        brand_id=brand_id,
+        template_pack=template_pack,
+        slot_id=slot_id,
+        bucket_hash=bucket_hash,
+    )
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_bytes(png_path.read_bytes())
+    bg_path = str(cache_path)
+
+    qc = visual_check(Path(bg_path), brand_id=brand_id, archetype_id=archetype_id)
+    verdict = str(qc.get("verdict") or "")
+    if verdict in ("fail", "needs_human"):
+        return None
+
+    prompt_template = str(slot.get("prompt_template") or "{scene}")
+    prompt_used = _resolve_prompt(prompt_template, ctx, brand_id=brand_id, item_id=item_id)
+    write_cache_entry(
+        Path(bg_path),
+        brand_id=brand_id,
+        slot_id=slot_id,
+        bucket_hash=bucket_hash,
+        prompt_used=prompt_used,
+    )
+
+    photo_candidates = [
+        {
+            "index": 0,
+            "path": bg_path,
+            "url": image_url_for(brand_id, bg_path),
+            "provider": "gen_recipe",
+            "model": "recipe",
+            "cost_usd": est,
+            "size": size,
+        }
+    ]
+    qc_payload = {
+        "verdict": verdict or "pass",
+        "checked_at": qc.get("checked_at") or _utc_now_iso(),
+        "reasons": qc.get("reasons") or [],
+        "candidates": [
+            {
+                "index": 0,
+                "path": bg_path,
+                "verdict": verdict or "pass",
+                "reasons": qc.get("reasons") or [],
+            }
+        ],
+        "selected": 0,
+        "edit_attempted": False,
+        "human_reason": None,
+        "gen_recipe": True,
+    }
+
+    caption_asset_id, caption_text = _find_caption_draft_for_item(item_id)
+    caption = caption_text or ctx.job
+    primary_platform = primary_channel_for_item(brand_id, item_id, fallback="instagram")
+    asset_id = caption_asset_id
+    if not asset_id:
+        asset_id = _write_draft(
+            brand_id=brand_id,
+            caption=caption,
+            platform=primary_platform,
+            source_item_id=item_id,
+            sidecar={"action": "draft_gen_slots", "queue_row_id": row.get("id")},
+        )
+
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+    merged: dict[str, Any] = {}
+    if sidecar_path.is_file():
+        try:
+            loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                merged = loaded
+        except (OSError, json.JSONDecodeError):
+            merged = {}
+
+    merged.update(
+        {
+            "action": "draft_gen_slots",
+            "gen_slots": {slot_id: bg_path},
+            "photo_candidates": photo_candidates,
+            "qc": qc_payload,
+            "archetype": {
+                "id": archetype_id,
+                "canvas": archetype.get("canvas"),
+                "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
+            },
+            "asset_id": asset_id,
+            "brand_id": brand_id,
+            "source_inbox_item_id": item_id,
+            "recipe_id": recipe.get("id"),
+            "text_policy": recipe.get("text_policy") or "compose_only",
+            "calendar": calendar,
+            "prompt": ctx.job,
+            "gen_prompt": gen_prompt_used,
+            "image_size": size,
+            "provider_job_id": str(job_entry.get("job_id") or ""),
+        }
+    )
+    atomic_write(f"draft-assets/{asset_id}.json", merged)
+    atomic_write(f"draft-assets/{asset_id}.qc.json", qc_payload)
+
+    from _lib.campaigns import read_create_payload  # noqa: PLC0415
+
+    cd = ctx.lineage.get("creative_director") if isinstance(ctx.lineage.get("creative_director"), dict) else {}
+    _write_image_brief(
+        asset_id,
+        sections=list(cd.get("sections") or []),
+        platform_spec=dict(ctx.platform_spec or {}),
+        reference_id=None,
+        product_id=None,
+        provenance=read_create_payload(item_id),
+    )
+    return asset_id
 
 
 def process_draft_gen_slots_row(
@@ -46,6 +221,9 @@ def process_draft_gen_slots_row(
     brand_id: str,
     draft_ctx: ImageDraftContext | None = None,
 ) -> tuple[Optional[str], Optional[str]]:
+    if str(row.get("status") or "").lower() == "waiting":
+        return None, None
+
     from _lib.archetypes import select_archetype  # noqa: PLC0415
     from _lib.image_gen_router import ImageGenAuthError, generate_image_with_persistence  # noqa: PLC0415
     from _lib import llm_spend  # noqa: PLC0415
@@ -85,6 +263,7 @@ def process_draft_gen_slots_row(
     )
 
     gen_paths: dict[str, str] = {}
+    gen_prompt_used = background_plate_scene_prompt(brand_id, item_id, ctx)
     output_base = str(_data_dir() / "draft-assets" / "images")
 
     for slot in slots:
@@ -110,8 +289,9 @@ def process_draft_gen_slots_row(
                 continue
             return None, "cap_reached" if "cap" in img_reason.lower() else img_reason
 
-        prompt_template = str(slot.get("prompt_template") or ctx.job)
+        prompt_template = str(slot.get("prompt_template") or "{scene}")
         prompt = _resolve_prompt(prompt_template, ctx, brand_id=brand_id, item_id=item_id)
+        gen_prompt_used = prompt
         negative = slot.get("negative")
         negative_s = ", ".join(str(x) for x in negative) if isinstance(negative, list) else ""
 
@@ -123,9 +303,11 @@ def process_draft_gen_slots_row(
             "prompt": prompt,
             "size": size,
             "output_base": output_base,
+            "background_plate": True,
+            "negative_prompt": negative_s,
+            "inbox_item_id": item_id,
+            "cost_action": "draft_gen_slots",
         }
-        if negative_s:
-            gen_kwargs["negative_prompt"] = negative_s
 
         try:
             result = generate_image_with_persistence(**gen_kwargs)
@@ -169,13 +351,13 @@ def process_draft_gen_slots_row(
             return None, "gen slot produced no image"
 
         qc = visual_check(Path(path), brand_id=brand_id, archetype_id=archetype_id)
-        ocr_text = ""
-        scores = qc.get("scores") if isinstance(qc.get("scores"), dict) else {}
-        ocr_text = str(scores.get("ocr_text") or scores.get("ocr") or "")
-        if ocr_text.strip():
+        verdict = str(qc.get("verdict") or "")
+        reasons = qc.get("reasons") if isinstance(qc.get("reasons"), list) else []
+        if verdict in ("fail", "needs_human"):
             if optional:
                 continue
-            return None, f"gen slot {slot_id} failed OCR text check"
+            reason_s = ", ".join(str(r) for r in reasons[:4]) or verdict
+            return None, f"gen slot {slot_id} QC {verdict}: {reason_s}"
 
         write_cache_entry(
             Path(path),
@@ -201,10 +383,19 @@ def process_draft_gen_slots_row(
             "size": size,
         }
     ]
+    last_qc = visual_check(Path(bg_path), brand_id=brand_id, archetype_id=archetype_id)
     qc_payload = {
-        "verdict": "pass",
-        "checked_at": _utc_now_iso(),
-        "candidates": [{"index": 0, "path": bg_path, "verdict": "pass", "reasons": []}],
+        "verdict": str(last_qc.get("verdict") or "pass"),
+        "checked_at": last_qc.get("checked_at") or _utc_now_iso(),
+        "reasons": last_qc.get("reasons") or [],
+        "candidates": [
+            {
+                "index": 0,
+                "path": bg_path,
+                "verdict": str(last_qc.get("verdict") or "pass"),
+                "reasons": last_qc.get("reasons") or [],
+            }
+        ],
         "selected": 0,
         "edit_attempted": False,
         "human_reason": None,
@@ -254,6 +445,7 @@ def process_draft_gen_slots_row(
             "text_policy": recipe.get("text_policy") or "compose_only",
             "calendar": calendar,
             "prompt": ctx.job,
+            "gen_prompt": gen_prompt_used,
             "image_size": size,
         }
     )

@@ -50,7 +50,11 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "krea_poll_draft_images": _LAYER2_7_DAILY,
     "asset_qc": _LAYER2_7_DAILY,
     "auto_release": _LAYER2_7_DAILY,
-    "publish_dispatch": _LAYER2_7_DAILY,
+    "publish_dispatch": {
+        "scheduler": "GitHub Actions (publish-dispatch-hourly.yml + 07:15 daily)",
+        "cron_sast": ["hourly", "07:15"],
+        "cadence": "hourly",
+    },
     "post_outcomes": _LAYER2_7_DAILY,
     "winner_promotion": _LAYER2_7_DAILY,
     "proposal_outcome": _LAYER2_7_DAILY,

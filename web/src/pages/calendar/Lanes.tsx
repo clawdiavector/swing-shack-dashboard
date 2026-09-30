@@ -1,9 +1,8 @@
 import { Map } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../../components/chrome'
-import { ClassicLink, Tip } from '../../components/ui'
 import {
   fetchPlanningBigIdea,
   fetchPlanningCandidates,
@@ -29,18 +28,20 @@ import { EventDetail } from './planning/EventDetail'
 import { EventTimelinePanel } from './planning/EventTimelinePanel'
 import { LaneMonthPanel } from './planning/LaneMonthPanel'
 import { PlanningCandidatesPanel } from './planning/PlanningCandidatesPanel'
-import { PlannedPanel } from './planning/PlannedPanel'
+import { PlanningContextModal } from './planning/PlanningContextModal'
 import { PlanningHero } from './planning/PlanningHero'
 import { RightNowStrip } from './planning/RightNowStrip'
+import { SearchPanel } from './planning/SearchPanel'
+import { SuggestDateModal } from './planning/SuggestDateModal'
 
-type LanesTab = 'strategy' | 'timeline' | 'month' | 'planned' | 'parked'
+type LanesTab = 'strategy' | 'month'
 
+// V2.11 — collapsed to 2 in-page tabs. The Calendar lives under the
+// main Calendar nav entry in the Shell; adding more inner tabs here
+// creates places to get lost (operator directive 2026-09-29).
 const TAB_OPTIONS = [
   { id: 'strategy', label: 'Strategy' },
-  { id: 'timeline', label: 'Timeline' },
   { id: 'month', label: 'Month' },
-  { id: 'planned', label: 'Planned' },
-  { id: 'parked', label: 'Parked posts' },
 ]
 
 const VALID_TABS = new Set<string>(TAB_OPTIONS.map((t) => t.id))
@@ -84,6 +85,20 @@ export function Lanes() {
   } | null>(null)
   const [loading, setLoading] = useState(false)
   const [eventDetail, setEventDetail] = useState<PlanningEventDetail | null>(null)
+  // V2.10 — refresh the planning data after a successful candidate
+  // approval. The previous build only re-fetched on brand / month
+  // change, so approving a candidate left the timeline / month grid
+  // showing the old state. Bumping refreshKey triggers a re-load.
+  const [refreshKey, setRefreshKey] = useState(0)
+  // V2.9 §3+§5 — refresh the search results after a Suggest Date
+  // submission so the new candidate appears immediately.
+  const [searchRefreshKey, setSearchRefreshKey] = useState(0)
+  const [showSuggestDate, setShowSuggestDate] = useState(false)
+  // V2.11 — Month-tab add-to-main-calendar shortcut. Clicking the "+"
+  // on a day cell opens the SuggestDateModal pre-filled with that date.
+  const [suggestDateInitial, setSuggestDateInitial] = useState<string | undefined>(undefined)
+  // Reused Open Planning modal (Slice 3) — also used by SearchPanel
+  const [openPlanningFor, setOpenPlanningFor] = useState<{ brandId: string; candidateId: string } | null>(null)
 
   // Calendar V2: rolling date-range horizon anchored on today.
   // Span = the visible 12-month window. The cross-year endpoint dedupes events
@@ -141,7 +156,43 @@ export function Lanes() {
     return () => {
       gone = true
     }
-  }, [scopeBrand, monthParam, horizon.start, horizon.end])
+  }, [scopeBrand, monthParam, horizon.start, horizon.end, refreshKey])
+
+  // V2.10 — single approval entry point used by the Candidates panel
+  // AND the SearchPanel. Re-fetches the planning data so the timeline
+  // and month grid update without a page reload.
+  const approveCandidate = useCallback(
+    async (candidateId: string) => {
+      if (!scopeBrand) return { ok: false, error: 'no brand' }
+      try {
+        const r = await fetch(
+          `/api/planning/${encodeURIComponent(scopeBrand)}/candidates/${encodeURIComponent(candidateId)}/approve`,
+          { method: 'POST', credentials: 'include', headers: { 'X-Actor': 'operator' } },
+        )
+        const j = await r.json()
+        if (r.ok && j.ok) {
+          // Bump refreshKey so the timeline + month re-fetch.
+          setRefreshKey((k) => k + 1)
+          setSearchRefreshKey((k) => k + 1)
+          return { ok: true, event_key: j.event_key, was_created: j.was_created }
+        }
+        return { ok: false, error: j.error, is_research_lead: j.is_research_lead }
+      } catch (e: unknown) {
+        return { ok: false, error: e instanceof Error ? e.message : 'network error' }
+      }
+    },
+    [scopeBrand],
+  )
+
+  // V2.9 §3 — Search panel open-planning handler reuses the same
+  // planning context modal as the candidates panel.
+  const openPlanningByCandidateId = useCallback(
+    (candidateId: string) => {
+      if (!scopeBrand) return
+      setOpenPlanningFor({ brandId: scopeBrand, candidateId })
+    },
+    [scopeBrand],
+  )
 
   const openEvent = useCallback(
     async (eventId: string) => {
@@ -196,7 +247,6 @@ export function Lanes() {
 
       <div className="flex flex-wrap items-center gap-3">
         {yearControl}
-        <ClassicLink href="/?page=planning" label="planning" />
       </div>
 
       <FilterChips options={TAB_OPTIONS} value={tab} onChange={setTab} />
@@ -214,7 +264,48 @@ export function Lanes() {
             </p>
           ) : null}
           <PlanningHero brand={scopeBrand} bigIdea={bigIdea} />
-          <RightNowStrip brand={brandLabel} rightNow={rightNow} onOpenEvent={openEvent} />
+          <RightNowStrip brand={brandLabel} bigIdea={bigIdea} rightNow={rightNow} onOpenEvent={openEvent} />
+          {/* V2.11 — inline timeline + candidates inside Strategy so the
+              Calendar surface shows approved spine + rolling intelligence
+              candidates in one view. No inner-tab navigation. */}
+          {scopeBrand ? (
+            <SearchPanel
+              brand={brandLabel}
+              brandId={scopeBrand}
+              onAddToMainCalendar={approveCandidate}
+              onOpenPlanning={openPlanningByCandidateId}
+              onOpenIntelligence={openPlanningByCandidateId}
+              onOpenSuggestDateModal={() => {
+                setSuggestDateInitial(undefined)
+                setShowSuggestDate(true)
+              }}
+              refreshKey={searchRefreshKey}
+            />
+          ) : null}
+          <EventTimelinePanel
+            brand={brandLabel}
+            year={yearParam}
+            timeline={timeline}
+            eventDetail={eventDetail}
+            onOpenEvent={openEvent}
+            onCloseEvent={closeEvent}
+          />
+          {scopeBrand && candidates ? (
+            <PlanningCandidatesPanel
+              brand={brandLabel}
+              brandId={scopeBrand}
+              candidates={candidates.candidates || []}
+              candidateCount={candidates.candidate_count || 0}
+              confidenceBreakdown={candidates.confidence_breakdown || {}}
+              researchLeads={candidates.research_leads || []}
+              researchLeadCount={candidates.research_lead_count || 0}
+              horizon={horizon}
+              onApproved={() => {
+                setRefreshKey((k) => k + 1)
+                setSearchRefreshKey((k) => k + 1)
+              }}
+            />
+          ) : null}
           {eventDetail ? (
             <div className="glass rounded-2xl border border-white/10 p-2">
               <EventDetail data={eventDetail} onClose={closeEvent} />
@@ -223,61 +314,49 @@ export function Lanes() {
         </div>
       ) : null}
 
-      {tab === 'timeline' ? (
-        <EventTimelinePanel
-          brand={brandLabel}
-          year={yearParam}
-          timeline={timeline}
-          eventDetail={eventDetail}
-          onOpenEvent={openEvent}
-          onCloseEvent={closeEvent}
-        />
-      ) : null}
-
-      {/* Calendar V2 — Slice 6: rolling intelligence candidates.
-          Sits beneath the timeline as a "watchlist" — separate from the approved spine. */}
-      {tab === 'timeline' && scopeBrand && candidates ? (
-        <PlanningCandidatesPanel
-          brand={brandLabel}
-          brandId={scopeBrand}
-          candidates={candidates.candidates || []}
-          candidateCount={candidates.candidate_count || 0}
-          confidenceBreakdown={candidates.confidence_breakdown || {}}
-          researchLeads={candidates.research_leads || []}
-          researchLeadCount={candidates.research_lead_count || 0}
-          horizon={horizon}
-        />
-      ) : null}
-
       {tab === 'month' ? (
         <LaneMonthPanel
           brand={brandLabel}
           monthParam={monthParam}
           monthView={monthView}
           onMonthChange={setMonthParam}
+          onSuggestDate={(iso) => {
+            setSuggestDateInitial(iso)
+            setShowSuggestDate(true)
+          }}
+        />
+      ) : null}
+      {/* V2.9 §5 — Operator date suggestion. Submits to /api/calendar/candidates
+          (the existing intake endpoint). Never auto-approves. */}
+      {showSuggestDate && scopeBrand ? (
+        <SuggestDateModal
+          brand={brandLabel}
+          brandId={scopeBrand}
+          onClose={() => {
+            setShowSuggestDate(false)
+            setSuggestDateInitial(undefined)
+          }}
+          onSubmitted={(result) => {
+            if (result.ok) {
+              setSearchRefreshKey((k) => k + 1)
+              setRefreshKey((k) => k + 1)
+              setShowSuggestDate(false)
+              setSuggestDateInitial(undefined)
+            }
+          }}
+          initialDate={suggestDateInitial}
         />
       ) : null}
 
-      {tab === 'planned' && scopeBrand ? (
-        <PlannedPanel brand={brandLabel} brandId={scopeBrand} />
-      ) : null}
-
-      {tab === 'parked' ? (
-        <section className="glass space-y-3 rounded-2xl border border-white/10 p-4">
-          <h2 className="font-display text-lg font-semibold">Parked posts month</h2>
-          <p className="text-sm text-tx2">
-            The signed-off parked-posts calendar stays on the main Calendar route (P2). Open it
-            there to move, park, and review scheduled pieces.
-          </p>
-          <Tip text="Open the Heroes parked-posts month grid (P2).">
-            <Link
-              to="/calendar"
-              className="inline-flex rounded-full border border-yel/40 bg-yel/10 px-4 py-2 text-sm font-semibold text-yel hover:border-yel"
-            >
-              Open /app/calendar
-            </Link>
-          </Tip>
-        </section>
+      {/* V2.9 §3+§7 — Open Planning modal. Reused from the candidates panel
+          and the Search panel. Single source of truth for candidate
+          planning context (no duplicate planning system). */}
+      {openPlanningFor ? (
+        <PlanningContextModal
+          brandId={openPlanningFor.brandId}
+          candidateId={openPlanningFor.candidateId}
+          onClose={() => setOpenPlanningFor(null)}
+        />
       ) : null}
     </div>
   )

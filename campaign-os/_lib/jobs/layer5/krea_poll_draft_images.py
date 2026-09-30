@@ -242,19 +242,35 @@ def _complete_row(
     job_entry: dict[str, Any],
     png_path: Path,
 ) -> None:
-    if _moment_has_image(brand_id, item_id):
+    action = str(row.get("action") or "")
+    if action != "draft_gen_slots" and _moment_has_image(brand_id, item_id):
         row["status"] = "done"
         row.pop("note", None)
         image_jobs_state.drop_entry(item_id)
         return
     _record_poll_spend(item_id, job_entry, brand_id=brand_id)
-    _finalize_draft_from_poll(
-        brand_id=brand_id,
-        item_id=item_id,
-        image_path=png_path,
-        job_entry=job_entry,
-        queue_row_id=str(row.get("id") or "") or None,
-    )
+    if action == "draft_gen_slots":
+        from .draft_gen_slots import finalize_gen_slots_from_krea_poll  # noqa: PLC0415
+
+        asset_id = finalize_gen_slots_from_krea_poll(
+            row,
+            item_id=item_id,
+            brand_id=brand_id,
+            png_path=png_path,
+            job_entry=job_entry,
+        )
+        if not asset_id:
+            row["status"] = "pending"
+            row["note"] = "gen slot poll finalize failed (QC or recipe)"
+            return
+    else:
+        _finalize_draft_from_poll(
+            brand_id=brand_id,
+            item_id=item_id,
+            image_path=png_path,
+            job_entry=job_entry,
+            queue_row_id=str(row.get("id") or "") or None,
+        )
     row["status"] = "done"
     row.pop("note", None)
     image_jobs_state.drop_entry(item_id)
@@ -386,7 +402,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
     waiting = [
         r
         for r in rows
-        if str(r.get("action") or "") in ("draft_photo", "draft_image")
+        if str(r.get("action") or "") in ("draft_photo", "draft_image", "draft_gen_slots")
         and str(r.get("status") or "").lower() == "waiting"
         and (brand is None or str(r.get("brand") or "") == brand)
     ]

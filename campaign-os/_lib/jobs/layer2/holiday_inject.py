@@ -148,13 +148,18 @@ def _build_record(
 
 
 def run(*, today: dt.date | None = None) -> dict[str, Any]:
-    """Inject SA public holidays for all configured operating brands."""
+    """Inject SA public holidays for all configured operating brands.
+
+    V2.7 redirect: holidays go to the strategic-moments / important-dates
+    store, NOT the operator/Main Calendar store. They are still surfaced
+    via the month-grid STRATEGIC MOMENTS layer.
+    """
     try:
         from _lib.marketing_calendar import (  # noqa: PLC0415
             VALID_BRAND_IDS,
             load_brand_config,
-            upsert_event,
         )
+        from _lib import _calendar_v27_intake as _v27  # V2.7
 
         years = horizon_years(today=today)
         holidays = sa_public_holidays_for_years(years)
@@ -177,14 +182,13 @@ def run(*, today: dt.date | None = None) -> dict[str, Any]:
                     holiday=holiday,
                     pillar_id=pillar_id,
                 )
-                result = upsert_event(brand_id, record)
+                # V2.7 — write to important-dates store, NOT operator-calendar.
+                result = _v27.write_important_dates(brand_id, record)
                 action = result.get("action")
                 if action == "created":
                     created += 1
                 elif action == "noop":
                     noop += 1
-                elif action == "updated":
-                    updated += 1
 
         return {
             "ok": True,
@@ -193,6 +197,7 @@ def run(*, today: dt.date | None = None) -> dict[str, Any]:
             "updated": updated,
             "brands": brands_processed,
             "years": list(years),
+            "store": "important-dates",  # V2.7
         }
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "error": describe_exception(exc)}

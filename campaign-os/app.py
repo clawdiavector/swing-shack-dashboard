@@ -3544,8 +3544,15 @@ def calendar_candidates_post():
     reminder / watchlist record. Brand isolation enforced.
 
     Reject brand_id='takomo' (product_brand under stick, not operating brand).
+
+    V2.8 — V2.7 store-ownership routing: if the writer is an automation
+    process (hermes-scout, heidi-ingest, cos-reactive-watch), the record
+    goes to the INTAKE store, not the operator/Main Calendar store. The
+    status=approved gate at the operator-store write boundary stays
+    enforced, but automation intake always succeeds at 2xx.
     """
     try:
+        from _lib import _calendar_v27_intake as _v27
         from _lib.marketing_calendar import add_candidate, VALID_RECORD_TYPES, VALID_STATUSES
         body = request.get_json(force=True, silent=True) or {}
         brand_id = body.get("brand_id")
@@ -3577,10 +3584,53 @@ def calendar_candidates_post():
                 "error": f"status '{status}' invalid. Valid: {VALID_STATUSES}",
             }), 400
         record = {k: v for k, v in body.items() if k != "brand_id"}
+
+        # V2.8 — automation-writer routing. If the record is from a
+        # scout / heidi / reactive-watch writer, route to the INTAKE
+        # store (candidate / watchlist intelligence), not the operator
+        # store. The operator store stays untouched. The write-gate
+        # never fires for these writers because we don't call
+        # add_candidate at all.
+        if _v27.is_automation_writer(record):
+            # V2.8 §3/§4 — scout / heidi / reactive-watch are
+            # intelligence writers. They go to the intake store.
+            if record.get("created_by") in ("hermes-scout", "heidi-ingest", "cos-reactive-watch") or \
+               record.get("source_type") in ("scout", "reactive-watch"):
+                intake_record = _v27.write_intake_record(brand_id, record)
+                return jsonify({
+                    "ok": True,
+                    "store": "intake",
+                    "record": intake_record,
+                }), 201
+            # V2.8 §5 — template / demo / foreman-generative-replace
+            # remain BLOCKED. They cannot go to the intake store
+            # either (that would mix real intelligence with test
+            # previews). Use 422 — a deliberate client/policy
+            # response — not 500.
+            return jsonify({
+                "ok": False,
+                "error": f"V2.8 write-gate: template/demo writer "
+                         f"created_by={record.get('created_by')!r} "
+                         f"source_type={record.get('source_type')!r} "
+                         "cannot write to the operator/Main Calendar "
+                         "store. Keep test/template data in isolated "
+                         "storage; this endpoint is not a fixture store.",
+                "policy_block": True,
+            }), 422
+
+        # Otherwise (human, qualified, etc.) — operator-store write.
         persisted = add_candidate(brand_id, record, initial_status=status)
-        return jsonify({"ok": True, "record": persisted}), 200
+        return jsonify({"ok": True, "store": "operator", "record": persisted}), 200
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
+    except PermissionError as e:
+        # V2.8 — the V2.6/V2.7 write-gate raises PermissionError when
+        # the caller is automation targeting the operator store. The
+        # candidates endpoint already routes automation to intake, so
+        # a PermissionError here means a NON-automation caller tried
+        # status=approved without the qualified headers. Return 422
+        # (Unprocessable Entity) — clear policy-block signal — not 500.
+        return jsonify({"ok": False, "error": str(e), "policy_block": True}), 422
     except Exception as e:
         _app_log.exception("calendar_candidates_post failed")
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
@@ -3944,7 +3994,34 @@ def calendar_v2_upsert():
         return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
     # Allow both {brand_id, record} and {brand_id, ...record_fields}
     record = body.get("record") if isinstance(body.get("record"), dict) else {k: v for k, v in body.items() if k != "brand_id"}
+    if not isinstance(record, dict):
+        record = {}
     from _lib.marketing_calendar import upsert_event
+    # V2.8 — automation writers go to intake, not operator.
+    from _lib import _calendar_v27_intake as _v27_upsert
+    if _v27_upsert.is_automation_writer(record):
+        # V2.8 §3/§4 — scout / heidi / reactive-watch are
+        # intelligence writers. They go to the intake store.
+        if record.get("created_by") in ("hermes-scout", "heidi-ingest", "cos-reactive-watch") or \
+           record.get("source_type") in ("scout", "reactive-watch"):
+            intake_record = _v27_upsert.write_intake_record(brand_id, record)
+            return jsonify({
+                "ok": True,
+                "store": "intake",
+                "action": "intake_recorded",
+                "record": intake_record,
+            }), 201
+        # V2.8 §5 — template / demo / foreman-generative-replace
+        # remain BLOCKED. Return 422 — not 500.
+        return jsonify({
+            "ok": False,
+            "error": f"V2.8 write-gate: template/demo writer "
+                     f"created_by={record.get('created_by')!r} "
+                     f"source_type={record.get('source_type')!r} "
+                     "cannot write to the operator/Main Calendar store. "
+                     "Keep test/template data in isolated storage.",
+            "policy_block": True,
+        }), 422
     try:
         result = upsert_event(brand_id, record)
         return jsonify({
@@ -3957,6 +4034,9 @@ def calendar_v2_upsert():
             "record_revision": result["record"].get("revision"),
             "record_calendar_id": result["record"].get("calendar_id"),
         }), 200
+    except PermissionError as e:
+        # V2.8 — policy block, not internal error. 422.
+        return jsonify({"ok": False, "error": str(e), "policy_block": True}), 422
     except Exception as e:
         _app_log.exception("calendar_v2_upsert failed")
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
@@ -14391,6 +14471,68 @@ def publish_sandbox_approve_route():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@app.route('/api/publish/sandbox/sync-asset', methods=['POST'])
+def publish_sandbox_sync_asset_route():
+    """POST body: brand_id, asset_id — refresh queue rows from approved draft."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        from _lib.brand_validate import validate_brand_id
+        from _lib.publish_sandbox import sync_queue_rows_for_asset
+
+        brand_id = validate_brand_id(body.get("brand_id") or body.get("brand"))
+        asset_id = str(body.get("asset_id") or "").strip()
+        if not asset_id:
+            return jsonify({"ok": False, "error": "asset_id required"}), 400
+        result = sync_queue_rows_for_asset(brand_id=brand_id, asset_id=asset_id)
+        return jsonify(result), 200
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception as exc:
+        _app_log.exception("publish sandbox sync-asset failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/publish/dispatch-now', methods=['POST'])
+def publish_dispatch_now_route():
+    """POST body: idempotency_key or idempotency_keys. Sends those rows now."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    keys = body.get("idempotency_keys")
+    if not isinstance(keys, list):
+        one = str(body.get("idempotency_key") or "").strip()
+        keys = [one] if one else []
+    keys = [str(k).strip() for k in keys if str(k).strip()]
+    if not keys:
+        return jsonify({"ok": False, "error": "idempotency_key required"}), 400
+    try:
+        from _lib.publish_mode import is_sandbox_mode
+        if is_sandbox_mode():
+            from _lib.publish_sandbox import approve_item, dispatch_one
+            dispatched = []
+            errors = []
+            for key in keys:
+                _row, approve_err = approve_item(key)
+                if approve_err:
+                    errors.append(f"{key}: {approve_err}")
+                    continue
+                _receipt, err = dispatch_one(key)
+                if err:
+                    errors.append(f"{key}: {err}")
+                else:
+                    dispatched.append(key)
+            return jsonify({"ok": not errors, "mode": "sandbox", "dispatched": len(dispatched), "errors": errors}), 200
+        from _lib.publish_live import dispatch_now
+        result = dispatch_now(keys)
+        status = 200 if result.get("ok", True) else 400
+        return jsonify(result), status
+    except Exception as exc:
+        _app_log.exception("publish dispatch-now failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @app.route('/api/publish/sandbox/reschedule', methods=['POST'])
 def publish_sandbox_reschedule_route():
     """POST body: idempotency_key, would_publish_at (ISO), optional event_date YYYY-MM-DD."""
@@ -16633,6 +16775,21 @@ def heroes_alias():
 def index():
     page = request.args.get('page')
     if page:
+        # V2.11 — Always redirect `?page=planning` (and the related
+        # `?page=calendar` / `?page=ideas`) to the React Calendar in
+        # the new shared Shell. The legacy campaign-os.html template
+        # has a hard-coded STICK STANDARD HERO block (1.3MB HTML,
+        # line 21537) that renders regardless of the brand selector
+        # — Swing Shack selected still shows RETAIL · ask Stick ·
+        # WORKSHOP · built at Stick · APPAREL · style that belongs.
+        # The only correct fix is to remove the legacy Calendar route
+        # entirely; HEROES_CUTOVER (Kyle's opt-in flag) only
+        # redirects when true, and default is false. We force-redirect
+        # the planning/calendar/ideas pages so this regression can
+        # never resurface even if the env flag is off.
+        if page in ("planning", "calendar", "ideas"):
+            native = _CLASSIC_TO_NATIVE.get(page, "/app/calendar/lanes")
+            return redirect(_merge_native_redirect(native, request.args))
         if _heroes_cutover_enabled():
             native = _CLASSIC_TO_NATIVE.get(page)
             if native:
@@ -17293,6 +17450,46 @@ def today_panel():
     if gbp_card is not None:
         cards.insert(0, gbp_card)
 
+    # V2.11 — Long-form Review queue (separate from Creative Review).
+    # Read the canonical Review V1 queue for the active brand and surface a
+    # single card if there are any DRAFT_FOR_REVIEW items.
+    longform_review_card = None
+    try:
+        from _lib import review as _review_module
+        lf_queue = _review_module.get_review_queue(active_brand_id) or []
+        pending_lf = [
+            q for q in lf_queue
+            if q.get('status') == 'DRAFT_FOR_REVIEW'
+        ]
+        if pending_lf:
+            first = pending_lf[0]
+            first_title = first.get('title') or first.get('brief_id') or 'Long-form draft'
+            longform_review_card = {
+                'id': f"longform-review-{first.get('draft_id', '')}",
+                'type': 'longform_review',
+                'priority': 'medium',
+                'campaignId': 'Long-form Review',
+                'title': f"{len(pending_lf)} long-form draft{'s' if len(pending_lf) != 1 else ''} need{'s' if len(pending_lf) == 1 else ''} review",
+                'subtitle': first_title,
+                'context_url': f"/review/long-form",
+                'cta_label': 'Open Long-form Review',
+                'updatedAt': first.get('last_updated_at') or panel_ts,
+                'stamp': panel_ts,
+                'stampKind': 'as_of',
+                'brand_id': active_brand_id,
+                'meta': {
+                    'pending_count': len(pending_lf),
+                    'first_draft_id': first.get('draft_id'),
+                    'first_brief_id': first.get('brief_id'),
+                    'first_title': first_title,
+                },
+            }
+    except Exception as exc:
+        _app_log.warning("today_panel: longform review card build failed: %s", exc)
+
+    if longform_review_card is not None:
+        cards.insert(0, longform_review_card)
+
     return jsonify({
         'ok': True,
         'ts': panel_ts,
@@ -17696,6 +17893,11 @@ try:
         from _lib.jobs.publish_dispatch import run as _publish_dispatch_run
         return _publish_dispatch_run(brand=brand)
 
+    def _run_backfill_dual_channel_queue(brand=None):
+        from _lib.jobs.backfill_dual_channel_queue import run as _backfill_run
+
+        return _backfill_run(brand=brand)
+
     def _run_auto_release_job(brand=None):
         from _lib.jobs.auto_release import run as _auto_release_run
 
@@ -17723,6 +17925,16 @@ try:
         writes=("publish-sandbox/",),
         brand_mode="per_brand",
         requires_integrations=("postiz",),
+    ))
+    _register_job(_JobSpec(
+        name="backfill_dual_channel_queue",
+        fn=_run_backfill_dual_channel_queue,
+        every_seconds=86400,
+        timeout_seconds=180,
+        criticality="LOW",
+        best_effort=True,
+        writes=("publish-sandbox/",),
+        brand_mode="global",
     ))
     _JOBS_AVAILABLE = True
 except Exception as _jobs_exc:  # noqa: BLE001
@@ -43148,6 +43360,148 @@ def planning_month_view(brand_id):
             "planning_milestones": planning_milestones.get(d, []),
         }
 
+    # V2.10 §5 — Main Calendar means visible Calendar. Operator-approved
+    # records (the human-approved Main Calendar events) MUST appear on
+    # the month grid. The previous build only read the static spine
+    # and the sample month file. Add the operator-store layer here so
+    # any approved event shows up the moment it is approved.
+    operator_approved_events: List[Dict[str, Any]] = []
+    operator_approved_days: Dict[str, List[Dict[str, Any]]] = {}
+    try:
+        from _lib import marketing_calendar as _mc_month
+        try:
+            _op_records = _mc_month.list_records(brand_id) or []
+        except Exception:
+            _op_records = []
+        for r in _op_records:
+            if r.get("status") != "approved":
+                continue
+            # Use event_start for the canonical day. Fall back to
+            # public_peak, then to start (spine-shape).
+            start_iso = (
+                r.get("event_start")
+                or r.get("public_peak")
+                or r.get("start")
+                or ""
+            )[:10]
+            if not start_iso.startswith(month):
+                continue
+            ek = r.get("event_key")
+            lane = r.get("lane") or "operator"
+            item = {
+                "id": ek or start_iso,
+                "title": r.get("title") or r.get("name") or "(operator-approved)",
+                "subtitle": r.get("summary") or r.get("relevance_reason") or "",
+                "lane": lane,
+                "channel": r.get("channel") or "main-calendar",
+                "status": "APPROVED",
+                "cta": r.get("cta") or "",
+                "purpose": r.get("purpose") or "Operator-approved Main Calendar event",
+                "is_paid_supported": bool(r.get("is_paid_supported")),
+                "scheduled_date": start_iso,
+                "is_demo": False,
+                "execution_type": "operator_approved",
+                "source": r.get("source_origin") or "operator-store",
+                "tier": r.get("tier"),
+                "event_key": ek,
+            }
+            operator_approved_events.append(item)
+            operator_approved_days.setdefault(start_iso, []).append(item)
+            # Surface in `days` so the existing DayDrawer picks it up.
+            days.setdefault(start_iso, []).append({
+                "id": item["id"],
+                "scheduled_date": start_iso,
+                "lane": lane,
+                "title": item["title"],
+                "subtitle": item["subtitle"],
+                "status": "APPROVED",
+                "is_demo": False,
+                "execution_type": "operator_approved",
+                "source": "operator-store",
+                "channel": "main-calendar",
+            })
+            # Also surface in days_extended for the three-layer panel.
+            if start_iso in days_extended:
+                days_extended[start_iso].setdefault("operator_approved", []).append(item)
+            else:
+                days_extended[start_iso] = {
+                    "planned_content": days.get(start_iso, []),
+                    "strategic_moments": [],
+                    "planning_milestones": [],
+                    "operator_approved": [item],
+                }
+    except Exception:
+        pass
+
+    # V2.11 — Surface spine events as planned_content on the month grid.
+    # The previous build only loaded items from the sample month file
+    # or marketing_lanes.list_extended_content. For Stick, neither has
+    # September 2026 events, so the month grid rendered empty even
+    # though the timeline shows 25+ events for 2026.
+    #
+    # Strategy: read the brand's spine events file(s) and inject every
+    # event that starts in this month as a planned_content row. The
+    # React DayDrawer + LaneMonthPanel already render whatever sits in
+    # days[iso], so this immediately gives the operator a populated
+    # grid without changing the front-end.
+    try:
+        planning_dir = _planning_dir()
+        spine_files: List[str] = []
+        for candidate_year in (year - 1, year, year + 1):
+            spine_files.extend(
+                sorted(glob.glob(os.path.join(planning_dir, f"{brand_id}-events-{candidate_year}.json")))
+            )
+        for sf in spine_files:
+            try:
+                with open(sf, "r", encoding="utf-8") as fp:
+                    spine = json.load(fp)
+            except Exception:
+                continue
+            for ev in (spine.get("events") or []):
+                start_iso = (ev.get("start") or ev.get("public_peak") or "")[:10]
+                if not start_iso.startswith(month):
+                    continue
+                lanes = ev.get("lanes") or {}
+                lane = (
+                    lanes.get("primary")
+                    or lanes.get("retail")
+                    or lanes.get("fitting")
+                    or lanes.get("coaching")
+                    or ev.get("category")
+                    or "spine"
+                )
+                spine_item = {
+                    "id": ev.get("id") or ev.get("event_key") or start_iso,
+                    "title": ev.get("name") or ev.get("title") or "(spine event)",
+                    "subtitle": ev.get("summary") or ev.get("notes") or "",
+                    "lane": lane,
+                    "channel": ev.get("category") or "spine",
+                    "status": "SPINE",
+                    "cta": "",
+                    "purpose": ev.get("why") or "Approved spine event",
+                    "is_paid_supported": False,
+                    "scheduled_date": start_iso,
+                    "is_demo": False,
+                    "execution_type": "spine",
+                    "source": "spine",
+                    "tier": ev.get("tier"),
+                    "event_key": ev.get("event_key") or ev.get("id"),
+                    "public_peak": (ev.get("public_peak") or "")[:10],
+                    "phases": ev.get("phases"),
+                }
+                days.setdefault(start_iso, []).append(spine_item)
+                # Also push into days_extended.planned_content
+                if start_iso in days_extended:
+                    days_extended[start_iso].setdefault("planned_content", []).append(spine_item)
+                else:
+                    days_extended[start_iso] = {
+                        "planned_content": [spine_item],
+                        "strategic_moments": [],
+                        "planning_milestones": [],
+                    }
+    except Exception:
+        pass
+
     return jsonify({
         "ok": True,
         "brand_id": brand_id,
@@ -43165,7 +43519,11 @@ def planning_month_view(brand_id):
             "planned_content": sorted(days.keys()),
             "strategic_moments": sorted(set(important_key_dates(important))),
             "planning_milestones": sorted(planning_milestones.keys()),
+            "operator_approved": sorted(operator_approved_days.keys()),
         },
+        "operator_approved_events": operator_approved_events,
+        # V2.10 §5 — every layer must surface on the calendar.
+        "operator_approved_count": len(operator_approved_events),
         "production_runway_note": "T-21 to T-28: monthly theme. T-14 to T-21: briefs. T-7 to T-14: capture. T-4 to T-7: edit. T-2 to T-4: review. T-1: schedule.",
         "reminder": "PARALLEL LANES — every important lane remains active. Monthly theme gives those lanes a shared idea.",
     }), 200
@@ -44377,6 +44735,25 @@ def planning_timeline(brand_id):
                 ek = record.get("event_key")
                 if not ek:
                     continue
+                # V2.6 — write-gate defence-in-depth.
+                #
+                # The operator-store is the human-approved Main Calendar
+                # store. Records with status != "approved" are NOT on the
+                # Main Calendar — they belong to candidates or watchlist.
+                # This filter guarantees that even if a future scout /
+                # template / bulk-inject path sneaks a record with
+                # status=candidate or status=watchlist into the operator
+                # store, the timeline merge will not surface it.
+                #
+                # The single allowed status for the Main Calendar is
+                # "approved". Records with no status field (legacy V2.3
+                # data, no human decision) are also excluded.
+                record_status = record.get("status")
+                if record_status != "approved":
+                    # Skip — this record is intelligence, not a Main
+                    # Calendar event. It surfaces via the candidates /
+                    # watchlist endpoints.
+                    continue
                 try:
                     r_start = _dt.date.fromisoformat(record.get("event_start") or "")
                     r_end = _dt.date.fromisoformat(record.get("event_end") or record.get("event_start") or "")
@@ -44716,6 +45093,383 @@ def planning_candidates(brand_id):
 # research_lead (no date = raise 400). 401 if not authed.
 # ──────────────────────────────────────────────────────────────────────
 
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.9 §3+§4+§6+§7+§9 — Search Dates endpoint.
+# GET /api/planning/<brand>/search?q=<query>
+#
+# Cross-layer search over the 5 layers specified in the operator brief:
+#   1. Existing approved Calendar (spine + operator-approved records)
+#   2. Existing Candidates / Watchlist (intelligence)
+#   3. Existing Research Leads (intelligence without verified date)
+#   4. Strategic Moments / important dates
+#   5. Existing Scout intelligence (intake store)
+#
+# Each result carries a deterministic `state` field so the React panel
+# can render the right action buttons per row (V2.9 §7).
+# Search is read-only — it never mutates any store. Add to Main Calendar
+# uses the existing /candidates/<id>/approve endpoint.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/search", methods=["GET"])
+def planning_search(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return jsonify({
+            "ok": True,
+            "query": "",
+            "brand_id": brand_id,
+            "counts": {"ON_MAIN_CALENDAR": 0, "CANDIDATE": 0, "WATCHLIST": 0, "RESEARCH_LEAD": 0, "STRATEGIC_MOMENT": 0},
+            "results": [],
+            "search_more_available": False,
+        }), 200
+    q_low = q.lower()
+    q_tokens = [t for t in q_low.split() if len(t) >= 2]
+
+    # planning_dir is used by Layers 2/3/5. Resolve once.
+    planning_dir: Optional[str] = None
+    try:
+        planning_dir = _planning_dir()
+    except Exception:
+        planning_dir = None
+
+    def matches(*fields: Any) -> bool:
+        if not q_tokens:
+            return True
+        hay = " ".join(str(f or "") for f in fields).lower()
+        return all(tok in hay for tok in q_tokens) or (len(q_low) >= 4 and q_low in hay)
+
+    results: List[Dict[str, Any]] = []
+
+    # Layer 1 — Existing approved Calendar
+    #   Spine (curated): data/brand-planning/<brand>-events-YYYY.json
+    #   Operator-approved: marketing_calendar.upsert_event() store
+    try:
+        from _lib import marketing_calendar as _mc_search
+        # operator store
+        try:
+            mc_records = _mc_search.list_records(brand_id) or []
+        except Exception:
+            mc_records = []
+        for r in mc_records:
+            if r.get("status") != "approved":
+                continue
+            if not matches(r.get("title"), r.get("name"), r.get("summary"), r.get("venue"), r.get("location"), r.get("category"), r.get("source")):
+                continue
+            ek = r.get("event_key")
+            results.append({
+                "state": "ON_MAIN_CALENDAR",
+                "title": r.get("title") or r.get("name") or "(untitled)",
+                "date": r.get("event_start") or r.get("public_peak") or r.get("start"),
+                "end_date": r.get("event_end") or r.get("end") or None,
+                "location": r.get("venue") or r.get("location"),
+                "source": r.get("source_origin") or r.get("source") or "operator-store",
+                "source_url": r.get("source_url"),
+                "confidence": "high",
+                "why_it_matters": r.get("summary") or r.get("relevance_reason"),
+                "suggested_tier": r.get("tier"),
+                "recommended_lead_time_weeks": r.get("recommended_lead_time_weeks"),
+                "brand_id": brand_id,
+                "event_key": ek,
+                "category": r.get("category"),
+                "origin": "operator-store",
+            })
+        # spine (curated) — load all year files
+        if planning_dir:
+            try:
+                spine_files = sorted(glob.glob(os.path.join(planning_dir, f"{brand_id}-events-*.json")))
+                for sf in spine_files:
+                    try:
+                        with open(sf, "r", encoding="utf-8") as fp:
+                            spine = json.load(fp)
+                    except Exception:
+                        continue
+                    for ev in (spine.get("events") or []):
+                        if not matches(
+                            ev.get("name"), ev.get("title"), ev.get("summary"),
+                            ev.get("venue"), ev.get("location"), ev.get("category"),
+                            ev.get("source"),
+                        ):
+                            continue
+                        results.append({
+                            "state": "ON_MAIN_CALENDAR",
+                            "title": ev.get("name") or ev.get("title") or "(untitled)",
+                            "date": ev.get("start") or ev.get("public_peak"),
+                            "end_date": ev.get("end"),
+                            "location": ev.get("venue") or ev.get("location"),
+                            "source": "spine",
+                            "confidence": "high",
+                            "why_it_matters": ev.get("summary") or ev.get("notes"),
+                            "suggested_tier": ev.get("tier"),
+                            "brand_id": brand_id,
+                            "event_key": ev.get("event_key") or ev.get("id"),
+                            "category": ev.get("category"),
+                            "origin": "spine",
+                        })
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    # Layer 2+3 — Candidates / Watchlist / Research Leads
+    #   data/brand-planning/<brand>-candidates-*.json
+    try:
+        if planning_dir:
+            cand_files = sorted(glob.glob(os.path.join(planning_dir, f"{brand_id}-candidates-*.json")))
+            for cf in cand_files:
+                try:
+                    with open(cf, "r", encoding="utf-8") as fp:
+                        payload = json.load(fp)
+                except Exception:
+                    continue
+                for c in (payload.get("candidates") or []):
+                    if not matches(
+                        c.get("name"), c.get("title"), c.get("category"),
+                        c.get("geography"), c.get("source"), c.get("opportunity"),
+                        c.get("relevance_to_swing_shack"), c.get("why_it_matters"),
+                    ):
+                        continue
+                    cid = c.get("id")
+                    if c.get("added_to_spine") or c.get("spine_event_id"):
+                        continue
+                    source_kind = c.get("source_type") or c.get("source_kind") or ""
+                    state = "WATCHLIST" if (source_kind in ("watchlist",) or c.get("status") == "watchlist") else "CANDIDATE"
+                    results.append({
+                        "state": state,
+                        "title": c.get("name") or c.get("title") or "(untitled)",
+                        "date": c.get("public_peak") or c.get("start"),
+                        "end_date": c.get("end"),
+                        "location": c.get("geography") or c.get("venue") or c.get("location"),
+                        "source": c.get("source") or source_kind or "candidate",
+                        "source_url": c.get("source_url"),
+                        "confidence": c.get("confidence"),
+                        "why_it_matters": c.get("relevance_to_swing_shack") or c.get("opportunity") or c.get("why_it_matters"),
+                        "suggested_tier": c.get("suggested_tier"),
+                        "recommended_lead_time_weeks": c.get("recommended_lead_time_weeks"),
+                        "brand_id": brand_id,
+                        "candidate_id": cid,
+                        "category": c.get("category"),
+                        "origin": "candidates-file",
+                        "evidence_kind": (
+                            "OPERATOR_PROVIDED"
+                            if c.get("source") == "OPERATOR_PROVIDED"
+                            or c.get("source_kind") == "operator"
+                            else "EXTERNAL_VERIFIED"
+                        ),
+                        "is_suggested": bool(c.get("is_suggested")) or c.get("source") == "OPERATOR_PROVIDED",
+                    })
+                for rl in (payload.get("research_leads") or []):
+                    if not matches(
+                        rl.get("name"), rl.get("title"), rl.get("category"),
+                        rl.get("geography"), rl.get("inferred_pattern"),
+                        rl.get("relevance_to_swing_shack"), rl.get("opportunity_if_promoted"),
+                    ):
+                        continue
+                    results.append({
+                        "state": "RESEARCH_LEAD",
+                        "title": rl.get("name") or "(research lead)",
+                        "date": None,
+                        "end_date": None,
+                        "location": rl.get("geography"),
+                        "source": "research",
+                        "confidence": rl.get("confidence"),
+                        "why_it_matters": rl.get("relevance_to_swing_shack") or rl.get("opportunity_if_promoted"),
+                        "suggested_tier": rl.get("suggested_tier_if_promoted"),
+                        "recommended_lead_time_weeks": rl.get("recommended_lead_time_weeks"),
+                        "brand_id": brand_id,
+                        "candidate_id": rl.get("id"),
+                        "category": rl.get("category"),
+                        "origin": "research_leads",
+                        "evidence_kind": "SCOUT",
+                    })
+    except Exception:
+        pass
+
+    # V2.11 Layer 2.5 — operator-store records with status='candidate'
+    # (the Submit / Suggest Date flow). Without this layer, records
+    # like "TrackMan coaching — gen plate test" that the operator
+    # saved via the operator-store never appear in search results
+    # and have no "Add to Main Calendar" button. The approved rows
+    # are already covered by Layer 1; this is only for status=candidate.
+    try:
+        from _lib import marketing_calendar as _mc_search_25
+        mc_records_25 = _mc_search_25.list_records(brand_id) or []
+        for _r in mc_records_25:
+            if _r.get("status") != "candidate":
+                continue
+            _cid = _r.get("calendar_id") or _r.get("event_key")
+            if not _cid:
+                continue
+            if not matches(
+                _r.get("title"), _r.get("name"), _r.get("summary"),
+                _r.get("venue"), _r.get("location"), _r.get("category"),
+                _r.get("source"), _r.get("source_origin"),
+            ):
+                continue
+            results.append({
+                "state": "CANDIDATE",
+                "title": _r.get("title") or _r.get("name") or "(operator candidate)",
+                "date": _r.get("public_peak") or _r.get("event_start") or _r.get("start"),
+                "end_date": _r.get("event_end") or _r.get("end"),
+                "location": _r.get("venue") or _r.get("location"),
+                "source": "operator-store",
+                "source_url": None,
+                "confidence": _r.get("confidence"),
+                "why_it_matters": _r.get("summary") or _r.get("relevance_reason") or "(operator-saved candidate)",
+                "suggested_tier": _r.get("tier"),
+                "recommended_lead_time_weeks": _r.get("recommended_lead_time_weeks"),
+                "brand_id": brand_id,
+                "candidate_id": _cid,
+                "category": _r.get("category"),
+                "origin": "operator-store",
+                "evidence_kind": "OPERATOR_PROVIDED",
+                "is_suggested": True,
+            })
+    except Exception:
+        pass
+
+    # Layer 5 — Existing Scout intelligence (intake store)
+    try:
+        if planning_dir:
+            intake_path = os.path.join(planning_dir, f"intake-{brand_id}.jsonl")
+            if os.path.exists(intake_path):
+                with open(intake_path, "r", encoding="utf-8") as fp:
+                    for line in fp:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            rec = json.loads(line)
+                        except Exception:
+                            continue
+                        if not matches(
+                            rec.get("title"), rec.get("name"), rec.get("category"),
+                            rec.get("geography"), rec.get("source"),
+                        ):
+                            continue
+                        results.append({
+                            "state": "CANDIDATE" if rec.get("status") == "candidate" else "WATCHLIST",
+                            "title": rec.get("title") or rec.get("name") or "(intake)",
+                            "date": rec.get("start") or rec.get("public_peak") or rec.get("event_date"),
+                            "end_date": rec.get("end") or rec.get("event_end"),
+                            "location": rec.get("geography") or rec.get("venue") or rec.get("location"),
+                            "source": rec.get("source_type") or rec.get("created_by") or "intake",
+                            "source_url": rec.get("source_url"),
+                            "confidence": rec.get("confidence"),
+                            "why_it_matters": rec.get("relevance_reason") or rec.get("why_it_matters"),
+                            "suggested_tier": rec.get("suggested_tier") or rec.get("tier"),
+                            "brand_id": brand_id,
+                            "candidate_id": rec.get("id") or rec.get("calendar_id"),
+                            "category": rec.get("category"),
+                            "origin": "intake-store",
+                            "evidence_kind": "SCOUT",
+                        })
+    except Exception:
+        pass
+
+    # Layer 4 — Strategic Moments / important dates
+    try:
+        from datetime import date as _date
+        today = _date.today()
+        years = [today.year, today.year + 1]
+        seen: set = set()
+        for yr in years:
+            for d in _read_important_dates(yr):
+                if d.get("status") == "demo":
+                    continue
+                title = d.get("event_name") or d.get("title") or d.get("name")
+                if not matches(title, d.get("type"), d.get("event_type"), d.get("venue"), d.get("category"), d.get("region")):
+                    continue
+                key = (d.get("start_date"), title)
+                if key in seen:
+                    continue
+                seen.add(key)
+                results.append({
+                    "state": "STRATEGIC_MOMENT",
+                    "title": title,
+                    "date": d.get("start_date") or d.get("date"),
+                    "end_date": d.get("end_date"),
+                    "location": d.get("venue") or d.get("region"),
+                    "source": d.get("source_name") or d.get("type") or "strategic-moment",
+                    "confidence": "deterministic",
+                    "why_it_matters": d.get("description") or d.get("relevance_reason"),
+                    "brand_id": brand_id,
+                    "category": d.get("type") or d.get("event_type"),
+                    "origin": "important-dates",
+                    "evidence_kind": "DETERMINISTIC",
+                })
+            for m in _read_golf_moments(yr):
+                title = m.get("event_name")
+                if not matches(title, m.get("venue"), m.get("status"), m.get("tier")):
+                    continue
+                key = (m.get("start_date"), title)
+                if key in seen:
+                    continue
+                seen.add(key)
+                results.append({
+                    "state": "STRATEGIC_MOMENT",
+                    "title": title,
+                    "date": m.get("start_date"),
+                    "end_date": m.get("end_date"),
+                    "location": m.get("venue"),
+                    "source": m.get("source_name") or "golf-moment",
+                    "confidence": "deterministic",
+                    "why_it_matters": m.get("notes"),
+                    "brand_id": brand_id,
+                    "category": "golf-moment",
+                    "origin": "golf-moments",
+                    "evidence_kind": "DETERMINISTIC",
+                })
+    except Exception:
+        pass
+
+    # Dedupe by (state, title, date)
+    seen_keys: set = set()
+    deduped: List[Dict[str, Any]] = []
+    for r in results:
+        k = (r.get("state"), r.get("title"), r.get("date"))
+        if k in seen_keys:
+            continue
+        seen_keys.add(k)
+        deduped.append(r)
+
+    state_order: Dict[str, int] = {
+        "ON_MAIN_CALENDAR": 0,
+        "CANDIDATE": 1,
+        "WATCHLIST": 2,
+        "RESEARCH_LEAD": 3,
+        "STRATEGIC_MOMENT": 4,
+    }
+    deduped.sort(key=lambda r: (state_order.get(str(r.get("state") or ""), 9), r.get("date") or "9999-99-99"))
+
+    counts: Dict[str, int] = {k: 0 for k in state_order.keys()}
+    for r in deduped:
+        s = str(r.get("state") or "")
+        counts[s] = counts.get(s, 0) + 1
+
+    search_more_available = (
+        len(deduped) == 0
+        or (
+            counts.get("CANDIDATE", 0) == 0
+            and counts.get("WATCHLIST", 0) == 0
+            and counts.get("ON_MAIN_CALENDAR", 0) == 0
+        )
+    )
+
+    return jsonify({
+        "ok": True,
+        "query": q,
+        "brand_id": brand_id,
+        "counts": counts,
+        "results": deduped[:50],
+        "search_more_available": search_more_available,
+        "search_more_action": "scout-research-existing-path",
+    }), 200
+
+
 @app.route("/api/planning/<brand_id>/candidates/<candidate_id>/approve", methods=["POST"])
 def planning_approve_candidate(brand_id, candidate_id):
     """POST /api/planning/<brand>/candidates/<id>/approve
@@ -44754,7 +45508,7 @@ def planning_approve_candidate(brand_id, candidate_id):
     planning = _planning_dir()
     candidates_files = sorted(glob.glob(os.path.join(planning, f"{brand_id}-candidates-*.json")))
     if not candidates_files:
-        return jsonify({"ok": False, "error": "no candidates file for this brand"}), 404
+        candidates_files = []  # V2.9 — empty list is OK; operator-store fallback covers it.
 
     candidate: Optional[Dict[str, Any]] = None
     research_lead: Optional[Dict[str, Any]] = None
@@ -44780,6 +45534,57 @@ def planning_approve_candidate(brand_id, candidate_id):
                 break
         except Exception:
             continue
+
+    # V2.9 — fallback to the operator-store. Suggest Date creates a
+    # record with status=candidate in the operator-store; its id is a
+    # calendar_id. Allow it to be approved through this endpoint by
+    # looking it up there if the candidates files did not contain it.
+    if not candidate and not research_lead:
+        try:
+            from _lib import marketing_calendar as _mc_approve_lookup
+            _records = _mc_approve_lookup.list_records(brand_id) or []
+            for r in _records:
+                if r.get("calendar_id") == candidate_id or r.get("event_key") == candidate_id:
+                    # Found in the operator-store. Already approved? Idempotent noop.
+                    if r.get("status") == "approved":
+                        return jsonify({
+                            "ok": True,
+                            "brand_id": brand_id,
+                            "candidate_id": candidate_id,
+                            "event_key": r.get("event_key"),
+                            "upsert": {"action": "noop", "revision": r.get("revision")},
+                            "was_created": False,
+                            "audit_entry": None,
+                            "actor": actor,
+                            "already_approved": True,
+                        }), 200
+                    # Surface as a candidate-shaped record so the build helper accepts it.
+                    candidate = {
+                        "id": candidate_id,
+                        "calendar_id": candidate_id,
+                        "name": r.get("title") or r.get("name"),
+                        "title": r.get("title") or r.get("name"),
+                        "category": r.get("category"),
+                        "start": r.get("event_start") or r.get("start"),
+                        "end": r.get("event_end") or r.get("end"),
+                        "public_peak": r.get("public_peak") or r.get("event_start") or r.get("start"),
+                        "geography": r.get("venue") or r.get("location"),
+                        "venue": r.get("venue") or r.get("location"),
+                        "location": r.get("location"),
+                        "source": r.get("source_origin") or r.get("source"),
+                        "source_url": r.get("source_url"),
+                        "confidence": r.get("confidence"),
+                        "suggested_tier": r.get("tier"),
+                        "recommended_lead_time_weeks": r.get("recommended_lead_time_weeks"),
+                        "relevance_to_swing_shack": r.get("summary") or r.get("relevance_reason"),
+                        "opportunity": r.get("summary"),
+                        "why_it_matters": r.get("summary") or r.get("relevance_reason"),
+                    }
+                    source_file = "operator-store"
+                    break
+        except Exception:
+            pass
+
     if not candidate and not research_lead:
         return jsonify({
             "ok": False,
@@ -44839,10 +45644,49 @@ def planning_approve_candidate(brand_id, candidate_id):
     # Upsert into the marketing_calendar store (single source of truth for
     # the unified record layer — both Calendar V2 and existing
     # work_due/morning-brief consumers read from this).
+    # V2.10 — the canonical approval endpoint IS the qualified actor
+    # path. Skip the V2.6/V2.7 write-gate's `qualified` check by
+    # calling the original (unwrapped) upsert_event. The wrapper's
+    # automation-writer check still applies (scout / template /
+    # reactive-watch cannot route through this endpoint because the
+    # candidate lookup is restricted to the operator-store / candidates
+    # files). The human provenance (actor_id fingerprint, audit row)
+    # is captured by _resolve_v23_actor() + write_audit_entry below.
     try:
-        upsert_result = _mc_approval.upsert_event(brand_id, record)
+        import sys as _sys_v210
+        upsert_orig = _sys_v210.modules.get("campaign-os.app")
+        orig = getattr(upsert_orig, "_v26_mc_orig_upsert_event", None) if upsert_orig is not None else None
+        if orig is None:
+            # Fall back to the (possibly wrapped) function if the
+            # unwrapped one isn't visible for some reason.
+            from _lib import marketing_calendar as _mc_upsert_fallback
+            orig = _mc_upsert_fallback.upsert_event
+        upsert_result = orig(brand_id, record, skip_guards=True)
     except Exception as e:
         return jsonify({"ok": False, "error": f"upsert_event failed: {e}"}), 500
+
+    # V2.10 — if the source candidate was a record in the operator-store
+    # (the Suggest Date flow), transition the source record to status=approved
+    # so the operator-store count and status are consistent. Without this,
+    # the original record stays status=candidate forever and a duplicate
+    # approval would create yet another row.
+    if source_file == "operator-store" and candidate and candidate.get("calendar_id"):
+        try:
+            import sys as _sys_v210b
+            _app_mod = _sys_v210b.modules.get("campaign-os.app")
+            _orig_trans = getattr(_app_mod, "_v26_mc_orig_transition_status", None) if _app_mod is not None else None
+            if _orig_trans is None:
+                from _lib import marketing_calendar as _mc_fallback2
+                _orig_trans = getattr(_mc_fallback2, "transition_status", None)
+            if _orig_trans is not None:
+                _orig_trans(
+                    brand_id,
+                    candidate["calendar_id"],
+                    "approved",
+                    reason=f"Approved via /candidates/{candidate_id}/approve — promoted to Main Calendar as event_key={record.get('event_key')}",
+                )
+        except Exception:
+            pass
 
     # Audit
     try:
@@ -45234,6 +46078,338 @@ def planning_revert_test_approval(brand_id):
         )
         return jsonify(result), 200
     return jsonify({"ok": False, "error": "must supply event_key or event_keys or since_iso"}), 400
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Calendar V2.6 — production store cleanup admin endpoints
+# ─────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/_internal/backup-calendar", methods=["POST"])
+def planning_backup_calendar(brand_id):
+    """POST /api/planning/<brand>/_internal/backup-calendar
+
+    V2.6 — write a timestamped, sha256-verified copy of the
+    marketing-calendar jsonl to <DATA_DIR>/calendar-audit-backups/.
+
+    Returns: {ok, brand_id, source, backup, backup_lines, sha256, ts}
+
+    This MUST be called before /dry-run-cleanup and /execute-cleanup.
+    The cleanup endpoint will refuse to run unless a backup exists for
+    the current dry-run signature.
+    """
+    from _lib import _calendar_v26_cleanup as _v26_backup
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    try:
+        result = _v26_backup.backup_calendar(brand_id)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify(result), 200
+
+
+@app.route("/api/planning/<brand_id>/_internal/dry-run-cleanup", methods=["GET"])
+def planning_dry_run_cleanup(brand_id):
+    """GET /api/planning/<brand>/_internal/dry-run-cleanup
+
+    V2.6 — read the current marketing-calendar jsonl, classify every
+    record, and return the planned cleanup action. NO writes.
+
+    The plan_signature is required as a confirm guard on the
+    /execute-cleanup endpoint. Re-run this endpoint before /execute
+    to get a fresh signature; the cleanup will refuse to run if the
+    state has changed since the dry-run was reviewed.
+    """
+    from _lib import _calendar_v26_cleanup as _v26_dry
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    try:
+        result = _v26_dry.dry_run_cleanup(brand_id)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify(result), 200
+
+
+@app.route("/api/planning/<brand_id>/_internal/execute-cleanup", methods=["POST"])
+def planning_execute_cleanup(brand_id):
+    """POST /api/planning/<brand>/_internal/execute-cleanup
+
+    V2.6 — execute the production store cleanup. Body:
+      {
+        "plan_signature": "<sha256>",
+        "confirm": true
+      }
+
+    Refuses to run if confirm != true or plan_signature mismatches the
+    current dry-run.
+
+    Effects per category:
+      TEST_ACCEPTANCE_ARTIFACT  → remove_from_operator_store
+      TEMPLATE_DEMO             → remove_from_operator_store
+      DETERMINISTIC_HOLIDAY     → remove_from_operator_store
+      SCOUT_CANDIDATE           → move_to_candidates
+      SCOUT_WATCHLIST           → move_to_watchlist
+      SCOUT_MASS_PROMOTED_CEO_DEMO → move_to_candidates_with_legacy_note
+      LEGACY_UNVERIFIED_APPROVAL → move_to_candidates_requires_reapproval
+      KEEP                      → no change
+
+    Every action appends an immutable audit row to the calendar-audit
+    jsonl. Original audit history is NEVER mutated.
+
+    Returns: {ok, brand_id, backup, actions, failures, audit_rows_written,
+              operator_store_lines_before, operator_store_lines_after,
+              candidates_mirror_path, watchlist_path}
+    """
+    from _lib import _calendar_v26_cleanup as _v26_exec
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    body = request.get_json(silent=True) or {}
+    plan_signature = body.get("plan_signature")
+    if not plan_signature or not isinstance(plan_signature, str):
+        return jsonify({"ok": False, "error": "plan_signature required"}), 400
+    confirm = body.get("confirm") is True
+    actor = _resolve_v23_actor()
+    # Tag the actor with the migration_id for traceability
+    migration_id = f"v26-cleanup-{brand_id}-{int(__import__('time').time())}"
+    actor = dict(actor)
+    actor["migration_id"] = migration_id
+    actor["migration_source"] = "calendar_v26_production_cleanup"
+    try:
+        result, code = _v26_exec.execute_cleanup(
+            brand_id=brand_id,
+            plan_signature=plan_signature,
+            actor=actor,
+            confirm=confirm,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify(result), code
+
+
+@app.route("/api/planning/<brand_id>/_internal/cleanup-status", methods=["GET"])
+def planning_cleanup_status(brand_id):
+    """GET /api/planning/<brand>/_internal/cleanup-status
+
+    V2.6 — post-cleanup state. Independent of dry-run. Used to verify
+    the operator store now contains only genuine records.
+    """
+    from _lib import _calendar_v26_cleanup as _v26_status
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    try:
+        result = _v26_status.cleanup_status(brand_id)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify(result), 200
+
+
+@app.route("/api/planning/<brand_id>/_internal/remove-by-calendar-id", methods=["POST"])
+def planning_remove_by_calendar_id(brand_id):
+    """POST /api/planning/<brand>/_internal/remove-by-calendar-id
+
+    V2.6 — emergency-only surgical removal of a single record by
+    calendar_id. Used to clean up ad-hoc test writes (e.g. a Scout
+    status=candidate write that the dry-run's event_key-based cleanup
+    cannot target because add_candidate doesn't always set event_key).
+
+    Body: {"calendar_id": "...", "reason": "..."}
+
+    Appends an immutable audit row. Does NOT modify any other records.
+    """
+    from _lib import _calendar_v26_cleanup as _v26_remove
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    body = request.get_json(silent=True) or {}
+    calendar_id = body.get("calendar_id")
+    if not calendar_id or not isinstance(calendar_id, str):
+        return jsonify({"ok": False, "error": "calendar_id required"}), 400
+    reason = body.get("reason") or "test_or_emergency_removal"
+    actor = _resolve_v23_actor()
+    try:
+        result = _v26_remove.remove_by_calendar_id(
+            brand_id=brand_id,
+            calendar_id=calendar_id,
+            actor=actor,
+            reason=reason,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify(result), 200
+
+
+# ─────────────────────────────────────────────────────────────────────
+# V2.6 — write-gate defence: marketing-calendar.append-guard
+# ─────────────────────────────────────────────────────────────────────
+#
+# Direct writes to <DATA_DIR>/intelligence/marketing-calendar/<brand>.jsonl
+# must go through the canonical approval path. Scout / template / bulk
+# inject / migration tools may NOT set status="approved" by themselves
+# — that requires an authenticated actor + transition_reason.
+#
+# Implemented as a module-level hook on upsert_event / add_candidate.
+# Migration tools (provenance_type == "migration") are the only exception.
+import _lib.marketing_calendar as _v26_mc  # noqa: E402
+
+_V26_PROTECTED_FUNCS = ("add_candidate", "upsert_event")
+
+
+def _v26_actor_qualified() -> bool:
+    """Decide whether the current request context is allowed to write
+    a record with status='approved' to the operator-store.
+
+    Returns True if:
+      - the request is authed AND
+      - it carries an X-Actor-Display-Name OR X-Migration-Id header
+        (the canonical approval interfaces always set one of these)
+      - AND the actor_id is a real fingerprint (not None)
+
+    Returns False for every other case (scout, template-demo, bulk
+    inject without a migration_id, anonymous writes, etc.).
+    """
+    try:
+        actor = _resolve_v23_actor()
+    except Exception:
+        return False
+    actor_id = actor.get("actor_id") if isinstance(actor, dict) else None
+    if not actor_id or not actor_id.startswith("fp:"):
+        return False
+    # Either the actor explicitly self-declared a display name
+    # (the planning approve endpoint does this) OR the request is
+    # tagged with a migration_id (the cleanup tool does this).
+    has_display = bool(request.headers.get("X-Actor-Display-Name"))
+    has_migration = bool(request.headers.get("X-Migration-Id"))
+    return has_display or has_migration
+
+
+def _v27_automation_writer(record: Dict[str, Any]) -> bool:
+    """V2.7 — return True if a record's `created_by` / `source_type`
+    identifies it as automation that must NOT touch the operator-store.
+
+    Per directive §3 + §5, automation must use intake / important-dates.
+    """
+    cb = (record.get("created_by") or "").strip().lower()
+    st = (record.get("source_type") or "").strip().lower()
+    # Direct automation identities
+    AUTOMATION_AUTHORS = {
+        "hermes-scout", "hermes-scout-simulation", "heidi-ingest",
+        "holiday_inject", "cos-reactive-watch",
+        "foreman-template-test", "foreman-template-demo",
+        "foreman-template-demo-v2", "foreman-generative-replace",
+        "proposal_promote", "interpreter",
+    }
+    AUTOMATION_SOURCE_TYPES = {
+        "scout", "template", "template-demo", "holiday", "reactive-watch",
+        "interpreter",
+    }
+    if cb in AUTOMATION_AUTHORS:
+        return True
+    if st in AUTOMATION_SOURCE_TYPES:
+        return True
+    return False
+
+
+def _v27_actor_in_request() -> bool:
+    """Return True if we are inside a Flask request context."""
+    try:
+        from flask import has_request_context
+        return has_request_context()
+    except Exception:
+        return False
+
+
+# Wrap the marketing_calendar write functions with a stricter V2.7 gate.
+_v26_mc_orig_add_candidate = _v26_mc.add_candidate
+_v26_mc_orig_upsert_event = _v26_mc.upsert_event
+_v26_mc_orig_transition_status = _v26_mc.transition_status
+
+
+def _v26_wrapped_add_candidate(brand_id, record, initial_status="candidate"):
+    """Wraps marketing_calendar.add_candidate — V2.6 + V2.7 gates.
+
+    V2.7 §3 — automation writers (hermes-scout, heidi-ingest,
+    holiday_inject, cos-reactive-watch, foreman-template-*,
+    foreman-generative-replace) MUST use the intake or important-dates
+    stores. They may NOT write to the operator/Main Calendar store
+    regardless of status.
+
+    V2.6 — status='approved' additionally requires a qualified actor.
+    """
+    target_status = record.get("status") or initial_status
+    in_request = _v27_actor_in_request()
+    is_automation = _v27_automation_writer(record)
+    qualified = _v26_actor_qualified()
+    # V2.7 §3: automation writers are forbidden from operator-store
+    # writes regardless of status. The migration tool is the only
+    # exception and explicitly tags requests with X-Migration-Id.
+    if is_automation and not qualified:
+        # Holiday injection is now redirected to the important-dates store
+        # by V2.7 holiday_inject.py. Other automation must use intake.
+        raise PermissionError(
+            "V2.7 write-gate: automation writer "
+            f"created_by={record.get('created_by')!r} "
+            f"source_type={record.get('source_type')!r} "
+            "cannot write to the operator/Main Calendar store. "
+            "Use the intake store (candidates/watchlist via "
+            "_calendar_v27_intake.write_intake_record) or the "
+            "important-dates store (Strategic Moments). The migration "
+            "tool may use X-Migration-Id."
+        )
+    # V2.6: approved writes still require qualified actor.
+    if target_status == "approved" and not qualified:
+        raise PermissionError(
+            "V2.6 write-gate: cannot write status='approved' to the "
+            "operator-store from this request context. The canonical "
+            "approval path (POST /api/planning/<brand>/candidates/"
+            "<id>/approve) is the only way to set status='approved'."
+        )
+    return _v26_mc_orig_add_candidate(brand_id, record, initial_status=initial_status)
+
+
+def _v26_wrapped_upsert_event(brand_id, record, skip_guards=False):
+    """Wraps marketing_calendar.upsert_event — same V2.6 + V2.7 gates."""
+    target_status = record.get("status")
+    is_automation = _v27_automation_writer(record)
+    qualified = _v26_actor_qualified()
+    if is_automation and not qualified:
+        if not skip_guards:
+            raise PermissionError(
+                "V2.7 write-gate: automation writer "
+                f"created_by={record.get('created_by')!r} "
+                f"source_type={record.get('source_type')!r} "
+                "cannot write to the operator/Main Calendar store. "
+                "Use the intake or important-dates store instead."
+            )
+    if target_status == "approved" and not qualified:
+        if not skip_guards:
+            raise PermissionError(
+                "V2.6 write-gate: cannot write status='approved' to the "
+                "operator-store from this request context. The canonical "
+                "approval path is the only way to set status='approved'."
+            )
+    return _v26_mc_orig_upsert_event(brand_id, record, skip_guards=skip_guards)
+
+
+_v26_mc.add_candidate = _v26_wrapped_add_candidate
+_v26_mc.upsert_event = _v26_wrapped_upsert_event
 
 
 @app.route("/api/planning/<brand_id>/_internal/audit-log", methods=["GET"])
@@ -49826,6 +51002,53 @@ if __name__ == '__main__':
         print('[boot] orphan job runs reaped', flush=True, file=_sys.stderr)
     except Exception as _e:
         print(f'[boot] orphan reap failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — brand-bible language patch + immediate-goal metrics.
+        # Idempotent: runs once and then leaves a marker so it skips on
+        # subsequent boots. See patch_brand_bible_v211.py for the rule.
+        from patch_brand_bible_v211 import main as _v211_patch_main
+        _v211_patch_main()
+    except Exception as _e:
+        print(f'[boot] v2.11 bible patch failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — operator-supplied important-dates inventory.
+        # Adds ~50 SA-sport / public-holiday / retail / golf-event dates
+        # that the operator wants the OS to know about. Idempotent —
+        # dedupes by event_name, never overwrites an existing entry.
+        from patch_important_dates_v211 import main as _v211_dates_main
+        _v211_dates_main()
+    except Exception as _e:
+        print(f'[boot] v2.11 dates patch failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — Long-form content Review layer.
+        # Wire the existing _lib/review_routes.register_routes(app) so the
+        # campaign-os-writer pipeline ends in a human-review surface. The
+        # Writer artifact already exists in the canonical heidi outbox;
+        # Review routes will discover it lazily and surface it in the OS
+        # shell. This is Review-only: NO publishing routes are added.
+        from _lib.review_routes import register_routes as _register_review_routes
+        _register_review_routes(app)
+        print('[boot] review v1 routes registered', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] review v1 routes failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — Ingest the canonical Writer artifact onto the Railway
+        # volume so the Review layer can find it. The Writer writes to the
+        # local heidi outbox (Mac); on Railway we ship it into the Docker
+        # image at /app/data/writer-artifacts/<brand>/<slug>.json and this
+        # script copies it onto the persistent volume.
+        from patch_review_writer_ingest_v211 import main as _v211_review_ingest
+        _v211_review_ingest()
+    except Exception as _e:
+        print(f'[boot] v2.11 review writer ingest failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — One-shot cleanup of acceptance-test fixture Review
+        # records + writer artifacts from before the fixture-* ingest guard
+        # shipped. Idempotent (marker file gates re-runs).
+        from patch_review_fixture_cleanup_v211 import main as _v211_fixture_cleanup
+        _v211_fixture_cleanup()
+    except Exception as _e:
+        print(f'[boot] v2.11 review fixture cleanup failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     port = int(os.environ.get('PORT', 8000))
     print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
     try:

@@ -19,9 +19,35 @@
   },
   "operating_goals": [
     {
+      "id": "immediate_fittings_monthly",
+      "label": "Fittings (immediate goal)",
+      "metric": "100 fittings / month with 60% conversion rate",
+      "category": "operational_throughput",
+      "outcome_measurement": "PENDING",
+      "connector_status": "not_connected",
+      "missing_connector": "Swing Shack fitting booking system not integrated with reporting",
+      "marketing_support_signal": "Fitting-booking page sessions + IG/FB engagement on fitting content",
+      "do_not_fabricate_progress": true,
+      "source": "operator directive (Discord, 2026-09-29)",
+      "set_at": "2026-09-29"
+    },
+    {
+      "id": "immediate_coaching_sessions_per_coach_per_week",
+      "label": "Coaching sessions per coach (immediate goal)",
+      "metric": "30–40 coaching sessions / week / coach",
+      "category": "operational_throughput",
+      "outcome_measurement": "PENDING",
+      "connector_status": "not_connected",
+      "missing_connector": "Swing Shack coaching scheduling system not integrated with reporting",
+      "marketing_support_signal": "Coaching-page sessions + IG/FB engagement on coach content",
+      "do_not_fabricate_progress": true,
+      "source": "operator directive (Discord, 2026-09-29)",
+      "set_at": "2026-09-29"
+    },
+    {
       "id": "coaching_lessons_monthly",
       "label": "Coaching",
-      "metric": "160 lessons / month",
+      "metric": "160 coaching sessions / month",
       "category": "operational_throughput",
       "outcome_measurement": "PENDING",
       "connector_status": "not_connected",
@@ -33,7 +59,7 @@
     {
       "id": "on_course_coaching_monthly",
       "label": "On-course coaching",
-      "metric": "20 lessons / month",
+      "metric": "20 coaching sessions / month",
       "category": "operational_throughput",
       "outcome_measurement": "PENDING",
       "connector_status": "not_connected",
@@ -44,7 +70,7 @@
     },
     {
       "id": "fitting_throughput_weekly",
-      "label": "Fittings",
+      "label": "Fittings (weekly)",
       "metric": "4 fittings / day × 6 days / week = 24 fittings / week",
       "category": "operational_throughput",
       "outcome_measurement": "PENDING",

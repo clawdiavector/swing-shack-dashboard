@@ -154,13 +154,15 @@ def _maybe_enqueue_publish_request(
     if not _enqueue_ready(caption=caption, asset=asset, sidecar=sidecar, platform=platform):
         return
     lodged_title = str(sidecar.get("title") or asset.get("name") or "")
-    publish_sandbox.enqueue_for_primary_channel(
+    publish_sandbox.enqueue_for_intended_channels(
         brand_id=brand_id,
         caption_preview=caption,
         inbox_item_id=inbox_item_id,
         asset_id=asset_id,
         asset_platform=asset_platform,
         lodged_title=lodged_title,
+        asset=asset,
+        sidecar=sidecar,
     )
 
 

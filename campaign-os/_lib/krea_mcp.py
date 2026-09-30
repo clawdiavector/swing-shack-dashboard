@@ -247,6 +247,32 @@ def _ensure_initialized() -> None:
         _INIT_LOCK = False
 
 
+def _mcp_tool_error_message(result: dict) -> str:
+    """Best-effort human message from MCP tools/call isError payloads."""
+    sc = result.get("structuredContent")
+    if isinstance(sc, dict):
+        err = sc.get("error")
+        if isinstance(err, str) and err.strip():
+            return err.strip()
+        if isinstance(err, dict):
+            details = err.get("details") or err.get("message")
+            if details:
+                return str(details)[:400]
+    content = result.get("content")
+    if isinstance(content, list):
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                text = (block.get("text") or "").strip()
+                if text:
+                    try:
+                        parsed = json.loads(text)
+                        if isinstance(parsed, dict):
+                            return str(parsed.get("error") or parsed.get("message") or text)[:400]
+                    except json.JSONDecodeError:
+                        return text[:400]
+    return str(result.get("message") or "Krea tool error")[:400]
+
+
 # ── Core JSON-RPC call ─────────────────────────────────────────────
 def mcp_call(method: str, params: Optional[dict] = None, *, timeout: int = DEFAULT_TIMEOUT) -> dict:
     """Send a JSON-RPC method call to the Krea MCP server.
@@ -275,7 +301,11 @@ def mcp_call(method: str, params: Optional[dict] = None, *, timeout: int = DEFAU
             status=400,
             upstream=err,
         )
-    return resp.get("result", {})
+    result = resp.get("result", {})
+    if isinstance(result, dict) and result.get("isError"):
+        msg = _mcp_tool_error_message(result)
+        raise KreaUpstreamError(msg or "Krea tool call failed", status=422, upstream=result)
+    return result
 
 
 # ── Tool discovery ──────────────────────────────────────────────────
@@ -318,6 +348,7 @@ def image_generate(
     model: str = "flux-fast",
     aspect_ratio: str = "1:1",
     extra: Optional[dict] = None,
+    background_plate: bool = False,
 ) -> dict:
     """Generate an image via Krea's MCP `generate_image` tool, brand-aware.
 
@@ -330,16 +361,19 @@ def image_generate(
     Real Krea tool name is `generate_image` (verified 2026-08-28 against
     https://api.krea.ai/mcp tools/list — 32 tools available).
     """
-    bible = _brand_bible_context(brand)
-    belief = bible.get("belief", "Golf is more fun when it makes sense.")
-    feel = ", ".join(bible.get("values", {}).get("should_feel", [])[:5])
-    voice_summary = bible.get("voice_summary", "Know the numbers. Speak like a golfer.")
-    enriched_prompt = (
-        f"{prompt}. "
-        f"Brand context: {belief}. "
-        f"Tone: {voice_summary}. "
-        f"Visual feel: {feel}."
-    ).strip()
+    if background_plate:
+        enriched_prompt = prompt.strip()
+    else:
+        bible = _brand_bible_context(brand)
+        belief = bible.get("belief", "Golf is more fun when it makes sense.")
+        feel = ", ".join(bible.get("values", {}).get("should_feel", [])[:5])
+        voice_summary = bible.get("voice_summary", "Know the numbers. Speak like a golfer.")
+        enriched_prompt = (
+            f"{prompt}. "
+            f"Brand context: {belief}. "
+            f"Tone: {voice_summary}. "
+            f"Visual feel: {feel}."
+        ).strip()
     # Krea API expects `image_input` shape; the public tool signature uses
     # `prompt` + `model` + optional inputs. Pass through any extras.
     # Krea MCP expects the model at the envelope level, prompt + options
@@ -366,7 +400,9 @@ def image_generate(
     if ar != "1:1":
         inner["aspect_ratio"] = ar
     if extra:
-        inner.update(extra)
+        # Flux image models do not accept negative_prompt on MCP input.
+        filtered = {k: v for k, v in extra.items() if k != "negative_prompt"}
+        inner.update(filtered)
     return mcp_call("tools/call", {
         "name": "generate_image",
         "arguments": {"input": inner, "model": model},

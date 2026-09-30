@@ -57,7 +57,12 @@ def _sidecar_for_item(item_id: str) -> tuple[str | None, dict[str, Any] | None]:
             continue
         if sidecar.get("source_inbox_item_id") != item_id:
             continue
-        if str(sidecar.get("action") or "") in ("draft_photo", "draft_image", "draft_caption"):
+        if str(sidecar.get("action") or "") in (
+            "draft_photo",
+            "draft_image",
+            "draft_caption",
+            "draft_gen_slots",
+        ):
             return str(sidecar.get("asset_id") or ""), sidecar
     return None, None
 

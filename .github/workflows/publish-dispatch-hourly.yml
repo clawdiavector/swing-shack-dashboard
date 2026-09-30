@@ -1,0 +1,35 @@
+name: Publish dispatch hourly
+
+# Sends due approved queue rows. Top of every hour UTC, which is also
+# the top of every hour SAST (UTC+2). Does not run the rest of layer 2–7.
+# The 07:15 SAST daily cron still calls publish_dispatch as well.
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  publish-dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
+      BASE: https://swing-shack-dashboard-production.up.railway.app
+    steps:
+      - name: Preflight — COS_JOB_TOKEN required
+        run: |
+          set -euo pipefail
+          if [ -z "${COS_JOB_TOKEN:-}" ]; then
+            echo "::error::COS_JOB_TOKEN secret is not set"
+            exit 1
+          fi
+
+      - name: publish_dispatch
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/publish_dispatch?all=1" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/publish_dispatch.json
+          python3 -c "import json; d=json.load(open('/tmp/publish_dispatch.json')); print(d.get('status'), d.get('ok'), d.get('error'))"
