@@ -14,6 +14,7 @@
 
 ## Don't say (banned)
 - ❌ "LOL" / "LMAO" — text-speak is not Stick voice
+- ❌ "data shows" / "research shows" / vague study claims — say it plainly or omit
 - ❌ Emojis as filler (one emoji max per post)
 - ❌ "We'd never" / "We'd totally" — too informal
 - ❌ "Bro" / "Fam" — Stick is not bro-voice

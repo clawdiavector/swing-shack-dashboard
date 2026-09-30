@@ -482,6 +482,7 @@ def _caption_pipeline_payload(
     from _lib.poster_copy import poster_cta_cap, poster_hook_cap  # noqa: PLC0415
 
     archetype = select_archetype(brand_id, item_id)
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
     payload: dict[str, Any] = {
         "brand_id": brand_id,
         "user_brief": ctx.job,
@@ -490,6 +491,9 @@ def _caption_pipeline_payload(
         "n_candidates": 12,
         "poster_hook_cap": poster_hook_cap(archetype),
         "poster_cta_cap": poster_cta_cap(archetype),
+        "template_id": str(calendar.get("template_id") or "").strip() or None,
+        "post_type": str(calendar.get("post_type") or "").strip() or None,
+        "lodge_title": calendar_title_for_item(brand_id, item_id) or None,
     }
     if product_id:
         payload["product_id"] = product_id

@@ -572,6 +572,7 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
         "pillar_id": pillar_id,
         "pillars": record.get("pillars") if isinstance(record.get("pillars"), list) else [],
         "post_type": post_type,
+        "template_id": str(record.get("template_id") or record.get("archetype_id") or "").strip(),
         "angle": angle,
         "event_start": event_start,
         "event_lifecycle": record.get("event_lifecycle"),

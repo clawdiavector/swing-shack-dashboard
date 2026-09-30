@@ -836,24 +836,25 @@ def _load_brand_rules(brand_id: str) -> dict:
 
 
 def _extract_banned_terms(brand_id: str) -> List[str]:
+    from _lib.caption_copy_contract import merged_banned_terms  # noqa: PLC0415
+
     bdir = _brand_dir(brand_id) / "voice" / "do-say-dont-say.md"
     txt = _read_text(bdir)
-    if not txt:
-        return []
-    banned = []
-    in_dont = False
-    for line in txt.split("\n"):
-        if "## Don't say" in line or "## Banned" in line:
-            in_dont = True
-            continue
-        if in_dont and line.startswith("## "):
-            in_dont = False
-        if in_dont and (line.strip().startswith("❌") or line.strip().startswith("- ❌")):
-            clean = re.sub(r"^[-\s❌]+", "", line).strip().strip('"').strip("'").strip("`")
-            if clean and len(clean) < 80:
-                banned.append(clean)
+    banned: list[str] = []
+    if txt:
+        in_dont = False
+        for line in txt.split("\n"):
+            if "## Don't say" in line or "## Banned" in line:
+                in_dont = True
+                continue
+            if in_dont and line.startswith("## "):
+                in_dont = False
+            if in_dont and (line.strip().startswith("❌") or line.strip().startswith("- ❌")):
+                clean = re.sub(r"^[-\s❌]+", "", line).strip().strip('"').strip("'").strip("`")
+                if clean and len(clean) < 80:
+                    banned.append(clean)
     banned.append("—")
-    return list({b for b in banned if b})
+    return merged_banned_terms(brand_id, list({b for b in banned if b}))
 
 
 def _extract_required_terms(brand_id: str) -> List[str]:
@@ -1062,6 +1063,9 @@ def build_generation_context(
     channel: Optional[str] = None,
     objective: Optional[str] = None,
     user_brief: Optional[str] = None,
+    template_id: Optional[str] = None,
+    post_type: Optional[str] = None,
+    lodge_title: Optional[str] = None,
     n_recent: int = 30,
     n_semantic: int = 8,
     n_structural: int = 6,
@@ -1093,6 +1097,18 @@ def build_generation_context(
             }
 
     brief_subject = _detect_brief_subject(user_brief, service, product_id)
+    from _lib.caption_copy_contract import build_copy_contract  # noqa: PLC0415
+
+    copy_contract = build_copy_contract(
+        brand_id=brand_id,
+        template_id=template_id,
+        post_type=post_type,
+        lodge_title=lodge_title,
+        user_brief=user_brief,
+    )
+    override = copy_contract.get("brief_subject_override")
+    if override:
+        brief_subject = str(override)
 
     vb = _load_voice_bible()
     voice = vb.get("voices", {}).get(brand_id, {})
@@ -1125,6 +1141,7 @@ def build_generation_context(
             f"{brand_id} services are operated by swing-shack."
             if brand_id in ("stick", "bag-drop") else None
         ),
+        "banned_terms": banned,
     }
 
     # SERVICE FACTS — only relevant when brief matches a service keyword
@@ -1401,6 +1418,7 @@ def build_generation_context(
         "performance_context": performance_layer,
         "restrictions": restrictions,
         "source_provenance": provenance,
+        "copy_contract": copy_contract,
     }
 
 
@@ -1755,6 +1773,9 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
         f"in', 'leads to') unless the relationship is in the canonical facts "
         f"above. Use tentative language instead ('can', 'may', 'often in our "
         f"sessions').\n"
+        f"DO NOT use vague evidence framing ('data shows', 'research shows', "
+        f"'studies show', 'statistics show') — say what you mean in plain "
+        f"language without pretending there is a study.\n"
         f"If the brief mentions a session-scoped event (e.g. 'this Thursday'), "
         f"you may use the EXACT wording from the brief as a session fact. Do NOT "
         f"promote it to permanent brand truth.\n"
@@ -1791,6 +1812,28 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
             "(date / time / price / venue) are session facts for this generation only — "
             "do not assert them as permanent brand truth."
         )
+    contract = ctx.get("copy_contract") if isinstance(ctx.get("copy_contract"), dict) else {}
+    if contract.get("focus") or contract.get("preferred_terms"):
+        user_parts.append("\nTEMPLATE / MOMENT COPY CONTRACT (must obey):")
+        if contract.get("template_id"):
+            user_parts.append(f"- Template: {contract['template_id']}")
+        if contract.get("post_type"):
+            user_parts.append(f"- Post type: {contract['post_type']}")
+        if contract.get("lodge_title"):
+            user_parts.append(f"- Lodge title (visual headline source): {contract['lodge_title']}")
+        if contract.get("focus"):
+            user_parts.append(f"- Stay on: {contract['focus']}")
+        preferred = contract.get("preferred_terms") or []
+        if preferred:
+            user_parts.append(f"- Prefer terms: {', '.join(preferred)}")
+        forbidden = contract.get("forbidden_unless_in_brief") or []
+        if forbidden:
+            user_parts.append(
+                "- Do NOT mention these unless they appear in the lodge title or brief: "
+                + ", ".join(forbidden)
+            )
+        if contract.get("membership_offered") is False:
+            user_parts.append("- Do NOT invite readers to join a membership (not offered for this brand).")
     user_parts.append(
         "\nReturn ONLY a JSON object with keys caption_body, poster_hook, cta_line. "
         "No commentary. caption_body is the feed caption WITHOUT the default CTA "
@@ -1973,6 +2016,18 @@ def _check_fact(candidate: str, ctx: dict) -> dict:
     if not candidate:
         return {"passed": False, "reason": "empty"}
     fails = []
+    from _lib.caption_copy_contract import vague_data_claim_in_text  # noqa: PLC0415
+
+    vague = vague_data_claim_in_text(candidate)
+    if vague:
+        fails.append(f"vague_data_claim:{vague}")
+    contract = ctx.get("copy_contract") if isinstance(ctx.get("copy_contract"), dict) else {}
+    if contract.get("membership_offered") is False:
+        cl = candidate.lower()
+        if re.search(r"\b(membership|join our membership)\b", cl):
+            brief = str(contract.get("brief_blob") or ctx.get("user_brief") or "").lower()
+            if "membership" not in brief:
+                fails.append("membership_not_offered")
     # 1. Invented prices (R followed by digits)
     price_hits = re.findall(r"\bR\s?\d{2,}\b", candidate)
     if price_hits:
@@ -2207,6 +2262,9 @@ def run_caption_pipeline(request: dict) -> dict:
         channel=request.get("channel"),
         objective=request.get("objective"),
         user_brief=request.get("user_brief"),
+        template_id=request.get("template_id"),
+        post_type=request.get("post_type"),
+        lodge_title=request.get("lodge_title"),
     )
     if not ctx.get("ok"):
         return ctx
@@ -2266,7 +2324,8 @@ def run_caption_pipeline(request: dict) -> dict:
 
     survivors = []
     rejects = {"exact": [], "structural": [], "semantic": [],
-               "brand": [], "fact": [], "brief_fidelity": [], "locale": []}
+               "brand": [], "fact": [], "brief_fidelity": [], "locale": [],
+               "copy_contract": [], "alignment": []}
     locale_rejects = 0
     detailed_rejects = []
 
@@ -2318,6 +2377,24 @@ def run_caption_pipeline(request: dict) -> dict:
                 rejects["locale"].append(c["candidate_id"])
                 locale_rejects += 1
                 passed_all = False
+        if passed_all:
+            from _lib.caption_copy_contract import (  # noqa: PLC0415
+                check_copy_contract,
+                check_poster_caption_alignment,
+            )
+
+            cc = check_copy_contract(c["body"], ctx)
+            checks["copy_contract"] = cc
+            if not cc["passed"]:
+                rejects["copy_contract"].append(c["candidate_id"])
+                passed_all = False
+            if passed_all:
+                pkg = c.get("copy_package") if isinstance(c.get("copy_package"), dict) else None
+                al = check_poster_caption_alignment(c["body"], ctx, pkg)
+                checks["alignment"] = al
+                if not al["passed"]:
+                    rejects["alignment"].append(c["candidate_id"])
+                    passed_all = False
 
         # Extract proposition + tension + evidence for survivors
         prop, tension, evidence = _extract_proposition(c, brief_subject)
