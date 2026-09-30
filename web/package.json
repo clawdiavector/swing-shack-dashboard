@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/inline-to-campaign-os.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "build:web": "vite build && node scripts/inline-to-campaign-os.mjs"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",
