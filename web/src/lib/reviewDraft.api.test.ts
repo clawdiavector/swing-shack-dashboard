@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   draftRecompose,
+  draftRegenerateCaption,
   draftRegeneratePhoto,
   draftSwapCandidate,
   inboxAction,
@@ -13,6 +14,22 @@ describe('P4 draft review API client', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+  })
+
+  it('POSTs regenerate-caption with reason and recompose', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, enqueued: ['draft_caption', 'compose_post'] }),
+    } as Response)
+    const result = await draftRegenerateCaption('draft_asset:c:a', 'fresh hook', true)
+    expect(result.ok).toBe(true)
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit]
+    expect(url).toContain('/api/drafts/draft_asset%3Ac%3Aa/regenerate-caption')
+    expect(init.method).toBe('POST')
+    const body = JSON.parse(String(init.body))
+    expect(body.reason).toBe('fresh hook')
+    expect(body.recompose).toBe(true)
   })
 
   it('POSTs regenerate with note to /api/drafts/.../regenerate', async () => {
