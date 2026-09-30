@@ -73,12 +73,16 @@ def _service_end_tagline(*, brand_id: str, moment_id: str, caption: str) -> str:
     if "coaching" in pillar or "trackman" in cap or "swing" in cap:
         return "Coaching sessions that guide players toward better, more enjoyable golf."
     if "fitting" in pillar or "club assessment" in cap:
-        return "Brand-agnostic fittings guided by data and science."
+        if brand_id == "stick":
+            return "Fit first. Buy second."
+        return "Equipment matched to the player."
     if "equipment" in pillar or "brands" in cap or "retail" in cap:
         return "Curated brands selected for quality, value, and relevance."
     if "apparel" in pillar or "clothing" in cap:
         return "Style that belongs."
-    return "Golf, made simpler."
+    if brand_id == "stick":
+        return "Better Begins Here."
+    return "Real Golf, Indoors."
 
 
 def _derive_service_label(*, brand_id: str, moment_id: str, caption: str, sidecar: dict[str, Any]) -> str:
@@ -137,15 +141,50 @@ def _derive_service_lockup(
     return words[-1] if words else "CLUB FITTING"
 
 
+def _default_cta_from_bible(brand_id: str) -> str:
+    from _lib.brand_bible import bible_copy_slice  # noqa: PLC0415
+
+    cs = (bible_copy_slice(brand_id, "poster") or {}).get("copy_system") or {}
+    ctas = cs.get("approved_ctas") or []
+    if ctas and isinstance(ctas[0], str):
+        return ctas[0]
+    if brand_id == "swing-shack":
+        return "Book your session"
+    return "Book a fitting"
+
+
 def _service_cta(*, brand_id: str, moment_id: str, caption: str) -> str:
     ctx = build_image_draft_context(brand_id, moment_id)
     pillar = _pillar_id_from_context(ctx).lower()
     cap = (caption or "").lower()
     if "fitting" in pillar or "club assessment" in cap or "club fitting" in cap:
-        return "Book your free club assessment"
+        if brand_id == "swing-shack":
+            return "Book your club assessment"
+        return "Book a fitting"
     if "coaching" in pillar or "trackman" in cap or "swing assessment" in cap:
-        return "Book your free swing assessment"
-    return "Book your free assessment"
+        if brand_id == "swing-shack":
+            return "Book your swing assessment"
+        return "Book your swing assessment"
+    return _default_cta_from_bible(brand_id)
+
+
+def _gate_poster_fields(brand_id: str, base: dict[str, str]) -> dict[str, str]:
+    from _lib.caption_copy_contract import gate_text  # noqa: PLC0415
+
+    for field in (
+        "caption_hook",
+        "cta",
+        "qualifier",
+        "service_lockup",
+        "service_label",
+        "kicker",
+    ):
+        val = base.get(field)
+        if val and not gate_text(brand_id, str(val))["passed"]:
+            base[field] = ""
+            blocked = str(base.get("_poster_gate_blocked") or "").strip()
+            base["_poster_gate_blocked"] = f"{blocked} {field}".strip()
+    return {k: str(v) for k, v in base.items()}
 
 
 def visual_copy_for_archetype(
@@ -196,7 +235,7 @@ def visual_copy_for_archetype(
         base["caption_hook"] = headline
         base["qualifier"] = tagline
         base["_poster_copy_source"] = src
-        return {k: str(v) for k, v in base.items()}
+        return _gate_poster_fields(brand_id, base)
 
     if needs_photo and archetype_id in ("stick-service-start", "stick-shop-corner"):
         mid = moment_id or f"proposal:{brand_id}:compose"
@@ -217,7 +256,7 @@ def visual_copy_for_archetype(
         base["caption_hook"] = headline
         base["cta"] = lockup
         base["_poster_copy_source"] = src
-        return {k: str(v) for k, v in base.items()}
+        return _gate_poster_fields(brand_id, base)
 
     if needs_photo and archetype_id == "stick-coach-profile":
         mid = moment_id or f"proposal:{brand_id}:compose"
@@ -239,11 +278,11 @@ def visual_copy_for_archetype(
             body = str(base.get("caption_body") or "").strip()
         base["caption_hook"] = name
         base["_poster_copy_source"] = src
-        return _coach_profile_fields(base, body)
+        return _gate_poster_fields(brand_id, _coach_profile_fields(base, body))
     if needs_photo:
         ctx = build_image_draft_context(brand_id, moment_id or "proposal:stick:local")
         base = _content_from_caption(caption, ctx)
-        return {k: str(v) for k, v in base.items()}
+        return _gate_poster_fields(brand_id, base)
 
     mid = moment_id or f"proposal:{brand_id}:compose"
     headline, src = resolve_poster_hook(
@@ -308,4 +347,4 @@ def visual_copy_for_archetype(
             caption=caption,
             sidecar=sidecar,
         )
-    return {k: str(v) for k, v in base.items()}
+    return _gate_poster_fields(brand_id, base)

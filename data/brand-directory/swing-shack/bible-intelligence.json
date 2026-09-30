@@ -1,0 +1,93 @@
+{
+  "_schema": "https://campaign-os/brand-directory/bible-intelligence/v1",
+  "brand_id": "swing-shack",
+  "version": "1.0.0",
+  "confidence": "verified_current",
+  "last_updated": "2026-09-30T00:00:00Z",
+  "format": "structured",
+  "sources": [
+    {
+      "path": "data/brand-directory/swing-shack/bible-source.txt",
+      "label": "Swing Shack Full Brand Bible Draft v1"
+    },
+    {
+      "path": "data/brand-directory/swing-shack/workbook-source.txt",
+      "label": "Campaign OS Full Brand Bible Workbook, Swing Shack section D+E"
+    }
+  ],
+  "voice": "",
+  "visual_language": "",
+  "colours": [],
+  "typography": "",
+  "logo_rules": "",
+  "photography": "",
+  "product_fidelity": "",
+  "positive_prompts": "",
+  "negative_prompts": "",
+  "creative_properties": [],
+  "approved_examples": [],
+  "rejected_examples": [],
+  "copy_system": {
+    "voice_in_5_words": ["warm", "knowledgeable", "witty", "useful", "confident"],
+    "sentence_length": "Short to medium. One clear idea per sentence.",
+    "humour": "Witty and warm. Never at the golfer's expense. Never clownish.",
+    "technical_depth": "High when TrackMan or fitting data adds clarity. Plain language first.",
+    "emoji_policy": "Occasional and intentional. Never as a crutch or substitute for personality.",
+    "punctuation": "Sentence case headlines. Commas and colons over em dashes.",
+    "personality_never": ["condescending", "generic", "hype-driven", "beginner-bait", "country-club"],
+    "signature_lines": [
+      "Real Golf, Indoors.",
+      "The ball speaks. Data confirms. Feel seals the deal.",
+      "Golf is more fun when it makes sense",
+      "The swing may lie, but the ball tells the truth.",
+      "The ball tells the truth. We just read it."
+    ],
+    "master_message": "Real golf indoors: coaching, fitting, and practice backed by TrackMan data.",
+    "supporting_messages": [
+      {"knowledge_fact": "verified_promise"},
+      {"knowledge_fact": "verified_tagline"},
+      "Coaching that respects every level.",
+      "Fitting that starts with the player.",
+      "Membership that feels like a club, not a contract."
+    ],
+    "approved_ctas": [
+      "Book your session",
+      "Book a TrackMan session",
+      "Join the club",
+      "Book a driver fitting",
+      "Get fitted",
+      "Book your club assessment"
+    ],
+    "approved_headlines": [
+      "FREE CLUB ASSESSMENT",
+      "TrackMan truth: your slice has a cause.",
+      "Fit first. Hit second.",
+      "Data over hope."
+    ],
+    "banned_phrases": [
+      "your golf journey",
+      "game changer",
+      "state of the art",
+      "we are passionate about golf",
+      "world-class facility",
+      "world-class",
+      "look no further",
+      "take your game to the next level",
+      "unlock your potential"
+    ],
+    "not_us_examples": [
+      "Take your game to the next level at our world-class facility.",
+      "Unlock your potential on your golf journey."
+    ],
+    "internal_only": [
+      "world-class performance hub",
+      "Real Golf. Real Data. Real Welcome.",
+      "South Africa's first indoor golf club (internal positioning language)"
+    ]
+  },
+  "litmus_test": [
+    "Does this sound warm and useful, not preachy?",
+    "Is there data or specificity behind the claim?",
+    "Would a member feel welcome, not sold to?"
+  ]
+}

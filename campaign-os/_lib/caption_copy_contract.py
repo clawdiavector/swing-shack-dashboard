@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
 # Global vague-evidence phrasing (not banned in voice markdown yet).
@@ -22,6 +23,9 @@ BRAND_FORBIDDEN_PHRASES: dict[str, tuple[str, ...]] = {
         "join our membership",
         "join our fitting membership",
         "fitting membership",
+        "join the club",
+        "join the stick club",
+        "become a member",
     ),
     "swing-shack": (),
 }
@@ -131,9 +135,70 @@ EQUIPMENT_FAMILIES: dict[str, tuple[str, ...]] = {
 }
 
 
+def bible_banned_phrases(brand_id: str) -> tuple[str, ...]:
+    from _lib.brand_bible import bible_copy_slice  # noqa: PLC0415
+
+    cs = (bible_copy_slice(brand_id, "caption") or {}).get("copy_system") or {}
+    return tuple(
+        p for p in (cs.get("banned_phrases") or [])
+        if isinstance(p, str) and p.strip()
+    )
+
+
+def parse_dont_say_markdown(text: str) -> list[str]:
+    """Extract phrase gates from do-say-dont-say markdown (quoted or pre-rationale)."""
+    if not text:
+        return []
+    banned: list[str] = []
+    section: str | None = None
+
+    def _phrases_from_line(line: str) -> list[str]:
+        raw = line.strip()
+        if not raw.startswith("❌") and not raw.startswith("- ❌"):
+            return []
+        quoted = re.findall(r'"([^"]{2,60})"', raw)
+        if quoted:
+            return [q.strip().lower() for q in quoted if q.strip() and "—" not in q]
+        clean = re.sub(r"^[-\s❌]+", "", raw).strip()
+        for sep in (" — ", " – ", " ("):
+            if sep in clean:
+                clean = clean.split(sep, 1)[0].strip()
+        clean = clean.strip('"').strip("'").strip().lower()
+        if clean and "—" not in clean:
+            return [clean]
+        return []
+
+    for line in text.split("\n"):
+        if "## Don't say" in line or "## Banned" in line:
+            section = "dont"
+            continue
+        if "## Numbers discipline" in line:
+            section = "numbers"
+            continue
+        if "## Say with care" in line:
+            section = "care"
+            continue
+        if line.startswith("## "):
+            if section == "dont":
+                section = None
+            elif section in ("numbers", "care") and "## " in line:
+                section = None
+        if section in ("dont", "numbers", "care"):
+            banned.extend(_phrases_from_line(line))
+
+    seen: set[str] = set()
+    out: list[str] = []
+    for p in banned:
+        if p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
 def merged_banned_terms(brand_id: str, markdown_banned: list[str]) -> list[str]:
     out = list(markdown_banned) + list(GLOBAL_FORBIDDEN_PHRASES)
     out.extend(BRAND_FORBIDDEN_PHRASES.get(brand_id, ()))
+    out.extend(bible_banned_phrases(brand_id))
     # Dedupe preserve order
     seen: set[str] = set()
     unique: list[str] = []
@@ -269,3 +334,71 @@ def vague_data_claim_in_text(text: str) -> str | None:
         if phrase in low:
             return phrase
     return None
+
+
+def allow_signature_line(brand_id: str, text: str) -> bool:
+    from _lib.brand_bible import bible_copy_slice  # noqa: PLC0415
+
+    cs = (bible_copy_slice(brand_id, "caption") or {}).get("copy_system") or {}
+    low = (text or "").lower()
+    for line in cs.get("signature_lines") or []:
+        if isinstance(line, str) and line.strip().lower() in low:
+            return True
+    return False
+
+
+def _dont_say_path(brand_id: str) -> Path:
+    from os import environ
+
+    runtime = Path(environ.get("DATA_DIR") or "/data/campaign-os") / "brand-directory" / brand_id
+    repo = Path(__file__).resolve().parents[2] / "data" / "brand-directory" / brand_id
+    base = runtime if runtime.exists() else repo
+    return base / "voice" / "do-say-dont-say.md"
+
+
+def gate_text(brand_id: str, text: str, *, ctx: dict | None = None) -> dict[str, Any]:
+    """Phrase gate on arbitrary copy (caption or poster field). Substring phrase bans only."""
+    candidate = text or ""
+    if not candidate.strip():
+        return {"passed": True, "reason": "empty_ok"}
+    if "—" in candidate:
+        return {"passed": False, "reason": "em_dash_banned"}
+    cl = candidate.lower()
+    md_path = _dont_say_path(brand_id)
+    md_banned: list[str] = []
+    if md_path.exists():
+        md_banned = parse_dont_say_markdown(md_path.read_text(encoding="utf-8"))
+    for phrase in merged_banned_terms(brand_id, md_banned):
+        if phrase.lower() in cl:
+            return {"passed": False, "reason": f"forbidden_phrase:{phrase[:40]}"}
+    contract_ctx = ctx or {}
+    contract = contract_ctx.get("copy_contract")
+    if not isinstance(contract, dict):
+        contract = build_copy_contract(brand_id=brand_id)
+    if contract.get("membership_offered") is False:
+        brief = str(contract.get("brief_blob") or contract_ctx.get("user_brief") or "").lower()
+        if re.search(r"\b(membership|join our membership|member benefits|become a member)\b", cl):
+            if "membership" not in brief and "member" not in brief:
+                return {"passed": False, "reason": "membership_not_offered"}
+    return {"passed": True, "reason": "ok"}
+
+
+def gate_copy_package(
+    brand_id: str,
+    copy_package: dict[str, Any] | None,
+    *,
+    ctx: dict | None = None,
+) -> dict[str, Any]:
+    if not isinstance(copy_package, dict):
+        return {"passed": True, "reason": "no_copy_package", "field": None}
+    fields = (
+        ("caption_body", copy_package.get("caption_body") or copy_package.get("body")),
+        ("poster_hook", copy_package.get("poster_hook")),
+        ("cta_line", copy_package.get("cta_line")),
+    )
+    for name, val in fields:
+        if val:
+            r = gate_text(brand_id, str(val), ctx=ctx)
+            if not r["passed"]:
+                return {"passed": False, "reason": r["reason"], "field": name}
+    return {"passed": True, "reason": "ok", "field": None}

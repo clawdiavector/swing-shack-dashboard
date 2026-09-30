@@ -11,7 +11,7 @@ that translates per tone for Swing Shack specifically.
 - Reference what *will happen* in a session, not what the golfer "should" feel.
 
 ✅ "TrackMan shows attack angle within 0.5° in a 30-minute session."
-✅ "Driver fittings isolate 4 variables — swing speed, attack angle, path, face — then match them."
+✅ "Driver fittings isolate 4 variables | swing speed, attack angle, path, face | then match them."
 ❌ "Did you know your swing could be better?" (too generic, not Swing Shack voice)
 ❌ "Our coaches will help you improve your game." (vague, not Swing Shack)
 

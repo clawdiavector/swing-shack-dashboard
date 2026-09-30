@@ -256,17 +256,21 @@
     ]
   },
   "cta_rules": {
-    "source": "data/brand-directory/takomo/copy/ctas.md",
+    "source": "data/brand-directory/stick/copy/ctas.md",
     "source_class": "approved_internal",
     "authority_level": "high",
-    "default_cta": "Build your 101T → swingshack.co.za/takomo",
+    "default_cta": "Book a fitting → stickgolf.co.za/bookings/",
     "hard_ctas": [
-      "Build your 101T → swingshack.co.za/takomo",
-      "Spec the 101T → swingshack.co.za/takomo/spec",
-      "Order head-only → swingshack.co.za/takomo",
-      "Try the 101T on TrackMan → swingshack.co.za",
-      "Book a Takomo fitting → swingshack.co.za"
+      "Book a fitting → stickgolf.co.za/bookings/",
+      "Get fitted. Your game deserves better.",
+      "Stop guessing. Get fitted."
     ],
+    "product_brand_cta_rules": {
+      "takomo": {
+        "source": "data/brand-directory/takomo/copy/ctas.md",
+        "default_cta": "Build your 101T → stickgolf.co.za/takomo"
+      }
+    },
     "soft_ctas": [
       "The spec is the spec.",
       "Forged once. Normalised. The grain is the spec.",
@@ -314,7 +318,7 @@
       "verified_status": "verified_current"
     },
     "verified_archetype": {
-      "value": "Smart Rebel — Rebel + Sage combined. Edge and brains. Not a punk brand. Not an engineering robot.",
+      "value": "Smart Rebel | Rebel + Sage combined. Edge and brains. Not a punk brand. Not an engineering robot.",
       "source": "Stick Brand Bible section 10",
       "verified_status": "verified_current"
     },

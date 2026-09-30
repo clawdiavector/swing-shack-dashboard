@@ -1,9 +1,10 @@
 # Stick — Tone Rules
 
-The voice is **sarcastic, golf insider, calling out bad habits, meme-aware**. Stick is
-the meme side of Swing Shack. Below is how that translates per tone for Stick specifically.
+The voice is **sharp, confident, direct, smart, rebellious** (Smart Rebel: edge and brains).
+Stick is a standalone modern golf performance brand, not a meme sub-brand. Below is how that
+translates per tone for Stick specifically.
 
-## Sarcastic (primary)
+## Wry (primary)
 **Aim:** Call out a bad take / bad habit. The reader nods along, smirks.
 - Start with the absurd thing being called out. Then the truth. Then the line.
 - Use ironic inversion ("a budget option that costs you strokes").

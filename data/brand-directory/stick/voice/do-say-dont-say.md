@@ -13,6 +13,15 @@
 - "your handicap" — never as punchline, only as relatable framing
 
 ## Don't say (banned)
+- ❌ "join the club" / "become a member" — Stick does not sell membership
+- ❌ "we are passionate about golf"
+- ❌ "your journey"
+- ❌ "unlock your potential"
+- ❌ "world-class"
+- ❌ "bespoke"
+- ❌ "game changer"
+- ❌ "next level"
+- ❌ "the perfect driver"
 - ❌ "LOL" / "LMAO" — text-speak is not Stick voice
 - ❌ "data shows" / "research shows" / vague study claims — say it plainly or omit
 - ❌ Emojis as filler (one emoji max per post)
@@ -23,6 +32,7 @@
 ## Numbers discipline
 - ❌ No fake TrackMan numbers
 - ❌ No fake fitting outcomes
+- ❌ Distance claims like "15 metres" without a verified source
 - ✅ "200+ drivers fitted" only when verified
 - ✅ Dates, session durations, fitting durations
 

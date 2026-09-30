@@ -1,6 +1,7 @@
 # Swing Shack — Do Say / Don't Say
 
 ## Do say (use these)
+- "Join the club" — membership CTA, Swing Shack only
 - TrackMan (capitalised, always)
 - data, data-backed, data-driven
 - fitting / custom fitting / driver fitting
@@ -25,7 +26,12 @@
 - ❌ "World-class" — banned unless verified
 - ❌ "The ultimate golfing experience" — banned, too generic
 - ❌ "Fun for the whole family" — not Swing Shack voice
-- ❌ "Whether you're a beginner or a pro" — we are performance, not beginner
+- ❌ "Whether you're a beginner or a pro" — banned as a stock phrase, not as a policy. Swing Shack welcomes every level; say the specific thing instead.
+- ❌ "your golf journey"
+- ❌ "game changer"
+- ❌ "state of the art"
+- ❌ "we are passionate about golf"
+- ❌ "world-class facility"
 - ❌ "Look no further" — banned
 
 ## Numbers discipline
