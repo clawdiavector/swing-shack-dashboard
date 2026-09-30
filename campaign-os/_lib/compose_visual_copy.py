@@ -171,47 +171,74 @@ def visual_copy_for_archetype(
             base[f"bio_{idx}"] = line
         return {k: str(v) for k, v in base.items()}
 
+    from _lib.poster_copy import resolve_poster_cta, resolve_poster_hook  # noqa: PLC0415
+
     if archetype_id == "stick-service-end":
         mid = moment_id or f"proposal:{brand_id}:compose"
         ctx = build_image_draft_context(brand_id, mid)
         base = _content_from_caption(caption, ctx)
-        headline = str(sidecar.get("compose_headline") or "").strip()
+        headline, src = resolve_poster_hook(
+            brand_id=brand_id,
+            moment_id=mid,
+            caption=caption,
+            archetype=archetype,
+            sidecar=sidecar,
+            asset_title=asset_title,
+        )
         tagline = str(sidecar.get("compose_qualifier") or "").strip()
         if not headline:
             headline = _service_carousel_headline(brand_id=brand_id, moment_id=mid, caption=caption)
+            src = "caption_fallback"
         if headline == "CLUB FITTING":
             headline = "FITTINGS"
         if not tagline:
             tagline = _service_end_tagline(brand_id=brand_id, moment_id=mid, caption=caption)
         base["caption_hook"] = headline
         base["qualifier"] = tagline
+        base["_poster_copy_source"] = src
         return {k: str(v) for k, v in base.items()}
 
     if needs_photo and archetype_id in ("stick-service-start", "stick-shop-corner"):
         mid = moment_id or f"proposal:{brand_id}:compose"
-        headline = str(sidecar.get("compose_headline") or "").strip()
-        lockup = str(sidecar.get("compose_cta") or "").strip()
+        headline, src = resolve_poster_hook(
+            brand_id=brand_id,
+            moment_id=mid,
+            caption=caption,
+            archetype=archetype,
+            sidecar=sidecar,
+            asset_title=asset_title,
+        )
+        lockup = str(sidecar.get("compose_cta") or "").strip() or "@ stick"
         if not headline:
             headline = _service_carousel_headline(brand_id=brand_id, moment_id=mid, caption=caption)
-        if not lockup:
-            lockup = "@ stick"
+            src = "caption_fallback"
         ctx = build_image_draft_context(brand_id, mid)
         base = _content_from_caption(caption, ctx)
         base["caption_hook"] = headline
         base["cta"] = lockup
+        base["_poster_copy_source"] = src
         return {k: str(v) for k, v in base.items()}
 
     if needs_photo and archetype_id == "stick-coach-profile":
         mid = moment_id or f"proposal:{brand_id}:compose"
-        name = str(sidecar.get("compose_headline") or "").strip()
+        name, src = resolve_poster_hook(
+            brand_id=brand_id,
+            moment_id=mid,
+            caption=caption,
+            archetype=archetype,
+            sidecar=sidecar,
+            asset_title=asset_title,
+        )
         body = str(sidecar.get("compose_body") or "").strip()
         ctx = build_image_draft_context(brand_id, mid)
         base = _content_from_caption(caption, ctx)
         if not name:
             name = str(base.get("caption_hook") or "").strip()
+            src = "caption_fallback"
         if not body:
             body = str(base.get("caption_body") or "").strip()
         base["caption_hook"] = name
+        base["_poster_copy_source"] = src
         return _coach_profile_fields(base, body)
     if needs_photo:
         ctx = build_image_draft_context(brand_id, moment_id or "proposal:stick:local")
@@ -219,26 +246,26 @@ def visual_copy_for_archetype(
         return {k: str(v) for k, v in base.items()}
 
     mid = moment_id or f"proposal:{brand_id}:compose"
-    headline = str(sidecar.get("compose_headline") or "").strip()
-    cta = str(sidecar.get("compose_cta") or "").strip()
+    headline, src = resolve_poster_hook(
+        brand_id=brand_id,
+        moment_id=mid,
+        caption=caption,
+        archetype=archetype,
+        sidecar=sidecar,
+        asset_title=asset_title,
+    )
+    cta = resolve_poster_cta(
+        brand_id=brand_id,
+        moment_id=mid,
+        caption=caption,
+        sidecar=sidecar,
+    )
     qualifier = str(sidecar.get("compose_qualifier") or "").strip()
     price = str(sidecar.get("compose_price") or "").strip()
     price_period = str(sidecar.get("compose_price_period") or "").strip()
     price_labels = str(sidecar.get("compose_price_labels") or "").strip()
     price_values = str(sidecar.get("compose_price_values") or "").strip()
     accent = str(sidecar.get("compose_accent") or "").strip()
-    if not headline:
-        headline = _hook_from_caption(caption)
-    if not headline and asset_title:
-        headline = str(asset_title).strip()
-    if not headline:
-        ctx = build_image_draft_context(brand_id, moment_id)
-        cal = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
-        angle = str(cal.get("angle") or cal.get("suggested_angles") or "").strip()
-        if angle and len(angle) <= 72:
-            headline = angle
-    if not cta:
-        cta = _service_cta(brand_id=brand_id, moment_id=mid, caption=caption)
 
     subject = str(sidecar.get("compose_subject") or "").strip()
     expiry = str(sidecar.get("compose_expiry") or "").strip()
@@ -247,6 +274,7 @@ def visual_copy_for_archetype(
     base = _content_from_caption(caption, ctx)
     base["caption_hook"] = headline
     base["cta"] = cta
+    base["_poster_copy_source"] = src
     if qualifier:
         base["qualifier"] = qualifier
     if price:

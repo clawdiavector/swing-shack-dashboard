@@ -2058,6 +2058,16 @@ def edit_item(
                         caption=str(fields.get("caption") or asset.get("caption") or ""),
                         asset=asset,
                     )
+                    try:
+                        from _lib import draft_review_actions  # noqa: PLC0415
+
+                        draft_review_actions.enqueue_recompose_after_caption_edit(
+                            brand_id=brand_id,
+                            asset_id=asset_id,
+                            reason="caption-edit",
+                        )
+                    except Exception:
+                        pass
 
     refreshed = find_item(item_id)
     out: dict[str, Any] = {

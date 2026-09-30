@@ -308,6 +308,15 @@ def _pick_caption(result: dict[str, Any]) -> str:
     return ""
 
 
+def _pick_copy_package(result: dict[str, Any]) -> dict[str, Any]:
+    survivors = result.get("survivors") or []
+    if survivors and isinstance(survivors[0], dict):
+        pkg = survivors[0].get("copy_package")
+        if isinstance(pkg, dict):
+            return pkg
+    return {}
+
+
 def caption_first_line_name(caption: str, *, max_len: int = _CAPTION_NAME_MAX) -> str:
     """First line of caption trimmed for human draft titles."""
     line = (caption or "").split("\n", 1)[0].strip()
@@ -469,12 +478,18 @@ def _caption_pipeline_payload(
         else:
             service = str(first.get("name") or first.get("category") or "").strip() or None
     channel = primary_channel_for_item(brand_id, item_id, fallback="instagram")
+    from _lib.archetypes_v2 import select_archetype  # noqa: PLC0415
+    from _lib.poster_copy import poster_cta_cap, poster_hook_cap  # noqa: PLC0415
+
+    archetype = select_archetype(brand_id, item_id)
     payload: dict[str, Any] = {
         "brand_id": brand_id,
         "user_brief": ctx.job,
         "channel": channel,
-        "n_survivors": 1,
+        "n_survivors": 3,
         "n_candidates": 12,
+        "poster_hook_cap": poster_hook_cap(archetype),
+        "poster_cta_cap": poster_cta_cap(archetype),
     }
     if product_id:
         payload["product_id"] = product_id
@@ -513,6 +528,33 @@ def _process_caption_row(
     if not caption:
         return None, "caption pipeline returned no survivors"
 
+    cal_title = calendar_title_for_item(brand_id, item_id)
+    copy_package = _pick_copy_package(result)
+    from _lib.archetypes_v2 import select_archetype  # noqa: PLC0415
+    from _lib.poster_copy import compose_fields_from_copy_package  # noqa: PLC0415
+
+    archetype = select_archetype(brand_id, item_id)
+    compose_headline = ""
+    compose_cta = ""
+    compose_body = ""
+    poster_copy_mode = ""
+    poster_copy_source = ""
+    if copy_package:
+        (
+            compose_headline,
+            compose_cta,
+            compose_body,
+            poster_copy_mode,
+            poster_copy_source,
+        ) = compose_fields_from_copy_package(
+            brand_id=brand_id,
+            moment_id=item_id,
+            caption=caption,
+            archetype=archetype,
+            copy_package=copy_package,
+            cal_title=cal_title,
+        )
+
     llm_spend.write_approval_receipt(
         route="job:draft_assets",
         estimate_usd=CAPTION_EST_USD,
@@ -520,7 +562,6 @@ def _process_caption_row(
     )
 
     obs = result.get("observability") or {}
-    cal_title = calendar_title_for_item(brand_id, item_id)
     calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
     event_key = _event_key_from_calendar(calendar)
     draft_title = _draft_name(
@@ -530,21 +571,34 @@ def _process_caption_row(
         calendar_title=cal_title,
     )
     primary_platform = str(pipeline_in.get("channel") or "instagram")
+    sidecar_extra: dict[str, Any] = {
+        "action": "draft_caption",
+        "route": "job:draft_assets/caption",
+        "model": obs.get("model"),
+        "provider": obs.get("provider"),
+        "cost_estimate_usd": CAPTION_EST_USD,
+        "queue_row_id": row.get("id"),
+        "title": draft_title or cal_title or None,
+        "event_key": event_key,
+    }
+    if copy_package:
+        sidecar_extra["copy_package"] = copy_package
+        sidecar_extra["lodge_title"] = cal_title or None
+        sidecar_extra["poster_copy_mode"] = poster_copy_mode or None
+        if poster_copy_source:
+            sidecar_extra["_poster_copy_source"] = poster_copy_source
+        if compose_headline:
+            sidecar_extra["compose_headline"] = compose_headline
+        if compose_cta:
+            sidecar_extra["compose_cta"] = compose_cta
+        if compose_body:
+            sidecar_extra["compose_body"] = compose_body
     asset_id = _write_draft(
         brand_id=brand_id,
         caption=caption,
         platform=primary_platform,
         source_item_id=item_id,
-        sidecar={
-            "action": "draft_caption",
-            "route": "job:draft_assets/caption",
-            "model": obs.get("model"),
-            "provider": obs.get("provider"),
-            "cost_estimate_usd": CAPTION_EST_USD,
-            "queue_row_id": row.get("id"),
-            "title": draft_title or cal_title or None,
-            "event_key": event_key,
-        },
+        sidecar=sidecar_extra,
     )
     from _lib import post_cost  # noqa: PLC0415
 
