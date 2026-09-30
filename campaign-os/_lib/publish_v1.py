@@ -701,4 +701,7 @@ def summary_for_ui(rec: dict) -> dict:
         "checks": rec.get("checks", {}),
         "created_at": rec.get("created_at"),
         "updated_at": rec.get("updated_at"),
+        # V1.1 additions — surfaced so the operator can see what was set/written
+        "seo_metadata": rec.get("seo_metadata"),
+        "approved_featured_image_media_id": rec.get("approved_featured_image_media_id"),
     }
