@@ -9,8 +9,8 @@
 
 ## Commit under test
 
-- **Branch tip (pushed):** `ad319da2250207b46a56fcf3076e9b976e8f83c4` — includes this handoff
-- **Feature commit:** `b87d4dba7f5b30e4ac9817c2e134f25e17457903` — `feat(creative): Phase 1 one-shot prompt pipeline cleanup`
+- **Pushed branch tip:** `5f08740a0fdf6026ea74c7dc33d2bb93cbb7faba` (`origin/feat/cos-oneshot-prompt` at ready-for-testing finish)
+- **Feature commit (product code):** `b87d4dba7f5b30e4ac9817c2e134f25e17457903` — `feat(creative): Phase 1 one-shot prompt pipeline cleanup`
 
 ## Verification (worker)
 
