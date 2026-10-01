@@ -84,6 +84,91 @@ function metricEntries(metrics: Record<string, unknown> | undefined) {
   return Object.entries(metrics).filter(([, v]) => v != null && typeof v !== 'object')
 }
 
+/**
+ * Scope a Flask-rendered report document so its CSS rules only
+ * apply inside a `.report-embed` container.
+ *
+ * The V3.6 weekly-report renderer uses bare selectors — .page-header,
+ * .kpi-card, .wr-*, .acq-*, .content-*, .seo-* — that would otherwise
+ * re-style the OS shell itself when injected via dangerouslySetInnerHTML.
+ * We can't use an iframe (it would break the OS nav and the shared
+ * session cookie state) so we walk each <style> block, prefix every
+ * selector with `.report-embed`, and rewrite the body markup so its
+ * outermost wrapper carries the `.report-embed` class.
+ *
+ * Strategy:
+ *   1. Pull <head><style>...</style></head> blocks out, scope the rules.
+ *   2. Pull <body>...</body> content out, wrap the first top-level
+ *      element in <div class="report-embed">…</div>.
+ *   3. Reassemble head + body and return.
+ *
+ * Limitations:
+ *   - Selectors that start with `html`, `body`, `*`, `@media`, etc.
+ *     are kept on their own selectors — the .report-embed wrapper
+ *     ensures descendant selectors only apply inside it.
+ *   - At-rules (@media, @keyframes) are preserved verbatim; their
+ *     nested selectors are scoped the same way.
+ */
+function scopeReportCss(html: string, scopeClass: string): string {
+  // 1. Extract <style> contents (only the first block — that's the
+  //    renderer's stylesheet). The page also has <link rel="stylesheet">
+  //    references to fonts, but those resolve via the OS shell already.
+  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)
+  if (!styleMatch) {
+    // No <style> — just wrap body in scope class and return
+    return wrapBodyInScope(html, scopeClass)
+  }
+  const rawCss = styleMatch[1]
+  // Scope every rule's selector list: prefix each selector with
+  // `.report-embed ` unless the selector is `html`, `body`, `*`,
+  // `:root`, or already starts with `.report-embed`.
+  const scopedCss = rawCss.replace(
+    /(^|[}\s])([^{}@]+\{)/g,
+    (_full, prefix: string, ruleHead: string) => {
+      // Don't scope at-rules (@media, @keyframes, @font-face)
+      const selectors = ruleHead.slice(0, ruleHead.lastIndexOf('{')).trim()
+      // Skip pseudo-only rules like :root
+      const scoped = selectors
+        .split(',')
+        .map((sel) => {
+          const s = sel.trim()
+          if (!s) return s
+          if (s.startsWith('@')) return s
+          if (s === '*' || s === 'html' || s === 'body' || s === ':root') return `.${scopeClass} ${s === 'html' || s === 'body' ? '' : ''}`.replace(/\s+$/, '').replace(/\s+/, ' ')
+          // Already scoped? skip.
+          if (s.includes(`.${scopeClass}`)) return s
+          // Prefix with scope class
+          return `.${scopeClass} ${s}`
+        })
+        .join(', ')
+      return `${prefix}${scoped}{`
+    },
+  )
+  // Replace the original style block with the scoped one
+  const scopedHead = html.replace(
+    styleMatch[0],
+    `<style>${scopedCss}</style>`,
+  )
+  // 2. Wrap body in scope class
+  return wrapBodyInScope(scopedHead, scopeClass)
+}
+
+function wrapBodyInScope(html: string, scopeClass: string): string {
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
+  if (!bodyMatch) return html
+  // Inject the scope class on <body> if present, else wrap first child
+  if (/<body[^>]*class=/.test(bodyMatch[0])) {
+    const out = bodyMatch[0].replace(/<body([^>]*)class="([^"]*)"/i, (_m, attrs, existing) => {
+      const merged = (existing || '').split(/\s+/).filter(Boolean)
+      if (!merged.includes(scopeClass)) merged.push(scopeClass)
+      return `<body${attrs}class="${merged.join(' ')}"`
+    })
+    return html.replace(bodyMatch[0], out)
+  }
+  const out = bodyMatch[0].replace(/<body([^>]*)>/i, `<body$1 class="${scopeClass}">`)
+  return html.replace(bodyMatch[0], out)
+}
+
 function renderClaimList(items: unknown[] | undefined, empty: string) {
   if (!items?.length) {
     return <p className="text-sm text-tx3">{empty}</p>
@@ -239,17 +324,14 @@ export function Week() {
     })
       .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((html) => {
-        // Embed the full Flask document (head + body) so the
-        // report's own <style> block travels with the body — the
-        // V3.6 renderer's .wr-*, .kpi-*, .page-header classes need
-        // their styles in scope to render brand-styled. Stripping
-        // only the document-level chrome (doctype/html/head/body
-        // tags) keeps the stylesheet and the body intact.
-        const headMatch = html.match(/<head[\s\S]*?<\/head>/i)
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
-        const head = headMatch ? headMatch[0] : ''
-        const body = bodyMatch ? bodyMatch[1] : html
-        setFullReportHtml(head + body)
+        // The V3.6 renderer's CSS uses bare class selectors
+        // (.page-header, .kpi-card, .wr-*, etc.) that collide with
+        // the OS shell's own classes. We can't use an iframe without
+        // breaking the OS nav, so we scope each CSS rule to a
+        // `.report-embed` ancestor before injecting it. The body
+        // markup is unchanged.
+        const scoped = scopeReportCss(html, 'report-embed')
+        setFullReportHtml(scoped)
       })
       .catch((e: Error) => {
         setBrandErr(e.message || 'GET /api/weekly-report (html) failed')
