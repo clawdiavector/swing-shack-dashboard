@@ -1756,6 +1756,29 @@ table.data .trend-flat, table.data .trend-neutral {{ color: var(--ink-muted); }}
   .action-card {{ padding: 12px 14px; }}
   .page-footer {{ flex-direction: column; gap: 8px; padding: 16px 14px; }}
   .footer-period {{ font-size: 11px; }}
+  /* Tables: shrink cell padding + font, allow horizontal scroll inside
+     report-section so columns don't push the page wider than the viewport. */
+  table.data {{ display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }}
+  table.data thead th, table.data td {{ padding: 6px 8px; font-size: 12px; white-space: nowrap; }}
+  table.data thead th {{ font-size: 10px; }}
+  table.data th:first-child, table.data td:first-child {{ white-space: normal; }}
+  /* Acquisitions row label can wrap; the bar/pct stay inline. */
+  .acq-row {{ gap: 10px; flex-wrap: wrap; }}
+  .acq-bar {{ margin-right: 6px; }}
+  /* Content card thumb should scale with the card width on small phones. */
+  .content-card .thumb {{ width: 100%; aspect-ratio: 16/9; }}
+  .content-card .thumb img {{ width: 100%; height: 100%; object-fit: cover; }}
+  /* Caption and stats stack tightly so the card stays within 360-ish phone widths. */
+  .content-card .caption {{ font-size: 13px; }}
+  .content-card .stats {{ font-size: 12px; gap: 12px; flex-wrap: wrap; }}
+  /* Header brand block and period block side-by-side would overflow —
+     stack them with the period block taking the full width. */
+  .brand-block {{ flex-basis: 100%; }}
+  .header-inner > div[style*="flex: 0 0 auto"] {{ flex-basis: 100% !important; text-align: left !important; }}
+  /* Report-block headings + eyebrow text scale down so they fit in 360px. */
+  .report-title {{ font-size: 18px; line-height: 1.25; }}
+  .report-eyebrow {{ font-size: 10px; letter-spacing: .08em; }}
+  .section-eyebrow {{ font-size: 10px; }}
 }}
 @media print {{
   body {{ background: white; }}
