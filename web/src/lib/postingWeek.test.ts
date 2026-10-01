@@ -9,6 +9,7 @@ import {
   postingChannelLabel,
   POSTING_STAGE_ORDER,
   primaryStageFromStages,
+  oneshotEligible,
   renderModeEditable,
   renderModeOf,
   sastTodayIso,
@@ -179,6 +180,20 @@ describe('renderModeEditable', () => {
   it('is true for candidate and booked', () => {
     expect(renderModeEditable('candidate')).toBe(true)
     expect(renderModeEditable('booked')).toBe(true)
+  })
+})
+
+describe('oneshotEligible', () => {
+  it('allows allowlisted and unset types', () => {
+    expect(oneshotEligible('fitting_headline')).toBe(true)
+    expect(oneshotEligible('')).toBe(true)
+    expect(oneshotEligible('tip')).toBe(true)
+  })
+
+  it('blocks template-only types with normalisation', () => {
+    expect(oneshotEligible('price_list')).toBe(false)
+    expect(oneshotEligible('brand_statement')).toBe(false)
+    expect(oneshotEligible('  PRICE_LIST  ')).toBe(false)
   })
 })
 

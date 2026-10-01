@@ -15,6 +15,7 @@ import {
   postStateLabel,
   postStateTone,
   RENDER_MODE_LABELS,
+  oneshotEligible,
   renderModeEditable,
   renderModeOf,
   type PostingWeekPost,
@@ -184,6 +185,7 @@ export function PostCard({
           : 'border-bd text-tx2'
 
   const showPostTypeFreeText = postTypeOptions.length === 0
+  const oneshotOk = oneshotEligible(postTypeVal)
 
   const inner = (
     <div className="flex flex-col gap-3">
@@ -316,11 +318,15 @@ export function PostCard({
                     type="radio"
                     name={`mode-${post.calendar_id}`}
                     checked={modeVal === 'oneshot'}
+                    disabled={!oneshotOk}
                     onChange={() => setModeVal('oneshot')}
                     onBlur={() => void saveFields()}
                   />
                   One-shot
                 </label>
+                {!oneshotOk ? (
+                  <p className="text-tx3">Template-only post type.</p>
+                ) : null}
               </fieldset>
               {editErr ? <p className="text-red">{editErr}</p> : null}
             </div>

@@ -305,6 +305,38 @@ export function renderModeEditable(state?: PostState | string | null): boolean {
   return s !== 'scheduled' && s !== 'released' && s !== 'posted'
 }
 
+export const ONESHOT_POST_TYPES = new Set([
+  'fitting_headline',
+  'service_hero',
+  'coaching_promo',
+  'zine_collage',
+  'humour_card',
+])
+
+export const TEMPLATE_ONLY_POST_TYPES = new Set([
+  'price_list',
+  'price_package',
+  'pricing',
+  'package',
+  'packages',
+  'rate_card',
+  'package_list',
+  'discount_code',
+  'promo_code',
+  'offer',
+  'sale_offer',
+  'location',
+  'shop_corner',
+  'service_square',
+  'service_end',
+  'brand_statement',
+])
+
+/** Mirrors backend oneshot_blocked — template-only post types cannot flip to one-shot. */
+export function oneshotEligible(postType?: string | null): boolean {
+  return !TEMPLATE_ONLY_POST_TYPES.has(String(postType ?? '').trim().toLowerCase())
+}
+
 const SAST = 'Africa/Johannesburg'
 
 /** Today as YYYY-MM-DD in SAST (not the browser local calendar). */
