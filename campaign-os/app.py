@@ -25353,6 +25353,49 @@ def weekly_report_api():
             payload["brand_id"] = raw_payload.get("brand_id") or bid
             payload["as_of"] = raw_payload.get("as_of")
             payload["generator"] = raw_payload.get("generator")
+            # V3.6 compat: synthesize `metrics` + `brand_meta` aliases so
+            # the React Week.tsx page (which reads brandJson.metrics and
+            # brandJson.brand_meta) renders the real KPIs instead of the
+            # 'No metrics yet' empty state. We don't change the V2.4.1
+            # canonical schema — these are read-only projections on top.
+            kpi_scorecard = v24.get("kpi_scorecard") or {}
+            kpi_rows = kpi_scorecard.get("rows") or []
+            if kpi_rows and not payload.get("metrics"):
+                payload["metrics"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("current")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_unit_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("unit")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_delta_pct_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("delta_pct")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_previous_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("previous")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_data_status_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("data_status")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+            if not payload.get("brand_meta"):
+                payload["brand_meta"] = {
+                    "brand_id": v24.get("brand_id") or payload.get("brand_id"),
+                    "brand_name": v24.get("brand_name"),
+                    "domain": v24.get("domain"),
+                    "generated_at": v24.get("generated_at"),
+                    "schema": v24.get("schema"),
+                    "data_complete_through": v24.get("data_complete_through"),
+                    "ninety_day_baseline": v24.get("ninety_day_baseline"),
+                }
             return jsonify(payload), 200
         if fmt == 'markdown':
             from flask import Response
@@ -50800,6 +50843,46 @@ def weekly_report_v3(brand_id):
             payload["brand_id"] = raw_payload.get("brand_id") or brand_id
             payload["as_of"] = raw_payload.get("as_of")
             payload["generator"] = raw_payload.get("generator")
+            # V3.6 compat: synthesize metrics + brand_meta aliases for
+            # React Week.tsx. See /api/weekly-report for full rationale.
+            kpi_scorecard = v24.get("kpi_scorecard") or {}
+            kpi_rows = kpi_scorecard.get("rows") or []
+            if kpi_rows and not payload.get("metrics"):
+                payload["metrics"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("current")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_unit_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("unit")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_delta_pct_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("delta_pct")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_previous_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("previous")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_data_status_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("data_status")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+            if not payload.get("brand_meta"):
+                payload["brand_meta"] = {
+                    "brand_id": v24.get("brand_id") or payload.get("brand_id"),
+                    "brand_name": v24.get("brand_name"),
+                    "domain": v24.get("domain"),
+                    "generated_at": v24.get("generated_at"),
+                    "schema": v24.get("schema"),
+                    "data_complete_through": v24.get("data_complete_through"),
+                    "ninety_day_baseline": v24.get("ninety_day_baseline"),
+                }
             return jsonify(payload), 200
         if fmt == "html":
             return out.get("rendered", ""), 200, {
