@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  dayAnchorFromParams,
   emptyWeekBuckets,
   formatGoesOut,
   formatPostingDayHeader,
@@ -8,7 +9,12 @@ import {
   postingChannelLabel,
   POSTING_STAGE_ORDER,
   primaryStageFromStages,
+  renderModeEditable,
+  renderModeOf,
+  sastTodayIso,
+  sastTomorrowIso,
 } from './postingWeek'
+import { mergePostingWeekPayloads } from './fanOut'
 
 describe('formatPostingDayHeader', () => {
   it('combines weekday and short date', () => {
@@ -150,5 +156,61 @@ describe('emptyWeekBuckets', () => {
 
   it('empty day posts array is valid', () => {
     expect(POSTING_STAGE_ORDER.length).toBe(8)
+  })
+})
+
+describe('renderModeOf', () => {
+  const base = { calendar_id: 'c', title: 'T', stages: {} }
+
+  it('defaults to template', () => {
+    expect(renderModeOf(base)).toBe('template')
+    expect(renderModeOf({ ...base, render_mode: undefined })).toBe('template')
+    expect(renderModeOf({ ...base, render_mode: 'nonsense' as 'template' })).toBe('template')
+  })
+})
+
+describe('renderModeEditable', () => {
+  it('is false for committed states', () => {
+    expect(renderModeEditable('scheduled')).toBe(false)
+    expect(renderModeEditable('released')).toBe(false)
+    expect(renderModeEditable('posted')).toBe(false)
+  })
+
+  it('is true for candidate and booked', () => {
+    expect(renderModeEditable('candidate')).toBe(true)
+    expect(renderModeEditable('booked')).toBe(true)
+  })
+})
+
+describe('dayAnchorFromParams', () => {
+  const fixed = new Date('2026-10-01T10:00:00Z')
+
+  it('malformed date falls back to SAST today', () => {
+    const { tab, dateIso } = dayAnchorFromParams('day', 'not-a-date', fixed)
+    expect(tab).toBe('day')
+    expect(dateIso).toBe(sastTodayIso(fixed))
+  })
+
+  it('tomorrow is anchor + 1 day', () => {
+    expect(sastTomorrowIso(fixed)).toBe('2026-10-02')
+  })
+})
+
+describe('mergePostingWeekPayloads single day', () => {
+  it('merges one-day payloads', () => {
+    const merged = mergePostingWeekPayloads(
+      [
+        {
+          brandId: 'swing-shack',
+          payload: {
+            ok: true,
+            days_list: [{ date: '2026-10-03', weekday: 'Sat', posts: [{ calendar_id: 'c1', title: 'A', stages: {} }] }],
+          },
+        },
+      ],
+      ['swing-shack'],
+    )
+    expect(merged.days_list).toHaveLength(1)
+    expect(merged.days_list?.[0]?.posts).toHaveLength(1)
   })
 })

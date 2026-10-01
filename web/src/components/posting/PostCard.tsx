@@ -1,7 +1,7 @@
 import { ImageIcon } from 'lucide-react'
-import { useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { inboxAction, releaseMoment, resolveAssetUrl } from '../../lib/api'
+import { inboxAction, releaseMoment, resolveAssetUrl, saveMomentFields } from '../../lib/api'
 import { BrandChip } from '../BrandChip'
 import { useBrand, useBrandScope } from '../BrandSwitch'
 import {
@@ -14,7 +14,11 @@ import {
   postingWeekThumbUrl,
   postStateLabel,
   postStateTone,
+  RENDER_MODE_LABELS,
+  renderModeEditable,
+  renderModeOf,
   type PostingWeekPost,
+  type RenderMode,
 } from '../../lib/postingWeek'
 import { TemplateReferenceTag } from '../TemplateReferenceTag'
 import { templateMetaFromPost } from '../../lib/templateMeta'
@@ -70,6 +74,8 @@ export function PostCard({
   weekday,
   onRefresh,
   waitForReads,
+  editable = false,
+  postTypeOptions = [],
 }: {
   post: PostingWeekPost
   dayDate: string
@@ -77,19 +83,43 @@ export function PostCard({
   onRefresh?: () => void
   /** Plan §3.5 — await parent fan-out before lodge/release writes. */
   waitForReads?: () => Promise<void>
+  editable?: boolean
+  postTypeOptions?: string[]
 }) {
   const { brandId: focusBrandId } = useBrand()
   const { isAll } = useBrandScope()
   const rowBrandId = post.brand_id ?? focusBrandId ?? 'swing-shack'
   const [lodging, setLodging] = useState(false)
   const [releasing, setReleasing] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editErr, setEditErr] = useState('')
+  const [titleVal, setTitleVal] = useState(post.title ?? '')
+  const [angleVal, setAngleVal] = useState(post.angle ?? '')
+  const [postTypeVal, setPostTypeVal] = useState(post.post_type ?? '')
+  const [modeVal, setModeVal] = useState<RenderMode>(renderModeOf(post))
+  const [captionVal, setCaptionVal] = useState('')
+
+  useEffect(() => {
+    setTitleVal(post.title ?? '')
+    setAngleVal(post.angle ?? '')
+    setPostTypeVal(post.post_type ?? '')
+    setModeVal(renderModeOf(post))
+  }, [post.title, post.angle, post.post_type, post.render_mode])
+
   const isCandidate = post.state === 'candidate'
   const isScheduled = post.state === 'scheduled'
   const isReleased = post.state === 'released'
   const isHoliday = post.flags?.includes('holiday')
   const noDate = post.flags?.includes('no_date')
   const to = isScheduled || isReleased ? undefined : linkForPostState(post)
-  const clickable = Boolean(to) && !isHoliday
+  const canEditFields = editable && renderModeEditable(post.state)
+  const clickable = Boolean(to) && !isHoliday && !canEditFields
+
+  const mode = renderModeOf(post)
+  const modeBadgeClass =
+    mode === 'oneshot'
+      ? 'border-yel/50 bg-yel/10 text-yel'
+      : 'border-bd bg-bg-2/60 text-tx2'
 
   async function handleLodge(event: MouseEvent) {
     event.preventDefault()
@@ -113,6 +143,26 @@ export function PostCard({
     onRefresh?.()
   }
 
+  async function saveFields() {
+    setEditErr('')
+    await waitForReads?.()
+    const fields: Record<string, string> = {}
+    if (titleVal.trim() !== (post.title ?? '').trim()) fields.title = titleVal.trim()
+    if (angleVal.trim() !== String(post.angle ?? '').trim()) fields.angle = angleVal.trim()
+    const ptNorm = postTypeVal.trim().toLowerCase()
+    const prevPt = String(post.post_type ?? '').trim().toLowerCase()
+    if (ptNorm !== prevPt) fields.post_type = ptNorm
+    if (modeVal !== renderModeOf(post)) fields.render_mode = modeVal
+    if (captionVal.trim() && post.asset_id) fields.caption = captionVal.trim()
+    if (Object.keys(fields).length === 0) return
+    const result = await saveMomentFields(post, fields)
+    if (!result.ok) {
+      setEditErr(result.error || 'Save failed')
+      return
+    }
+    if ((result.changed ?? []).length) onRefresh?.()
+  }
+
   const channel = postingChannelLabel(post.primary_channel)
   const nextAction = post.next_action || nextActionFromStages(post.stages)
   const fixReason =
@@ -133,6 +183,8 @@ export function PostCard({
           ? 'border-green/40 text-green'
           : 'border-bd text-tx2'
 
+  const showPostTypeFreeText = postTypeOptions.length === 0
+
   const inner = (
     <div className="flex flex-col gap-3">
       <div className="flex gap-3 md:gap-4">
@@ -141,6 +193,9 @@ export function PostCard({
           <div className="flex flex-wrap items-center gap-2">
             <BrandChip brandId={rowBrandId} show={isAll} />
             <TemplateReferenceTag meta={templateMeta} onClickCapture={(e) => e.stopPropagation()} />
+            <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${modeBadgeClass}`}>
+              {RENDER_MODE_LABELS[mode]}
+            </span>
             <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${toneClass}`}>
               {postStateLabel(post.state)}
             </span>
@@ -161,6 +216,115 @@ export function PostCard({
           ) : null}
           <p className="text-xs text-tx3">{factLine}</p>
           {channel ? <p className="text-xs font-medium text-tx2">{channel}</p> : null}
+          {canEditFields && to ? (
+            <Link to={to} className="text-xs font-semibold text-ac">
+              Open →
+            </Link>
+          ) : null}
+          {canEditFields ? (
+            <div className="pt-1">
+              <button
+                type="button"
+                className="rounded-full border border-bd px-3 py-1 text-xs font-semibold text-tx2"
+                onClick={() => setEditorOpen((v) => !v)}
+              >
+                {editorOpen ? 'Close edit' : 'Edit'}
+              </button>
+            </div>
+          ) : null}
+          {canEditFields && editorOpen ? (
+            <div className="space-y-2 rounded-xl border border-bd bg-bg-2/40 p-3 text-xs">
+              <p className="text-tx3">
+                One-shot is recorded for the next render; nothing renders from this screen.
+              </p>
+              {showPostTypeFreeText ? (
+                <p className="text-tx3">No template rules for this brand yet — type a post type or leave unset.</p>
+              ) : null}
+              <label className="block">
+                <span className="text-tx3">Post type</span>
+                {showPostTypeFreeText ? (
+                  <input
+                    type="text"
+                    value={postTypeVal}
+                    onChange={(e) => setPostTypeVal(e.target.value)}
+                    onBlur={() => void saveFields()}
+                    className="mt-1 w-full rounded-lg border border-bd bg-bg px-2 py-1 text-tx"
+                  />
+                ) : (
+                  <select
+                    value={postTypeVal}
+                    onChange={(e) => setPostTypeVal(e.target.value)}
+                    onBlur={() => void saveFields()}
+                    className="mt-1 w-full rounded-lg border border-bd bg-bg px-2 py-1 text-tx"
+                  >
+                    <option value="">— unset —</option>
+                    {postTypeOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </label>
+              <label className="block">
+                <span className="text-tx3">Title</span>
+                <input
+                  type="text"
+                  value={titleVal}
+                  onChange={(e) => setTitleVal(e.target.value)}
+                  onBlur={() => void saveFields()}
+                  className="mt-1 w-full rounded-lg border border-bd bg-bg px-2 py-1 text-tx"
+                />
+              </label>
+              <label className="block">
+                <span className="text-tx3">Angle</span>
+                <input
+                  type="text"
+                  value={angleVal}
+                  onChange={(e) => setAngleVal(e.target.value)}
+                  onBlur={() => void saveFields()}
+                  className="mt-1 w-full rounded-lg border border-bd bg-bg px-2 py-1 text-tx"
+                />
+              </label>
+              {post.asset_id ? (
+                <label className="block">
+                  <span className="text-tx3">Caption</span>
+                  <textarea
+                    value={captionVal}
+                    onChange={(e) => setCaptionVal(e.target.value)}
+                    onBlur={() => void saveFields()}
+                    placeholder="Edit caption — saved caption may re-compose the poster from the existing plate."
+                    className="mt-1 w-full rounded-lg border border-bd bg-bg px-2 py-1 text-tx"
+                    rows={2}
+                  />
+                </label>
+              ) : null}
+              <fieldset className="space-y-1">
+                <legend className="text-tx3">Render mode</legend>
+                <label className="mr-3 inline-flex items-center gap-1">
+                  <input
+                    type="radio"
+                    name={`mode-${post.calendar_id}`}
+                    checked={modeVal === 'template'}
+                    onChange={() => setModeVal('template')}
+                    onBlur={() => void saveFields()}
+                  />
+                  Template
+                </label>
+                <label className="inline-flex items-center gap-1">
+                  <input
+                    type="radio"
+                    name={`mode-${post.calendar_id}`}
+                    checked={modeVal === 'oneshot'}
+                    onChange={() => setModeVal('oneshot')}
+                    onBlur={() => void saveFields()}
+                  />
+                  One-shot
+                </label>
+              </fieldset>
+              {editErr ? <p className="text-red">{editErr}</p> : null}
+            </div>
+          ) : null}
           {isCandidate && !isHoliday ? (
             <div className="pt-1">
               <button

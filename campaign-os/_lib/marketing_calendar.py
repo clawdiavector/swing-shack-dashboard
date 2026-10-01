@@ -51,6 +51,15 @@ VALID_BRAND_IDS = ["swing-shack", "stick", "bag-drop"]
 VALID_PRODUCT_BRANDS = {"takomo": "stick"}  # product_brand → parent brand
 VALID_RECORD_TYPES = ["campaign", "content", "moment", "reminder", "watchlist"]
 VALID_STATUSES = ["candidate", "watchlist", "approved", "ignored", "active", "completed"]
+VALID_RENDER_MODES = ("template", "oneshot")
+DEFAULT_RENDER_MODE = "template"
+
+
+def render_mode_for_record(record: Dict[str, Any]) -> str:
+    """Effective render mode. Absent / unknown / empty → 'template'."""
+    val = str((record or {}).get("render_mode") or "").strip().lower()
+    return val if val in VALID_RENDER_MODES else DEFAULT_RENDER_MODE
+
 VALID_ORIGIN_KINDS = [
     "scout",
     "cadence",
@@ -649,7 +658,16 @@ def transition_status(
 
 
 _EDITABLE_MOMENT_FIELDS = frozenset(
-    {"event_date", "event_start", "event_end", "primary_channel", "title", "angle"}
+    {
+        "event_date",
+        "event_start",
+        "event_end",
+        "primary_channel",
+        "title",
+        "angle",
+        "post_type",
+        "render_mode",
+    }
 )
 
 
@@ -690,6 +708,15 @@ def set_fields(
         if ch and valid and ch not in valid:
             raise ValueError(f"primary_channel '{ch}' not valid for brand")
         allowed["primary_channel"] = ch or allowed["primary_channel"]
+    if "render_mode" in allowed:
+        mode = str(allowed["render_mode"] or "").strip().lower()
+        if mode not in VALID_RENDER_MODES:
+            raise ValueError(
+                f"render_mode '{mode}' invalid. Valid: {list(VALID_RENDER_MODES)}",
+            )
+        allowed["render_mode"] = mode
+    if "post_type" in allowed:
+        allowed["post_type"] = str(allowed["post_type"] or "").strip().lower()
     for key, val in allowed.items():
         updated[key] = val
     if reason:

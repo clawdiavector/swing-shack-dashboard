@@ -398,9 +398,13 @@ def _current_field_values(
             rid = str(record.get("calendar_id") or record.get("event_key") or "")
             if rid != cal_id:
                 continue
+            from _lib.marketing_calendar import render_mode_for_record  # noqa: PLC0415
+
             for name in names:
                 if name == "event_date":
                     previous["event_date"] = _moment_go_live_date(record)
+                elif name == "render_mode":
+                    previous["render_mode"] = render_mode_for_record(record)
                 elif name in record:
                     previous[name] = record.get(name)
             break
@@ -427,7 +431,11 @@ def _calendar_record_angle(record: dict[str, Any]) -> str | None:
 
 
 def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[dict[str, Any]]:
-    from _lib.marketing_calendar import VALID_BRAND_IDS, canonical_records  # noqa: PLC0415
+    from _lib.marketing_calendar import (  # noqa: PLC0415
+        VALID_BRAND_IDS,
+        canonical_records,
+        render_mode_for_record,
+    )
 
     brands = [brand] if brand else list(VALID_BRAND_IDS)
     out: list[dict[str, Any]] = []
@@ -476,6 +484,8 @@ def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[di
                     "source_type": record.get("source_type"),
                     "created_by": record.get("created_by"),
                     "meta_slim": meta_slim,
+                    "render_mode": render_mode_for_record(record),
+                    "post_type": str(record.get("post_type") or "") or None,
                 },
             })
     return out
@@ -1288,6 +1298,7 @@ def post_state(
         for r in queue_rows
     ]
     from _lib.campaigns import provenance_fields_from_record  # noqa: PLC0415
+    from _lib.marketing_calendar import render_mode_for_record  # noqa: PLC0415
 
     prov = provenance_fields_from_record(record)
     out: dict[str, Any] = {
@@ -1313,6 +1324,8 @@ def post_state(
         "lane": prov.get("lane"),
         "origin": prov.get("origin"),
         "process": prov.get("process"),
+        "render_mode": render_mode_for_record(record),
+        "post_type": str(record.get("post_type") or "").strip() or None,
     }
     if needs_fix_reason:
         out["needs_fix_reason"] = needs_fix_reason
@@ -1350,6 +1363,7 @@ def _post_row_from_record(
     return {
         **joined,
         "title": title,
+        "angle": _calendar_record_angle(record),
         "primary_channel": record.get("primary_channel"),
         "source_type": record.get("source_type"),
         "calendar_status": record.get("status"),
@@ -2196,7 +2210,14 @@ def edit_item(
 
         editable = {
             k: fields[k]
-            for k in ("event_date", "primary_channel", "title", "angle")
+            for k in (
+                "event_date",
+                "primary_channel",
+                "title",
+                "angle",
+                "post_type",
+                "render_mode",
+            )
             if k in fields
         }
         if "event_date" in editable:

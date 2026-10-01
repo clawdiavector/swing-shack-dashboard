@@ -1,4 +1,5 @@
-import type { PostingWeekPayload, ShelfPayload } from './postingWeek'
+import type { PostingWeekPayload, PostingWeekPost, ShelfPayload } from './postingWeek'
+import { renderModeEditable } from './postingWeek'
 
 export type TodayCounts = {
   review: number
@@ -74,6 +75,8 @@ export type InboxItem = {
     source_type?: string
     created_by?: string
     calendar_id?: string
+    render_mode?: 'template' | 'oneshot'
+    post_type?: string | null
     pillar?: string
     angle?: string
     relevance_reason?: string
@@ -453,7 +456,13 @@ export function fetchInbox(status = 'pending', brand?: string, type?: string) {
 
 export function fetchPostingWeek(
   brand?: string,
-  opts?: { past?: number; days?: number; start?: string; includeCandidates?: boolean },
+  opts?: {
+    past?: number
+    days?: number
+    start?: string
+    includeCandidates?: boolean
+    includeUndated?: boolean
+  },
 ) {
   const q = new URLSearchParams()
   if (brand) q.set('brand', brand)
@@ -461,6 +470,7 @@ export function fetchPostingWeek(
   if (opts?.days != null) q.set('days', String(opts.days))
   if (opts?.start) q.set('start', opts.start)
   if (opts?.includeCandidates === false) q.set('include_candidates', '0')
+  if (opts?.includeUndated === false) q.set('undated', '0')
   return getJson<PostingWeekPayload>(`/api/inbox/week?${q}`)
 }
 
@@ -1059,6 +1069,68 @@ export async function inboxAction(
     body: JSON.stringify(body),
   })
   return res.json() as Promise<{ ok?: boolean; error?: string; code?: string }>
+}
+
+export async function patchMomentFields(
+  brandId: string,
+  calendarId: string,
+  fields: Record<string, string>,
+  editor = 'christelle',
+) {
+  const res = await fetch(
+    `/api/calendar/moment/${encodeURIComponent(brandId)}/${encodeURIComponent(calendarId)}/fields`,
+    {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ editor, ...fields }),
+    },
+  )
+  const data = (await res.json()) as { ok?: boolean; error?: string; record?: Record<string, unknown> }
+  if (!res.ok && !data.error) {
+    data.error = `moment edit ${res.status}`
+  }
+  return { ...data, status: res.status }
+}
+
+export async function saveMomentFields(
+  post: PostingWeekPost,
+  fields: Record<string, string>,
+  editor = 'christelle',
+) {
+  const caption = fields.caption
+  const momentFields = { ...fields }
+  delete momentFields.caption
+
+  let last: { ok?: boolean; error?: string; changed?: string[] } = { ok: true, changed: [] }
+
+  if (Object.keys(momentFields).length > 0) {
+    if (post.state === 'candidate' && post.inbox_item_id) {
+      last = await inboxEdit(post.inbox_item_id, momentFields, editor)
+    } else if (renderModeEditable(post.state)) {
+      const brandId = post.brand_id ?? 'swing-shack'
+      const patched = await patchMomentFields(brandId, post.calendar_id, momentFields, editor)
+      last = {
+        ok: patched.ok,
+        error: patched.error,
+        changed: patched.ok ? Object.keys(momentFields) : [],
+      }
+    } else {
+      return { ok: false, error: 'read-only' }
+    }
+    if (!last.ok) return last
+  }
+
+  if (caption !== undefined && post.inbox_item_id) {
+    const cap = await inboxEdit(post.inbox_item_id, { caption }, editor)
+    if (!cap.ok) return cap
+    last = {
+      ok: true,
+      changed: [...(last.changed ?? []), ...(cap.changed ?? [])],
+    }
+  }
+
+  return last
 }
 
 export async function inboxEdit(id: string, fields: Record<string, string>, editor = 'christelle') {
