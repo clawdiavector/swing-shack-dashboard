@@ -1851,6 +1851,7 @@ export type TemplateGalleryPayload = {
 export type LibraryReferenceImage = {
   url: string
   provenance: 'declared' | 'disk'
+  role?: 'golden' | 'measured'
 }
 
 export type LibraryDraftRow = {

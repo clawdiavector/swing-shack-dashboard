@@ -343,13 +343,26 @@ def _union_reference_images(
         if not u or u in seen:
             continue
         seen.add(u)
-        images.append({"url": u, "provenance": "declared"})
+        images.append(
+            {
+                "url": u,
+                "provenance": "declared",
+                "role": "golden" if template_gallery._is_golden_render(u) else "measured",
+            }
+        )
     for url in disk_urls:
         u = str(url or "").strip()
         if not u or u in seen:
             continue
         seen.add(u)
-        images.append({"url": u, "provenance": "disk"})
+        images.append(
+            {
+                "url": u,
+                "provenance": "disk",
+                "role": "golden" if template_gallery._is_golden_render(u) else "measured",
+            }
+        )
+    images.sort(key=lambda row: 0 if row.get("role") == "golden" else 1)
     return images
 
 

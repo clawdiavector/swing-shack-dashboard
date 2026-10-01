@@ -131,8 +131,33 @@ def _is_compose_template(brand_path: Path, archetype: dict[str, Any]) -> bool:
     return (brand_path / "templates" / slug / "spec.json").is_file()
 
 
+def _is_golden_render(rel: str) -> bool:
+    """A drawn template sample, not a measured ad or a compare sheet."""
+    path = str(rel or "").replace("\\", "/").lower()
+    if "/golden/" not in path and "/goldens/" not in path:
+        return False
+    name = path.rsplit("/", 1)[-1]
+    return not name.startswith("compare")
+
+
+def _render_sort_key(rel: str) -> tuple[int, str]:
+    name = str(rel or "").replace("\\", "/").lower().rsplit("/", 1)[-1]
+    if name == "render-instagram.png":
+        rank = 0
+    elif name.startswith("render-instagram"):
+        rank = 1
+    elif name.startswith("render"):
+        rank = 2
+    elif name in ("instagram.png", "instagram.jpg"):
+        rank = 3
+    else:
+        rank = 4
+    return (rank, name)
+
+
 def _collect_preview_files(pack_dir: Path | None, measured: list[Any]) -> list[str]:
-    urls: list[str] = []
+    renders: list[str] = []
+    rest: list[str] = []
     seen: set[str] = set()
 
     def add_path(rel: str) -> None:
@@ -140,7 +165,10 @@ def _collect_preview_files(pack_dir: Path | None, measured: list[Any]) -> list[s
         if not rel or rel in seen:
             return
         seen.add(rel)
-        urls.append(rel)
+        if _is_golden_render(rel):
+            renders.append(rel)
+        else:
+            rest.append(rel)
 
     for item in measured or []:
         if not isinstance(item, str):
@@ -161,7 +189,8 @@ def _collect_preview_files(pack_dir: Path | None, measured: list[Any]) -> list[s
             if p.is_file():
                 add_path(str(p.relative_to(pack_dir.parent.parent)).replace("\\", "/"))
 
-    return urls
+    renders.sort(key=_render_sort_key)
+    return renders + rest
 
 
 def template_display_meta(

@@ -21,6 +21,19 @@ def test_stick_gallery_has_templates_and_bible():
         assert previews or previews == []
 
 
+def test_stick_service_frame_preview_leads_with_golden():
+    gallery = build_template_gallery("stick")
+    frame = next(
+        row
+        for row in gallery.get("templates") or []
+        if row.get("template_id") == "stick-service-frame"
+    )
+    previews = frame.get("preview_urls") or []
+    assert previews
+    assert "golden/render-instagram" in previews[0]
+    assert any("references/" in url for url in previews[1:])
+
+
 def test_unknown_brand_raises():
     with pytest.raises(ValueError, match="unknown"):
         build_template_gallery("not-a-real-brand-id-xyz")

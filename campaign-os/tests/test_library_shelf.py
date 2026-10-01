@@ -38,8 +38,14 @@ def test_stick_service_frame_undeclared_refs():
     frame = templates.get("stick-service-frame")
     assert frame is not None
     assert frame.get("references_undeclared") is True
-    disk = [r for r in frame.get("reference_images") or [] if r.get("provenance") == "disk"]
+    images = frame.get("reference_images") or []
+    disk = [r for r in images if r.get("provenance") == "disk"]
     assert len(disk) >= 1
+    assert images[0].get("role") == "golden"
+    assert "render-instagram" in images[0]["url"]
+    measured = [r for r in images if r.get("role") == "measured"]
+    assert measured
+    assert all(r.get("role") != "golden" for r in images[1:])
 
 
 def test_bag_drop_empty_templates_ok():

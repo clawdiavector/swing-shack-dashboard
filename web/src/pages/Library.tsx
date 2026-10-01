@@ -174,7 +174,7 @@ function TemplateLibraryCard({ row }: { row: LibraryTemplateRow }) {
                 <li key={ref.url} className="w-24 space-y-1">
                   <img src={url} alt="" className="aspect-square w-full rounded-lg border border-bd object-cover" />
                   <p className="text-[10px] text-tx3">
-                    {ref.provenance === 'declared' ? 'Declared' : 'On disk only'}
+                    {ref.role === 'golden' ? 'Template' : 'Measured ad'}
                   </p>
                 </li>
               )
