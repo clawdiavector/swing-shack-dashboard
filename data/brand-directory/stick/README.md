@@ -16,13 +16,12 @@ calling out the obvious. They will laugh at themselves, not at others.
 
 ## Canonical references
 - Voice bible: `data/voice_bible.json#voices/stick`
-- Voice anchor colour (suggested): `#1B1B1B` (true black) for backgrounds.
-- Accent: `#FF3D00` (signal red) for emphasis lines and CTA pills.
+- Palette (measured): primary `#073C52` navy deep, accent `#00B3BA` teal, highlight `#24FFAF` mint.
 - Linked services: swing-shack (Swing Shack handles bookings / fittings).
 
 ## Current state
 - voice: ✅ voice_bible.json covers it
-- palette: ⚠️ best-guess, needs Drive validation
+- palette: ✅ measured (`palette/brand.json` v2.0)
 - visual-spec: ⚠️ archetypes defined by best-guess
 - typography: ⚠️ not yet pinned
 - copy: ⚠️ headlines / CTAs partial
