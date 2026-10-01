@@ -1119,7 +1119,11 @@ def _resolve_row_moment(row: dict[str, Any]) -> Optional[tuple[str, str]]:
         item_id = _resolve_slot_calendar_item(brand_id, slot_date, slot_pillar)
     else:
         item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
-    if not item_id or not _is_inbox_item_approved(item_id):
+    if not item_id:
+        return None
+    # A caption-only rewrite was asked for this draft. Scheduled posts are not
+    # always status=approved, and the rewrite must still run.
+    if not _is_inbox_item_approved(item_id) and "cap-keep" not in str(row.get("id") or ""):
         return None
     return brand_id, item_id
 
