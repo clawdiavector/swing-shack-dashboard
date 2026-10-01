@@ -25334,10 +25334,26 @@ def weekly_report_api():
                               "error": out.get("block_reason"),
                               "rendered": out.get("rendered")}), 503
         if fmt == 'json':
-            return jsonify({"ok": True,
-                              "report_status": status,
-                              "report": out.get("raw_payload"),
-                              "rendered": out.get("rendered")}), 200
+            # V3.6: unwrap raw_payload.v24 (the V2.4.1 canonical report) so
+            # React's `brandJson.metrics`, `brandJson.brand_meta`,
+            # `brandJson.brand_id`, etc. resolve directly. Without the
+            # unwrap, Week.tsx sees `brandJson?.metrics === undefined`
+            # and renders the "No metrics yet — run the weekly pipeline
+            # or open Classic" empty state, even when v24 is fully
+            # populated. Keep `report` + `rendered` for backward
+            # compat with any other consumers.
+            raw_payload = out.get("raw_payload") or {}
+            v24 = raw_payload.get("v24") or {}
+            payload = dict(v24)
+            payload["ok"] = True
+            payload["report_status"] = status
+            payload["report"] = raw_payload
+            payload["rendered"] = out.get("rendered")
+            payload["periods"] = raw_payload.get("periods")
+            payload["brand_id"] = raw_payload.get("brand_id") or bid
+            payload["as_of"] = raw_payload.get("as_of")
+            payload["generator"] = raw_payload.get("generator")
+            return jsonify(payload), 200
         if fmt == 'markdown':
             from flask import Response
             return Response(out.get("rendered", ""),
@@ -50770,10 +50786,21 @@ def weekly_report_v3(brand_id):
                 "rendered": out.get("rendered"),
             }), 422
         if fmt == "json":
-            return jsonify({"ok": True,
-                              "report_status": status,
-                              "report": out.get("raw_payload"),
-                              "rendered": out.get("rendered")}), 200
+            # V3.6: unwrap raw_payload.v24 to top level so React's
+            # `brandJson.metrics` etc. resolve. See the same fix on
+            # /api/weekly-report for the rationale.
+            raw_payload = out.get("raw_payload") or {}
+            v24 = raw_payload.get("v24") or {}
+            payload = dict(v24)
+            payload["ok"] = True
+            payload["report_status"] = status
+            payload["report"] = raw_payload
+            payload["rendered"] = out.get("rendered")
+            payload["periods"] = raw_payload.get("periods")
+            payload["brand_id"] = raw_payload.get("brand_id") or brand_id
+            payload["as_of"] = raw_payload.get("as_of")
+            payload["generator"] = raw_payload.get("generator")
+            return jsonify(payload), 200
         if fmt == "html":
             return out.get("rendered", ""), 200, {
                 "Content-Type": "text/html; charset=utf-8"}

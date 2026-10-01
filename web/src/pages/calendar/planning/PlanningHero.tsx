@@ -28,7 +28,6 @@ function areaColor(key: string): string {
   if (
     k === 'COACHING' ||
     k === 'WORKSHOP' ||
-    k === 'LESSONS' ||
     k === 'ON-COURSE' ||
     k === 'CURATED' ||
     k === 'DROP' ||
