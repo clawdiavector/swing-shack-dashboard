@@ -56,6 +56,17 @@ def _save_cache(cache: Dict[str, Any]) -> None:
         pass
 
 
+def _flush_cache() -> None:
+    """V1.1 (2026-10-01): when the operator passes force_refresh=true, we
+    flush the persistent cache so per-check helpers don't return stale
+    findings from a previous deploy. This guarantees that V1.1 calibration
+    takes effect immediately on the next request."""
+    try:
+        _cache_path().write_text("{}")
+    except Exception:
+        pass
+
+
 def _cache_get(key: str, ttl_seconds: int = 6 * 3600) -> Optional[Any]:
     cache = _load_cache()
     entry = cache.get(key)
@@ -791,6 +802,13 @@ def run_geo_audit(brand: str, force_refresh: bool = False) -> Dict[str, Any]:
     """
     if brand not in _BRAND_DOMAINS:
         return {"ok": False, "error": f"unknown brand: {brand}"}
+
+    if force_refresh:
+        # V1.1: flush per-check cache so V1.1 calibration is not masked by
+        # stale findings from a previous deploy. Per-check helpers cache by
+        # their own key; without this flush, force_refresh=True only busts
+        # the full_audit cache.
+        _flush_cache()
 
     if not force_refresh:
         # Check if we have a full audit cached
