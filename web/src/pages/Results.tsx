@@ -1,4 +1,4 @@
-import { Activity, BookOpen, Layers, LineChart, Search, Sparkles, TrendingUp } from 'lucide-react'
+import { Activity, BookOpen, BotMessageSquare, Layers, LineChart, Search, Sparkles, TrendingUp } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -87,6 +87,22 @@ export function Results() {
           hint="Rankings and gaps"
           tone="mute"
         />
+        <a
+          href="/geo"
+          className="glass block rounded-2xl border-[1.5px] border-yel/40 px-3 py-3 backdrop-blur-xl transition-colors hover:border-yel"
+          title="Open GEO & AI Citation Health."
+        >
+          <div className="flex items-center justify-between gap-2">
+            <BotMessageSquare className="h-5 w-5 text-yel" strokeWidth={2.5} />
+            <span className="rounded-full bg-yel/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-yel uppercase">
+              Open
+            </span>
+          </div>
+          <p className="mt-2 font-display text-2xl font-semibold text-tx">GEO</p>
+          <p className="mt-0.5 text-[11px] font-semibold tracking-wide text-tx3 uppercase">
+            AI citation health
+          </p>
+        </a>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(380px,1fr)]">

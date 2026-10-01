@@ -1,0 +1,42 @@
+[
+  {
+    "id": "ssq-jhb-indoor-golf-1",
+    "query": "best indoor golf Johannesburg",
+    "region": "Johannesburg",
+    "source": "Ubersuggest organic report (data/ubersuggest-domain.json)",
+    "added_at": "2026-09-29",
+    "added_by": "operator directive (V2.11 immediate goals)"
+  },
+  {
+    "id": "ssq-trackman-jhb-1",
+    "query": "TrackMan fitting Johannesburg",
+    "region": "Johannesburg",
+    "source": "Ubersuggest organic report (data/ubersuggest-domain.json)",
+    "added_at": "2026-09-29",
+    "added_by": "operator directive (V2.11 immediate goals)"
+  },
+  {
+    "id": "ssq-coaching-jhb-1",
+    "query": "golf coaching JHB",
+    "region": "Johannesburg",
+    "source": "Ubersuggest organic report (data/ubersuggest-domain.json)",
+    "added_at": "2026-09-29",
+    "added_by": "operator directive (V2.11 immediate goals)"
+  },
+  {
+    "id": "ssq-fitting-jhb-1",
+    "query": "club fitting Johannesburg",
+    "region": "Johannesburg",
+    "source": "Ubersuggest organic report (data/ubersuggest-domain.json)",
+    "added_at": "2026-09-29",
+    "added_by": "operator directive (V2.11 immediate goals)"
+  },
+  {
+    "id": "ssq-swing-analysis-jhb-1",
+    "query": "swing analysis Johannesburg",
+    "region": "Johannesburg",
+    "source": "Ubersuggest organic report (data/ubersuggest-domain.json)",
+    "added_at": "2026-09-29",
+    "added_by": "operator directive (V2.11 immediate goals)"
+  }
+]

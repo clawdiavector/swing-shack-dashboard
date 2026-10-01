@@ -81,8 +81,13 @@ export const OTHER_GROUPS = [
       { href: '/?page=billboards', label: 'Billboard lab', icon: FolderKanban },
       { href: '/?page=reddit', label: 'Reddit', icon: Activity },
       { href: '/?page=faqs', label: 'FAQs', icon: FileStack },
+      // GEO lives under the SEO group, not as a separate top-level item —
+      // it shares the SEO/Measure/Results architecture. /seo-audit is the
+      // classic SEO entry; /geo is the Generative Engine Optimisation entry
+      // (citations in ChatGPT/Claude/Perplexity/Google AI Overviews).
       { href: '/seo-audit', label: 'SEO audit', icon: Activity },
       { href: '/seo-stack', label: 'SEO stack', icon: Layers },
+      { href: '/geo', label: 'GEO', icon: Activity },
     ],
   },
   {
