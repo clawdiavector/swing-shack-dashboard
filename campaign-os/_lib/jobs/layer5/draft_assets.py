@@ -679,6 +679,17 @@ def _asset_has_persisted_image(asset: dict[str, Any]) -> bool:
     return bool(url_s)
 
 
+def _explicit_caption_regen(rows_for_moment: list[tuple[dict[str, Any], str]]) -> bool:
+    """True when the operator asked to rewrite this caption, not the cron."""
+    for row, action in rows_for_moment:
+        if action not in ("draft_caption", "compose_post"):
+            continue
+        row_id = str(row.get("id") or "")
+        if "cap-regen" in row_id or "compose-regen" in row_id:
+            return True
+    return False
+
+
 def _moment_has_composed(brand_id: str, item_id: str) -> bool:
     draft_dir = _data_dir() / "draft-assets"
     if not draft_dir.is_dir():
@@ -1408,7 +1419,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 skipped += _count_pending_rows(moment_items, idx)
                 break
 
-            if _moment_has_composed(brand_id, item_id):
+            if _moment_has_composed(brand_id, item_id) and not _explicit_caption_regen(rows_for_moment):
                 for row, action in rows_for_moment:
                     if action != "draft_gbp":
                         row["status"] = "done"

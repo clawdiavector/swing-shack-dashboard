@@ -438,7 +438,7 @@ def retire_caption_drafts_for_moment(moment_id: str) -> list[str]:
             continue
         if str(sidecar.get("source_inbox_item_id") or "") != moment_id:
             continue
-        if str(sidecar.get("action") or "") not in ("draft_caption", "fill_slot"):
+        if str(sidecar.get("action") or "") == "superseded_caption":
             continue
         asset_id = str(sidecar.get("asset_id") or path.stem)
         for campaign in (data.get("campaigns") or {}).values():
@@ -448,6 +448,8 @@ def retire_caption_drafts_for_moment(moment_id: str) -> list[str]:
             if isinstance(asset, dict):
                 asset["caption"] = ""
                 asset.pop("copy_package", None)
+                asset.pop("composed", None)
+        sidecar.pop("composed", None)
         sidecar["action"] = "superseded_caption"
         sidecar["superseded_at"] = now
         sidecar["superseded_for_moment"] = moment_id
