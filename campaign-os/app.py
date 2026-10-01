@@ -18772,6 +18772,7 @@ def api_drafts_restore_poster(draft_id: str):
         result = _draft_actions.restore_poster_from_publish(
             draft_id,
             detach_asset_id=str(body.get("detach_asset_id") or ""),
+            event_date=str(body.get("event_date") or ""),
         )
         code = 200 if result.get("ok") else 400
         return jsonify(result), code

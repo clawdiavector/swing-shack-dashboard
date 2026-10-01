@@ -494,6 +494,7 @@ def restore_poster_from_publish(
     draft_id: str,
     *,
     detach_asset_id: str | None = None,
+    event_date: str | None = None,
 ) -> dict[str, Any]:
     """Put the queued publish image and caption back on this draft."""
     from _lib.publish_sandbox import _queue_path, _read_jsonl  # noqa: SLF001
@@ -543,6 +544,23 @@ def restore_poster_from_publish(
     sidecar["restored_at"] = now
     _save_sidecar(asset_id, sidecar)
 
+    moved_date = ""
+    day = (event_date or "").strip()[:10]
+    source = str(sidecar.get("source_inbox_item_id") or "")
+    if day and source.startswith("calendar_candidate:"):
+        parts = source.split(":", 2)
+        if len(parts) == 3 and parts[1] and parts[2]:
+            from _lib.marketing_calendar import set_fields  # noqa: PLC0415
+
+            updated = set_fields(
+                parts[1],
+                parts[2],
+                {"event_date": day},
+                reason="restore poster onto this day",
+            )
+            if updated:
+                moved_date = str(updated.get("event_date") or day)
+
     detached = ""
     detach_id = (detach_asset_id or "").strip()
     if detach_id and detach_id != asset_id:
@@ -559,6 +577,7 @@ def restore_poster_from_publish(
         "asset_id": asset_id,
         "image_url": image_url,
         "detached_asset_id": detached,
+        "event_date": moved_date,
     }
 
 
