@@ -100,6 +100,12 @@ export type PlanningBigIdeaResponse = {
     marketing_support_signal?: string
     do_not_fabricate_progress?: boolean
     source?: string
+    // V2.11 — when a goal is superseded_by a canonical V2.11 immediate
+    // goal, the planner React component filters it out of the rendered
+    // tiles. The data is preserved for audit trail.
+    superseded_by?: string
+    superseded_at?: string
+    superseded_reason?: string
   }>
   operating_areas?: Array<{ key: string; lane?: string; tagline?: string }>
   monthly_themes?: unknown[]

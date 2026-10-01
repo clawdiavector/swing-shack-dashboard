@@ -183,6 +183,26 @@ def patch_swing_shack() -> bool:
             if g.get("metric", "").startswith("20 lessons"):
                 g["metric"] = "20 coaching sessions / month"
                 changed = True
+        # V2.11 §3 — Supersede the legacy "24 fittings/week" entry with
+        # the canonical immediate goal. Don't drop it silently (per
+        # reporting integrity rules) — mark it superseded_by so the
+        # planner React component can either skip rendering it or label
+        # it "see V2.11 immediate goal".
+        for g in goals:
+            if g.get("id") in ("fitting_throughput_weekly", "fitting_throughput",
+                               "coaching_throughput_weekly", "coaching_throughput"):
+                if not g.get("superseded_by"):
+                    if "fitting" in g.get("id", ""):
+                        g["superseded_by"] = "immediate_fittings_monthly"
+                    elif "coaching" in g.get("id", ""):
+                        g["superseded_by"] = "immediate_coaching_sessions_per_coach_per_week"
+                    g["superseded_at"] = "2026-09-29"
+                    g["superseded_reason"] = (
+                        "Replaced by V2.11 immediate goal (100 fittings/month @ 60% conv "
+                        "and 30–40 coaching sessions/week/coach). Kept for audit trail "
+                        "but no longer canonical."
+                    )
+                    changed = True
         if changed:
             sdata["operating_goals"] = goals
             _write(svol, sdata)
@@ -222,6 +242,23 @@ def patch_stick() -> bool:
     if not _has_immediate_coaching(stars):
         stars.insert(1 if _has_immediate_fittings(stars) else 0, dict(IMMEDIATE_COACHING_PER_COACH, missing_connector="Stick coaching scheduling system not integrated with reporting"))
         changed = True
+    # V2.11 §3 — Mark legacy "24 fittings/week" / "24 coaching sessions/week"
+    # entries as superseded_by the canonical V2.11 immediate goals.
+    for g in stars:
+        if g.get("id") in ("fitting_throughput_weekly", "fitting_throughput",
+                           "coaching_throughput_weekly", "coaching_throughput"):
+            if not g.get("superseded_by"):
+                if "fitting" in g.get("id", ""):
+                    g["superseded_by"] = "immediate_fittings_monthly"
+                elif "coaching" in g.get("id", ""):
+                    g["superseded_by"] = "immediate_coaching_sessions_per_coach_per_week"
+                g["superseded_at"] = "2026-09-29"
+                g["superseded_reason"] = (
+                    "Replaced by V2.11 immediate goal (100 fittings/month @ 60% conv "
+                    "and 30–40 coaching sessions/week/coach). Kept for audit trail "
+                    "but no longer canonical."
+                )
+                changed = True
     # Bump updated
     if changed:
         data["updated"] = "2026-09-29"
