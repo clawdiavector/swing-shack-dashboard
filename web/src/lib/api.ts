@@ -109,6 +109,23 @@ export type InboxItem = {
     archetype?: { id?: string; canvas?: string; schema?: string }
     compose_pending?: boolean
     source_inbox_item_id?: string
+    oneshot?: {
+      prompt_used?: string | null
+      master_prompt?: string | null
+      negative_prompt?: string | null
+      literal_text?: string | null
+      literal_text_source?: string | null
+      model?: string | null
+      provider?: string | null
+      unverified_model?: boolean
+      cost_usd?: number | null
+      cost_source?: string | null
+      image_size?: string | null
+      logo_source?: string | null
+      logo_drift_warning?: string | null
+      regen_count?: number
+      router_sidecar_path?: string | null
+    }
   }
 }
 
@@ -671,7 +688,24 @@ export type BrandImagesToday = {
   images_today: number
   cap: number
   at_cap: boolean
+  oneshot_today?: number
+  oneshot_cap?: number
+  at_oneshot_cap?: boolean
   error?: string
+}
+
+export type OneshotDayResult = {
+  ok?: boolean
+  brand_id?: string
+  date?: string
+  enqueued?: Array<{ calendar_id?: string; item_id?: string }>
+  skipped?: Array<{ calendar_id?: string; reason?: string }>
+  cap?: BrandImagesToday
+  error?: string
+}
+
+export function enqueueOneshotDay(body: { brand_id: string; date: string; editor?: string }) {
+  return postJson<OneshotDayResult>('/api/oneshot/day', body)
 }
 
 export function fetchBrandImagesToday(brandId: string) {

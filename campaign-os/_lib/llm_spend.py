@@ -23,6 +23,7 @@ SCHEMA = "campaign-os/llm-spend/v1"
 # Modelled USD when upstream reports 0 (OpenAI path) — t50-I.
 MODELLED_IMAGE_USD = {
     "1024x1024": 0.04,
+    "1024x1280": 0.05,
     "1024x1792": 0.08,
     "1792x1024": 0.08,
 }

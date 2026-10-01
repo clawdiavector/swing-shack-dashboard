@@ -26,7 +26,7 @@ from .image_draft_context import (
 _DRAFT_HEX_NAME = re.compile(r"^Draft [0-9a-f]{6}$", re.IGNORECASE)
 _CAPTION_NAME_MAX = 72
 
-CREATE_ACTIONS = frozenset({"draft_caption", "draft_photo", "draft_gen_slots", "compose_post", "draft_gbp"})
+CREATE_ACTIONS = frozenset({"draft_caption", "draft_photo", "draft_gen_slots", "draft_oneshot", "compose_post", "draft_gbp"})
 LEGACY_CREATE_ACTIONS = frozenset({"draft_image"})
 SLOT_ACTIONS = frozenset({"fill_slot"})
 PROCESS_ACTIONS = CREATE_ACTIONS | LEGACY_CREATE_ACTIONS | SLOT_ACTIONS
@@ -34,7 +34,7 @@ _PHOTO_EQUIV = frozenset({"draft_photo", "draft_image"})
 CAPTION_EST_USD = 0.002
 IMAGE_EST_USD = 0.04
 GBP_EST_USD = 0.0
-VALID_IMAGE_SIZES = frozenset({"1024x1024", "1024x1792", "1792x1024"})
+VALID_IMAGE_SIZES = frozenset({"1024x1024", "1024x1280", "1024x1792", "1792x1024"})
 # image_gen_router.py:810-811 openai, :1013-1014 openrouter — already record spend.
 _ROUTER_SELF_RECORDING_PROVIDERS = frozenset({"openai", "openrouter"})
 _CAPTION_ONLY_REJECT_REASON = "caption-only incomplete post; operator clear 2026-09-23"
@@ -776,7 +776,7 @@ def _maybe_enqueue_image_pipeline_after_caption(
         if str(row.get("status") or "").lower() != "pending":
             continue
         action = str(row.get("action") or "")
-        if action in ("draft_gen_slots", "draft_photo", "draft_image"):
+        if action in ("draft_gen_slots", "draft_photo", "draft_image", "draft_oneshot"):
             pending_image = True
             break
     if pending_image:
@@ -1458,6 +1458,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
             )
             caption_rows = [(r, a) for r, a in rows_for_moment if a in _CAPTION_QUEUE_ACTIONS]
             photo_rows = [(r, a) for r, a in rows_for_moment if a == "draft_photo"]
+            oneshot_rows = [(r, a) for r, a in rows_for_moment if a == "draft_oneshot"]
             gen_rows = [(r, a) for r, a in rows_for_moment if a == "draft_gen_slots"]
             compose_rows = [(r, a) for r, a in rows_for_moment if a == "compose_post"]
 
@@ -1504,6 +1505,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
                         rows_for_moment=rows_for_moment,
                     )
                     photo_rows = [(r, a) for r, a in rows_for_moment if a == "draft_photo"]
+                    oneshot_rows = [(r, a) for r, a in rows_for_moment if a == "draft_oneshot"]
                     gen_rows = [(r, a) for r, a in rows_for_moment if a == "draft_gen_slots"]
                     compose_rows = [(r, a) for r, a in rows_for_moment if a == "compose_post"]
                 else:
@@ -1541,6 +1543,39 @@ def run(brand: str | None = None) -> dict[str, Any]:
                     if str(gen_row.get("status") or "").lower() != "waiting":
                         gen_row["status"] = "done"
                     drafted += 1
+
+            if stop_cap or stop_auth:
+                break
+
+            if oneshot_rows:
+                from .draft_oneshot import process_draft_oneshot_row  # noqa: PLC0415
+
+                os_row = oneshot_rows[0][0]
+                try:
+                    asset_id, err = process_draft_oneshot_row(
+                        os_row,
+                        item_id=item_id,
+                        brand_id=brand_id,
+                        draft_ctx=draft_ctx,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    skipped += 1
+                    errors.append(_record_error(exc, context={"row_id": os_row.get("id"), "action": "draft_oneshot"}))
+                    asset_id, err = None, _exc_label(exc)
+                if err:
+                    stop_cap, stop_auth = _apply_stop_error(err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth)
+                    skipped += 1
+                    if err not in ("not_oneshot",):
+                        os_row["status"] = "error" if "copy" in str(err).lower() or "missing" in str(err).lower() else "skipped"
+                        os_row["note"] = str(err)[:240]
+                    if stop_cap or stop_auth:
+                        halted = True
+                        skipped += _count_pending_rows(moment_items, idx)
+                        break
+                elif asset_id:
+                    os_row["status"] = "done"
+                    drafted += 1
+                compose_rows = []
 
             if stop_cap or stop_auth:
                 break

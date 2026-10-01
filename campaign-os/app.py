@@ -18566,7 +18566,7 @@ def ops_queue_enqueue():
         action = str(body.get("action") or "").strip()
         if not item_id or not action:
             return jsonify({"ok": False, "error": "item_id and action required"}), 400
-        allowed_actions = {"draft_image", "draft_photo", "draft_gen_slots", "compose_post"}
+        allowed_actions = {"draft_image", "draft_photo", "draft_gen_slots", "draft_oneshot", "compose_post"}
         if action not in allowed_actions:
             return jsonify({"ok": False, "error": f"unsupported action: {action}"}), 400
         if action == "draft_image":
@@ -18741,6 +18741,33 @@ def inbox_unified_get_item(item_id: str):
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         _app_log.exception("inbox_unified_get_item failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/oneshot/day', methods=['POST'])
+def oneshot_day_enqueue():
+    """POST /api/oneshot/day — enqueue one-shot image generation for a calendar day."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib.marketing_calendar import VALID_BRAND_IDS
+        from _lib.oneshot_day import enqueue_oneshot_day
+
+        body = request.get_json(silent=True) or {}
+        brand_id = str(body.get("brand_id") or "").strip()
+        date = str(body.get("date") or "").strip()[:10]
+        editor = str(body.get("editor") or "operator").strip()
+        if brand_id not in VALID_BRAND_IDS:
+            return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+        if len(date) != 10:
+            return jsonify({"ok": False, "error": "invalid date"}), 400
+        payload = enqueue_oneshot_day(brand_id=brand_id, date=date, editor=editor)
+        status = int(payload.pop("http_status", 200))
+        return jsonify(payload), status
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("oneshot_day_enqueue failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

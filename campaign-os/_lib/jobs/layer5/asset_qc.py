@@ -12,7 +12,7 @@ from ..errors import describe_exception
 from ..layer1._io import atomic_write
 from _lib.brand_validate import validate_brand_id
 
-VALID_IMAGE_SIZES = frozenset({"1024x1024", "1024x1792", "1792x1024"})
+VALID_IMAGE_SIZES = frozenset({"1024x1024", "1024x1280", "1024x1792", "1792x1024"})
 REQUIRED_FIELDS = frozenset(
     {"schema", "asset_id", "campaign_id", "brand_id", "source_inbox_item_id", "created_at"}
 )

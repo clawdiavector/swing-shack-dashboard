@@ -151,7 +151,7 @@ DEFAULT_OPENROUTER_TOKEN_FILE = ""
 DEFAULT_OUTPUT_BASE = "data/brand-directory"  # written under <brand>/images/
 
 # Size normalization (Nano Banana emits 1024² native; gpt-image-1 accepts 1024²/1792²)
-_VALID_SIZES = {"1024x1024", "1024x1792", "1792x1024", "1536x1024", "1024x1536"}
+_VALID_SIZES = {"1024x1024", "1024x1280", "1024x1792", "1792x1024", "1536x1024", "1024x1536"}
 
 
 # ── Exceptions ────────────────────────────────────────────────────────

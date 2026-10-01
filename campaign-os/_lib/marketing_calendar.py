@@ -667,8 +667,14 @@ _EDITABLE_MOMENT_FIELDS = frozenset(
         "angle",
         "post_type",
         "render_mode",
+        "meme_flavour",
+        "meme_line",
+        "oneshot_ai_logo",
+        "oneshot_model",
     }
 )
+
+_VALID_MEME_FLAVOURS = frozenset({"sarcastic", "wholesome", "hard-truth"})
 
 
 def set_fields(
@@ -715,6 +721,13 @@ def set_fields(
                 f"render_mode '{mode}' invalid. Valid: {list(VALID_RENDER_MODES)}",
             )
         allowed["render_mode"] = mode
+    if "meme_flavour" in allowed:
+        flavour = str(allowed["meme_flavour"] or "").strip().lower()
+        if flavour and flavour not in _VALID_MEME_FLAVOURS:
+            raise ValueError(f"meme_flavour '{flavour}' invalid")
+        allowed["meme_flavour"] = flavour
+    if "oneshot_ai_logo" in allowed:
+        allowed["oneshot_ai_logo"] = bool(allowed["oneshot_ai_logo"])
     if "post_type" in allowed:
         allowed["post_type"] = str(allowed["post_type"] or "").strip().lower()
     for key, val in allowed.items():

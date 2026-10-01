@@ -9,6 +9,8 @@ import {
   draftHeadlineFromCaption,
   qcDisplayScore,
   qcReasonsList,
+  formatOneshotCost,
+  oneshotMetaFromInbox,
 } from '../lib/reviewDraftMeta'
 import { templateMetaFromInbox } from '../lib/templateMeta'
 import { BrandChip } from './BrandChip'
@@ -65,6 +67,7 @@ export function ReviewDraftDetail({
   const briefSections = briefSectionEntries(item.meta?.brief?.sections)
   const refUsed = item.meta?.reference_used
   const templateMeta = templateMetaFromInbox(item)
+  const oneshot = oneshotMetaFromInbox(item)
 
   const [regenOpen, setRegenOpen] = useState(false)
   const [regenNote, setRegenNote] = useState('')
@@ -127,6 +130,50 @@ export function ReviewDraftDetail({
             {String(item.meta.caption).slice(0, 420)}
             {String(item.meta.caption).length > 420 ? '…' : ''}
           </p>
+        ) : null}
+
+        {oneshot ? (
+          <section
+            className="rounded-2xl border border-gold/40 bg-gold/5 px-3 py-3 text-sm"
+            data-testid="oneshot-panel"
+          >
+            <h3 className="font-display text-sm font-semibold text-tx">One-shot</h3>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {oneshot.model ? <Badge tone="mute">{oneshot.model}</Badge> : null}
+              {oneshot.provider ? <Badge tone="mute">{oneshot.provider}</Badge> : null}
+              {oneshot.image_size ? <Badge tone="mute">{oneshot.image_size}</Badge> : null}
+              <Badge tone="mute">
+                {formatOneshotCost(oneshot.cost_usd)}
+                {oneshot.cost_source ? ` (${oneshot.cost_source})` : ''}
+              </Badge>
+              {oneshot.unverified_model ? (
+                <Badge tone="red">No live run yet — quality is unmeasured.</Badge>
+              ) : null}
+              {oneshot.logo_source === 'ai' && oneshot.logo_drift_warning ? (
+                <Badge tone="red">{oneshot.logo_drift_warning}</Badge>
+              ) : null}
+              {oneshot.logo_source === 'missing' ? (
+                <Badge tone="mute">Logo missing</Badge>
+              ) : null}
+            </div>
+            {oneshot.literal_text ? (
+              <p className="mt-2 text-tx2">
+                <span className="font-semibold text-tx">Literal line</span> ({oneshot.literal_text_source}
+                ): &quot;{oneshot.literal_text}&quot;
+              </p>
+            ) : null}
+            {(oneshot.regen_count ?? 0) > 0 ? (
+              <p className="mt-1 text-xs text-tx3">Regenerated {oneshot.regen_count}×</p>
+            ) : null}
+            {oneshot.prompt_used ? (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-xs font-semibold text-ac">Prompt used</summary>
+                <pre className="mt-2 max-h-48 overflow-x-auto overflow-y-auto whitespace-pre-wrap rounded-lg border border-bd bg-bg p-2 font-mono text-[11px] text-tx2">
+                  {oneshot.prompt_used}
+                </pre>
+              </details>
+            ) : null}
+          </section>
         ) : null}
 
         {channels.length > 1 ? (

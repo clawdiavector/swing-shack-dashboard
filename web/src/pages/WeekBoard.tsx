@@ -6,15 +6,18 @@ import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { PageIntro } from '../components/chrome'
 import { PostCard } from '../components/posting/PostCard'
 import { Badge } from '../components/ui'
-import { fetchPostingWeek, fetchTemplateGallery } from '../lib/api'
+import { enqueueOneshotDay, fetchBrandImagesToday, fetchPostingWeek, fetchTemplateGallery } from '../lib/api'
+import type { BrandImagesToday } from '../lib/api'
 import { fanOutPayloads, mergePostingWeekPayloads, type FanOutFailure } from '../lib/fanOut'
 import { useLoadGate } from '../lib/useLoadGate'
 import {
   dayAnchorFromParams,
   formatPostingDayHeader,
+  renderModeOf,
   sastTodayIso,
   sastTomorrowIso,
   type PostingWeekDay,
+  type PostingWeekPost,
 } from '../lib/postingWeek'
 
 function unionPostTypeHints(templates: { post_type_hints?: string[] }[]): string[] {
@@ -92,8 +95,21 @@ export function WeekBoard() {
   const [error, setError] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
   const [postTypeByBrand, setPostTypeByBrand] = useState<Record<string, string[]>>({})
+  const [capInfo, setCapInfo] = useState<BrandImagesToday | null>(null)
+  const [oneshotMsg, setOneshotMsg] = useState('')
+  const [oneshotBusy, setOneshotBusy] = useState(false)
 
   const singleBrandId = scope === 'all' ? 'swing-shack' : scope
+
+  const dayPosts: PostingWeekPost[] = useMemo(() => {
+    if (!isDayMode || days.length === 0) return []
+    return days[0]?.posts ?? []
+  }, [days, isDayMode])
+
+  const hasOneshotCard = useMemo(
+    () => dayPosts.some((p) => renderModeOf(p) === 'oneshot'),
+    [dayPosts],
+  )
 
   const weekFetchOpts = useMemo(
     () =>
@@ -143,6 +159,24 @@ export function WeekBoard() {
   }, [load])
 
   useEffect(() => {
+    if (!isDayMode) {
+      setCapInfo(null)
+      return
+    }
+    let cancelled = false
+    void fetchBrandImagesToday(singleBrandId)
+      .then((payload) => {
+        if (!cancelled) setCapInfo(payload)
+      })
+      .catch(() => {
+        if (!cancelled) setCapInfo(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isDayMode, singleBrandId, dateIso])
+
+  useEffect(() => {
     if (!isDayMode) return
     const brands = isAll ? brandIds : [singleBrandId]
     let cancelled = false
@@ -187,6 +221,42 @@ export function WeekBoard() {
   const pastCount = pastDays.reduce((n, d) => n + d.posts.length, 0)
 
   const daySections = isDayMode ? days : futureDays
+
+  const oneshotDisabled =
+    !isDayMode ||
+    !hasOneshotCard ||
+    Boolean(capInfo?.at_cap) ||
+    Boolean(capInfo?.at_oneshot_cap)
+  const oneshotTitle = !hasOneshotCard
+    ? 'No one-shot cards on this day'
+    : capInfo?.at_oneshot_cap
+      ? 'One-shot cap reached for this brand today'
+      : capInfo?.at_cap
+        ? 'Daily image cap reached'
+        : 'Generate one-shots for this day'
+
+  async function generateOneshots() {
+    if (oneshotDisabled || oneshotBusy) return
+    setOneshotBusy(true)
+    setOneshotMsg('')
+    try {
+      const res = await enqueueOneshotDay({
+        brand_id: singleBrandId,
+        date: dateIso,
+        editor: 'week-board',
+      })
+      const enq = res.enqueued?.length ?? 0
+      const skip = res.skipped?.length ?? 0
+      setOneshotMsg(`Enqueued ${enq}, skipped ${skip}`)
+      await load()
+      const cap = await fetchBrandImagesToday(singleBrandId)
+      setCapInfo(cap)
+    } catch (err) {
+      setOneshotMsg(err instanceof Error ? err.message : 'Generate failed')
+    } finally {
+      setOneshotBusy(false)
+    }
+  }
 
   if (error && days.length === 0) {
     return (
@@ -239,7 +309,22 @@ export function WeekBoard() {
         >
           Week
         </button>
+        {isDayMode ? (
+          <button
+            type="button"
+            data-testid="generate-oneshots"
+            title={oneshotTitle}
+            disabled={oneshotDisabled || oneshotBusy}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+              oneshotDisabled ? 'border-bd text-tx3' : 'border-gold bg-gold/15 text-gold'
+            }`}
+            onClick={() => void generateOneshots()}
+          >
+            Generate one-shots
+          </button>
+        ) : null}
       </div>
+      {oneshotMsg ? <p className="text-xs text-tx2">{oneshotMsg}</p> : null}
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />
 

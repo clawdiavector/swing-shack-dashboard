@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-VALID_ASPECTS = frozenset({"1024x1024", "1024x1792", "1792x1024"})
+VALID_ASPECTS = frozenset({"1024x1024", "1024x1280", "1024x1792", "1792x1024"})
 _GENERIC_JOB = "Social image for approved inbox item"
 
 

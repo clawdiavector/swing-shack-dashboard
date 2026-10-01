@@ -685,6 +685,11 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 meta["compose_pending"] = True
                 meta["image_url"] = None
                 meta["image_path"] = None
+            from _lib.oneshot_review import oneshot_meta_from_sidecar  # noqa: PLC0415
+
+            oneshot_meta = oneshot_meta_from_sidecar(sidecar)
+            if oneshot_meta:
+                meta["oneshot"] = oneshot_meta
             if sidecar.get("sections") or sidecar.get("negative_prompt"):
                 meta["brief"] = {
                     "sections": sidecar.get("sections") or [],
@@ -1798,6 +1803,11 @@ def _draft_asset_item_by_campaign_key(key: str, *, now: datetime) -> Optional[di
         archetype_meta=sidecar.get("archetype") if isinstance(sidecar.get("archetype"), dict) else None,
         source_inbox_item_id=source_item or None,
     )
+    from _lib.oneshot_review import oneshot_meta_from_sidecar  # noqa: PLC0415
+
+    oneshot_meta = oneshot_meta_from_sidecar(sidecar)
+    if oneshot_meta:
+        meta["oneshot"] = oneshot_meta
     return item
 
 

@@ -69,6 +69,7 @@ _MODEL_CAPABILITIES = {
     "openai/gpt-image-2":       {"category": "image", "fidelity": 0.8, "photorealism": 0.85, "speed": 0.6, "typography": 0.85, "ref_image": True, "edit": True, "verified": False, "material": 0.8, "lighting": 0.85, "composition": 0.85, "human": 0.8},
     "openai/gpt-image":         {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.6, "typography": 0.8, "ref_image": True, "edit": True, "verified": False, "material": 0.75, "lighting": 0.8, "composition": 0.8, "human": 0.75},
     "ideogram/ideogram-3":      {"category": "image", "fidelity": 0.75, "photorealism": 0.7, "speed": 0.7, "typography": 0.95, "ref_image": True, "verified": True, "material": 0.7, "lighting": 0.75, "composition": 0.8, "human": 0.65},
+    "recraft/recraft-v3":       {"category": "image", "verified": False},
     "black-forest-labs/flux-3-video": {"category": "video", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.4, "duration_max": 15, "ref_image": True},
     "bytedance/seedance-2":     {"category": "video", "fidelity": 0.85, "photorealism": 0.8, "speed": 0.6, "duration_max": 15, "ref_image": True, "audio": True},
     "bytedance/seedance-2-fast": {"category": "video", "fidelity": 0.8, "photorealism": 0.75, "speed": 0.85, "duration_max": 15, "ref_image": True, "audio": True},
@@ -169,11 +170,20 @@ _SECTION_ORDER = (
     "COMPOSITION",
     "LIGHTING",
     "CAMERA",
+    "LITERAL TEXT",
+    "TEXT PLACEMENT",
     "OUTPUT STYLE",
     "NEGATIVE",
 )
 _OUTPUT_STYLE_DEFAULT = (
     "photograph, no text, no logo, no watermark, no UI"
+)
+_OUTPUT_STYLE_RENDER_TEXT = (
+    "photograph with one rendered text line, no logo, no watermark, no UI"
+)
+_DEFAULT_TEXT_PLACEMENT = (
+    "Upper third, generous overlay-safe margins, high contrast against the plate, "
+    "single line unless it wraps naturally. Leave the bottom-right corner clear for a logo lockup."
 )
 
 
@@ -195,6 +205,10 @@ def compose_prompt(
     angle: Optional[str] = None,
     pillar_name: Optional[str] = None,
     calendar_title: Optional[str] = None,
+    literal_text: Optional[str] = None,
+    text_placement: Optional[str] = None,
+    render_text: bool = False,
+    ai_rendered_logo: bool = False,
 ) -> Dict[str, Any]:
     """Compose a structured master prompt + negative from brand context.
 
@@ -256,7 +270,21 @@ def compose_prompt(
     if camera and camera.strip():
         sections.append({"key": "CAMERA", "content": camera.strip()})
 
-    out_style = (output_style or _OUTPUT_STYLE_DEFAULT).strip()
+    line = (literal_text or "").strip()
+    if line:
+        sections.append(
+            {
+                "key": "LITERAL TEXT",
+                "content": f'Render this exact line, character for character: "{line}"',
+            }
+        )
+        placement = (text_placement or _DEFAULT_TEXT_PLACEMENT).strip()
+        sections.append({"key": "TEXT PLACEMENT", "content": placement})
+
+    if render_text:
+        out_style = (output_style or _OUTPUT_STYLE_RENDER_TEXT).strip()
+    else:
+        out_style = (output_style or _OUTPUT_STYLE_DEFAULT).strip()
     sections.append({"key": "OUTPUT STYLE", "content": out_style})
 
     negative_prompt = build_negative_prompt(
@@ -268,6 +296,8 @@ def compose_prompt(
         human_direction=human_direction,
         subject_has_person=subject_meta["has_person"],
         subject_has_gear=subject_meta["has_gear"],
+        render_text=render_text,
+        ai_rendered_logo=ai_rendered_logo,
     )
     if negative_prompt.strip():
         sections.append({"key": "NEGATIVE", "content": negative_prompt})
@@ -337,6 +367,8 @@ def build_negative_prompt(
     human_direction: Optional[str] = None,
     subject_has_person: bool = False,
     subject_has_gear: bool = False,
+    render_text: bool = False,
+    ai_rendered_logo: bool = False,
 ) -> str:
     """Compose the negative prompt from global + brand + product + reference rules.
 
@@ -363,7 +395,24 @@ def build_negative_prompt(
 
     parts: list[str] = []
     parts.extend(_ALWAYS_MISC_NEGATIVES)
-    parts.extend(_TEXT_LOGO_NEGATIVES)
+    if render_text:
+        for item in _TEXT_LOGO_NEGATIVES:
+            if item in ("no text in the image", "no garbled text"):
+                continue
+            if item == "no fake logos" and ai_rendered_logo:
+                continue
+            parts.append(item)
+        parts.extend(
+            [
+                "no text other than the quoted line",
+                "no misspelled words",
+                "no duplicated text",
+                "no extra captions",
+                "no subtitle bars",
+            ]
+        )
+    else:
+        parts.extend(_TEXT_LOGO_NEGATIVES)
     parts.extend(_OPTICS_NEGATIVES)
     parts.extend(_STOCK_PHOTO_NEGATIVES)
     if include_anatomy:
@@ -404,7 +453,7 @@ def _krea_connected() -> bool:
         return False
 
 
-def _model_allowed(model: str) -> bool:
+def _model_allowed(model: str, *, allow_unverified: bool = False) -> bool:
     if model in (_GEMINI_FLASH_IMAGE, "google/gemini-3-pro-image"):
         return True
     caps = _MODEL_CAPABILITIES.get(model)
@@ -414,10 +463,12 @@ def _model_allowed(model: str) -> bool:
         return False
     if caps.get("edit_only"):
         return False
-    return bool(caps.get("verified", False))
+    if bool(caps.get("verified", False)):
+        return True
+    return allow_unverified
 
 
-def pick_model(requirements: dict) -> dict[str, str]:
+def pick_model(requirements: dict, *, requested_model: str | None = None) -> dict[str, str]:
     """Requirement router for image generation (P2).
 
     Returns {model, provider, reason}. Honors CAMPAIGN_OS_IMAGE_MODEL_FORCE.
@@ -434,6 +485,22 @@ def pick_model(requirements: dict) -> dict[str, str]:
                 "reason": f"CAMPAIGN_OS_IMAGE_MODEL_FORCE={prov}:{model}",
             }
         _LOG.warning("forced model not allowed, falling back: %s", model)
+
+    req_model = (requested_model or "").strip()
+    if req_model and _model_allowed(req_model, allow_unverified=True):
+        caps = _MODEL_CAPABILITIES.get(req_model) or {}
+        prov = "krea" if req_model.startswith(("ideogram/", "bfl/", "recraft/")) else "openrouter"
+        unverified = not bool(caps.get("verified", False))
+        out: dict[str, str] = {
+            "model": req_model,
+            "provider": prov,
+            "reason": "operator-selected model (unverified — no live run yet)"
+            if unverified
+            else "operator-selected model",
+        }
+        if unverified:
+            out["unverified"] = True  # type: ignore[assignment]
+        return out
 
     needs_reference = bool(requirements.get("needs_reference"))
     photoreal = bool(requirements.get("photoreal"))
@@ -877,6 +944,10 @@ def _section_to_prose(key: str, content: str) -> str:
     text = content.strip()
     if not text:
         return ""
+    if key == "LITERAL TEXT":
+        return text
+    if key == "TEXT PLACEMENT":
+        return text.replace("\n", " ").strip()
     if key == "JOB":
         return text if text.endswith(".") else f"{text}."
     if key == "BRAND":
@@ -981,6 +1052,8 @@ def _fit_master_prompt_length(
     while len(_wire()) > _PROMPT_MAX_CHARS:
         trimmed = False
         for key in trim_targets:
+            if key == "LITERAL TEXT":
+                continue
             sec = next((s for s in working if s["key"] == key), None)
             if not sec:
                 continue
@@ -994,6 +1067,8 @@ def _fit_master_prompt_length(
                     trimmed = True
                     break
             content = sec.get("content") or ""
+            if key == "LITERAL TEXT":
+                continue
             if len(content) > 100 and key != "BRAND":
                 sec["content"] = content[: max(80, len(content) * 2 // 3)].rstrip(" ,;.")
                 trimmed = True
@@ -1005,7 +1080,11 @@ def _fit_master_prompt_length(
         master = _master()
 
     if len(wire) > _PROMPT_MAX_CHARS:
-        wire = wire[:_PROMPT_MAX_CHARS].rstrip(" ,;.")
+        literal_sec = next((s for s in working if s["key"] == "LITERAL TEXT"), None)
+        if literal_sec:
+            wire = _wire()
+        else:
+            wire = wire[:_PROMPT_MAX_CHARS].rstrip(" ,;.")
 
     while len(_master()) > _PROMPT_MAX_CHARS:
         trimmed = False
