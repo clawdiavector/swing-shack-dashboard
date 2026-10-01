@@ -195,6 +195,8 @@ export function Week() {
   const [sharePending, setSharePending] = useState(false)
   const [shareUrl, setShareUrl] = useState('')
   const [shareExpires, setShareExpires] = useState('')
+  const [fullReportHtml, setFullReportHtml] = useState('')
+  const [fullReportShown, setFullReportShown] = useState(false)
 
   const setTab = useCallback(
     (id: string) => {
@@ -221,6 +223,40 @@ export function Week() {
         setIntelErr(e.message || 'GET /api/intel/weekly_report failed')
       })
   }, [brandId])
+
+  // Lazy-load the brand-styled rich HTML report (the same content
+  // the /weekly-report Flask route serves). Only fires when the
+  // operator opens the "Open full report" disclosure — keeps the
+  // default /results/week page snappy.
+  const openFullReport = useCallback(() => {
+    if (fullReportHtml || fullReportShown) {
+      setFullReportShown(true)
+      return
+    }
+    setFullReportShown(true)
+    fetch(`/api/weekly-report?brand=${encodeURIComponent(brandId)}`, {
+      credentials: 'same-origin',
+    })
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((html) => {
+        // Strip <head>/<style>/<script> and the brand-page nav,
+        // keep the styled report body so it embeds cleanly inside
+        // the OS shell. The Flask route already wraps everything
+        // in <html><body>...</body></html> — drop the document
+        // chrome, keep the inner body children.
+        const bodyStart = html.indexOf('<body>')
+        const bodyEnd = html.lastIndexOf('</body>')
+        let inner = html
+        if (bodyStart >= 0 && bodyEnd > bodyStart) {
+          inner = html.slice(bodyStart + '<body>'.length, bodyEnd)
+        }
+        setFullReportHtml(inner)
+      })
+      .catch((e: Error) => {
+        setBrandErr(e.message || 'GET /api/weekly-report (html) failed')
+        setFullReportShown(false)
+      })
+  }, [brandId, fullReportHtml, fullReportShown])
 
   useEffect(() => {
     reload()
@@ -297,6 +333,56 @@ export function Week() {
           ) : (
             <p className="mt-2 text-sm text-tx3">No metrics yet — run the weekly pipeline or open Classic.</p>
           )}
+        </section>
+      ) : null}
+
+      {brandJson ? (
+        <section className="glass rounded-2xl border border-bd/60 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="space-y-1">
+              <h2 className="font-display text-lg font-semibold">This week’s full report</h2>
+              <p className="text-xs text-tx3">
+                Brand-styled HTML from <code className="text-[11px]">/api/weekly-report</code> (same
+                renderer as <code className="text-[11px]">/weekly-report</code>).
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {!fullReportShown ? (
+                <button type="button" className={primaryBtn} onClick={openFullReport}>
+                  Open full report
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={actionBtn}
+                  onClick={() => setFullReportShown(false)}
+                  aria-label="Collapse full report"
+                >
+                  Collapse
+                </button>
+              )}
+              <a
+                href={`/weekly-report?brand=${encodeURIComponent(brandId)}`}
+                className={actionBtn}
+                target="_blank"
+                rel="noreferrer noopener"
+                title="Open the standalone brand report page (new tab)."
+              >
+                Open in new tab
+              </a>
+            </div>
+          </div>
+          {fullReportShown ? (
+            fullReportHtml ? (
+              <div
+                className="report-embed mt-3"
+                // eslint-disable-next-line react/no-danger -- operator-controlled brand report HTML
+                dangerouslySetInnerHTML={{ __html: fullReportHtml }}
+              />
+            ) : (
+              <p className="mt-3 text-sm text-tx3">Loading brand-styled report…</p>
+            )
+          ) : null}
         </section>
       ) : null}
 
