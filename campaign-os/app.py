@@ -25512,7 +25512,7 @@ def weekly_report_page():
     renderer) is no longer called from this route.
     """
     if not _is_authed():
-        return redirect(url_for("login", next=request.path))
+        return redirect(url_for("login_page", next=request.path))
     if _wr3 is None:
         return "weekly_report_v3 unavailable", 503
     bid = request.args.get('brand') or get_brand_id()
@@ -50663,7 +50663,7 @@ def editorial_report_page(brand_id):
     Auth: session cookie OR valid ?share=<token>.
     """
     if not _v25_is_authed_or_shared():
-        return redirect(url_for("login", next=request.path))
+        return redirect(url_for("login_page", next=request.path))
     if brand_id not in ("stick", "swing-shack"):
         return "invalid brand", 400
     if _ed is None:
