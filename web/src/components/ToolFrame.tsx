@@ -1,16 +1,15 @@
 import { ArrowLeft } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { Tip } from './ui'
+import { BackLink } from './BackLink'
 
 export function ToolFrame({
   back,
-  backLabel,
   title,
   hint,
   chip,
   src,
 }: {
   back: string
+  /** Kept so callers can name the section. Back still returns to the previous page. */
   backLabel: string
   title: string
   hint?: string
@@ -20,16 +19,13 @@ export function ToolFrame({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-3 md:px-6">
-        <Tip text={`Go back to ${backLabel}.`}>
-        <Link
-          to={back}
-          title={`Go back to ${backLabel}.`}
+        <BackLink
+          fallback={back}
           className="glass-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          {backLabel}
-        </Link>
-        </Tip>
+          Back
+        </BackLink>
         <div className="min-w-0">
           <p className="font-display text-lg font-semibold leading-tight">{title}</p>
           {hint ? <p className="text-[13px] text-tx3">{hint}</p> : null}

@@ -1,8 +1,10 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import { BrandProvider, BrandSwitch } from './BrandSwitch'
+import { BackLink } from './BackLink'
 import { PressIcon, Tip } from './ui'
 import { formatStamp } from '../lib/stamp'
 import { RAIL } from '../lib/nav'
+import { recordNav } from '../lib/navHistory'
 import { TOOL_BY_SLUG, parentLabel } from '../lib/tools'
 
 const RAIL_ON =
@@ -10,6 +12,8 @@ const RAIL_ON =
 
 export function Shell() {
   const loc = useLocation()
+  const navType = useNavigationType()
+  recordNav(loc.pathname + loc.search, navType)
   const toolSlug = loc.pathname.startsWith('/tool/') ? loc.pathname.split('/')[2] : ''
   const tool = toolSlug ? TOOL_BY_SLUG[toolSlug] : undefined
   const current =
@@ -89,6 +93,11 @@ export function Shell() {
       <div className="flex min-h-dvh flex-col pb-20 lg:h-dvh lg:min-h-0 lg:overflow-visible lg:pb-0">
         <header className="glass sticky top-0 z-30 flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
+            <BackLink
+              fallback="/daily"
+              hideIfNoHistory
+              className="glass-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac"
+            />
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-bg lg:hidden">
               <svg viewBox="0 0 32 32" className="h-6 w-6" fill="none">
                 <path d="M10 26V6" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />

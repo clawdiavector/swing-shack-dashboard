@@ -1,9 +1,10 @@
 import { Hammer, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { BackLink } from '../../components/BackLink'
 import { useBrand } from '../../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../../components/chrome'
-import { Badge, Button, ClassicLink, Tip } from '../../components/ui'
+import { Badge, ClassicLink, Tip } from '../../components/ui'
 import {
   fetchAssetAiDraft,
   fetchCalendarMonth,
@@ -15,7 +16,6 @@ import {
   type ProductLineItem,
 } from '../../lib/api'
 import { isoDate, parseIsoDateParam } from '../../lib/stamp'
-import { parentLabel } from '../../lib/tools'
 
 type PreflightStage = {
   passed?: boolean
@@ -361,11 +361,10 @@ export function BuildPost() {
         here="/create"
         title="Build a post"
         actions={
-          from ? (
-            <Button to={from} tone="ghost" tip={`Back to ${parentLabel(from)}.`}>
-              Back
-            </Button>
-          ) : null
+          <BackLink
+            fallback={from}
+            className="glass-pill inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac"
+          />
         }
       >
         One click assembles a draft package; preview then confirm queues via with-gate. No auto-publish.

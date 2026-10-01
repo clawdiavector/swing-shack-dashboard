@@ -1,6 +1,7 @@
 import { ArrowLeft, Check, Pencil, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { BackLink } from '../components/BackLink'
 import { BrandChip } from '../components/BrandChip'
 import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
@@ -353,16 +354,13 @@ export function ReviewPiece() {
             : 'Loading this piece…'}
       </PageIntro>
 
-      <Tip text="Back to the review inbox.">
-        <Link
-          to="/review"
-          title="Back to the review inbox."
-          className="glass-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          Inbox
-        </Link>
-      </Tip>
+      <BackLink
+        fallback="/review"
+        className="glass-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+        Back
+      </BackLink>
 
       {error ? <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">{error}</p> : null}
       {success ? (

@@ -14,7 +14,8 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { BackLink } from '../components/BackLink'
 import { BrandChip } from '../components/BrandChip'
 import { useBrandScope } from '../components/BrandSwitch'
 import { useBrand } from '../components/BrandSwitch'
@@ -230,6 +231,7 @@ function evidenceLayerShort(layer?: string): string {
 }
 
 export function LongFormReview() {
+  const navigate = useNavigate()
   const { brandId: focusedBrandId } = useBrand()
   useBrandScope() // ensures the brand switch is mounted (used by BrandChip below)
   const brand = (focusedBrandId && focusedBrandId !== 'all') ? focusedBrandId : 'stick'
@@ -344,7 +346,7 @@ export function LongFormReview() {
           </span>
         }
         actions={
-          <PillButton icon={Sparkles} tone="ghost" onClick={() => (window.location.href = '/review')}>
+          <PillButton icon={Sparkles} tone="ghost" onClick={() => navigate('/review')}>
             Creative Review
           </PillButton>
         }
@@ -355,12 +357,12 @@ export function LongFormReview() {
       </PageIntro>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Link
-          to="/review"
+        <BackLink
+          fallback="/review"
           className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-tx3 hover:text-tx"
         >
-          <ChevronLeft className="h-3.5 w-3.5" /> back to Creative Review
-        </Link>
+          <ChevronLeft className="h-3.5 w-3.5" /> Back
+        </BackLink>
         <BrandChip brandId={brand} />
       </div>
 

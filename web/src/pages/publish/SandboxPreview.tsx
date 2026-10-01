@@ -1,10 +1,11 @@
 import { ArrowLeft, Rocket } from 'lucide-react'
+import { BackLink } from '../../components/BackLink'
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../../components/chrome'
 import { PlatformMock } from '../../components/PlatformMock'
-import { Badge, ClassicLink, Tip } from '../../components/ui'
+import { Badge, ClassicLink } from '../../components/ui'
 import { fetchSandboxQueue, resolveAssetUrl, type SandboxQueueItem } from '../../lib/api'
 import { PLATFORM_TABS, resolvePlatformTab, type PlatformTab } from '../../lib/platformMock'
 import { matchSandboxRow, sandboxTitle } from '../../lib/sandboxRow'
@@ -82,16 +83,13 @@ export function SandboxPreview() {
         Mock only — image and caption as queued. Nothing goes live from this page.
       </PageIntro>
 
-      <Tip text="Back to Publish.">
-        <Link
-          to="/publish"
-          title="Back to Publish."
-          className="glass-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          Publish
-        </Link>
-      </Tip>
+      <BackLink
+        fallback="/publish"
+        className="glass-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+        Back
+      </BackLink>
 
       {loadErr ? (
         <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">{loadErr}</p>

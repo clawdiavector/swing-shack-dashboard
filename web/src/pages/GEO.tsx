@@ -2,6 +2,7 @@ import { BarChart3, BookOpen, BotMessageSquare, CheckCircle, ClipboardList, Eye,
 import type { LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
+import { BackLink } from '../components/BackLink'
 import { Badge } from '../components/ui'
 import { getJson, postJson } from '../lib/api'
 
@@ -901,9 +902,9 @@ export default function GEO() {
 
       {/* Navigation link */}
       <div className="pt-2 border-t border-white/5">
-        <a href="/results" className="text-xs text-yel hover:text-yel/80 transition-colors flex items-center gap-1">
-          ← Back to Results
-        </a>
+        <BackLink fallback="/results" className="text-xs text-yel hover:text-yel/80 transition-colors flex items-center gap-1">
+          ← Back
+        </BackLink>
       </div>
     </div>
   )
