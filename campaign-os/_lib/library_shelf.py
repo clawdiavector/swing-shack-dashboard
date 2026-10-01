@@ -525,3 +525,214 @@ def build_library_shelf(
         "notes": notes,
     }
     return payload
+
+
+def _data_dir() -> Path:
+    import os
+
+    return Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
+
+
+def _sandbox_row_key(row: dict[str, Any]) -> str:
+    return str(row.get("idempotency_key") or row.get("queue_id") or "").strip()
+
+
+def sandbox_bulk_skip_reason(row: dict[str, Any], action: str, *, include_approved: bool) -> str | None:
+    """Why a sandbox row cannot be bulk-archived or bulk-deleted."""
+    if row.get("receipt_only"):
+        return "receipt_only"
+    if not row.get("queue_id"):
+        return "receipt_only"
+    if action == "archive" and str(row.get("status") or "") == "archived":
+        return "already_archived"
+    if action == "delete":
+        if str(row.get("status") or "") == "dispatched" and not include_approved:
+            return "dispatched"
+        if row.get("human_approved") and not include_approved:
+            return "human_approved"
+    return None
+
+
+def draft_bulk_skip_reason(row: dict[str, Any], action: str, *, include_approved: bool) -> str | None:
+    if action == "archive" and str(row.get("status") or "") == "archived":
+        return "already_archived"
+    if action == "delete":
+        st = str(row.get("status") or "")
+        if st == "approved" and not include_approved:
+            return "approved"
+    return None
+
+
+def _remove_draft_sidecar_files(asset_id: str) -> None:
+    draft_dir = _data_dir() / "draft-assets"
+    for name in (f"{asset_id}.json", f"{asset_id}.brief.json", f"{asset_id}.qc.json"):
+        path = draft_dir / name
+        if path.is_file():
+            path.unlink()
+
+
+def _archive_draft(asset_id: str, campaign_id: str) -> bool:
+    from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
+
+    data = _load_campaign_data()
+    campaign = (data.get("campaigns") or {}).get(campaign_id)
+    if not isinstance(campaign, dict):
+        return False
+    assets = campaign.get("assets")
+    if not isinstance(assets, dict):
+        return False
+    asset = assets.get(asset_id)
+    if not isinstance(asset, dict):
+        return False
+    asset["approvalStatus"] = "archived"
+    asset["updatedAt"] = _utc_now_iso()
+    _write_campaign_data(data)
+    return True
+
+
+def _delete_draft(asset_id: str, campaign_id: str) -> bool:
+    from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
+
+    data = _load_campaign_data()
+    campaign = (data.get("campaigns") or {}).get(campaign_id)
+    if isinstance(campaign, dict):
+        assets = campaign.get("assets")
+        if isinstance(assets, dict) and asset_id in assets:
+            del assets[asset_id]
+            _write_campaign_data(data)
+    _remove_draft_sidecar_files(asset_id)
+    return True
+
+
+def _archive_sandbox_row(idempotency_key: str) -> bool:
+    from _lib.publish_sandbox import _queue_path, _read_jsonl, _rewrite_jsonl  # noqa: PLC0415
+
+    key = str(idempotency_key or "").strip()
+    if not key:
+        return False
+    rows = _read_jsonl(_queue_path())
+    found = False
+    for row in rows:
+        if _sandbox_row_key(row) == key or str(row.get("idempotency_key") or "") == key:
+            row["status"] = "archived"
+            row["archived_at"] = _utc_now_iso()
+            found = True
+            break
+    if not found:
+        return False
+    _rewrite_jsonl(_queue_path(), rows)
+    return True
+
+
+def _delete_sandbox_row(idempotency_key: str) -> bool:
+    from _lib.publish_sandbox import _queue_path, _read_jsonl, _rewrite_jsonl  # noqa: PLC0415
+
+    key = str(idempotency_key or "").strip()
+    if not key:
+        return False
+    rows = _read_jsonl(_queue_path())
+    kept: list[dict[str, Any]] = []
+    removed = False
+    for row in rows:
+        match = _sandbox_row_key(row) == key or str(row.get("idempotency_key") or "") == key
+        if match:
+            removed = True
+            continue
+        kept.append(row)
+    if not removed:
+        return False
+    _rewrite_jsonl(_queue_path(), kept)
+    return True
+
+
+def apply_library_bulk(
+    brand_id: str,
+    *,
+    lane: str,
+    action: str,
+    ids: list[str],
+    include_approved: bool = False,
+) -> dict[str, Any]:
+    """Bulk archive or delete library drafts / sandbox queue rows (not receipt-only)."""
+    bid = validate_brand_id(brand_id, allow_sentinel=False)
+    lane_norm = str(lane or "").strip().lower()
+    action_norm = str(action or "").strip().lower()
+    if lane_norm not in ("drafts", "sandbox"):
+        raise ValueError("lane must be drafts or sandbox")
+    if action_norm not in ("archive", "delete"):
+        raise ValueError("action must be archive or delete")
+
+    requested = [str(i).strip() for i in (ids or []) if str(i).strip()]
+    applied: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+
+    if lane_norm == "drafts":
+        index = {str(r.get("asset_id") or ""): r for r in _build_draft_rows(bid)}
+        for asset_id in requested:
+            row = index.get(asset_id)
+            if not row:
+                skipped.append({"id": asset_id, "reason": "not_found"})
+                continue
+            reason = draft_bulk_skip_reason(row, action_norm, include_approved=include_approved)
+            if reason:
+                skipped.append(
+                    {
+                        "id": asset_id,
+                        "reason": reason,
+                        "title": row.get("title"),
+                    }
+                )
+                continue
+            campaign_id = str(row.get("campaign_id") or "")
+            ok = (
+                _archive_draft(asset_id, campaign_id)
+                if action_norm == "archive"
+                else _delete_draft(asset_id, campaign_id)
+            )
+            if ok:
+                applied.append({"id": asset_id, "title": row.get("title")})
+            else:
+                skipped.append({"id": asset_id, "reason": "not_found", "title": row.get("title")})
+    else:
+        all_sandbox, _ = _build_sandbox_rows(bid)
+        index = {_sandbox_row_key(r): r for r in all_sandbox if _sandbox_row_key(r)}
+        for key in requested:
+            row = index.get(key)
+            if not row:
+                skipped.append({"id": key, "reason": "not_found"})
+                continue
+            reason = sandbox_bulk_skip_reason(row, action_norm, include_approved=include_approved)
+            if reason:
+                skipped.append(
+                    {
+                        "id": key,
+                        "reason": reason,
+                        "title": row.get("lodged_title") or row.get("caption_preview"),
+                    }
+                )
+                continue
+            idem = str(row.get("idempotency_key") or key)
+            ok = (
+                _archive_sandbox_row(idem)
+                if action_norm == "archive"
+                else _delete_sandbox_row(idem)
+            )
+            if ok:
+                applied.append(
+                    {
+                        "id": key,
+                        "title": row.get("lodged_title") or row.get("caption_preview"),
+                    }
+                )
+            else:
+                skipped.append({"id": key, "reason": "not_found"})
+
+    return {
+        "brand_id": bid,
+        "lane": lane_norm,
+        "action": action_norm,
+        "applied": applied,
+        "skipped": skipped,
+        "applied_count": len(applied),
+        "skipped_count": len(skipped),
+    }
