@@ -597,27 +597,28 @@ def _campaign_data_with_asset(ctx: dict[str, Any], asset: dict[str, Any]) -> dic
     return data
 
 
-def _kick_caption_keep(moment_id: str, brand_id: str) -> bool:
+def _kick_caption_keep(moment_id: str, brand_id: str) -> dict[str, Any]:
     """Write the queued caption now, for this moment only. Other queue rows stay pending."""
     if not _caption_keep_lock.acquire(blocking=False):
-        return False
+        return {"ok": False, "error": "caption writer busy", "started": False}
+    previous = os.environ.get("CAMPAIGN_OS_L5_ONLY_ITEM")
+    os.environ["CAMPAIGN_OS_L5_ONLY_ITEM"] = moment_id
+    try:
+        from _lib.jobs.layer5.draft_assets import run
 
-    def _work() -> None:
-        previous = os.environ.get("CAMPAIGN_OS_L5_ONLY_ITEM")
-        os.environ["CAMPAIGN_OS_L5_ONLY_ITEM"] = moment_id
-        try:
-            from _lib.jobs.layer5.draft_assets import run
-
-            run(brand=brand_id)
-        finally:
-            if previous is None:
-                os.environ.pop("CAMPAIGN_OS_L5_ONLY_ITEM", None)
-            else:
-                os.environ["CAMPAIGN_OS_L5_ONLY_ITEM"] = previous
-            _caption_keep_lock.release()
-
-    threading.Thread(target=_work, name="caption-keep", daemon=True).start()
-    return True
+        result = run(brand=brand_id)
+        if not isinstance(result, dict):
+            result = {"ok": True}
+        result["started"] = True
+        return result
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)[:240], "started": True}
+    finally:
+        if previous is None:
+            os.environ.pop("CAMPAIGN_OS_L5_ONLY_ITEM", None)
+        else:
+            os.environ["CAMPAIGN_OS_L5_ONLY_ITEM"] = previous
+        _caption_keep_lock.release()
 
 
 def regenerate_caption(
@@ -712,9 +713,9 @@ def regenerate_caption(
             ops_agents.append_enqueue_row(data_dir, row)
             enqueued.append(action)
 
-    started = False
+    writer: dict[str, Any] = {}
     if not recompose and run_now:
-        started = _kick_caption_keep(resolved_moment, brand_id)
+        writer = _kick_caption_keep(resolved_moment, brand_id)
 
     return {
         "ok": True,
@@ -722,7 +723,9 @@ def regenerate_caption(
         "moment_id": resolved_moment,
         "retired_asset_ids": retired,
         "enqueued": enqueued,
-        "started": started,
+        "started": bool(writer.get("started")),
+        "drafted": writer.get("drafted"),
+        "writer_error": writer.get("error"),
     }
 
 
