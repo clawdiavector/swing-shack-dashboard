@@ -10,7 +10,7 @@
 ## Commit under test
 
 - **Feature commit (product code):** `0df245cabfb0a280b3cdf009504b21ebb53dd03d` — `feat(calendar): day desk render_mode on /app/week`
-- **Branch tip after RFT:** see `git rev-parse HEAD` on `feat/cos-oneshot-calendar` after this handoff commit is pushed.
+- **Pushed branch tip:** `226239a8d28a5358abc8e6c2cdd6807f7efe880a` (`origin/feat/cos-oneshot-calendar` at ready-for-testing finish)
 
 ## Verification (worker)
 
