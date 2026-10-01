@@ -125,17 +125,19 @@ export function ReviewPieceDetail({
             </div>
           </div>
         ) : (
-          {captionRegenerating ? (
-            <p className="mb-2 text-sm font-semibold text-ac" data-testid="caption-pending">
-              Rewriting this caption. The image stays. About 30 seconds.
+          <>
+            {captionRegenerating ? (
+              <p className="mb-2 text-sm font-semibold text-ac" data-testid="caption-pending">
+                Rewriting this caption. The image stays. About 30 seconds.
+              </p>
+            ) : null}
+            <p
+              className={captionRegenerating ? 'text-sm text-tx3' : 'text-sm text-tx2'}
+              data-testid="caption-display"
+            >
+              {caption || 'No brief on this card yet.'}
             </p>
-          ) : null}
-          <p
-            className={captionRegenerating ? 'text-sm text-tx3' : 'text-sm text-tx2'}
-            data-testid="caption-display"
-          >
-            {caption || 'No brief on this card yet.'}
-          </p>
+          </>
         )}
         {visualBrief ? (
           <p className="text-sm text-tx3">
