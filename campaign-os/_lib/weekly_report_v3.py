@@ -1134,6 +1134,7 @@ def _render_html(bid: str, v24: dict, organic: Dict[str, Any],
     sections.append(_render_advertising(v24, primary, accent))
     sections.append(_render_website_pages(v24))
     sections.append(_render_seo(seo, seo_kw, primary, bid))
+    sections.append(_render_geo(bid, primary))
     sections.append(_render_social(bid, organic, primary))
     sections.append(_render_best_content(bid, organic, primary, periods))
     stories_html = _render_stories(bid, periods)
@@ -2134,6 +2135,163 @@ def _render_seo(seo: Dict[str, Any], seo_kw: Dict[str, Any],
   </div>
 </section>
 """
+
+
+def _render_geo(bid: str, primary: str) -> str:
+    """Render GEO & AI citation health section."""
+    try:
+        import datetime as _dt_mod
+        import json as _json
+        import os as _os
+        from pathlib import Path as _Path
+
+        DATA_DIR = _os.environ.get("DATA_DIR", "/data/campaign-os")
+        BUNDLED = _os.environ.get(
+            "BUNDLED_DATA_DIR",
+            str(_Path(__file__).parent.parent / "data"),
+        )
+
+        def _geo_now() -> str:
+            return _dt_mod.datetime.utcnow().isoformat() + "Z"
+
+        # Load citations
+        cit_path = _Path(DATA_DIR) / f"geo-citations-{bid}.json"
+        if not cit_path.exists():
+            cit_path = _Path(BUNDLED) / f"geo-citations-{bid}.json"
+        citations = []
+        if cit_path.exists():
+            try:
+                citations = _json.loads(cit_path.read_text())
+            except Exception:
+                citations = []
+
+        total = len(citations)
+        cited = sum(1 for c in citations if c.get("mentions_brand"))
+        url_cited = sum(1 for c in citations if c.get("mentions_url"))
+        citation_rate = round(cited / total * 100, 1) if total > 0 else 0.0
+        url_rate = round(url_cited / total * 100, 1) if total > 0 else 0.0
+
+        # Load watchlist
+        wl_path = _Path(DATA_DIR) / f"geo-watchlist-{bid}.json"
+        if not wl_path.exists():
+            wl_path = _Path(BUNDLED) / f"geo-watchlist-{bid}.json"
+        watchlist = []
+        if wl_path.exists():
+            try:
+                watchlist = _json.loads(wl_path.read_text())
+                if not watchlist:
+                    # seeded defaults
+                    if bid == "swing-shack":
+                        watchlist = [{"query": q} for q in [
+                            "best indoor golf Johannesburg", "TrackMan fitting Johannesburg",
+                            "golf coaching JHB", "club fitting Johannesburg", "swing analysis Johannesburg"
+                        ]]
+                    elif bid == "stick":
+                        watchlist = [{"query": q} for q in [
+                            "TrackMan fitting Paarl", "Cape Winelands golf",
+                            "golf coaching Paarl", "Vice Golf South Africa",
+                            "golf lessons for beginners South Africa"
+                        ]]
+            except Exception:
+                watchlist = []
+
+        # Load SEO audit blockers (merge GEO findings)
+        blockers_html = ""
+        try:
+            audit_path = _Path(BUNDLED) / "seo-audit.json"
+            if audit_path.exists():
+                audit_data = _json.loads(audit_path.read_text())
+                geo_blockers = []
+                for page in audit_data.get("pages", []):
+                    for f in page.get("findings", []):
+                        if f.get("type") in ("missing_h1", "missing_meta_description", "missing_faq"):
+                            geo_blockers.append(f)
+                if geo_blockers:
+                    rows = "".join(
+                        f"<div class='ad-cell'>"
+                        f"<div class='label'>{_esc(f.get('type','').replace('_',' ').title())}</div>"
+                        f"<div class='value'>{_esc(page.get('name',''))} — "
+                        f"<span class='tag {f.get('severity','medium')}'>{f.get('severity','')}</span></div>"
+                        f"</div>"
+                        for f in geo_blockers[:5]
+                    )
+                    blockers_html = f"<div class='seo-summary'>{rows}</div>"
+        except Exception:
+            pass
+
+        # Recent citations
+        recent = citations[-5:] if citations else []
+        recent_rows = ""
+        for c in recent:
+            model = _esc(c.get("model", "?"))
+            date = _esc(c.get("date", "?"))
+            brand_yes = "&#10003;" if c.get("mentions_brand") else "&#10007;"
+            url_yes = "&#10003;" if c.get("mentions_url") else "&#10007;"
+            color_good = "var(--good)"
+            color_bad = "var(--bad)"
+            recent_rows += f"""
+              <tr>
+                <td>{model}</td>
+                <td>{date}</td>
+                <td style="color:{color_good if c.get('mentions_brand') else color_bad}">{brand_yes}</td>
+                <td style="color:{color_good if c.get('mentions_url') else color_bad}">{url_yes}</td>
+              </tr>"""
+
+        summary_cells = [
+            ("Total queries", str(total)),
+            ("Brand citation rate", f"{citation_rate}%"),
+            ("URL citation rate", f"{url_rate}%"),
+            ("Watchlist queries", str(len(watchlist))),
+            ("Cited brand", str(cited)),
+            ("Cited URL", str(url_cited)),
+        ]
+        summary_html = "".join(
+            f"<div class='ad-cell'>"
+            f"<div class='label'>{_esc(l)}</div>"
+            f"<div class='value'>{_esc(v)}</div></div>"
+            for l, v in summary_cells
+        )
+
+        # Build recent citations table separately to avoid nested f-string
+        recent_citations_html = ""
+        if recent_rows:
+            recent_citations_html = f"""
+  <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;color:var(--accent);">Recent citations</h3>
+  <table class="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead>
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.1);text-align:left;">
+        <th style="padding:4px 8px;color:var(--tx3)">Model</th>
+        <th style="padding:4px 8px;color:var(--tx3)">Date</th>
+        <th style="padding:4px 8px;color:var(--tx3)">Brand?</th>
+        <th style="padding:4px 8px;color:var(--tx3)">URL?</th>
+      </tr>
+    </thead>
+    <tbody>
+      {recent_rows}
+    </tbody>
+  </table>"""
+
+        return f"""
+<section id="sec-GEO" class="report-section">
+  <div class="section-eyebrow">AI &amp; generative search</div>
+  <h2>GEO &amp; AI Citation Health</h2>
+  <p class="lead">How often are AI models (ChatGPT, Claude, Perplexity, Google AI Overviews) citing this brand?</p>
+  <div class="seo-summary">{summary_html}</div>
+  <div class="seo-grid2">
+    <div>
+      <h3 style="font-size:13px;color:var(--good);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Watchlist coverage</h3>
+      {"".join(f"<div class='seo-card up'><div class='keyword'>{_esc(w.get('query',''))}</div></div>" for w in watchlist[:5]) or '<div class="kpi-secondary">No watchlist queries configured yet.</div>'}
+    </div>
+    <div>
+      <h3 style="font-size:13px;color:var(--yel);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Top audit blockers</h3>
+      {blockers_html or '<div class="kpi-secondary">No high/medium GEO blockers found.</div>'}
+    </div>
+  </div>
+  {recent_citations_html}
+</section>
+"""
+    except Exception:
+        return ""
 
 
 def _render_social(bid: str, organic: Dict[str, Any], primary: str) -> str:

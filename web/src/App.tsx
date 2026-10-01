@@ -33,6 +33,7 @@ import { Templates } from './pages/results/Templates'
 import { Worked } from './pages/results/Worked'
 import { BrandVisuals } from './pages/BrandVisuals'
 import { Library } from './pages/Library'
+import GEO from './pages/GEO'
 
 export default function App() {
   return (
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="results/worked" element={<Worked />} />
         <Route path="results/templates" element={<Templates />} />
         <Route path="ops" element={<Ops />} />
+        <Route path="geo" element={<GEO />} />
         <Route path="other" element={<Other />} />
         <Route path="desk" element={<Desk />} />
         <Route path="brand/visuals" element={<BrandVisuals />} />

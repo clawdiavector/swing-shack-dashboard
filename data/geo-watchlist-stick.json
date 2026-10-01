@@ -1,0 +1,42 @@
+[
+  {
+    "id": "skq-trackman-paarl-1",
+    "query": "TrackMan fitting Paarl",
+    "region": "Paarl / Cape Winelands",
+    "source": "Ubersuggest organic report (data/ubersuggest-domain.json)",
+    "added_at": "2026-09-29",
+    "added_by": "operator directive (V2.11 immediate goals)"
+  },
+  {
+    "id": "skq-cape-winelands-1",
+    "query": "Cape Winelands golf",
+    "region": "Cape Winelands",
+    "source": "Ubersuggest organic report (data/ubersuggest-domain.json)",
+    "added_at": "2026-09-29",
+    "added_by": "operator directive (V2.11 immediate goals)"
+  },
+  {
+    "id": "skq-coaching-paarl-1",
+    "query": "golf coaching Paarl",
+    "region": "Paarl",
+    "source": "Ubersuggest organic report (data/ubersuggest-domain.json)",
+    "added_at": "2026-09-29",
+    "added_by": "operator directive (V2.11 immediate goals)"
+  },
+  {
+    "id": "skq-vice-golf-sa-1",
+    "query": "Vice Golf South Africa",
+    "region": "South Africa",
+    "source": "Ubersuggest organic report (data/ubersuggest-domain.json)",
+    "added_at": "2026-09-29",
+    "added_by": "operator directive (V2.11 immediate goals)"
+  },
+  {
+    "id": "skq-lessons-beginners-1",
+    "query": "golf lessons for beginners South Africa",
+    "region": "South Africa",
+    "source": "Ubersuggest organic report (data/ubersuggest-domain.json)",
+    "added_at": "2026-09-29",
+    "added_by": "operator directive (V2.11 immediate goals)"
+  }
+]
