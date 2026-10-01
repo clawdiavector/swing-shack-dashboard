@@ -47,6 +47,36 @@ function isSandboxSelectable(row: LibrarySandboxRow): boolean {
   return !row.receipt_only && Boolean(row.queue_id)
 }
 
+/** Min 44px hit target — raw checkboxes are too small on touch / dense lists. */
+function RowSelectCheckbox({
+  checked,
+  disabled,
+  onToggle,
+  ariaLabel,
+}: {
+  checked: boolean
+  disabled?: boolean
+  onToggle: () => void
+  ariaLabel: string
+}) {
+  return (
+    <label
+      className={`inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center self-center rounded-xl hover:bg-white/5 active:bg-white/10 ${
+        disabled ? 'cursor-not-allowed opacity-40 hover:bg-transparent' : ''
+      }`}
+    >
+      <input
+        type="checkbox"
+        className="h-5 w-5 accent-ac"
+        checked={checked}
+        disabled={disabled}
+        onChange={onToggle}
+        aria-label={ariaLabel}
+      />
+    </label>
+  )
+}
+
 type BulkConfirmState = {
   action: 'archive' | 'delete'
   lane: 'drafts' | 'sandbox'
@@ -95,9 +125,10 @@ function BulkConfirmModal({
           </p>
         ) : null}
         {state.action === 'delete' ? (
-          <label className="mb-3 flex items-center gap-2 text-sm text-tx2">
+          <label className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-xl py-1 text-sm text-tx2 hover:bg-white/5">
             <input
               type="checkbox"
+              className="h-5 w-5 shrink-0 accent-ac"
               checked={includeApproved}
               onChange={(e) => onIncludeApproved(e.target.checked)}
             />
@@ -156,13 +187,11 @@ function DraftRowItem({
   const cap = captionTag(row)
   const thumb = resolveAssetUrl(row.image_url || row.image_path || undefined)
   return (
-    <div className="flex items-start gap-3">
-      <input
-        type="checkbox"
-        className="mt-4 h-4 w-4 shrink-0 accent-ac"
+    <div className="flex items-start gap-1 sm:gap-2">
+      <RowSelectCheckbox
         checked={selected}
-        onChange={onToggle}
-        aria-label={`Select ${row.title || row.asset_id}`}
+        onToggle={onToggle}
+        ariaLabel={`Select ${row.title || row.asset_id}`}
       />
       <div className="min-w-0 flex-1">
     <QueueItem
@@ -213,14 +242,12 @@ function SandboxRowItem({
   const thumb = row.receipt_only ? undefined : resolveAssetUrl(row.image_url || undefined)
   return (
     <article className="glass space-y-2 rounded-2xl border border-white/10 p-4">
-      <div className="flex flex-wrap items-start gap-3">
-        <input
-          type="checkbox"
-          className="mt-1 h-4 w-4 shrink-0 accent-ac"
+      <div className="flex flex-wrap items-start gap-1 sm:gap-2">
+        <RowSelectCheckbox
           checked={selected}
           disabled={!selectable}
-          onChange={onToggle}
-          aria-label={selectable ? `Select ${title}` : 'Receipt-only — not bulk-editable'}
+          onToggle={onToggle}
+          ariaLabel={selectable ? `Select ${title}` : 'Receipt-only — not bulk-editable'}
         />
         {thumb ? (
           <QueueItemThumb src={thumb} alt={title} className="h-16 w-16 shrink-0 rounded-xl border border-bd object-cover" />
