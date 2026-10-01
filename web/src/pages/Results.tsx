@@ -42,6 +42,12 @@ export function Results() {
 
   const published = data?.counts?.published ?? 0
   const brand = brandLabel || data?.active_brand_label || data?.active_brand_id || 'this brand'
+  // The Flask /weekly-report route is auth-gated and lives outside the
+  // React router. A plain <a href> does a full-page navigation and
+  // carries the session cookie — the same way the OS shell renders
+  // /daily and /publish. react-router-dom <Link to="..."> would try to
+  // match the path client-side and either 404 or stay on the OS shell.
+  const weeklyHref = `/weekly-report?brand=${encodeURIComponent(brandId || 'swing-shack')}`
 
   return (
     <div className="space-y-6">
@@ -57,14 +63,22 @@ export function Results() {
           hint="This week’s live posts"
           tone="green"
         />
-        <StatCard
-          to="/results/week"
-          icon={LineChart}
-          label="Weekly"
-          value="Open"
-          hint="Full weekly report"
-          tone="gold"
-        />
+        <a
+          href={weeklyHref}
+          className="glass block rounded-2xl border-[1.5px] border-yel/50 px-3 py-3 backdrop-blur-xl transition-colors hover:border-yel"
+          title="Opens the full weekly report (authed)."
+        >
+          <div className="flex items-center justify-between gap-2">
+            <LineChart className="h-5 w-5 text-yel" strokeWidth={2.5} />
+            <span className="rounded-full bg-yel/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-yel uppercase">
+              Open
+            </span>
+          </div>
+          <p className="mt-2 font-display text-2xl font-semibold text-tx">Weekly</p>
+          <p className="mt-0.5 text-[11px] font-semibold tracking-wide text-tx3 uppercase">
+            Full weekly report
+          </p>
+        </a>
         <StatCard
           href="/?page=seo"
           icon={Search}
@@ -82,9 +96,14 @@ export function Results() {
           title="This week’s report"
           meta="What shipped, what moved, and what to do next Monday."
         >
-          <Button to="/results/week" icon={LineChart} tip="Open this week’s full report.">
+          <a
+            href={weeklyHref}
+            className="inline-flex items-center gap-1.5 rounded-full bg-yel px-4 py-2 text-sm font-semibold text-bg transition-colors hover:bg-yel/90"
+            title="Opens the full weekly report (authed, full-page)."
+          >
+            <LineChart className="h-4 w-4" strokeWidth={2.5} />
             Open weekly report
-          </Button>
+          </a>
           <Button to="/results/worked?tab=posts" icon={Sparkles} tone="ghost" tip="Open what worked — posts, reach, and recipes.">
             Insights
           </Button>
@@ -152,6 +171,17 @@ export function Results() {
       <section>
         <h2 className="mb-3 font-display text-xl font-semibold">All reports</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <a
+            href={weeklyHref}
+            className="glass flex items-start gap-3 rounded-2xl border-[1.5px] border-yel/50 p-4 backdrop-blur-xl transition-colors hover:border-yel"
+            title="Opens the full weekly report (authed, full-page)."
+          >
+            <LineChart className="h-6 w-6 shrink-0 text-yel" strokeWidth={2.5} />
+            <span>
+              <span className="block font-display text-base font-semibold text-tx">This week</span>
+              <span className="mt-0.5 block text-xs text-tx3">Weekly report</span>
+            </span>
+          </a>
           {TABS.map((tab) => (
             <IconTile key={tab.href} href={tab.href} icon={tab.icon} label={tab.label} hint={tab.hint} />
           ))}

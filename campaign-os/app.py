@@ -25334,10 +25334,69 @@ def weekly_report_api():
                               "error": out.get("block_reason"),
                               "rendered": out.get("rendered")}), 503
         if fmt == 'json':
-            return jsonify({"ok": True,
-                              "report_status": status,
-                              "report": out.get("raw_payload"),
-                              "rendered": out.get("rendered")}), 200
+            # V3.6: unwrap raw_payload.v24 (the V2.4.1 canonical report) so
+            # React's `brandJson.metrics`, `brandJson.brand_meta`,
+            # `brandJson.brand_id`, etc. resolve directly. Without the
+            # unwrap, Week.tsx sees `brandJson?.metrics === undefined`
+            # and renders the "No metrics yet — run the weekly pipeline
+            # or open Classic" empty state, even when v24 is fully
+            # populated. Keep `report` + `rendered` for backward
+            # compat with any other consumers.
+            raw_payload = out.get("raw_payload") or {}
+            v24 = raw_payload.get("v24") or {}
+            payload = dict(v24)
+            payload["ok"] = True
+            payload["report_status"] = status
+            payload["report"] = raw_payload
+            payload["rendered"] = out.get("rendered")
+            payload["periods"] = raw_payload.get("periods")
+            payload["brand_id"] = raw_payload.get("brand_id") or bid
+            payload["as_of"] = raw_payload.get("as_of")
+            payload["generator"] = raw_payload.get("generator")
+            # V3.6 compat: synthesize `metrics` + `brand_meta` aliases so
+            # the React Week.tsx page (which reads brandJson.metrics and
+            # brandJson.brand_meta) renders the real KPIs instead of the
+            # 'No metrics yet' empty state. We don't change the V2.4.1
+            # canonical schema — these are read-only projections on top.
+            kpi_scorecard = v24.get("kpi_scorecard") or {}
+            kpi_rows = kpi_scorecard.get("rows") or []
+            if kpi_rows and not payload.get("metrics"):
+                payload["metrics"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("current")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_unit_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("unit")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_delta_pct_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("delta_pct")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_previous_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("previous")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_data_status_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("data_status")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+            if not payload.get("brand_meta"):
+                payload["brand_meta"] = {
+                    "brand_id": v24.get("brand_id") or payload.get("brand_id"),
+                    "brand_name": v24.get("brand_name"),
+                    "domain": v24.get("domain"),
+                    "generated_at": v24.get("generated_at"),
+                    "schema": v24.get("schema"),
+                    "data_complete_through": v24.get("data_complete_through"),
+                    "ninety_day_baseline": v24.get("ninety_day_baseline"),
+                }
+            return jsonify(payload), 200
         if fmt == 'markdown':
             from flask import Response
             return Response(out.get("rendered", ""),
@@ -25512,7 +25571,7 @@ def weekly_report_page():
     renderer) is no longer called from this route.
     """
     if not _is_authed():
-        return redirect(url_for("login", next=request.path))
+        return redirect(url_for("login_page", next=request.path))
     if _wr3 is None:
         return "weekly_report_v3 unavailable", 503
     bid = request.args.get('brand') or get_brand_id()
@@ -50663,7 +50722,7 @@ def editorial_report_page(brand_id):
     Auth: session cookie OR valid ?share=<token>.
     """
     if not _v25_is_authed_or_shared():
-        return redirect(url_for("login", next=request.path))
+        return redirect(url_for("login_page", next=request.path))
     if brand_id not in ("stick", "swing-shack"):
         return "invalid brand", 400
     if _ed is None:
@@ -50770,10 +50829,61 @@ def weekly_report_v3(brand_id):
                 "rendered": out.get("rendered"),
             }), 422
         if fmt == "json":
-            return jsonify({"ok": True,
-                              "report_status": status,
-                              "report": out.get("raw_payload"),
-                              "rendered": out.get("rendered")}), 200
+            # V3.6: unwrap raw_payload.v24 to top level so React's
+            # `brandJson.metrics` etc. resolve. See the same fix on
+            # /api/weekly-report for the rationale.
+            raw_payload = out.get("raw_payload") or {}
+            v24 = raw_payload.get("v24") or {}
+            payload = dict(v24)
+            payload["ok"] = True
+            payload["report_status"] = status
+            payload["report"] = raw_payload
+            payload["rendered"] = out.get("rendered")
+            payload["periods"] = raw_payload.get("periods")
+            payload["brand_id"] = raw_payload.get("brand_id") or brand_id
+            payload["as_of"] = raw_payload.get("as_of")
+            payload["generator"] = raw_payload.get("generator")
+            # V3.6 compat: synthesize metrics + brand_meta aliases for
+            # React Week.tsx. See /api/weekly-report for full rationale.
+            kpi_scorecard = v24.get("kpi_scorecard") or {}
+            kpi_rows = kpi_scorecard.get("rows") or []
+            if kpi_rows and not payload.get("metrics"):
+                payload["metrics"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("current")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_unit_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("unit")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_delta_pct_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("delta_pct")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_previous_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("previous")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+                payload["metrics"]["_data_status_by_key"] = {
+                    (row.get("label") or row.get("key") or f"row_{i}"): row.get("data_status")
+                    for i, row in enumerate(kpi_rows)
+                    if isinstance(row, dict)
+                }
+            if not payload.get("brand_meta"):
+                payload["brand_meta"] = {
+                    "brand_id": v24.get("brand_id") or payload.get("brand_id"),
+                    "brand_name": v24.get("brand_name"),
+                    "domain": v24.get("domain"),
+                    "generated_at": v24.get("generated_at"),
+                    "schema": v24.get("schema"),
+                    "data_complete_through": v24.get("data_complete_through"),
+                    "ninety_day_baseline": v24.get("ninety_day_baseline"),
+                }
+            return jsonify(payload), 200
         if fmt == "html":
             return out.get("rendered", ""), 200, {
                 "Content-Type": "text/html; charset=utf-8"}

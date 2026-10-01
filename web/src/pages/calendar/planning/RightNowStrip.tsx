@@ -85,7 +85,6 @@ export function RightNowStrip({
     const text = rn[key]
       || (label === 'FITTING' ? (rn.fitting || null) : null)
       || (label === 'COACHING' ? (rn.coaching || null) : null)
-      || (label === 'LESSONS' ? (rn.lessons || null) : null)
       || (label === 'ON-COURSE' ? (rn.on_course || null) : null)
       || (label === 'HUMAN' ? (rn.human || null) : null)
       || (label === 'MEASUREMENT' ? (rn.measurement || null) : null)

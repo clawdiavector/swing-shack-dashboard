@@ -1728,7 +1728,34 @@ table.data .trend-flat, table.data .trend-neutral {{ color: var(--ink-muted); }}
   .social-grid {{ grid-template-columns: 1fr; }}
   .seo-grid2 {{ grid-template-columns: 1fr; }}
   .content-grid {{ grid-template-columns: 1fr; }}
+  .story-grid {{ grid-template-columns: 1fr; }}
   .report-block {{ text-align: left; }}
+  .header-inner {{ padding: 0 20px; gap: 18px; }}
+  .report-main {{ padding: 0 20px 60px; }}
+  .report-section {{ padding: 24px 22px; }}
+  .kpi-card {{ padding: 14px; }}
+  .kpi-value {{ font-size: 22px; }}
+}}
+@media (max-width: 560px) {{
+  .page-header {{ padding-top: 24px; margin-bottom: 20px; }}
+  .brand-name {{ font-size: 22px; }}
+  .brand-tagline {{ font-size: 12px; }}
+  .kpi-row {{ grid-template-columns: 1fr; }}
+  .kpi-value {{ font-size: 20px; }}
+  .kpi-label {{ font-size: 10px; }}
+  .ad-summary {{ grid-template-columns: 1fr; }}
+  .report-section {{ padding: 20px 16px; }}
+  .header-inner {{ padding: 0 14px; gap: 12px; align-items: flex-start; }}
+  .report-main {{ padding: 0 14px 40px; }}
+  .page-nav {{ padding: 0 14px; flex-wrap: wrap; }}
+  .page-nav .nav-pill {{ padding: 6px 10px; font-size: 11px; }}
+  .kpi-card {{ padding: 12px 14px; }}
+  .content-card {{ padding: 12px; }}
+  .content-permalink {{ font-size: 13px; }}
+  .action-grid {{ gap: 10px; }}
+  .action-card {{ padding: 12px 14px; }}
+  .page-footer {{ flex-direction: column; gap: 8px; padding: 16px 14px; }}
+  .footer-period {{ font-size: 11px; }}
 }}
 @media print {{
   body {{ background: white; }}

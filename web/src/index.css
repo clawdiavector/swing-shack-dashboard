@@ -175,3 +175,21 @@ body {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+
+/* Weekly-report embed: brand-styled HTML rendered inside the OS shell.
+   The Flask route returns full HTML with its own .wr-* classes; this
+   container gives the report a scrollable window with brand background
+   so it reads like the standalone page while staying in the OS. */
+.report-embed {
+  background: #fbfaf6;
+  color: #14171f;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.report-embed .page-header { border-radius: 12px 12px 0 0; }
+.report-embed .page-footer { color: #7a8194; }
+
