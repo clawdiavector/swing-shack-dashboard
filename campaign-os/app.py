@@ -18721,9 +18721,33 @@ def api_drafts_regenerate(draft_id: str):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/drafts/<path:draft_id>/restore-poster', methods=['POST'])
+def api_drafts_restore_poster(draft_id: str):
+    """POST /api/drafts/<id>/restore-poster — put the publish-queue image back on this draft."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import draft_review_actions as _draft_actions
+
+        body = request.get_json(silent=True) or {}
+        result = _draft_actions.restore_poster_from_publish(
+            draft_id,
+            detach_asset_id=str(body.get("detach_asset_id") or ""),
+        )
+        code = 200 if result.get("ok") else 400
+        return jsonify(result), code
+    except LookupError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("api_drafts_restore_poster failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/drafts/<path:draft_id>/regenerate-caption', methods=['POST'])
 def api_drafts_regenerate_caption(draft_id: str):
-    """POST /api/drafts/<id>/regenerate-caption — retire caption sidecar + enqueue P11."""
+    """POST /api/drafts/<id>/regenerate-caption — rewrite caption text on this draft."""
     if not _is_job_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     try:
@@ -18733,7 +18757,7 @@ def api_drafts_regenerate_caption(draft_id: str):
         result = _draft_actions.regenerate_caption(
             draft_id=draft_id,
             reason=str(body.get("reason") or "regenerate-caption"),
-            recompose=body.get("recompose", True) is not False,
+            recompose=body.get("recompose") is True,
         )
         code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
         return jsonify(result), code
@@ -18758,7 +18782,7 @@ def ops_moment_regenerate_caption(item_id: str):
         result = _draft_actions.regenerate_caption(
             moment_id=item_id,
             reason=str(body.get("reason") or "regenerate-caption"),
-            recompose=body.get("recompose", True) is not False,
+            recompose=body.get("recompose") is True,
         )
         code = 200 if result.get("ok") else 400
         return jsonify(result), code

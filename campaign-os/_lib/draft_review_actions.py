@@ -461,22 +461,137 @@ def retire_caption_drafts_for_moment(moment_id: str) -> list[str]:
     return retired
 
 
+def clear_caption_keep_image(asset_id: str) -> bool:
+    """Blank caption text on one draft. Leave the poster, image, and sidecar link."""
+    from _lib import unified_inbox as ui
+
+    asset_id = (asset_id or "").strip()
+    if not asset_id:
+        return False
+    sidecar = _load_sidecar(asset_id)
+    if not sidecar:
+        return False
+    data = ui._load_campaign_data()  # noqa: SLF001
+    found = False
+    for campaign in (data.get("campaigns") or {}).values():
+        if not isinstance(campaign, dict):
+            continue
+        asset = (campaign.get("assets") or {}).get(asset_id)
+        if isinstance(asset, dict):
+            asset["caption"] = ""
+            asset.pop("copy_package", None)
+            found = True
+    if not found:
+        return False
+    ui._write_campaign_data(data)  # noqa: SLF001
+    for key in ("copy_package", "compose_headline", "compose_cta", "compose_body"):
+        sidecar.pop(key, None)
+    _save_sidecar(asset_id, sidecar)
+    return True
+
+
+def restore_poster_from_publish(
+    draft_id: str,
+    *,
+    detach_asset_id: str | None = None,
+) -> dict[str, Any]:
+    """Put the queued publish image and caption back on this draft."""
+    from _lib.publish_sandbox import _queue_path, _read_jsonl  # noqa: SLF001
+    from _lib import unified_inbox as ui
+
+    ctx = resolve_draft(draft_id)
+    asset_id = str(ctx["asset_id"])
+    asset = ctx["asset"]
+    sidecar = dict(ctx["sidecar"])
+    prefix = f"qc-{asset_id}-"
+    rows = [
+        row for row in _read_jsonl(_queue_path())
+        if str(row.get("idempotency_key") or "").startswith(prefix)
+    ]
+    if not rows:
+        return {"ok": False, "error": "no publish row for this draft"}
+
+    composed: dict[str, str] = {}
+    image_url = ""
+    image_path = ""
+    caption = ""
+    for row in rows:
+        platform = str(row.get("platform") or "").strip()
+        url = str(row.get("image_url") or "").strip()
+        if platform and url:
+            composed[platform] = url
+        if platform == "instagram" or not image_url:
+            image_url = url or image_url
+            image_path = str(row.get("image_path") or image_path)
+            caption = str(row.get("caption_preview") or caption)
+    if not composed or not caption:
+        return {"ok": False, "error": "publish row is missing the image or caption"}
+
+    now = datetime.now(timezone.utc).isoformat()
+    asset["caption"] = caption
+    asset["image_url"] = image_url
+    asset["image_path"] = image_path
+    asset["composed"] = composed
+    asset["updatedAt"] = now
+    asset.pop("copy_package", None)
+    ui._write_campaign_data(_campaign_data_with_asset(ctx, asset))  # noqa: SLF001
+
+    sidecar["composed"] = composed
+    sidecar["action"] = "compose_post"
+    sidecar.pop("superseded_at", None)
+    sidecar.pop("superseded_for_moment", None)
+    sidecar["restored_at"] = now
+    _save_sidecar(asset_id, sidecar)
+
+    detached = ""
+    detach_id = (detach_asset_id or "").strip()
+    if detach_id and detach_id != asset_id:
+        other = _load_sidecar(detach_id)
+        if other:
+            other["action"] = "superseded_caption"
+            other["source_inbox_item_id"] = ""
+            other["superseded_at"] = now
+            _save_sidecar(detach_id, other)
+            detached = detach_id
+
+    return {
+        "ok": True,
+        "asset_id": asset_id,
+        "image_url": image_url,
+        "detached_asset_id": detached,
+    }
+
+
+def _campaign_data_with_asset(ctx: dict[str, Any], asset: dict[str, Any]) -> dict[str, Any]:
+    from _lib import unified_inbox as ui
+
+    data = ui._load_campaign_data()  # noqa: SLF001
+    campaign = (data.get("campaigns") or {}).get(ctx["campaign_id"])
+    if not isinstance(campaign, dict):
+        raise LookupError("campaign not found")
+    assets = campaign.setdefault("assets", {})
+    assets[ctx["asset_id"]] = asset
+    return data
+
+
 def regenerate_caption(
     *,
     moment_id: str | None = None,
     draft_id: str | None = None,
     reason: str = "regenerate-caption",
-    recompose: bool = True,
+    recompose: bool = False,
 ) -> dict[str, Any]:
-    """Retire caption sidecars and enqueue fresh draft_caption (+ optional compose_post)."""
+    """Rewrite caption text on the open draft. recompose=True retires the poster and rebuilds it."""
     from _lib import ops_agents
     from _lib.l5_create_enqueue import create_actions_for_moment
 
     resolved_moment = (moment_id or "").strip()
     brand_id = ""
+    asset_id = ""
     if draft_id:
         ctx = resolve_draft(draft_id)
         brand_id = str(ctx["brand_id"] or "")
+        asset_id = str(ctx["asset_id"] or "")
         resolved_moment = str(ctx["moment_id"] or resolved_moment)
     if not resolved_moment:
         return {"ok": False, "error": "moment_id required (or draft with source moment)"}
@@ -490,7 +605,14 @@ def regenerate_caption(
     if not brand_id:
         return {"ok": False, "error": "could not resolve brand_id"}
 
-    retired = retire_caption_drafts_for_moment(resolved_moment)
+    if not recompose and not asset_id:
+        return {"ok": False, "error": "draft_id required to rewrite a caption in place"}
+
+    retired: list[str] = []
+    if recompose:
+        retired = retire_caption_drafts_for_moment(resolved_moment)
+    elif not clear_caption_keep_image(asset_id):
+        return {"ok": False, "error": "could not clear caption on this draft"}
     reason_s = (reason or "regenerate-caption").strip()[:64]
     stamp = hashlib.sha1(f"{reason_s}:{resolved_moment}".encode()).hexdigest()[:10]
     item_hash = hashlib.sha1(resolved_moment.encode()).hexdigest()[:12]
@@ -504,7 +626,9 @@ def regenerate_caption(
             "reason": reason_s,
             "action": "draft_caption",
             "payload_ref": f"inbox/{resolved_moment}",
-            "dedupe_key": f"cap-regen-{stamp}-{item_hash}",
+            "dedupe_key": (
+                f"cap-regen-{stamp}-{item_hash}" if recompose else f"cap-keep-{asset_id}"
+            ),
         }
     )
     ops_agents.append_enqueue_row(data_dir, cap_row)
@@ -524,24 +648,22 @@ def regenerate_caption(
         ops_agents.append_enqueue_row(data_dir, compose_row)
         enqueued.append("compose_post")
 
-    # Lodge-only extras (gbp) when applicable — skip draft_photo (template week).
-    for action in create_actions_for_moment(brand_id, resolved_moment, phase="lodge"):
-        if action in enqueued:
-            continue
-        if action == "draft_caption":
-            continue
-        row = ops_agents.normalise_enqueue(
-            {
-                "agent": "cos-caption" if action == "draft_gbp" else "cos-image",
-                "brand": brand_id,
-                "reason": reason_s,
-                "action": action,
-                "payload_ref": f"inbox/{resolved_moment}",
-                "dedupe_key": f"{action}-regen-{stamp}-{item_hash}",
-            }
-        )
-        ops_agents.append_enqueue_row(data_dir, row)
-        enqueued.append(action)
+        # Lodge-only extras (gbp) when rebuilding the poster — skip draft_photo.
+        for action in create_actions_for_moment(brand_id, resolved_moment, phase="lodge"):
+            if action in enqueued or action == "draft_caption":
+                continue
+            row = ops_agents.normalise_enqueue(
+                {
+                    "agent": "cos-caption" if action == "draft_gbp" else "cos-image",
+                    "brand": brand_id,
+                    "reason": reason_s,
+                    "action": action,
+                    "payload_ref": f"inbox/{resolved_moment}",
+                    "dedupe_key": f"{action}-regen-{stamp}-{item_hash}",
+                }
+            )
+            ops_agents.append_enqueue_row(data_dir, row)
+            enqueued.append(action)
 
     return {
         "ok": True,

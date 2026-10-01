@@ -508,6 +508,7 @@ def _process_caption_row(
     item_id: str,
     brand_id: str,
     draft_ctx: ImageDraftContext | None = None,
+    keep_asset_id: str | None = None,
 ) -> tuple[Optional[str], Optional[str]]:
     from _lib import llm_spend  # noqa: PLC0415
     from _lib.p11_context_engine import run_caption_pipeline  # noqa: PLC0415
@@ -597,13 +598,21 @@ def _process_caption_row(
             sidecar_extra["compose_cta"] = compose_cta
         if compose_body:
             sidecar_extra["compose_body"] = compose_body
-    asset_id = _write_draft(
-        brand_id=brand_id,
-        caption=caption,
-        platform=primary_platform,
-        source_item_id=item_id,
-        sidecar=sidecar_extra,
-    )
+    keep_id = (keep_asset_id or _keep_asset_id_from_row(row) or "").strip()
+    if keep_id:
+        asset_id = _rewrite_caption_keep_image(
+            asset_id=keep_id,
+            caption=caption,
+            sidecar_extra=sidecar_extra,
+        )
+    else:
+        asset_id = _write_draft(
+            brand_id=brand_id,
+            caption=caption,
+            platform=primary_platform,
+            source_item_id=item_id,
+            sidecar=sidecar_extra,
+        )
     from _lib import post_cost  # noqa: PLC0415
 
     post_cost.record_spend_and_line(
@@ -679,15 +688,101 @@ def _asset_has_persisted_image(asset: dict[str, Any]) -> bool:
     return bool(url_s)
 
 
+def _keep_asset_id_from_row(row: dict[str, Any]) -> str | None:
+    """Asset id embedded in a caption-only regen queue id (cap-keep-draft-…)."""
+    row_id = str(row.get("id") or "")
+    marker = "cap-keep-"
+    idx = row_id.find(marker)
+    if idx < 0:
+        return None
+    asset_id = row_id[idx + len(marker) :].strip()
+    if asset_id.startswith("draft-") and len(asset_id) >= 18:
+        return asset_id
+    return None
+
+
+def _caption_keep_asset_id(rows_for_moment: list[tuple[dict[str, Any], str]]) -> str | None:
+    for row, action in rows_for_moment:
+        if action != "draft_caption":
+            continue
+        asset_id = _keep_asset_id_from_row(row)
+        if asset_id:
+            return asset_id
+    return None
+
+
 def _explicit_caption_regen(rows_for_moment: list[tuple[dict[str, Any], str]]) -> bool:
     """True when the operator asked to rewrite this caption, not the cron."""
     for row, action in rows_for_moment:
-        if action not in ("draft_caption", "compose_post"):
+        if action != "draft_caption":
             continue
         row_id = str(row.get("id") or "")
-        if "cap-regen" in row_id or "compose-regen" in row_id:
+        if "cap-regen" in row_id or "cap-keep" in row_id:
             return True
     return False
+
+
+def _rewrite_caption_keep_image(
+    *,
+    asset_id: str,
+    caption: str,
+    sidecar_extra: dict[str, Any],
+) -> str:
+    """Write a new caption onto an existing draft. Do not replace the poster."""
+    from _lib.publish_sandbox import sync_queue_rows_for_asset  # noqa: PLC0415
+    from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
+
+    now = _utc_now_iso()
+    data = _load_campaign_data()
+    asset: dict[str, Any] | None = None
+    brand_id = ""
+    for campaign in (data.get("campaigns") or {}).values():
+        if not isinstance(campaign, dict):
+            continue
+        row = (campaign.get("assets") or {}).get(asset_id)
+        if isinstance(row, dict):
+            asset = row
+            brand_id = str((campaign.get("identity") or {}).get("brand") or "")
+            break
+    if asset is None:
+        raise LookupError(f"asset not found: {asset_id}")
+
+    asset["caption"] = caption
+    asset["updatedAt"] = now
+    if sidecar_extra.get("title"):
+        asset["name"] = sidecar_extra["title"]
+    if sidecar_extra.get("copy_package"):
+        asset["copy_package"] = sidecar_extra["copy_package"]
+    _write_campaign_data(data)
+
+    sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+    sidecar: dict[str, Any] = {}
+    if sidecar_path.is_file():
+        try:
+            loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                sidecar = loaded
+        except (OSError, json.JSONDecodeError):
+            sidecar = {}
+    composed = sidecar.get("composed")
+    image_kept = {k: sidecar[k] for k in ("composed", "archetype", "venue_photo") if k in sidecar}
+    sidecar.update(sidecar_extra)
+    sidecar.update(image_kept)
+    if isinstance(composed, dict) and composed:
+        sidecar["action"] = "compose_post"
+        sidecar["composed"] = composed
+    sidecar["asset_id"] = asset_id
+    sidecar["updated_at"] = now
+    atomic_write(f"draft-assets/{asset_id}.json", sidecar)
+    if brand_id:
+        sync_queue_rows_for_asset(
+            brand_id=brand_id,
+            asset_id=asset_id,
+            caption=caption,
+            asset=asset,
+            sidecar=sidecar,
+        )
+    return asset_id
 
 
 def _moment_has_composed(brand_id: str, item_id: str) -> bool:
@@ -1461,19 +1556,21 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 break
 
             draft_ctx = build_image_draft_context(brand_id, item_id)
-            rows_for_moment = _maybe_enqueue_image_pipeline_after_caption(
-                rows=rows,
-                brand_id=brand_id,
-                item_id=item_id,
-                rows_for_moment=rows_for_moment,
-            )
+            keep_id = _caption_keep_asset_id(rows_for_moment)
+            if not keep_id:
+                rows_for_moment = _maybe_enqueue_image_pipeline_after_caption(
+                    rows=rows,
+                    brand_id=brand_id,
+                    item_id=item_id,
+                    rows_for_moment=rows_for_moment,
+                )
             caption_rows = [(r, a) for r, a in rows_for_moment if a in _CAPTION_QUEUE_ACTIONS]
             photo_rows = [(r, a) for r, a in rows_for_moment if a == "draft_photo"]
             gen_rows = [(r, a) for r, a in rows_for_moment if a == "draft_gen_slots"]
             compose_rows = [(r, a) for r, a in rows_for_moment if a == "compose_post"]
 
             cap_asset_id, _cap_text = _find_caption_draft_for_item(item_id)
-            if cap_asset_id is None and caption_rows:
+            if (keep_id or cap_asset_id is None) and caption_rows:
                 cap_row = caption_rows[0][0]
                 try:
                     asset_id, err = _process_caption_row(
@@ -1481,6 +1578,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
                         item_id=item_id,
                         brand_id=brand_id,
                         draft_ctx=draft_ctx,
+                        keep_asset_id=keep_id,
                     )
                 except Exception as exc:  # noqa: BLE001
                     skipped += 1
@@ -1507,16 +1605,28 @@ def run(brand: str | None = None) -> dict[str, Any]:
                     for row, action in rows_for_moment:
                         if action in _CAPTION_QUEUE_ACTIONS:
                             row["status"] = "done"
+                        elif keep_id and action in (
+                            "draft_photo",
+                            "draft_image",
+                            "draft_gen_slots",
+                            "compose_post",
+                        ):
+                            row["status"] = "done"
                     drafted += 1
-                    rows_for_moment = _maybe_enqueue_image_pipeline_after_caption(
-                        rows=rows,
-                        brand_id=brand_id,
-                        item_id=item_id,
-                        rows_for_moment=rows_for_moment,
-                    )
-                    photo_rows = [(r, a) for r, a in rows_for_moment if a == "draft_photo"]
-                    gen_rows = [(r, a) for r, a in rows_for_moment if a == "draft_gen_slots"]
-                    compose_rows = [(r, a) for r, a in rows_for_moment if a == "compose_post"]
+                    if keep_id:
+                        photo_rows = []
+                        gen_rows = []
+                        compose_rows = []
+                    else:
+                        rows_for_moment = _maybe_enqueue_image_pipeline_after_caption(
+                            rows=rows,
+                            brand_id=brand_id,
+                            item_id=item_id,
+                            rows_for_moment=rows_for_moment,
+                        )
+                        photo_rows = [(r, a) for r, a in rows_for_moment if a == "draft_photo"]
+                        gen_rows = [(r, a) for r, a in rows_for_moment if a == "draft_gen_slots"]
+                        compose_rows = [(r, a) for r, a in rows_for_moment if a == "compose_post"]
                 else:
                     skipped += 1
 

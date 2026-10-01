@@ -726,7 +726,7 @@ export function reviewPieceDraftId(item: InboxItem): string | null {
 export async function draftRegenerateCaption(
   draftId: string,
   reason: string,
-  recompose = true,
+  recompose = false,
 ) {
   const res = await fetch(
     `/api/drafts/${encodeURIComponent(draftId)}/regenerate-caption`,

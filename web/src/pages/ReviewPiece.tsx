@@ -245,14 +245,14 @@ export function ReviewPiece() {
     setSuccess('')
     const reason = 'Regenerate caption from review'
     try {
-      const result = await draftRegenerateCaption(draftId, reason, true)
+      const result = await draftRegenerateCaption(draftId, reason, false)
       setCaptionRegenerating(false)
       if (!result.ok) {
         setError(result.error || 'Could not queue caption regenerate')
         return
       }
       setSuccess(
-        'A new caption is queued. This card may stay here until the updated draft appears.',
+        'Rewriting the caption on this post. The image and the day stay.',
       )
     } catch (err) {
       setCaptionRegenerating(false)
