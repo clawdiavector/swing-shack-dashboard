@@ -11830,10 +11830,21 @@ def meta_ig_business_refresh():
 
 @app.route('/api/instagram/refresh', methods=['POST'])
 def instagram_analytics_refresh():
-    """POST /api/instagram/refresh — re-pull instagram-analytics.json from
-    Instagram Graph API. Pulls 30 days of posts with engagement metrics.
+    """POST /api/instagram/refresh?brand=<id> — re-pull instagram-analytics.json
+    from Instagram Graph API for one brand, OR for all operating brands
+    if no ?brand= is given. Pulls 30 days of posts with engagement metrics.
 
     Required scope: instagram_business_manage_insights.
+
+    V2.5 fix: previous version hardcoded BRAND_ID=swing-shack so the
+    endpoint only refreshed Swing Shack. Stick and bag-drop accumulated
+    stale 'last_insights_sync' timestamps and the weekly report rendered
+    posts from ig-business-analytics.json (which still said 'swingshack')
+    as NOT_CONNECTED for non-Swing-Shack brands.
+
+    The fix is to accept an explicit ?brand=<id> query parameter and
+    default to sweeping every OPERATING_BRANDS brand so callers don't
+    need to remember to pass ?brand= on each call.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
@@ -11854,13 +11865,41 @@ def instagram_analytics_refresh():
         if not script_path:
             return jsonify({"ok": False, "error": "fetch_ig_business.py not found", "checked": script_paths}), 500
         env = os.environ.copy()
-        env.setdefault("BRAND_ID", "swing-shack")
-        result = _sp.run(["python3", script_path], capture_output=True, text=True, env=env, timeout=120)
+        # Determine which brands to refresh: explicit ?brand=, or sweep all.
+        explicit = (request.args.get("brand") or "").strip().lower()
+        try:
+            from _lib.meta_api import oi as _oi  # type: ignore
+            op = list(_oi.OPERATING_BRANDS or [])
+        except Exception:
+            op = ["swing-shack", "stick"]
+        if explicit:
+            if explicit not in op:
+                return jsonify({"ok": False, "error": f"unknown brand: {explicit!r}",
+                                "operating_brands": op}), 400
+            brands = [explicit]
+        else:
+            brands = op
+        results = []
+        for bid in brands:
+            env_b = dict(env)
+            env_b["BRAND_ID"] = bid
+            try:
+                result = _sp.run(["python3", script_path],
+                                  capture_output=True, text=True,
+                                  env=env_b, timeout=180)
+                results.append({
+                    "brand_id": bid,
+                    "ok": result.returncode == 0,
+                    "returncode": result.returncode,
+                    "stdout_tail": (result.stdout or "")[-400:],
+                    "stderr_tail": (result.stderr or "")[-400:],
+                })
+            except Exception as e:
+                results.append({"brand_id": bid, "ok": False, "error": str(e)})
         return jsonify({
-            "ok": result.returncode == 0,
-            "script": script_path,
-            "stdout_tail": result.stdout[-500:],
-            "stderr_tail": result.stderr[-500:],
+            "ok": all(r.get("ok") for r in results),
+            "brands": brands,
+            "results": results,
         })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
