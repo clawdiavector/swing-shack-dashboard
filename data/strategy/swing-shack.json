@@ -78,16 +78,19 @@
       "missing_connector": "Swing Shack fitting booking system not integrated with reporting",
       "marketing_support_signal": "Fitting-booking page sessions + IG/FB engagement on fitting content",
       "do_not_fabricate_progress": true,
-      "source": "operator directive (Discord, 2026-09-28)"
+      "source": "operator directive (Discord, 2026-09-28)",
+      "superseded_by": "immediate_fittings_monthly",
+      "superseded_at": "2026-09-29",
+      "superseded_reason": "Replaced by V2.11 immediate goal. Kept for audit trail but no longer canonical."
     }
   ],
   "headline_belief": "GOLF IS MORE FUN WHEN IT MAKES SENSE.",
   "mission": "We take your golf seriously so you can enjoy it more.",
   "version": "v3",
-  "version_label": "Swing Shack Brand Strategy 2026\u20132029 (v3, doc_id:5012f1f21501)",
+  "version_label": "Swing Shack Brand Strategy 2026–2029 (v3, doc_id:5012f1f21501)",
   "strategic_ambition": "Be the brand that knows more about the serious golfer's actual swing than anyone else in South Africa.",
   "human_purpose": "Do everything we can to make golf more enjoyable.",
-  "category_position": "Johannesburg's golf improvement club \u2014 the place that understands your game, helps you improve it, and makes you enjoy playing more.",
+  "category_position": "Johannesburg's golf improvement club — the place that understands your game, helps you improve it, and makes you enjoy playing more.",
   "category_choices": {
     "do_not_become": [
       "A simulator rental venue (easy to copy, tech is hero, price becomes the argument)",
@@ -120,7 +123,7 @@
     {
       "id": "move-1",
       "title": "Own 'measurement-led serious golf' as a category",
-      "thesis": "No direct competitor in SA owns the TrackMan Performance Studio + 90-day fitting guarantee + measurement-led development stack as a single coherent thing. Create the category \u2014 like Red Bull created 'energy drinks.'",
+      "thesis": "No direct competitor in SA owns the TrackMan Performance Studio + 90-day fitting guarantee + measurement-led development stack as a single coherent thing. Create the category — like Red Bull created 'energy drinks.'",
       "why_now": "The DA gap and 5x SEO ceiling mean we can't outspend the golf-course giants. We can create the category instead. Generic `indoor golf` terms get contested; 'measurement-led serious golf' gets searched by buyers who know what they want.",
       "scales_across_brands": true,
       "what_we_sell_functionally": [
@@ -156,7 +159,7 @@
         {
           "name": "The Truth About...",
           "rank": "Authority",
-          "purpose": "Driver spin, lie angle, shaft weight, ball choice, practice, lessons, equipment \u2014 useful, clear, never over-technical."
+          "purpose": "Driver spin, lie angle, shaft weight, ball choice, practice, lessons, equipment — useful, clear, never over-technical."
         },
         {
           "name": "Golf Is More Fun When...",
@@ -177,7 +180,7 @@
     },
     {
       "id": "move-3",
-      "title": "Commercial flywheel \u2014 Indoor golf \u2192 Insight \u2192 Habit \u2192 Expansion",
+      "title": "Commercial flywheel — Indoor golf → Insight → Habit → Expansion",
       "stages": [
         {
           "step": 1,
@@ -211,12 +214,12 @@
     {
       "id": "bet-indoor-golf-defend",
       "title": "Reclaim the leaked `indoor golf` term",
-      "hypothesis": "A long-form `indoor golf` landing page (Ogilvy-style) reverses the #2 \u2192 #3 slide within 90 days.",
+      "hypothesis": "A long-form `indoor golf` landing page (Ogilvy-style) reverses the #2 → #3 slide within 90 days.",
       "evidence_needed": "Ubersuggest delta, IG inbound to the new page, booking page visits.",
       "investment": "1 day writing the page + on-page SEO + 3 supporting IG posts.",
       "owner": "Heidi + Copywriter",
       "confidence": "medium-high",
-      "source": "SEO leak (Ubersuggest 2026-08-26): indoor golf #2 \u2192 #3, 480 vol/mo",
+      "source": "SEO leak (Ubersuggest 2026-08-26): indoor golf #2 → #3, 480 vol/mo",
       "layer": "Intelligence",
       "property": "What Does Your Swing Say?"
     },
@@ -228,31 +231,31 @@
       "investment": "1 dedicated page + 1 IG reel of TrackMan sim in action.",
       "owner": "Heidi + Copywriter + Retina",
       "confidence": "high",
-      "source": "SEO win (Ubersuggest 2026-08-26): simulated golf #4 \u2192 #5, 2400 vol/mo, +1",
+      "source": "SEO win (Ubersuggest 2026-08-26): simulated golf #4 → #5, 2400 vol/mo, +1",
       "layer": "Intelligence",
       "property": "The Truth About..."
     },
     {
       "id": "bet-club-fitting-defend",
       "title": "Launch the `club fitting near me` defence",
-      "hypothesis": "A Google Business Profile + location page + the 90-day fitting guarantee stops the #4 \u2192 #7 slide and pushes back to top-5.",
+      "hypothesis": "A Google Business Profile + location page + the 90-day fitting guarantee stops the #4 → #7 slide and pushes back to top-5.",
       "evidence_needed": "GBP clicks, organic rank recovery, fitting bookings attributed.",
       "investment": "GBP page refresh + new fitting-page content + GBP posts.",
       "owner": "Heidi + Publisher",
       "confidence": "high",
-      "source": "SEO leak (Ubersuggest 2026-08-26): club fitting near me #4 \u2192 #7, 70 vol/mo",
+      "source": "SEO leak (Ubersuggest 2026-08-26): club fitting near me #4 → #7, 70 vol/mo",
       "layer": "Action",
       "property": "Before / After / Why"
     },
     {
       "id": "bet-10ball-truth",
       "title": "Launch The 10-Ball Truth flagship",
-      "hypothesis": "A recurring flagship property (10 shots / 1 question / 1 useful truth) generates 5\u00d7 engagement vs single-shot content and builds recognition across IG / FB / YouTube.",
+      "hypothesis": "A recurring flagship property (10 shots / 1 question / 1 useful truth) generates 5× engagement vs single-shot content and builds recognition across IG / FB / YouTube.",
       "evidence_needed": "Reach per episode, save rate, repeat viewers, brand-recall lift.",
       "investment": "1 day/month per episode + reusable intro/outro + week-of-publish bump.",
       "owner": "Heidi + Swing Shack staff + Publisher",
       "confidence": "medium-high",
-      "source": "Brand strategy v3 \u00a75 Red Bull move",
+      "source": "Brand strategy v3 §5 Red Bull move",
       "layer": "Intelligence",
       "property": "10-Ball Truth"
     },
@@ -264,7 +267,7 @@
       "investment": "In-bay capture day monthly + human edit style + 4-6 episodes/year.",
       "owner": "Swing Shack staff + Publisher",
       "confidence": "medium",
-      "source": "Brand strategy v3 \u00a75 + IG data showing human content wins",
+      "source": "Brand strategy v3 §5 + IG data showing human content wins",
       "layer": "Human",
       "property": "Shack Sessions"
     },
@@ -276,16 +279,16 @@
       "investment": "Membership re-positioning, page rewrite, onboarding flow.",
       "owner": "Heidi + Copywriter + Publisher",
       "confidence": "medium-high",
-      "source": "Brand strategy v3 \u00a71 history + \u00a73 flywheel Stage 3",
+      "source": "Brand strategy v3 §1 history + §3 flywheel Stage 3",
       "layer": "Enjoyment",
       "property": "Golf Is More Fun When..."
     }
   ],
   "content_map": {
-    "year_ambition": "Know more about the serious golfer's actual swing than anyone else in South Africa \u2014 and use that knowledge to make golf more enjoyable.",
+    "year_ambition": "Know more about the serious golfer's actual swing than anyone else in South Africa — and use that knowledge to make golf more enjoyable.",
     "year_example_90_day_chapter": {
       "month_1": {
-        "theme": "Know your swing \u2014 make the game make sense",
+        "theme": "Know your swing — make the game make sense",
         "topics": [
           "Distances, strike, dispersion, common misses"
         ],
@@ -297,7 +300,7 @@
         "commercial_destination": "Practise + fitting"
       },
       "month_2": {
-        "theme": "Know your equipment \u2014 stop fighting your own bag",
+        "theme": "Know your equipment — stop fighting your own bag",
         "topics": [
           "Shaft, lie, loft, gapping, ball, putter"
         ],
@@ -414,7 +417,7 @@
     "video_intro_outro_system": [
       {
         "video_layer": "What Does Your Swing Say?",
-        "intro": "2\u20133 sec title sting + recurring question lock-up",
+        "intro": "2–3 sec title sting + recurring question lock-up",
         "outro": "Now you know. What do you do next? + relevant CTA",
         "use": "Fittings, practice, coaching, swing diagnosis"
       },
@@ -492,10 +495,10 @@
     ]
   },
   "scorecard": {
-    "fame": "Are more golfers recognising Swing Shack? \u2014 Reach, branded search, direct traffic, recurring-property audience, non-follower exposure.",
-    "authority": "Do golfers believe we understand their game? \u2014 Educational saves/shares, fitting/lesson enquiries, search visibility, content questions, repeat viewers.",
-    "enjoyment": "Does the experience make golfers want to play more? \u2014 Repeat visits, membership, league participation, referrals, qualitative customer feedback.",
-    "commercial": "Does the brand create profitable behaviour? \u2014 Bookings by service, fitting/coaching utilisation, membership value, revenue by source when available."
+    "fame": "Are more golfers recognising Swing Shack? — Reach, branded search, direct traffic, recurring-property audience, non-follower exposure.",
+    "authority": "Do golfers believe we understand their game? — Educational saves/shares, fitting/lesson enquiries, search visibility, content questions, repeat viewers.",
+    "enjoyment": "Does the experience make golfers want to play more? — Repeat visits, membership, league participation, referrals, qualitative customer feedback.",
+    "commercial": "Does the brand create profitable behaviour? — Bookings by service, fitting/coaching utilisation, membership value, revenue by source when available."
   },
   "stop_doing": [
     "Stop making TrackMan the headline every time. It is proof, not personality.",

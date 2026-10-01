@@ -73,7 +73,16 @@ export function PlanningHero({
   const nsLine2 = nsFromApiLine2 || nsFallbackLine2
 
   // Operating goals: read from canonical response. Show all that exist.
-  const operatingGoals = bigIdea?.operating_goals || []
+  // V2.11 §3 — Filter out goals that are marked superseded_by a more
+  // canonical entry (e.g. the legacy '24 fittings/week' superseded by
+  // 'immediate_fittings_monthly'). Without this filter the planner
+  // shows both the legacy 24 and the V2.11 immediate goal side-by-side,
+  // confusing the operator. The legacy goal stays in the data file for
+  // audit trail; we just don't render it as a tile.
+  const allOperatingGoals = bigIdea?.operating_goals || []
+  const operatingGoals = allOperatingGoals.filter(
+    (g) => !g.superseded_by,
+  )
 
   // Operating areas: canonical response. V2.9 §2 — never hard-coded.
   const areas = bigIdea?.operating_areas || []

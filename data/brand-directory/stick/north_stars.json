@@ -40,7 +40,10 @@
       "connector_status": "not_connected",
       "missing_connector": "Stick fitting booking system not integrated with reporting",
       "marketing_support_signal": "Booking-page sessions from relevant traffic sources",
-      "do_not_fabricate_progress": true
+      "do_not_fabricate_progress": true,
+      "superseded_by": "immediate_fittings_monthly",
+      "superseded_at": "2026-09-29",
+      "superseded_reason": "Replaced by V2.11 immediate goal. Kept for audit trail but no longer canonical."
     },
     {
       "id": "immediate_coaching_sessions_per_coach_per_week",
@@ -64,7 +67,10 @@
       "connector_status": "not_connected",
       "missing_connector": "Stick coaching scheduling system not integrated with reporting",
       "marketing_support_signal": "Coaching-page sessions + IG/FB engagement on coach content",
-      "do_not_fabricate_progress": true
+      "do_not_fabricate_progress": true,
+      "superseded_by": "immediate_coaching_sessions_per_coach_per_week",
+      "superseded_at": "2026-09-29",
+      "superseded_reason": "Replaced by V2.11 immediate goal. Kept for audit trail but no longer canonical."
     }
   ],
   "rules": {
