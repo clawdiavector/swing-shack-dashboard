@@ -3684,6 +3684,43 @@ def calendar_transition():
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
 
 
+@app.route('/api/calendar/moment/<brand_id>/<calendar_id>/fields', methods=['PATCH'])
+def calendar_moment_fields(brand_id: str, calendar_id: str):
+    """Day desk: edit moment fields when the inbox candidate row no longer exists."""
+    try:
+        from _lib import unified_inbox
+        from _lib.marketing_calendar import VALID_BRAND_IDS, set_fields
+
+        body = request.get_json(force=True, silent=True) or {}
+        editor = str(body.pop("editor", None) or "operator")
+        if brand_id not in VALID_BRAND_IDS:
+            return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+        field_names = list(body.keys())
+        inbox_item_id = f"calendar_candidate:{brand_id}:{calendar_id}"
+        previous = unified_inbox._current_field_values(  # noqa: SLF001
+            "calendar_candidate",
+            f"{brand_id}:{calendar_id}",
+            field_names,
+        )
+        updated = set_fields(brand_id, calendar_id, body, reason="day desk edit")
+        if not updated:
+            return jsonify({"ok": False, "error": "calendar record not found"}), 404
+        unified_inbox.record_human_edit(
+            inbox_item_id=inbox_item_id,
+            item_type="calendar_candidate",
+            brand_id=brand_id,
+            editor=editor,
+            fields=body,
+            previous=previous or None,
+        )
+        return jsonify({"ok": True, "record": updated}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("calendar_moment_fields failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
 @app.route('/api/calendar/calendar/<brand_id>', methods=['GET'])
 def calendar_view(brand_id: str):
     """Calendar view assembly: pillar summary + records in date range."""

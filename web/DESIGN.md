@@ -86,10 +86,11 @@ Native surfaces: `/app/calendar` (parked-posts month — P2 schedule grid),
 `/app/calendar/lanes` (Strategic Calendar — hero · right-now · event timeline · lane month grid),
 `/app/calendar/ideas` (backlog).
 
-`?date=YYYY-MM-DD` is the calendar's deep-link contract and is honoured on all three:
-it sets the visible month and the selected day, and it is the park target on Ideas.
-Missing or malformed falls back to today, never an error. Every day-selection and
-month-step writes `?date=` back with `replace:true`.
+`?date=YYYY-MM-DD` is the calendar's deep-link contract and is honoured on all three
+native calendar routes **and** on `/app/week` (day desk). It sets the visible month and
+the selected day on calendar pages, and the loaded day on This week. Missing or malformed
+falls back to today (SAST anchor on the week day desk), never an error. Every day-selection
+and month-step writes `?date=` back with `replace:true`.
 
 `?id=<calendar_id>` selects a moment and opens the moment panel on `/app/calendar`.
 Unlike the one-shot params (`?item=` `?asset=` `?post=` `?hook_id=`), **`?id=` is
@@ -106,6 +107,20 @@ bundles · leaks. Lanes: now · month · timeline), as in Ops and Studio.
 
 Classic `/?page=calendar`, `/?page=ideas` and `/?page=planning` stay live — each native
 page carries a ClassicLink raw anchor to its classic page.
+
+## This week / Day desk
+
+Route: `/app/week`. Default **Week** view (`?tab=week` or no tab): past three days
+(collapsed), today through +6, and Undated — unchanged from the original board.
+
+**Day desk** (`?tab=day&date=YYYY-MM-DD`): loads one SAST day (`days=1`, `past=0`,
+`undated=0`). Controls: Today · Tomorrow · date picker · Week (back to seven-day view).
+Today and Tomorrow anchors use **Africa/Johannesburg**, not the browser timezone; on a
+week load, Today follows the payload day with `is_today === true`.
+
+Each card shows a **render mode** badge (`Template` | `One-shot`; absence reads as
+Template). In day mode only, editable cards (not scheduled / released / posted) expose an
+Edit drawer for post type, copy, and mode — no generate or batch controls from this surface.
 
 ## Review
 
