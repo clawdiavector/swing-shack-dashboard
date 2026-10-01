@@ -310,7 +310,16 @@ def build_system_message(brand_ctx: BrandContext) -> str:
     elif isinstance(keywords, str) and _is_real_value(keywords):
         real_keywords = [keywords]
     if real_keywords:
-        parts.append(f"Look and feel: {', '.join(real_keywords)}.")
+        conf = bible.get("confidence")
+        is_draft = conf is None or str(conf).strip() == "" or str(conf).strip().lower() == "draft"
+        if is_draft:
+            parts.append(
+                "Unverified style notes (low confidence, defer to the colour anchor): "
+                + ", ".join(real_keywords[:10])
+                + "."
+            )
+        else:
+            parts.append(f"Look and feel: {', '.join(real_keywords)}.")
 
     # 5. Negative — non-negotiable
     parts.append(f"NEVER produce: {_DEFAULT_NEGATIVE}")
@@ -367,6 +376,7 @@ def build_image_messages(
     user_prompt: str,
     *,
     include_references: bool = True,
+    include_brand_text: bool = True,
     extra_reference_paths: Optional[list[str]] = None,
 ) -> list[dict]:
     """Build the chat-completions 'messages' payload for image generation.
@@ -387,15 +397,12 @@ def build_image_messages(
     """
     messages: list[dict] = []
 
-    # System message — hard constraints
-    if brand_ctx.ok:
+    if include_brand_text and brand_ctx.ok:
         messages.append({"role": "system", "content": build_system_message(brand_ctx)})
 
-    # User message — the actual ask, plus any reference images
     user_text_parts: list[str] = [user_prompt.strip()]
 
-    # Reinforce negative at the end of the user message too (belt + braces)
-    if brand_ctx.ok:
+    if include_brand_text and brand_ctx.ok:
         user_text_parts.append("")
         user_text_parts.append(f"BRAND CONSTRAINTS: {build_system_message(brand_ctx)}")
         user_text_parts.append("")

@@ -61,10 +61,20 @@ export const POST_FLAG_LABELS: Record<PostFlag, string> = {
   operator: 'Operator',
 }
 
+export type RenderMode = 'template' | 'oneshot'
+
+export const RENDER_MODE_LABELS: Record<RenderMode, string> = {
+  template: 'Template',
+  oneshot: 'One-shot',
+}
+
 export type PostingWeekPost = {
   calendar_id: string
   brand_id?: string
   title: string
+  angle?: string | null
+  render_mode?: RenderMode
+  post_type?: string | null
   primary_channel?: string | null
   source_type?: string | null
   calendar_status?: string | null
@@ -280,6 +290,97 @@ export function postStateTone(state?: PostState | string | null): 'mute' | 'warn
     default:
       return 'mute'
   }
+}
+
+export function renderModeOf(post: PostingWeekPost): RenderMode {
+  const raw = String(post.render_mode ?? '')
+    .trim()
+    .toLowerCase()
+  if (raw === 'oneshot') return 'oneshot'
+  return 'template'
+}
+
+export function renderModeEditable(state?: PostState | string | null): boolean {
+  const s = String(state ?? '')
+  return s !== 'scheduled' && s !== 'released' && s !== 'posted'
+}
+
+export const ONESHOT_POST_TYPES = new Set([
+  'fitting_headline',
+  'service_hero',
+  'coaching_promo',
+  'zine_collage',
+  'humour_card',
+])
+
+export const TEMPLATE_ONLY_POST_TYPES = new Set([
+  'price_list',
+  'price_package',
+  'pricing',
+  'package',
+  'packages',
+  'rate_card',
+  'package_list',
+  'discount_code',
+  'promo_code',
+  'offer',
+  'sale_offer',
+  'location',
+  'shop_corner',
+  'service_square',
+  'service_end',
+  'brand_statement',
+])
+
+/** Mirrors backend oneshot_blocked — template-only post types cannot flip to one-shot. */
+export function oneshotEligible(postType?: string | null): boolean {
+  return !TEMPLATE_ONLY_POST_TYPES.has(String(postType ?? '').trim().toLowerCase())
+}
+
+const SAST = 'Africa/Johannesburg'
+
+/** Today as YYYY-MM-DD in SAST (not the browser local calendar). */
+export function sastTodayIso(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: SAST,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now)
+  const y = parts.find((p) => p.type === 'year')?.value ?? '1970'
+  const m = parts.find((p) => p.type === 'month')?.value ?? '01'
+  const d = parts.find((p) => p.type === 'day')?.value ?? '01'
+  return `${y}-${m}-${d}`
+}
+
+function addDaysIso(iso: string, delta: number): string {
+  const [y, mo, d] = iso.split('-').map(Number)
+  const utc = new Date(Date.UTC(y, mo - 1, d + delta, 12))
+  return utc.toISOString().slice(0, 10)
+}
+
+/** Resolve day desk anchor from URL params; malformed date → SAST today. */
+export function dayAnchorFromParams(
+  tab: string | null,
+  dateParam: string | null,
+  now: Date = new Date(),
+): { tab: 'week' | 'day'; dateIso: string } {
+  const mode = tab === 'day' ? 'day' : 'week'
+  if (mode === 'week') {
+    return { tab: 'week', dateIso: sastTodayIso(now) }
+  }
+  const raw = String(dateParam ?? '').trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const parsed = new Date(`${raw}T12:00:00`)
+    if (!Number.isNaN(parsed.getTime())) {
+      return { tab: 'day', dateIso: raw }
+    }
+  }
+  return { tab: 'day', dateIso: sastTodayIso(now) }
+}
+
+export function sastTomorrowIso(now: Date = new Date()): string {
+  return addDaysIso(sastTodayIso(now), 1)
 }
 
 export function linkForPostState(post: PostingWeekPost): string | null {

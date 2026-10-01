@@ -2,9 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CampaignAsset, InboxItem } from './api'
 import {
   fetchInboxItem,
+  fetchPostingWeek,
   inboxMediaTag,
+  patchMomentFields,
   resolvedInboxVisualUrl,
   reviewPiecePath,
+  saveMomentFields,
 } from './api'
 
 describe('reviewPiecePath', () => {
@@ -150,5 +153,102 @@ describe('inboxMediaTag', () => {
     }
     const tag = inboxMediaTag(item, { visualBroken: true })
     expect(tag.id).toBe('no-image')
+  })
+})
+
+describe('fetchPostingWeek day load query', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, days_list: [] }),
+      }),
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('emits undated=0 for single-day load', async () => {
+    await fetchPostingWeek('swing-shack', {
+      start: '2026-10-01',
+      days: 1,
+      past: 0,
+      includeUndated: false,
+    })
+    const url = String(vi.mocked(fetch).mock.calls[0]?.[0])
+    expect(url).toContain('start=2026-10-01')
+    expect(url).toContain('days=1')
+    expect(url).toContain('past=0')
+    expect(url).toContain('undated=0')
+  })
+})
+
+describe('saveMomentFields routing', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, changed: ['render_mode'] }),
+      }),
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('uses inbox edit for candidate', async () => {
+    await saveMomentFields(
+      {
+        calendar_id: 'c1',
+        title: 'T',
+        stages: {},
+        state: 'candidate',
+        inbox_item_id: 'calendar_candidate:swing-shack:c1',
+        brand_id: 'swing-shack',
+      },
+      { render_mode: 'oneshot' },
+    )
+    const url = String(vi.mocked(fetch).mock.calls[0]?.[0])
+    expect(url).toContain('/api/inbox/unified/calendar_candidate%3Aswing-shack%3Ac1/edit')
+  })
+
+  it('uses moment PATCH for booked', async () => {
+    await saveMomentFields(
+      {
+        calendar_id: 'c2',
+        title: 'T',
+        stages: {},
+        state: 'booked',
+        brand_id: 'swing-shack',
+      },
+      { render_mode: 'oneshot' },
+    )
+    const url = String(vi.mocked(fetch).mock.calls[0]?.[0])
+    expect(url).toContain('/api/calendar/moment/swing-shack/c2/fields')
+  })
+})
+
+describe('patchMomentFields', () => {
+  it('PATCHes the moment route', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true }),
+      }),
+    )
+    await patchMomentFields('stick', 'cal-1', { title: 'X' })
+    expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain(
+      '/api/calendar/moment/stick/cal-1/fields',
+    )
+    vi.unstubAllGlobals()
   })
 })

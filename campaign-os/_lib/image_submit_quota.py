@@ -11,6 +11,7 @@ from typing import Any
 _LOCK = threading.Lock()
 SCHEMA = "campaign-os/image-submit-count/v1"
 DEFAULT_MAX_PER_DAY = 2
+ONESHOT_MAX_PER_DAY = 1
 
 
 def _data_dir() -> str:
@@ -40,7 +41,7 @@ def _load(day: str | None = None) -> dict[str, Any]:
     path = _day_path(day)
     d = day or _utc_day()
     if not os.path.isfile(path):
-        return {"schema": SCHEMA, "date": d, "brands": {}}
+        return {"schema": SCHEMA, "date": d, "brands": {}, "oneshot_brands": {}}
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -51,9 +52,12 @@ def _load(day: str | None = None) -> dict[str, Any]:
         brands = data.get("brands")
         if not isinstance(brands, dict):
             data["brands"] = {}
+        oneshot = data.get("oneshot_brands")
+        if not isinstance(oneshot, dict):
+            data["oneshot_brands"] = {}
         return data
     except (OSError, ValueError, TypeError):
-        return {"schema": SCHEMA, "date": d, "brands": {}, "broken": True}
+        return {"schema": SCHEMA, "date": d, "brands": {}, "oneshot_brands": {}, "broken": True}
 
 
 def _save(data: dict[str, Any]) -> None:
@@ -97,6 +101,42 @@ def check_brand_image_submit(brand_id: str) -> tuple[bool, str]:
     if used >= cap:
         return False, f"daily image cap reached for {brand_id} ({used}/{cap})"
     return True, "ok"
+
+
+def oneshot_count_for_brand(brand_id: str, *, day: str | None = None) -> int:
+    with _LOCK:
+        data = _load(day)
+        brands = data.get("oneshot_brands") if isinstance(data.get("oneshot_brands"), dict) else {}
+        try:
+            return max(0, int(brands.get(brand_id) or 0))
+        except (TypeError, ValueError):
+            return 0
+
+
+def check_brand_oneshot_submit(brand_id: str) -> tuple[bool, str]:
+    cap = ONESHOT_MAX_PER_DAY
+    if cap <= 0:
+        return False, "one-shot submit cap is zero"
+    used = oneshot_count_for_brand(brand_id)
+    if used >= cap:
+        return False, f"one-shot cap reached for {brand_id} ({used}/{cap})"
+    return True, "ok"
+
+
+def record_brand_oneshot_submit(brand_id: str) -> dict[str, int]:
+    with _LOCK:
+        data = _load()
+        brands = data.setdefault("oneshot_brands", {})
+        if not isinstance(brands, dict):
+            brands = {}
+            data["oneshot_brands"] = brands
+        used = max(0, int(brands.get(brand_id) or 0)) + 1
+        brands[brand_id] = used
+        try:
+            _save(data)
+        except OSError:
+            pass
+        return {"brand_id": brand_id, "count": used, "cap": ONESHOT_MAX_PER_DAY}
 
 
 def record_brand_image_submit(brand_id: str) -> dict[str, int]:

@@ -48,6 +48,15 @@ export function qcReasonsList(qc: DraftQc | undefined): string[] {
   return []
 }
 
+export function oneshotMetaFromInbox(item: InboxItem) {
+  return item.meta?.oneshot
+}
+
+export function formatOneshotCost(usd: number | null | undefined): string {
+  if (usd === null || usd === undefined || Number.isNaN(Number(usd))) return '—'
+  return Number(usd).toFixed(4)
+}
+
 export function briefSectionEntries(
   sections: NonNullable<NonNullable<InboxItem['meta']>['brief']>['sections'],
 ): Array<{ title: string; body: string }> {

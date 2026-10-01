@@ -22,6 +22,7 @@ import {
 import { sumCounts } from '../lib/mergeCounts'
 import { useLoadGate } from '../lib/useLoadGate'
 import { formatStamp } from '../lib/stamp'
+import { RENDER_MODE_LABELS, renderModeOf } from '../lib/postingWeek'
 
 function sourceLabel(tag: string): string {
   if (tag === 'holiday') return 'Holiday'
@@ -52,6 +53,13 @@ function CandidateCard({
   const pillar = item.meta?.pillar?.trim()
   const angle = item.meta?.angle?.trim()
   const relevanceReason = item.meta?.relevance_reason?.trim()
+  const modePost = {
+    calendar_id: item.meta?.calendar_id ?? '',
+    title: item.title ?? '',
+    stages: {},
+    render_mode: item.meta?.render_mode as 'template' | 'oneshot' | undefined,
+  }
+  const inboxMode = renderModeOf(modePost)
 
   async function saveFields() {
     setErr('')
@@ -100,6 +108,7 @@ function CandidateCard({
         <div className="flex shrink-0 flex-col items-end gap-2">
           <div className="flex flex-wrap items-center justify-end gap-2">
             <BrandChip brandId={item.brand_id} show={showBrandChip} />
+            <Badge tone={inboxMode === 'oneshot' ? 'gold' : 'mute'}>{RENDER_MODE_LABELS[inboxMode]}</Badge>
             <Badge tone="mute">{sourceLabel(source)}</Badge>
           </div>
           <p className="text-right text-xs text-tx3">Created {formatStamp(item.created_at)}</p>

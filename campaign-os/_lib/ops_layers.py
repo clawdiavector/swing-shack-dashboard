@@ -292,7 +292,19 @@ def brand_images_today(brand_id: str) -> dict[str, Any]:
     except (TypeError, ValueError):
         count = 0
     at_cap = cap > 0 and count >= cap
-    return {"images_today": count, "cap": cap, "at_cap": at_cap}
+    from _lib.image_submit_quota import ONESHOT_MAX_PER_DAY, oneshot_count_for_brand  # noqa: PLC0415
+
+    os_count = oneshot_count_for_brand(brand_id)
+    os_cap = ONESHOT_MAX_PER_DAY
+    at_oneshot_cap = os_cap > 0 and os_count >= os_cap
+    return {
+        "images_today": count,
+        "cap": cap,
+        "at_cap": at_cap,
+        "oneshot_today": os_count,
+        "oneshot_cap": os_cap,
+        "at_oneshot_cap": at_oneshot_cap,
+    }
 
 
 def queue_depth(queue: Optional[dict | list]) -> int:

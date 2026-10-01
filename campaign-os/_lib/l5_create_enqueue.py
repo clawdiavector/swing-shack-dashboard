@@ -13,11 +13,28 @@ def already_queued(existing: set[tuple[str, str]], action: str) -> bool:
     return any((n, s) in existing for n in names for s in ("pending", "waiting"))
 
 
+def _calendar_record_from_item(brand_id: str, item_id: str) -> dict[str, Any] | None:
+    if not item_id.startswith("calendar_candidate:"):
+        return None
+    parts = item_id.split(":", 2)
+    if len(parts) < 3:
+        return None
+    cal_id = parts[2]
+    from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+    for record in canonical_records(brand_id):
+        rid = str(record.get("calendar_id") or record.get("event_key") or "")
+        if rid == cal_id:
+            return record if isinstance(record, dict) else None
+    return None
+
+
 def create_actions_for_moment(
     brand_id: str,
     item_id: str,
     *,
     phase: str = "all",
+    record: dict[str, Any] | None = None,
 ) -> list[str]:
     """``lodge``: caption (+ gbp) only; ``image``: gen/photo + compose; ``all``: full pipeline."""
     from _lib.archetypes import select_archetype
@@ -31,6 +48,17 @@ def create_actions_for_moment(
         return actions
 
     image_actions: list[str] = []
+    from _lib.marketing_calendar import render_mode_for_record  # noqa: PLC0415
+
+    cal_record = record if record is not None else _calendar_record_from_item(brand_id, item_id)
+    if phase in ("image", "all") and render_mode_for_record(cal_record or {}) == "oneshot":
+        if phase == "image":
+            return ["draft_oneshot"]
+        actions = ["draft_caption", "draft_oneshot"]
+        if "gbp" in intended_publish_channels(brand_id):
+            actions.append("draft_gbp")
+        return actions
+
     recipe = load_recipe_for_moment(brand_id, item_id)
     gen_slots = recipe.get("gen_slots") if isinstance(recipe, dict) else None
     if isinstance(gen_slots, list) and gen_slots:
@@ -89,7 +117,16 @@ def enqueue_create_actions(
             ok, _reason = check_brand_image_submit(brand_id)
             if not ok:
                 continue
-        agent = "cos-image" if action in ("draft_photo", "compose_post", "draft_gen_slots") else "cos-caption"
+        if action == "draft_oneshot":
+            from _lib.image_submit_quota import check_brand_image_submit, check_brand_oneshot_submit
+
+            ok, _reason = check_brand_image_submit(brand_id)
+            if not ok:
+                continue
+            ok, _reason = check_brand_oneshot_submit(brand_id)
+            if not ok:
+                continue
+        agent = "cos-image" if action in ("draft_photo", "compose_post", "draft_gen_slots", "draft_oneshot") else "cos-caption"
         row = ops_agents.normalise_enqueue(
             {
                 "agent": agent,

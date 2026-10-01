@@ -1,4 +1,5 @@
-import type { PostingWeekPayload, ShelfPayload } from './postingWeek'
+import type { PostingWeekPayload, PostingWeekPost, ShelfPayload } from './postingWeek'
+import { renderModeEditable } from './postingWeek'
 
 export type TodayCounts = {
   review: number
@@ -74,6 +75,8 @@ export type InboxItem = {
     source_type?: string
     created_by?: string
     calendar_id?: string
+    render_mode?: 'template' | 'oneshot'
+    post_type?: string | null
     pillar?: string
     angle?: string
     relevance_reason?: string
@@ -106,6 +109,23 @@ export type InboxItem = {
     archetype?: { id?: string; canvas?: string; schema?: string }
     compose_pending?: boolean
     source_inbox_item_id?: string
+    oneshot?: {
+      prompt_used?: string | null
+      master_prompt?: string | null
+      negative_prompt?: string | null
+      literal_text?: string | null
+      literal_text_source?: string | null
+      model?: string | null
+      provider?: string | null
+      unverified_model?: boolean
+      cost_usd?: number | null
+      cost_source?: string | null
+      image_size?: string | null
+      logo_source?: string | null
+      logo_drift_warning?: string | null
+      regen_count?: number
+      router_sidecar_path?: string | null
+    }
   }
 }
 
@@ -453,7 +473,13 @@ export function fetchInbox(status = 'pending', brand?: string, type?: string) {
 
 export function fetchPostingWeek(
   brand?: string,
-  opts?: { past?: number; days?: number; start?: string; includeCandidates?: boolean },
+  opts?: {
+    past?: number
+    days?: number
+    start?: string
+    includeCandidates?: boolean
+    includeUndated?: boolean
+  },
 ) {
   const q = new URLSearchParams()
   if (brand) q.set('brand', brand)
@@ -461,6 +487,7 @@ export function fetchPostingWeek(
   if (opts?.days != null) q.set('days', String(opts.days))
   if (opts?.start) q.set('start', opts.start)
   if (opts?.includeCandidates === false) q.set('include_candidates', '0')
+  if (opts?.includeUndated === false) q.set('undated', '0')
   return getJson<PostingWeekPayload>(`/api/inbox/week?${q}`)
 }
 
@@ -661,7 +688,24 @@ export type BrandImagesToday = {
   images_today: number
   cap: number
   at_cap: boolean
+  oneshot_today?: number
+  oneshot_cap?: number
+  at_oneshot_cap?: boolean
   error?: string
+}
+
+export type OneshotDayResult = {
+  ok?: boolean
+  brand_id?: string
+  date?: string
+  enqueued?: Array<{ calendar_id?: string; item_id?: string }>
+  skipped?: Array<{ calendar_id?: string; reason?: string }>
+  cap?: BrandImagesToday
+  error?: string
+}
+
+export function enqueueOneshotDay(body: { brand_id: string; date: string; editor?: string }) {
+  return postJson<OneshotDayResult>('/api/oneshot/day', body)
 }
 
 export function fetchBrandImagesToday(brandId: string) {
@@ -1096,6 +1140,107 @@ export async function inboxAction(
     body: JSON.stringify(body),
   })
   return res.json() as Promise<{ ok?: boolean; error?: string; code?: string }>
+}
+
+export type ScheduleDayResult =
+  | {
+      ok: true
+      brand_id: string
+      date: string
+      batch_id: string
+      created: Record<string, unknown>[]
+      counts: { template: number; oneshot: number }
+    }
+  | {
+      ok: false
+      code?: 'day_not_empty'
+      error?: string
+      existing?: number
+      existing_calendar_ids?: string[]
+      policy_block?: boolean
+    }
+
+export async function scheduleDay(
+  brandId: string,
+  dateIso: string,
+  opts?: { force?: boolean; flavour?: string | null; editor?: string },
+): Promise<ScheduleDayResult & { status: number }> {
+  const res = await fetch('/api/calendar/schedule-day', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      brand_id: brandId,
+      date: dateIso,
+      force: opts?.force ?? false,
+      flavour: opts?.flavour ?? null,
+      editor: opts?.editor ?? 'operator',
+    }),
+  })
+  const data = (await res.json()) as ScheduleDayResult
+  return { ...data, status: res.status }
+}
+
+export async function patchMomentFields(
+  brandId: string,
+  calendarId: string,
+  fields: Record<string, string>,
+  editor = 'christelle',
+) {
+  const res = await fetch(
+    `/api/calendar/moment/${encodeURIComponent(brandId)}/${encodeURIComponent(calendarId)}/fields`,
+    {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ editor, ...fields }),
+    },
+  )
+  const data = (await res.json()) as { ok?: boolean; error?: string; record?: Record<string, unknown> }
+  if (!res.ok && !data.error) {
+    data.error = `moment edit ${res.status}`
+  }
+  return { ...data, status: res.status }
+}
+
+export async function saveMomentFields(
+  post: PostingWeekPost,
+  fields: Record<string, string>,
+  editor = 'christelle',
+) {
+  const caption = fields.caption
+  const momentFields = { ...fields }
+  delete momentFields.caption
+
+  let last: { ok?: boolean; error?: string; changed?: string[] } = { ok: true, changed: [] }
+
+  if (Object.keys(momentFields).length > 0) {
+    if (post.state === 'candidate' && post.inbox_item_id) {
+      last = await inboxEdit(post.inbox_item_id, momentFields, editor)
+    } else if (renderModeEditable(post.state)) {
+      const brandId = post.brand_id ?? 'swing-shack'
+      const patched = await patchMomentFields(brandId, post.calendar_id, momentFields, editor)
+      last = {
+        ok: patched.ok,
+        error: patched.error,
+        changed: patched.ok ? Object.keys(momentFields) : [],
+      }
+    } else {
+      return { ok: false, error: 'read-only' }
+    }
+    if (!last.ok) return last
+  }
+
+  if (caption !== undefined && post.inbox_item_id) {
+    const cap = await inboxEdit(post.inbox_item_id, { caption }, editor)
+    if (!cap.ok) return cap
+    last = {
+      ok: true,
+      changed: [...(last.changed ?? []), ...(cap.changed ?? [])],
+    }
+  }
+
+  return last
 }
 
 export async function inboxEdit(id: string, fields: Record<string, string>, editor = 'christelle') {

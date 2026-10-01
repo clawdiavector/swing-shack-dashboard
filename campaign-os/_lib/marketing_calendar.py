@@ -51,6 +51,45 @@ VALID_BRAND_IDS = ["swing-shack", "stick", "bag-drop"]
 VALID_PRODUCT_BRANDS = {"takomo": "stick"}  # product_brand → parent brand
 VALID_RECORD_TYPES = ["campaign", "content", "moment", "reminder", "watchlist"]
 VALID_STATUSES = ["candidate", "watchlist", "approved", "ignored", "active", "completed"]
+VALID_RENDER_MODES = ("template", "oneshot")
+DEFAULT_RENDER_MODE = "template"
+
+# Program contract: agent-control/context/campaign-os-creative-oneshot-program.md § Mix
+ONESHOT_ALLOWED_POST_TYPES = frozenset({
+    "fitting_headline",
+    "service_hero",
+    "coaching_promo",
+    "zine_collage",
+    "humour_card",
+})
+
+ALWAYS_TEMPLATE_POST_TYPES = frozenset({
+    "price_list", "price_package", "pricing", "package", "packages", "rate_card", "package_list",
+    "discount_code", "promo_code", "offer",
+    "sale_offer",
+    "location",
+    "shop_corner",
+    "service_square",
+    "service_end",
+    "brand_statement",
+})
+
+
+def oneshot_eligible(post_type: Any) -> bool:
+    """Strict rule — batch one-shot must be an allowlisted post type."""
+    return str(post_type or "").strip().lower() in ONESHOT_ALLOWED_POST_TYPES
+
+
+def oneshot_blocked(post_type: Any) -> bool:
+    """Loose rule — operator PATCH refuses contract template-only post types."""
+    return str(post_type or "").strip().lower() in ALWAYS_TEMPLATE_POST_TYPES
+
+
+def render_mode_for_record(record: Dict[str, Any]) -> str:
+    """Effective render mode. Absent / unknown / empty → 'template'."""
+    val = str((record or {}).get("render_mode") or "").strip().lower()
+    return val if val in VALID_RENDER_MODES else DEFAULT_RENDER_MODE
+
 VALID_ORIGIN_KINDS = [
     "scout",
     "cadence",
@@ -649,7 +688,18 @@ def transition_status(
 
 
 _EDITABLE_MOMENT_FIELDS = frozenset(
-    {"event_date", "event_start", "event_end", "primary_channel", "title", "angle"}
+    {
+        "event_date",
+        "event_start",
+        "event_end",
+        "primary_channel",
+        "title",
+        "angle",
+        "post_type",
+        "render_mode",
+        "oneshot_ai_logo",
+        "oneshot_model",
+    }
 )
 
 
@@ -690,6 +740,24 @@ def set_fields(
         if ch and valid and ch not in valid:
             raise ValueError(f"primary_channel '{ch}' not valid for brand")
         allowed["primary_channel"] = ch or allowed["primary_channel"]
+    if "post_type" in allowed:
+        allowed["post_type"] = str(allowed["post_type"] or "").strip().lower()
+    if "render_mode" in allowed:
+        mode = str(allowed["render_mode"] or "").strip().lower()
+        if mode not in VALID_RENDER_MODES:
+            raise ValueError(
+                f"render_mode '{mode}' invalid. Valid: {list(VALID_RENDER_MODES)}",
+            )
+        allowed["render_mode"] = mode
+        if mode == "oneshot":
+            effective_pt = allowed.get("post_type", target.get("post_type"))
+            if oneshot_blocked(effective_pt):
+                raise ValueError(
+                    f"post_type '{str(effective_pt).strip().lower()}' is template-only "
+                    "and cannot carry render_mode='oneshot'",
+                )
+    if "oneshot_ai_logo" in allowed:
+        allowed["oneshot_ai_logo"] = bool(allowed["oneshot_ai_logo"])
     for key, val in allowed.items():
         updated[key] = val
     if reason:

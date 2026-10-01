@@ -3685,6 +3685,82 @@ def calendar_transition():
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
 
 
+@app.route('/api/calendar/moment/<brand_id>/<calendar_id>/fields', methods=['PATCH'])
+def calendar_moment_fields(brand_id: str, calendar_id: str):
+    """Day desk: edit moment fields when the inbox candidate row no longer exists."""
+    try:
+        from _lib import unified_inbox
+        from _lib.marketing_calendar import VALID_BRAND_IDS, set_fields
+
+        body = request.get_json(force=True, silent=True) or {}
+        editor = str(body.pop("editor", None) or "operator")
+        if brand_id not in VALID_BRAND_IDS:
+            return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+        field_names = list(body.keys())
+        inbox_item_id = f"calendar_candidate:{brand_id}:{calendar_id}"
+        previous = unified_inbox._current_field_values(  # noqa: SLF001
+            "calendar_candidate",
+            f"{brand_id}:{calendar_id}",
+            field_names,
+        )
+        updated = set_fields(brand_id, calendar_id, body, reason="day desk edit")
+        if not updated:
+            return jsonify({"ok": False, "error": "calendar record not found"}), 404
+        unified_inbox.record_human_edit(
+            inbox_item_id=inbox_item_id,
+            item_type="calendar_candidate",
+            brand_id=brand_id,
+            editor=editor,
+            fields=body,
+            previous=previous or None,
+        )
+        return jsonify({"ok": True, "record": updated}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("calendar_moment_fields failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route('/api/calendar/schedule-day', methods=['POST'])
+def calendar_schedule_day():
+    """Day desk: fill an empty day with candidate cards (no image generation)."""
+    try:
+        from _lib.day_schedule import schedule_day
+        from _lib.marketing_calendar import VALID_BRAND_IDS
+
+        body = request.get_json(force=True, silent=True) or {}
+        brand_id = body.get("brand_id")
+        day_iso = body.get("date")
+        if not brand_id:
+            return jsonify({"ok": False, "error": "brand_id required"}), 400
+        if brand_id not in VALID_BRAND_IDS:
+            return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+        if not day_iso:
+            return jsonify({"ok": False, "error": "date required"}), 400
+        force = body.get("force") in (True, "true", "1", 1)
+        flavour = body.get("flavour")
+        editor = str(body.get("editor") or "operator")
+        result = schedule_day(
+            brand_id=brand_id,
+            day_iso=str(day_iso),
+            force=force,
+            actor=editor,
+            flavour=flavour,
+        )
+        if not result.get("ok"):
+            code = result.get("code")
+            if code == "day_not_empty":
+                return jsonify(result), 409
+            return jsonify(result), 400
+        return jsonify(result), 200
+    except PermissionError as e:
+        return jsonify({"ok": False, "error": str(e), "policy_block": True}), 422
+    except Exception as e:
+        _app_log.exception("calendar_schedule_day failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
 @app.route('/api/calendar/calendar/<brand_id>', methods=['GET'])
 def calendar_view(brand_id: str):
     """Calendar view assembly: pillar summary + records in date range."""
@@ -18699,7 +18775,7 @@ def ops_queue_enqueue():
         action = str(body.get("action") or "").strip()
         if not item_id or not action:
             return jsonify({"ok": False, "error": "item_id and action required"}), 400
-        allowed_actions = {"draft_image", "draft_photo", "draft_gen_slots", "compose_post"}
+        allowed_actions = {"draft_image", "draft_photo", "draft_gen_slots", "draft_oneshot", "compose_post"}
         if action not in allowed_actions:
             return jsonify({"ok": False, "error": f"unsupported action: {action}"}), 400
         if action == "draft_image":
@@ -18947,6 +19023,33 @@ def inbox_unified_get_item(item_id: str):
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         _app_log.exception("inbox_unified_get_item failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/oneshot/day', methods=['POST'])
+def oneshot_day_enqueue():
+    """POST /api/oneshot/day — enqueue one-shot image generation for a calendar day."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib.marketing_calendar import VALID_BRAND_IDS
+        from _lib.oneshot_day import enqueue_oneshot_day
+
+        body = request.get_json(silent=True) or {}
+        brand_id = str(body.get("brand_id") or "").strip()
+        date = str(body.get("date") or "").strip()[:10]
+        editor = str(body.get("editor") or "operator").strip()
+        if brand_id not in VALID_BRAND_IDS:
+            return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+        if len(date) != 10:
+            return jsonify({"ok": False, "error": "invalid date"}), 400
+        payload = enqueue_oneshot_day(brand_id=brand_id, date=date, editor=editor)
+        status = int(payload.pop("http_status", 200))
+        return jsonify(payload), status
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("oneshot_day_enqueue failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -20625,159 +20728,30 @@ def cta_index():
 
 # ─── MEME LORD v2 — meme historian + brand-fit recommender ─────────────
 
-_MEME_KNOWLEDGE_CACHE = {"path": None, "mtime": None, "data": None}
+from _lib import meme_lord as _meme_lord_module  # noqa: E402  — shared with schedule-day batch
 
 
 def _load_meme_knowledge(_cache_key=0):
-    """Load meme_knowledge.json with mtime-invalidated cache.
-
-    Job writes to $DATA_DIR become visible on the next request without redeploy
-    or a manual `.cache_clear()` call.
-    """
-    paths = _data_paths()
-    candidate = os.path.join(paths['data_dir'], 'meme_knowledge.json')
-    if not os.path.exists(candidate):
-        candidate = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'meme_knowledge.json')
-    path = candidate if os.path.exists(candidate) else None
-    mtime = None
-    if path:
-        try:
-            mtime = os.path.getmtime(path)
-        except OSError:
-            mtime = None
-    cache = _MEME_KNOWLEDGE_CACHE
-    if (
-        _cache_key == 0
-        and cache["data"] is not None
-        and cache["path"] == path
-        and cache["mtime"] == mtime
-    ):
-        return cache["data"]
-    empty = {"memes": [], "taxonomy": {"eras": [], "formats": [], "mechanisms": []}, "voice_bible": {}, "stats": {}}
-    data = empty
-    if path:
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError, OSError):
-            data = empty
-    cache["path"] = path
-    cache["mtime"] = mtime
-    cache["data"] = data
-    return data
+    return _meme_lord_module.load_meme_knowledge(_cache_key)
 
 
-def _load_meme_knowledge_cache_clear():
-    _MEME_KNOWLEDGE_CACHE["path"] = None
-    _MEME_KNOWLEDGE_CACHE["mtime"] = None
-    _MEME_KNOWLEDGE_CACHE["data"] = None
-
-
-_load_meme_knowledge.cache_clear = _load_meme_knowledge_cache_clear
+_load_meme_knowledge.cache_clear = _meme_lord_module.load_meme_knowledge_cache_clear
 
 
 def _score_meme_brand_fit(meme, voice='swing-shack', pillar='education', platform='instagram'):
-    """Compute brand-fit score 0..100 for a meme given voice/pillar/platform.
-
-    Heuristics (2026-aware — fresher is better):
-      +20  voice matches
-      +15  pillar matches
-      +10  platform matches
-      +10  still_works = True
-      + 8  fatigue_risk = 'low'
-      + 5  era ∈ {current, recent}  (NEW: prefer memes that aren't overplayed)
-      + 4  has 3+ swingshack_fit_seeds
-      - 5  era = 'classic' (2014-2017)  (these are overused by everyone)
-      -10  era = 'mid' (2018-2020)
-      - 5  fatigue_risk = 'medium'
-      -15  fatigue_risk = 'high'
-      -10  still_works = False
-      - 3 per year of age beyond 2018 (peak_year decay)
-    """
-    import datetime
-    score = 0
-    reasons = []
-    if voice and voice in (meme.get('voice_fit') or []):
-        score += 20
-        reasons.append(f'voice={voice} match (+20)')
-    if pillar and pillar in (meme.get('pillar_fit') or []):
-        score += 15
-        reasons.append(f'pillar={pillar} match (+15)')
-    if platform and platform in (meme.get('platform_fit') or []):
-        score += 10
-        reasons.append(f'platform={platform} match (+10)')
-    if meme.get('still_works') is True:
-        score += 10
-        reasons.append('still_works=True (+10)')
-    elif meme.get('still_works') is False:
-        score -= 10
-        reasons.append('still_works=False (−10)')
-    fr = meme.get('fatigue_risk')
-    if fr == 'low':
-        score += 8
-        reasons.append('fatigue_risk=low (+8)')
-    elif fr == 'medium':
-        score -= 5
-        reasons.append('fatigue_risk=medium (−5)')
-    elif fr == 'high':
-        score -= 15
-        reasons.append('fatigue_risk=high (−15)')
-    era = (meme.get('era') or '').lower()
-    if era in ('current', 'recent'):
-        score += 5
-        reasons.append(f'era={era} (fresh, +5)')
-    elif era == 'mid':
-        score -= 10
-        reasons.append('era=mid (2018-2020, overused, −10)')
-    elif era == 'classic':
-        score -= 5
-        reasons.append('era=classic (2014-2017, expected, −5)')
-    peak = meme.get('peak_year')
-    if isinstance(peak, int) and peak < 2026:
-        age = 2026 - peak
-        if age > 8:
-            score -= min(15, age - 5)  # cap so we don't kill classics entirely
-            reasons.append(f'peak_year {peak} (aged −{min(15, age-5)})')
-    seeds = meme.get('swingshack_fit_seeds') or []
-    n_seeds = min(len(seeds), 3)
-    if n_seeds:
-        bonus = min(4, n_seeds)
-        score += bonus
-        reasons.append(f'{n_seeds} fit-seeds (+{bonus})')
-    score = max(0, min(100, score))
-    return score, reasons
+    return _meme_lord_module.score_meme_brand_fit(
+        meme, voice=voice, pillar=pillar, platform=platform,
+    )
 
 
 def _filter_memes(memes, era=None, fmt=None, mechanism=None, voice=None, pillar=None, platform=None,
                   only_still_works=False, search=None):
-    """Apply faceted filters to the meme list."""
-    out = list(memes)
-    if era:
-        out = [m for m in out if m.get('era') == era]
-    if fmt:
-        out = [m for m in out if m.get('format') == fmt]
-    if mechanism:
-        out = [m for m in out if m.get('mechanism') == mechanism]
-    if voice:
-        out = [m for m in out if voice in (m.get('voice_fit') or [])]
-    if pillar:
-        out = [m for m in out if pillar in (m.get('pillar_fit') or [])]
-    if platform:
-        out = [m for m in out if platform in (m.get('platform_fit') or [])]
-    if only_still_works:
-        out = [m for m in out if m.get('still_works') is True]
-    if search:
-        s = search.lower().strip()
-        def _hit(m):
-            hay = ' '.join([
-                m.get('name', ''), m.get('why_it_works', ''),
-                m.get('origin', ''), ' '.join(m.get('tags') or []),
-                ' '.join(m.get('swingshack_fit_seeds') or []),
-                m.get('format_hint', ''),
-            ]).lower()
-            return s in hay
-        out = [m for m in out if _hit(m)]
-    return out
+    return _meme_lord_module.filter_memes(
+        memes,
+        era=era, fmt=fmt, mechanism=mechanism,
+        voice=voice, pillar=pillar, platform=platform,
+        only_still_works=only_still_works, search=search,
+    )
 
 
 @app.route('/api/intel/meme_knowledge', methods=['GET'])

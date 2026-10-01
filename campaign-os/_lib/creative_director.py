@@ -69,6 +69,7 @@ _MODEL_CAPABILITIES = {
     "openai/gpt-image-2":       {"category": "image", "fidelity": 0.8, "photorealism": 0.85, "speed": 0.6, "typography": 0.85, "ref_image": True, "edit": True, "verified": False, "material": 0.8, "lighting": 0.85, "composition": 0.85, "human": 0.8},
     "openai/gpt-image":         {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.6, "typography": 0.8, "ref_image": True, "edit": True, "verified": False, "material": 0.75, "lighting": 0.8, "composition": 0.8, "human": 0.75},
     "ideogram/ideogram-3":      {"category": "image", "fidelity": 0.75, "photorealism": 0.7, "speed": 0.7, "typography": 0.95, "ref_image": True, "verified": True, "material": 0.7, "lighting": 0.75, "composition": 0.8, "human": 0.65},
+    "recraft/recraft-v3":       {"category": "image", "verified": False},
     "black-forest-labs/flux-3-video": {"category": "video", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.4, "duration_max": 15, "ref_image": True},
     "bytedance/seedance-2":     {"category": "video", "fidelity": 0.85, "photorealism": 0.8, "speed": 0.6, "duration_max": 15, "ref_image": True, "audio": True},
     "bytedance/seedance-2-fast": {"category": "video", "fidelity": 0.8, "photorealism": 0.75, "speed": 0.85, "duration_max": 15, "ref_image": True, "audio": True},
@@ -91,6 +92,40 @@ GLOBAL_NEGATIVES = [
     "no garbled text", "no artificial plastic skin", "no impossible reflections",
     "no blown-out highlights", "no crushed shadows without detail",
 ]
+
+_ANATOMY_NEGATIVES = (
+    "no distorted hands",
+    "no extra fingers",
+    "no malformed anatomy",
+    "no artificial plastic skin",
+)
+_TEXT_LOGO_NEGATIVES = (
+    "no text in the image",
+    "no fake logos",
+    "no garbled text",
+    "no watermarks",
+    "no AI-hallucinated brand names",
+)
+_OPTICS_NEGATIVES = (
+    "no warped perspective",
+    "no blown-out highlights",
+    "no crushed shadows without detail",
+    "no impossible reflections",
+)
+_ALWAYS_MISC_NEGATIVES = ("no duplicated objects",)
+_STOCK_PHOTO_NEGATIVES = (
+    "generic stock photography",
+    "white seamless studio backgrounds",
+    "professional studio lighting on isolated products",
+    "perfectly centred symmetrical product shots",
+    "stock-photo smiles",
+    "people facing directly into camera",
+    "generic landscape backgrounds",
+    "cartoon or illustrated styles",
+    "cluttered busy frames with no clear focal point",
+    "oversaturated HDR look",
+    "AI-fingerprint artefacts",
+)
 
 
 # ── Golf-specific negatives ────────────────────────────────────────
@@ -135,11 +170,20 @@ _SECTION_ORDER = (
     "COMPOSITION",
     "LIGHTING",
     "CAMERA",
+    "LITERAL TEXT",
+    "TEXT PLACEMENT",
     "OUTPUT STYLE",
     "NEGATIVE",
 )
 _OUTPUT_STYLE_DEFAULT = (
     "photograph, no text, no logo, no watermark, no UI"
+)
+_OUTPUT_STYLE_RENDER_TEXT = (
+    "photograph with one rendered text line, no logo, no watermark, no UI"
+)
+_DEFAULT_TEXT_PLACEMENT = (
+    "Upper third, generous overlay-safe margins, high contrast against the plate, "
+    "single line unless it wraps naturally. Leave the bottom-right corner clear for a logo lockup."
 )
 
 
@@ -161,6 +205,10 @@ def compose_prompt(
     angle: Optional[str] = None,
     pillar_name: Optional[str] = None,
     calendar_title: Optional[str] = None,
+    literal_text: Optional[str] = None,
+    text_placement: Optional[str] = None,
+    render_text: bool = False,
+    ai_rendered_logo: bool = False,
 ) -> Dict[str, Any]:
     """Compose a structured master prompt + negative from brand context.
 
@@ -183,7 +231,7 @@ def compose_prompt(
     if brand_block.strip():
         sections.append({"key": "BRAND", "content": brand_block})
 
-    subject_block = _build_subject_block(
+    subject_meta = _build_subject_block(
         subject=subject,
         angle=angle,
         pillar_name=pillar_name,
@@ -193,6 +241,7 @@ def compose_prompt(
         environment=environment,
         material_texture=material_texture,
     )
+    subject_block = subject_meta["text"]
     if subject_block.strip():
         sections.append({"key": "SUBJECT", "content": subject_block})
 
@@ -221,7 +270,21 @@ def compose_prompt(
     if camera and camera.strip():
         sections.append({"key": "CAMERA", "content": camera.strip()})
 
-    out_style = (output_style or _OUTPUT_STYLE_DEFAULT).strip()
+    line = (literal_text or "").strip()
+    if line:
+        sections.append(
+            {
+                "key": "LITERAL TEXT",
+                "content": f'Render this exact line, character for character: "{line}"',
+            }
+        )
+        placement = (text_placement or _DEFAULT_TEXT_PLACEMENT).strip()
+        sections.append({"key": "TEXT PLACEMENT", "content": placement})
+
+    if render_text:
+        out_style = (output_style or _OUTPUT_STYLE_RENDER_TEXT).strip()
+    else:
+        out_style = (output_style or _OUTPUT_STYLE_DEFAULT).strip()
     sections.append({"key": "OUTPUT STYLE", "content": out_style})
 
     negative_prompt = build_negative_prompt(
@@ -229,12 +292,18 @@ def compose_prompt(
         reference_dna=reference_dna,
         product_service_item=product_service_item,
         brand_ctx=brand_ctx,
+        job=job,
+        human_direction=human_direction,
+        subject_has_person=subject_meta["has_person"],
+        subject_has_gear=subject_meta["has_gear"],
+        render_text=render_text,
+        ai_rendered_logo=ai_rendered_logo,
     )
     if negative_prompt.strip():
         sections.append({"key": "NEGATIVE", "content": negative_prompt})
 
     sections = _order_sections(sections)
-    master_prompt, sections = _fit_master_prompt_length(sections, brand_ctx)
+    master_prompt, wire_prompt, sections = _fit_master_prompt_length(sections, brand_ctx)
 
     # Model routing — pick based on the job's capability requirements
     requirements = _infer_requirements(
@@ -248,6 +317,7 @@ def compose_prompt(
     return {
         "brand_id": brand_id,
         "master_prompt": master_prompt,
+        "wire_prompt": wire_prompt,
         "negative_prompt": negative_prompt,
         "sections": sections,
         "model_routing": routing,
@@ -293,6 +363,12 @@ def build_negative_prompt(
     reference_dna: Optional[dict] = None,
     product_service_item: Optional[dict] = None,
     brand_ctx: Optional[dict] = None,
+    job: Optional[str] = None,
+    human_direction: Optional[str] = None,
+    subject_has_person: bool = False,
+    subject_has_gear: bool = False,
+    render_text: bool = False,
+    ai_rendered_logo: bool = False,
 ) -> str:
     """Compose the negative prompt from global + brand + product + reference rules.
 
@@ -301,7 +377,48 @@ def build_negative_prompt(
     message. We return a clean comma-separated list the caller can
     inject wherever it fits.
     """
-    parts = list(GLOBAL_NEGATIVES) + list(GOLF_NEGATIVES)
+    job_low = (job or "").lower()
+    gear_in_job = any(
+        w in job_low
+        for w in ("club", "ball", "driver", "iron", "wedge", "putter", "bag", "equipment", "shaft")
+    )
+    no_people = bool(re.search(r"\bno people\b", job_low) or re.search(r"\bno person\b", job_low))
+    person_in_job = bool(
+        re.search(r"\b(golfer|coach|player|people|person|human)\b", job_low)
+    )
+    include_anatomy = bool(
+        (human_direction and human_direction.strip())
+        or subject_has_person
+        or (person_in_job and not no_people)
+    )
+    include_golf = bool(subject_has_gear or gear_in_job)
+
+    parts: list[str] = []
+    parts.extend(_ALWAYS_MISC_NEGATIVES)
+    if render_text:
+        for item in _TEXT_LOGO_NEGATIVES:
+            if item in ("no text in the image", "no garbled text"):
+                continue
+            if item == "no fake logos" and ai_rendered_logo:
+                continue
+            parts.append(item)
+        parts.extend(
+            [
+                "no text other than the quoted line",
+                "no misspelled words",
+                "no duplicated text",
+                "no extra captions",
+                "no subtitle bars",
+            ]
+        )
+    else:
+        parts.extend(_TEXT_LOGO_NEGATIVES)
+    parts.extend(_OPTICS_NEGATIVES)
+    parts.extend(_STOCK_PHOTO_NEGATIVES)
+    if include_anatomy:
+        parts.extend(_ANATOMY_NEGATIVES)
+    if include_golf:
+        parts.extend(GOLF_NEGATIVES)
     parts.extend(BRAND_EXCLUSIONS.get(brand_id, []))
     bible = (brand_ctx or {}).get("bible") or {}
     for item in bible.get("anti_patterns") or bible.get("negative_prompts") or []:
@@ -336,7 +453,7 @@ def _krea_connected() -> bool:
         return False
 
 
-def _model_allowed(model: str) -> bool:
+def _model_allowed(model: str, *, allow_unverified: bool = False) -> bool:
     if model in (_GEMINI_FLASH_IMAGE, "google/gemini-3-pro-image"):
         return True
     caps = _MODEL_CAPABILITIES.get(model)
@@ -346,10 +463,12 @@ def _model_allowed(model: str) -> bool:
         return False
     if caps.get("edit_only"):
         return False
-    return bool(caps.get("verified", False))
+    if bool(caps.get("verified", False)):
+        return True
+    return allow_unverified
 
 
-def pick_model(requirements: dict) -> dict[str, str]:
+def pick_model(requirements: dict, *, requested_model: str | None = None) -> dict[str, str]:
     """Requirement router for image generation (P2).
 
     Returns {model, provider, reason}. Honors CAMPAIGN_OS_IMAGE_MODEL_FORCE.
@@ -366,6 +485,22 @@ def pick_model(requirements: dict) -> dict[str, str]:
                 "reason": f"CAMPAIGN_OS_IMAGE_MODEL_FORCE={prov}:{model}",
             }
         _LOG.warning("forced model not allowed, falling back: %s", model)
+
+    req_model = (requested_model or "").strip()
+    if req_model and _model_allowed(req_model, allow_unverified=True):
+        caps = _MODEL_CAPABILITIES.get(req_model) or {}
+        prov = "krea" if req_model.startswith(("ideogram/", "bfl/", "recraft/")) else "openrouter"
+        unverified = not bool(caps.get("verified", False))
+        out: dict[str, str] = {
+            "model": req_model,
+            "provider": prov,
+            "reason": "operator-selected model (unverified — no live run yet)"
+            if unverified
+            else "operator-selected model",
+        }
+        if unverified:
+            out["unverified"] = True  # type: ignore[assignment]
+        return out
 
     needs_reference = bool(requirements.get("needs_reference"))
     photoreal = bool(requirements.get("photoreal"))
@@ -656,11 +791,34 @@ def _load_brand_context(brand_id: str) -> dict:
     return ctx
 
 
+def _bible_confidence_is_draft(bible: dict) -> bool:
+    conf = bible.get("confidence")
+    if conf is None or str(conf).strip() == "":
+        return True
+    return str(conf).strip().lower() == "draft"
+
+
+def _palette_colour_anchor(palette: dict) -> str:
+    colors: list[str] = []
+    if isinstance(palette, dict):
+        for k, v in palette.items():
+            if isinstance(v, dict) and "hex" in v:
+                colors.append(f"{v.get('name', k)} {v['hex']}")
+            elif isinstance(v, str) and v.startswith("#"):
+                colors.append(v)
+    if not colors:
+        return ""
+    return f"Colour anchor: {', '.join(colors[:6])}"
+
+
 def _build_brand_block(brand_ctx: dict, brand_id: str) -> str:
     """Construct the BRAND section of the prompt from bible + palette."""
-    parts = []
+    parts: list[str] = []
     bible = brand_ctx.get("bible", {})
     palette = brand_ctx.get("palette", {})
+    anchor = _palette_colour_anchor(palette)
+    if anchor:
+        parts.append(anchor)
     phil = bible.get("philosophy") or bible.get("visual_philosophy") or ""
     if phil:
         parts.append(f"Philosophy: {phil}")
@@ -677,17 +835,13 @@ def _build_brand_block(brand_ctx: dict, brand_id: str) -> str:
     kw = bible.get("look_and_feel_keywords", [])
     kw_real = [k for k in kw if not str(k).lower().startswith("todo")]
     if kw_real:
-        parts.append(f"Look + feel: {', '.join(kw_real[:10])}")
-    # palette
-    colors = []
-    if isinstance(palette, dict):
-        for k, v in palette.items():
-            if isinstance(v, dict) and "hex" in v:
-                colors.append(f"{v.get('name', k)} {v['hex']}")
-            elif isinstance(v, str) and v.startswith("#"):
-                colors.append(v)
-    if colors:
-        parts.append(f"Colour anchor: {', '.join(colors[:6])}")
+        if _bible_confidence_is_draft(bible):
+            parts.append(
+                "Unverified style notes (low confidence, defer to the colour anchor): "
+                + ", ".join(kw_real[:10])
+            )
+        else:
+            parts.append(f"Look + feel: {', '.join(kw_real[:10])}")
     if not parts:
         parts.append(f"Brand: {brand_id} (canonical voice + visuals per brand bible)")
     return "\n".join(parts)
@@ -719,7 +873,7 @@ def _build_subject_block(
     human_direction: Optional[str],
     environment: Optional[str],
     material_texture: Optional[str],
-) -> str:
+) -> dict[str, Any]:
     """Expand calendar angle into who / action / gear / setting."""
     lines: list[str] = []
     if subject and subject.strip():
@@ -753,7 +907,13 @@ def _build_subject_block(
     toward = bias.get("lean_toward") or []
     if isinstance(toward, list) and toward:
         lines.append("Lean toward: " + ", ".join(str(t) for t in toward[:4]))
-    return "\n".join(lines)
+    has_person = bool(
+        (human_direction and human_direction.strip())
+        or who
+        or (subject and any(w in subject.lower() for w in ("golfer", "coach", "player", "person", "people")))
+    )
+    has_gear = bool(gear)
+    return {"text": "\n".join(lines), "has_person": has_person, "has_gear": has_gear}
 
 
 def _infer_subject_field(angle: Optional[str], keywords: tuple[str, ...]) -> str:
@@ -780,6 +940,36 @@ def _assemble_master_prompt(sections: list[dict[str, str]]) -> str:
     return "\n\n".join(blocks)
 
 
+def _section_to_prose(key: str, content: str) -> str:
+    text = content.strip()
+    if not text:
+        return ""
+    if key == "LITERAL TEXT":
+        return text
+    if key == "TEXT PLACEMENT":
+        return text.replace("\n", " ").strip()
+    if key == "JOB":
+        return text if text.endswith(".") else f"{text}."
+    if key == "BRAND":
+        return text.replace("\n", " ").strip()
+    if key == "OUTPUT STYLE":
+        return f"Render as {text.rstrip('.')}."
+    return text.replace("\n", " ").strip()
+
+
+def _assemble_wire_prompt(sections: list[dict[str, str]]) -> str:
+    """Flowing provider-bound prompt without [SECTION] headers or inline negatives."""
+    chunks: list[str] = []
+    for sec in sections:
+        key = sec.get("key") or ""
+        if key == "NEGATIVE":
+            continue
+        prose = _section_to_prose(key, sec.get("content") or "")
+        if prose:
+            chunks.append(prose)
+    return " ".join(chunks).strip()
+
+
 def _sections_from_master(master_prompt: str) -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     for chunk in re.split(r"\n\n(?=\[)", master_prompt.strip()):
@@ -792,18 +982,43 @@ def _sections_from_master(master_prompt: str) -> list[dict[str, str]]:
     return _order_sections(out)
 
 
+def _trim_brand_composition_rules(sec: dict[str, str], max_rules: int) -> bool:
+    content = sec.get("content") or ""
+    prefix = "Composition rules: "
+    if prefix not in content:
+        return False
+    head, _, tail = content.partition(prefix)
+    rules = [r.strip() for r in tail.split(";") if r.strip()]
+    if len(rules) <= max_rules:
+        return False
+    sec["content"] = head + prefix + "; ".join(rules[:max_rules])
+    return True
+
+
+def _drop_subject_lines(sec: dict[str, str]) -> bool:
+    lines = [ln for ln in (sec.get("content") or "").split("\n") if ln.strip()]
+    if len(lines) <= 2:
+        return False
+    sec["content"] = "\n".join(lines[:-1])
+    return True
+
+
 def _fit_master_prompt_length(
     sections: list[dict[str, str]],
     brand_ctx: dict,
-) -> tuple[str, list[dict[str, str]]]:
+) -> tuple[str, str, list[dict[str, str]]]:
     working = _order_sections([dict(s) for s in sections])
 
-    def _rebuild() -> str:
+    def _wire() -> str:
+        return _assemble_wire_prompt(working)
+
+    def _master() -> str:
         return _assemble_master_prompt(working)
 
-    master = _rebuild()
+    wire = _wire()
+    master = _master()
 
-    if len(master) < _PROMPT_MIN_CHARS:
+    if len(wire) < _PROMPT_MIN_CHARS:
         pad = (
             "35mm prime lens, shallow depth of field, subtle grain, "
             "premium sports campaign framing, overlay-safe margins."
@@ -820,27 +1035,87 @@ def _fit_master_prompt_length(
                 "subject in lower two-thirds."
             )
         working = _order_sections(working)
-        master = _rebuild()
+        wire = _wire()
+        master = _master()
 
-    trim_targets = ("NEGATIVE", "SUBJECT", "BRAND", "COMPOSITION", "LIGHTING")
-    while len(master) > _PROMPT_MAX_CHARS:
+    brand_sec = next((s for s in working if s["key"] == "BRAND"), None)
+    comp_rule_budget = 6
+    while len(_wire()) > _PROMPT_MAX_CHARS and brand_sec and comp_rule_budget > 2:
+        if _trim_brand_composition_rules(brand_sec, comp_rule_budget):
+            comp_rule_budget -= 1
+            wire = _wire()
+            master = _master()
+            continue
+        break
+
+    trim_targets = ("SUBJECT", "LIGHTING", "COMPOSITION", "NEGATIVE")
+    while len(_wire()) > _PROMPT_MAX_CHARS:
         trimmed = False
         for key in trim_targets:
-            sec = next((s for s in working if s["key"] == key), None)
-            if not sec or len(sec["content"]) <= 80:
+            if key == "LITERAL TEXT":
                 continue
-            sec["content"] = sec["content"][: max(80, len(sec["content"]) * 2 // 3)].rstrip(" ,;")
-            trimmed = True
-            break
+            sec = next((s for s in working if s["key"] == key), None)
+            if not sec:
+                continue
+            if key == "SUBJECT" and _drop_subject_lines(sec):
+                trimmed = True
+                break
+            if key == "NEGATIVE" and len(sec.get("content") or "") > 120:
+                items = [p.strip() for p in sec["content"].split(",") if p.strip()]
+                if len(items) > 8:
+                    sec["content"] = ", ".join(items[: len(items) * 2 // 3])
+                    trimmed = True
+                    break
+            content = sec.get("content") or ""
+            if key == "LITERAL TEXT":
+                continue
+            if len(content) > 100 and key != "BRAND":
+                sec["content"] = content[: max(80, len(content) * 2 // 3)].rstrip(" ,;.")
+                trimmed = True
+                break
         if not trimmed:
             break
         working = _order_sections(working)
-        master = _rebuild()
+        wire = _wire()
+        master = _master()
 
+    if len(wire) > _PROMPT_MAX_CHARS:
+        literal_sec = next((s for s in working if s["key"] == "LITERAL TEXT"), None)
+        if literal_sec:
+            wire = _wire()
+        else:
+            wire = wire[:_PROMPT_MAX_CHARS].rstrip(" ,;.")
+
+    while len(_master()) > _PROMPT_MAX_CHARS:
+        trimmed = False
+        for key in ("NEGATIVE", "SUBJECT", "BRAND", "COMPOSITION", "LIGHTING"):
+            sec = next((s for s in working if s["key"] == key), None)
+            if not sec:
+                continue
+            if key == "NEGATIVE":
+                items = [p.strip() for p in (sec.get("content") or "").split(",") if p.strip()]
+                if len(items) > 6:
+                    sec["content"] = ", ".join(items[: len(items) * 2 // 3])
+                    trimmed = True
+                    break
+            content = sec.get("content") or ""
+            if len(content) > 80 and key != "BRAND":
+                sec["content"] = content[: max(80, len(content) * 2 // 3)].rstrip(" ,;.")
+                trimmed = True
+                break
+            if key == "BRAND" and _trim_brand_composition_rules(sec, 2):
+                trimmed = True
+                break
+        if not trimmed:
+            break
+        working = _order_sections(working)
+        wire = _wire()
+
+    master = _master()
     if len(master) > _PROMPT_MAX_CHARS:
         master = master[:_PROMPT_MAX_CHARS].rstrip()
 
-    return master, working
+    return master, wire, working
 
 
 def _build_reference_block(reference_dna: dict) -> str:

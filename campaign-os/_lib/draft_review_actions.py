@@ -361,10 +361,28 @@ def regenerate_photo(draft_id: str, *, note: str) -> dict[str, Any]:
         return {"ok": False, "error": "draft has no source moment"}
 
     cap_info = ops_layers.brand_images_today(brand_id)
+    from _lib.marketing_calendar import render_mode_for_record  # noqa: PLC0415
+    from _lib.unified_inbox import _calendar_record_for_key  # noqa: PLC0415
+
+    cal_record: dict | None = None
+    if moment_id.startswith("calendar_candidate:"):
+        parts = moment_id.split(":", 2)
+        if len(parts) >= 3:
+            cal_record = _calendar_record_for_key(brand_id, parts[2])
+    is_oneshot = render_mode_for_record(cal_record or {}) == "oneshot"
+
     if cap_info.get("at_cap"):
         return {
             "ok": False,
             "error": f"Daily image cap reached for {brand_id}",
+            "at_cap": True,
+            "brand_id": brand_id,
+            **cap_info,
+        }
+    if is_oneshot and cap_info.get("at_oneshot_cap"):
+        return {
+            "ok": False,
+            "error": f"One-shot cap reached for {brand_id}",
             "at_cap": True,
             "brand_id": brand_id,
             **cap_info,
@@ -388,13 +406,17 @@ def regenerate_photo(draft_id: str, *, note: str) -> dict[str, Any]:
 
     from _lib.template_recipe import load_recipe_for_moment  # noqa: PLC0415
 
-    recipe = load_recipe_for_moment(brand_id, moment_id)
-    gen_slots = recipe.get("gen_slots") if isinstance(recipe, dict) else None
-    photo_action = "draft_gen_slots" if isinstance(gen_slots, list) and gen_slots else "draft_photo"
+    if is_oneshot:
+        photo_actions: tuple[str, ...] = ("draft_oneshot",)
+    else:
+        recipe = load_recipe_for_moment(brand_id, moment_id)
+        gen_slots = recipe.get("gen_slots") if isinstance(recipe, dict) else None
+        photo_action = "draft_gen_slots" if isinstance(gen_slots, list) and gen_slots else "draft_photo"
+        photo_actions = (photo_action, "compose_post")
 
     item_hash = hashlib.sha1(moment_id.encode()).hexdigest()[:12]
     enqueued: list[str] = []
-    for action in (photo_action, "compose_post"):
+    for action in photo_actions:
         row = ops_agents.normalise_enqueue(
             {
                 "agent": "cos-image",
