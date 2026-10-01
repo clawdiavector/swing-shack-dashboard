@@ -239,18 +239,17 @@ export function Week() {
     })
       .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((html) => {
-        // Strip <head>/<style>/<script> and the brand-page nav,
-        // keep the styled report body so it embeds cleanly inside
-        // the OS shell. The Flask route already wraps everything
-        // in <html><body>...</body></html> — drop the document
-        // chrome, keep the inner body children.
-        const bodyStart = html.indexOf('<body>')
-        const bodyEnd = html.lastIndexOf('</body>')
-        let inner = html
-        if (bodyStart >= 0 && bodyEnd > bodyStart) {
-          inner = html.slice(bodyStart + '<body>'.length, bodyEnd)
-        }
-        setFullReportHtml(inner)
+        // Embed the full Flask document (head + body) so the
+        // report's own <style> block travels with the body — the
+        // V3.6 renderer's .wr-*, .kpi-*, .page-header classes need
+        // their styles in scope to render brand-styled. Stripping
+        // only the document-level chrome (doctype/html/head/body
+        // tags) keeps the stylesheet and the body intact.
+        const headMatch = html.match(/<head[\s\S]*?<\/head>/i)
+        const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
+        const head = headMatch ? headMatch[0] : ''
+        const body = bodyMatch ? bodyMatch[1] : html
+        setFullReportHtml(head + body)
       })
       .catch((e: Error) => {
         setBrandErr(e.message || 'GET /api/weekly-report (html) failed')
