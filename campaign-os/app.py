@@ -43056,7 +43056,10 @@ def planning_big_idea(brand_id):
                 north_star_source = north_star_source or source_label
             nd = payload.get("north_stars") or []
             if nd and not operating_goals:
-                # Adapt brand-directory north_stars schema to the standard operating_goals shape
+                # Adapt brand-directory north_stars schema to the standard operating_goals shape.
+                # V2.11 §3 — Carry superseded_by forward so the React planner
+                # can filter legacy entries (e.g. '24 fittings/week')
+                # superseded by 'immediate_fittings_monthly'.
                 operating_goals = [
                     {
                         "id": s.get("id", s.get("label", "").lower().replace(" ", "_")),
@@ -43069,6 +43072,9 @@ def planning_big_idea(brand_id):
                         "marketing_support_signal": s.get("marketing_support_signal"),
                         "do_not_fabricate_progress": s.get("do_not_fabricate_progress"),
                         "source": s.get("source"),
+                        "superseded_by": s.get("superseded_by"),
+                        "superseded_at": s.get("superseded_at"),
+                        "superseded_reason": s.get("superseded_reason"),
                     }
                     for s in nd
                 ]
