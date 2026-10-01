@@ -330,6 +330,56 @@ def _zone_keys(archetype: dict[str, Any], spec: dict[str, Any] | None) -> list[s
     return sorted(str(k) for k in zones.keys())
 
 
+def _is_image_ref(url: str) -> bool:
+    path = str(url or "").strip().lower().split("?", 1)[0]
+    return path.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif"))
+
+
+def latest_composed_previews(brand_id: str) -> dict[str, str]:
+    """Newest composed draft image for each template. Empty when no drafts exist."""
+    import os
+
+    sidecar_dir = Path(os.environ.get("DATA_DIR", "/data/campaign-os")) / "draft-assets"
+    if not sidecar_dir.is_dir():
+        return {}
+    best: dict[str, tuple[tuple[str, float], str]] = {}
+    for path in sidecar_dir.glob("*.json"):
+        if path.name.endswith(".brief.json") or path.name.endswith(".qc.json"):
+            continue
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(sidecar, dict):
+            continue
+        if str(sidecar.get("brand_id") or "").strip() != brand_id:
+            continue
+        if str(sidecar.get("action") or "") == "superseded_caption":
+            continue
+        arch = sidecar.get("archetype") if isinstance(sidecar.get("archetype"), dict) else {}
+        tid = str(arch.get("id") or "").strip()
+        composed = sidecar.get("composed") if isinstance(sidecar.get("composed"), dict) else {}
+        url = ""
+        for key in ("instagram", "facebook", "gbp"):
+            raw = composed.get(key)
+            if isinstance(raw, str) and _is_image_ref(raw):
+                url = raw.strip()
+                break
+        if not tid or not url:
+            continue
+        stamp = str(
+            sidecar.get("updatedAt")
+            or sidecar.get("updated_at")
+            or sidecar.get("created_at")
+            or ""
+        )
+        key = (stamp, path.stat().st_mtime)
+        prev = best.get(tid)
+        if prev is None or key >= prev[0]:
+            best[tid] = (key, url)
+    return {tid: url for tid, (_stamp, url) in best.items()}
+
+
 def build_template_gallery(brand_id: str) -> dict[str, Any]:
     """Build gallery payload for a brand. Raises ValueError if brand directory missing."""
     bid = str(brand_id or "").strip()
@@ -343,6 +393,7 @@ def build_template_gallery(brand_id: str) -> dict[str, Any]:
     archetypes = doc.get("archetypes") or []
     selection = doc.get("selection") if isinstance(doc.get("selection"), dict) else {}
 
+    composed_previews = latest_composed_previews(bid)
     templates: list[dict[str, Any]] = []
     for arch in archetypes:
         if not isinstance(arch, dict):
@@ -363,6 +414,9 @@ def build_template_gallery(brand_id: str) -> dict[str, Any]:
         ).strip()
         section = _derive_section(tid, template_pack)
         previews = template_display_meta(bid, arch, brand_path)
+        post_url = composed_previews.get(tid) or ""
+        if post_url:
+            previews = [post_url] + [url for url in previews if url != post_url]
         templates.append(
             {
                 "template_id": tid,

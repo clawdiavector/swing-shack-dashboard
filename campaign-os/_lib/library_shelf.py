@@ -331,6 +331,15 @@ def _build_sandbox_rows(brand_id: str) -> tuple[list[dict[str, Any]], bool]:
     return out, tail_capped
 
 
+def _image_role(url: str) -> str:
+    if template_gallery._is_golden_render(url):
+        return "golden"
+    path = str(url or "").replace("\\", "/").lower()
+    if "/brand-images/" in path or "composed-" in path:
+        return "post"
+    return "measured"
+
+
 def _union_reference_images(
     brand_id: str,
     declared_urls: list[str],
@@ -347,7 +356,7 @@ def _union_reference_images(
             {
                 "url": u,
                 "provenance": "declared",
-                "role": "golden" if template_gallery._is_golden_render(u) else "measured",
+                "role": _image_role(u),
             }
         )
     for url in disk_urls:
@@ -359,10 +368,11 @@ def _union_reference_images(
             {
                 "url": u,
                 "provenance": "disk",
-                "role": "golden" if template_gallery._is_golden_render(u) else "measured",
+                "role": _image_role(u),
             }
         )
-    images.sort(key=lambda row: 0 if row.get("role") == "golden" else 1)
+    rank = {"post": 0, "golden": 1, "measured": 2}
+    images.sort(key=lambda row: rank.get(str(row.get("role") or ""), 2))
     return images
 
 
