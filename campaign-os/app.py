@@ -16888,17 +16888,23 @@ def cockpit():
 
 @app.route('/<path:filename>')
 def static_files(filename):
-    # SPA section deep-links (e.g. /sec-planning) → serve the SPA HTML
-    # so the SPA boots and switches to that section.
+    # SPA section deep-links (e.g. /sec-planning) → redirect into the
+    # canonical /app/<path> so the SPA boots and switches to that section.
+    # Campaign OS is React Router basename=/app. Serving the inlined
+    # `campaign-os.html` (which has the JS+CSS bundle inlined as raw
+    # <script> + <style> tags) is wrong — the browser displays the
+    # minified JS source instead of rendering the SPA. Always route
+    # non-API legacy URLs into the canonical /app/ shell.
     if filename.startswith('sec-'):
-        return send_from_directory('.', 'campaign-os.html')
+        return redirect(f'/app/{filename}')
     target = os.path.join('.', filename)
     if os.path.exists(target):
         return send_from_directory('.', filename)
-    # SPA-style routes (no file extension, not in api/ or _lib/) → serve SPA
+    # SPA-style routes (no file extension, not in api/ or _lib/) →
+    # redirect into the canonical /app/<path> shell.
     last = filename.split('/')[-1]
     if '.' not in last and not filename.startswith(('api/', '_lib/', 'assets/')):
-        return send_from_directory('.', 'campaign-os.html')
+        return redirect(f'/app/{filename}')
     abort(404)
 
 # ─── TRUTH COLLECTOR (Stage 4 — server-side only) ─────────────────────
