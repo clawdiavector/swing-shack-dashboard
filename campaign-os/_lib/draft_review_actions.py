@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+
+_caption_keep_lock = threading.Lock()
 
 from _lib.jobs.layer1._io import atomic_write
 
@@ -593,12 +597,36 @@ def _campaign_data_with_asset(ctx: dict[str, Any], asset: dict[str, Any]) -> dic
     return data
 
 
+def _kick_caption_keep(moment_id: str, brand_id: str) -> bool:
+    """Write the queued caption now, for this moment only. Other queue rows stay pending."""
+    if not _caption_keep_lock.acquire(blocking=False):
+        return False
+
+    def _work() -> None:
+        previous = os.environ.get("CAMPAIGN_OS_L5_ONLY_ITEM")
+        os.environ["CAMPAIGN_OS_L5_ONLY_ITEM"] = moment_id
+        try:
+            from _lib.jobs.layer5.draft_assets import run
+
+            run(brand=brand_id)
+        finally:
+            if previous is None:
+                os.environ.pop("CAMPAIGN_OS_L5_ONLY_ITEM", None)
+            else:
+                os.environ["CAMPAIGN_OS_L5_ONLY_ITEM"] = previous
+            _caption_keep_lock.release()
+
+    threading.Thread(target=_work, name="caption-keep", daemon=True).start()
+    return True
+
+
 def regenerate_caption(
     *,
     moment_id: str | None = None,
     draft_id: str | None = None,
     reason: str = "regenerate-caption",
     recompose: bool = False,
+    run_now: bool = True,
 ) -> dict[str, Any]:
     """Rewrite caption text on the open draft. recompose=True retires the poster and rebuilds it."""
     from _lib import ops_agents
@@ -684,12 +712,17 @@ def regenerate_caption(
             ops_agents.append_enqueue_row(data_dir, row)
             enqueued.append(action)
 
+    started = False
+    if not recompose and run_now:
+        started = _kick_caption_keep(resolved_moment, brand_id)
+
     return {
         "ok": True,
         "brand_id": brand_id,
         "moment_id": resolved_moment,
         "retired_asset_ids": retired,
         "enqueued": enqueued,
+        "started": started,
     }
 
 

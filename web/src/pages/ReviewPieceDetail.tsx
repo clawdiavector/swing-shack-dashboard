@@ -88,7 +88,7 @@ export function ReviewPieceDetail({
                   className="inline-flex items-center gap-1.5 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  {captionRegenerating ? 'Queuing…' : 'Regenerate caption'}
+                  {captionRegenerating ? 'Rewriting caption…' : 'Regenerate caption'}
                 </button>
               </Tip>
             </div>
@@ -125,7 +125,15 @@ export function ReviewPieceDetail({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-tx2" data-testid="caption-display">
+          {captionRegenerating ? (
+            <p className="mb-2 text-sm font-semibold text-ac" data-testid="caption-pending">
+              Rewriting this caption. The image stays. About 30 seconds.
+            </p>
+          ) : null}
+          <p
+            className={captionRegenerating ? 'text-sm text-tx3' : 'text-sm text-tx2'}
+            data-testid="caption-display"
+          >
             {caption || 'No brief on this card yet.'}
           </p>
         )}

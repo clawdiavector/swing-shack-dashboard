@@ -114,6 +114,7 @@ def test_caption_regen_keeps_poster(monkeypatch, tmp_path):
         draft_id=f"draft_asset:cos-drafts-stick:{asset_id}",
         reason="from review",
         recompose=False,
+        run_now=False,
     )
     assert result["ok"] is True
     assert result["enqueued"] == ["draft_caption"]

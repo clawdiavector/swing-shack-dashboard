@@ -1,5 +1,5 @@
 import { ArrowLeft, Check, Pencil, RotateCcw, Sparkles } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { BrandChip } from '../components/BrandChip'
 import { useBrand, useBrandScope } from '../components/BrandSwitch'
@@ -74,7 +74,14 @@ export function ReviewPiece() {
   const [drafting, setDrafting] = useState(false)
   const [captionRegenerating, setCaptionRegenerating] = useState(false)
   const [imageCap, setImageCap] = useState<{ at_cap: boolean; cap: number } | null>(null)
+  const captionPoll = useRef<number | null>(null)
   const { trackLoad, waitForLoad } = useLoadGate()
+
+  useEffect(() => {
+    return () => {
+      if (captionPoll.current != null) window.clearInterval(captionPoll.current)
+    }
+  }, [])
 
   const cid = item?.meta?.campaign_id
   const aid = item?.meta?.asset_id
@@ -243,17 +250,48 @@ export function ReviewPiece() {
     setCaptionRegenerating(true)
     setError('')
     setSuccess('')
+    const before = caption.trim()
+    const campaignId = item.meta?.campaign_id
+    const assetId = item.meta?.asset_id
     const reason = 'Regenerate caption from review'
     try {
       const result = await draftRegenerateCaption(draftId, reason, false)
-      setCaptionRegenerating(false)
       if (!result.ok) {
+        setCaptionRegenerating(false)
         setError(result.error || 'Could not queue caption regenerate')
         return
       }
-      setSuccess(
-        'Rewriting the caption on this post. The image and the day stay.',
-      )
+      setSuccess('Rewriting the caption. The image stays. About 30 seconds.')
+      if (captionPoll.current != null) window.clearInterval(captionPoll.current)
+      const started = Date.now()
+      captionPoll.current = window.setInterval(() => {
+        if (!campaignId || !assetId) return
+        if (Date.now() - started > 90_000) {
+          if (captionPoll.current != null) window.clearInterval(captionPoll.current)
+          captionPoll.current = null
+          setCaptionRegenerating(false)
+          setSuccess('Still writing. Refresh this card in a minute.')
+          return
+        }
+        void fetchCampaign(campaignId)
+          .then((c) => {
+            const next = c.assets?.[assetId]?.caption?.trim() || ''
+            if (!next || next === before) return
+            if (captionPoll.current != null) window.clearInterval(captionPoll.current)
+            captionPoll.current = null
+            setAsset(c.assets?.[assetId] || null)
+            setItem((current) =>
+              current
+                ? { ...current, meta: { ...current.meta, caption: next }, summary: next }
+                : current,
+            )
+            setCaptionRegenerating(false)
+            setSuccess('Caption updated. The image is unchanged.')
+          })
+          .catch(() => {
+            /* keep polling */
+          })
+      }, 4000)
     } catch (err) {
       setCaptionRegenerating(false)
       setError(err instanceof Error ? err.message : String(err))
