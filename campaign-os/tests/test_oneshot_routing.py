@@ -39,3 +39,16 @@ def test_draft_oneshot_not_in_photo_equiv():
     from _lib.jobs.layer5.draft_assets import _PHOTO_EQUIV
 
     assert "draft_oneshot" not in _PHOTO_EQUIV
+
+
+def test_literal_line_humour_uses_meme_caption():
+    from _lib.jobs.layer5.draft_oneshot import literal_line_for_card
+
+    record = {
+        "process": "humour",
+        "origin": {"kind": "meme_lord", "actor": "day_desk_schedule"},
+        "meme": {"flavour": "sarcastic", "caption": "Your slice is a personality test."},
+    }
+    line, source = literal_line_for_card("stick", "calendar_candidate:stick:cal-h", record)
+    assert line == "Your slice is a personality test."
+    assert source == "meme_lord:sarcastic"

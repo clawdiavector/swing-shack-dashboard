@@ -38,17 +38,27 @@ class OneshotCopyMissing(Exception):
     """No resolvable literal line on the card."""
 
 
+def _origin_kind(record: dict) -> str:
+    origin = record.get("origin")
+    if isinstance(origin, dict):
+        return str(origin.get("kind") or "").strip().lower()
+    return str(origin or "").strip().lower()
+
+
 def literal_line_for_card(brand_id: str, item_id: str, record: dict) -> tuple[str, str]:
     """Return (line, source). Raises OneshotCopyMissing when empty."""
     del brand_id, item_id
     process = str(record.get("process") or "").strip().lower()
-    origin = str(record.get("origin") or "").strip().lower()
-    if process == "humour" or origin == "meme_lord":
-        line = str(record.get("meme_line") or "").strip()
-        flavour = str(record.get("meme_flavour") or "").strip().lower()
-        if line and flavour:
-            return line, f"meme_lord:{flavour}"
-        raise OneshotCopyMissing("humour card missing meme_line / meme_flavour")
+    if process == "humour" or _origin_kind(record) == "meme_lord":
+        meme = record.get("meme")
+        if not isinstance(meme, dict):
+            raise OneshotCopyMissing("humour card missing meme object")
+        line = str(meme.get("caption") or "").strip()
+        flavour = str(meme.get("flavour") or "").strip().lower()
+        if not line:
+            raise OneshotCopyMissing("humour card missing meme.caption")
+        source = f"meme_lord:{flavour}" if flavour else "meme_lord:unknown"
+        return line, source
 
     headline = str(record.get("headline") or "").strip()
     title = str(record.get("title") or "").strip()
