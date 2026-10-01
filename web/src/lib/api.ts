@@ -1105,6 +1105,45 @@ export async function inboxAction(
   return res.json() as Promise<{ ok?: boolean; error?: string; code?: string }>
 }
 
+export type ScheduleDayResult =
+  | {
+      ok: true
+      brand_id: string
+      date: string
+      batch_id: string
+      created: Record<string, unknown>[]
+      counts: { template: number; oneshot: number }
+    }
+  | {
+      ok: false
+      code?: 'day_not_empty'
+      error?: string
+      existing?: number
+      existing_calendar_ids?: string[]
+      policy_block?: boolean
+    }
+
+export async function scheduleDay(
+  brandId: string,
+  dateIso: string,
+  opts?: { force?: boolean; flavour?: string | null; editor?: string },
+): Promise<ScheduleDayResult & { status: number }> {
+  const res = await fetch('/api/calendar/schedule-day', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      brand_id: brandId,
+      date: dateIso,
+      force: opts?.force ?? false,
+      flavour: opts?.flavour ?? null,
+      editor: opts?.editor ?? 'operator',
+    }),
+  })
+  const data = (await res.json()) as ScheduleDayResult
+  return { ...data, status: res.status }
+}
+
 export async function patchMomentFields(
   brandId: string,
   calendarId: string,

@@ -6,7 +6,13 @@ import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { PageIntro } from '../components/chrome'
 import { PostCard } from '../components/posting/PostCard'
 import { Badge } from '../components/ui'
-import { enqueueOneshotDay, fetchBrandImagesToday, fetchPostingWeek, fetchTemplateGallery } from '../lib/api'
+import {
+  enqueueOneshotDay,
+  fetchBrandImagesToday,
+  fetchPostingWeek,
+  fetchTemplateGallery,
+  scheduleDay,
+} from '../lib/api'
 import type { BrandImagesToday } from '../lib/api'
 import { fanOutPayloads, mergePostingWeekPayloads, type FanOutFailure } from '../lib/fanOut'
 import { useLoadGate } from '../lib/useLoadGate'
@@ -31,18 +37,31 @@ function unionPostTypeHints(templates: { post_type_hints?: string[] }[]): string
   return [...set].sort()
 }
 
+const SCHEDULE_BRAND_LABEL: Record<string, string> = {
+  'swing-shack': 'Swing Shack',
+  stick: 'Stick',
+}
+
 function DaySection({
   day,
   waitForReads,
   editable,
   postTypeByBrand,
   onRefresh,
+  scheduleBrandIds,
+  onSchedule,
+  scheduling,
+  scheduleMessage,
 }: {
   day: PostingWeekDay
   waitForReads?: () => Promise<void>
   editable?: boolean
   postTypeByBrand?: Record<string, string[]>
   onRefresh?: () => void
+  scheduleBrandIds?: string[]
+  onSchedule?: (dateIso: string) => void
+  scheduling?: boolean
+  scheduleMessage?: string
 }) {
   return (
     <section key={day.date}>
@@ -57,9 +76,23 @@ function DaySection({
         <Badge tone="mute">{day.posts.length}</Badge>
       </div>
       {day.posts.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-          Nothing going out.
-        </p>
+        <div className="space-y-3 rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
+          <p>Nothing going out.</p>
+          {editable && scheduleBrandIds?.length ? (
+            <>
+              <p className="text-xs">Adds candidate cards — nothing generates.</p>
+              <button
+                type="button"
+                disabled={scheduling}
+                className="rounded-full bg-ac px-4 py-2 text-xs font-semibold text-bg disabled:opacity-40"
+                onClick={() => onSchedule?.(day.date)}
+              >
+                Schedule this day
+              </button>
+              {scheduleMessage ? <p className="text-xs text-tx2">{scheduleMessage}</p> : null}
+            </>
+          ) : null}
+        </div>
       ) : (
         <ul className="space-y-2">
           {day.posts.map((post) => (
@@ -98,8 +131,11 @@ export function WeekBoard() {
   const [capInfo, setCapInfo] = useState<BrandImagesToday | null>(null)
   const [oneshotMsg, setOneshotMsg] = useState('')
   const [oneshotBusy, setOneshotBusy] = useState(false)
+  const [scheduling, setScheduling] = useState(false)
+  const [scheduleMessage, setScheduleMessage] = useState('')
 
   const singleBrandId = scope === 'all' ? 'swing-shack' : scope
+  const scheduleBrandIds = isAll ? brandIds : [singleBrandId]
 
   const dayPosts: PostingWeekPost[] = useMemo(() => {
     if (!isDayMode || days.length === 0) return []
@@ -248,7 +284,7 @@ export function WeekBoard() {
       const enq = res.enqueued?.length ?? 0
       const skip = res.skipped?.length ?? 0
       setOneshotMsg(`Enqueued ${enq}, skipped ${skip}`)
-      await load()
+      load()
       const cap = await fetchBrandImagesToday(singleBrandId)
       setCapInfo(cap)
     } catch (err) {
@@ -257,6 +293,33 @@ export function WeekBoard() {
       setOneshotBusy(false)
     }
   }
+
+  const handleScheduleDay = useCallback(
+    async (dayIso: string) => {
+      setScheduling(true)
+      setScheduleMessage('')
+      const parts: string[] = []
+      try {
+        for (const brandId of scheduleBrandIds) {
+          const label = SCHEDULE_BRAND_LABEL[brandId] ?? brandId
+          const result = await scheduleDay(brandId, dayIso)
+          if (result.ok) {
+            const n = (result.counts?.template ?? 0) + (result.counts?.oneshot ?? 0)
+            parts.push(`${label} ${n}`)
+          } else if (result.code === 'day_not_empty') {
+            parts.push(`${label} already has posts`)
+          } else {
+            parts.push(`${label} failed`)
+          }
+        }
+        setScheduleMessage(parts.join(' · '))
+        load()
+      } finally {
+        setScheduling(false)
+      }
+    },
+    [load, scheduleBrandIds],
+  )
 
   if (error && days.length === 0) {
     return (
@@ -354,6 +417,10 @@ export function WeekBoard() {
             editable={isDayMode}
             postTypeByBrand={postTypeByBrand}
             onRefresh={load}
+            scheduleBrandIds={isDayMode ? scheduleBrandIds : undefined}
+            onSchedule={isDayMode ? handleScheduleDay : undefined}
+            scheduling={scheduling}
+            scheduleMessage={scheduleMessage}
           />
         ))}
       </div>
