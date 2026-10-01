@@ -340,8 +340,8 @@ def _compose_full_prompt(
 
     Both paths degrade gracefully if inputs are missing.
     """
-    # NEW (2026-08-31): structured creative-director path.
-    if brand_id and (reference_dnas or product_service_items):
+    # Structured creative-director path whenever brand_id is known.
+    if brand_id:
         try:
             from _lib.creative_director import compose_prompt
             result = compose_prompt(
@@ -350,7 +350,10 @@ def _compose_full_prompt(
                 reference_dna=reference_dnas[0] if reference_dnas else None,
                 product_service_item=product_service_items[0] if product_service_items else None,
             )
-            composed = result.get("master_prompt", "")
+            composed = result.get("wire_prompt") or result.get("master_prompt", "")
+            neg = (result.get("negative_prompt") or "").strip()
+            if composed and neg:
+                composed = f"{composed}\n\nAvoid: {neg}"
             if composed:
                 return composed
         except Exception as e:
@@ -1042,16 +1045,9 @@ def generate_image(
             )
             if brand_id:
                 try:
-                    from _lib.brand_dna import (
-                        load_brand_context,
-                        build_system_message,
-                        build_recipe_summary,
-                    )
+                    from _lib.brand_dna import build_recipe_summary, load_brand_context
 
                     brand_ctx = load_brand_context(brand_id)
-                    if brand_ctx.ok:
-                        sys_msg = build_system_message(brand_ctx)
-                        enhanced = f"{sys_msg}\n\n---\n\nUSER REQUEST: {enhanced}"
                     recipe_summary = build_recipe_summary(brand_ctx)
                 except Exception as e:
                     _LOG.warning("brand_dna wiring failed for Krea path %s: %s", brand_id, e)
@@ -1106,16 +1102,6 @@ def generate_image(
         # can return 402 Payment Required when credits run out. Build the
         # composed prompt here so we can retry through Krea if the OR call
         # surfaces that specific upstream error.
-        _composed_for_or = _compose_full_prompt(
-            prompt,
-            brand_id=brand_id,
-            brand_recipe=brand_recipe,
-            reference_dnas=reference_dnas,
-            product_service_items=product_service_items,
-            learned_signals=learned_signals,
-        )
-
-        # Build the legacy enhanced prompt (Layer 4 brand recipe tail, etc.)
         enhanced = _compose_full_prompt(
             prompt,
             brand_id=brand_id,
@@ -1139,7 +1125,9 @@ def generate_image(
                     build_recipe_summary,
                 )
                 brand_ctx = load_brand_context(brand_id)
-                msgs = build_image_messages(brand_ctx, enhanced)
+                msgs = build_image_messages(
+                    brand_ctx, enhanced, include_brand_text=False
+                )
                 if brand_ctx.ok:
                     messages = msgs
                 else:

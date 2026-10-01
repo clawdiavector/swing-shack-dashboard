@@ -1,0 +1,50 @@
+name: lint-brand-visual
+
+on:
+  push:
+    branches: [main, 'integrate/**']
+    paths:
+      - 'data/brand-directory/**/bible-visual.json'
+      - 'data/brand-directory/**/palette/brand.json'
+      - 'scripts/lint_brand_visual.py'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'data/brand-directory/**/bible-visual.json'
+      - 'data/brand-directory/**/palette/brand.json'
+      - 'scripts/lint_brand_visual.py'
+
+jobs:
+  lint:
+    name: lint-brand-visual
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Lint changed bible-visual / palette files
+        run: |
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "no usable base SHA; scanning nothing (push create / empty before)"
+            exit 0
+          fi
+          files=$(git diff --name-only "$base" "${{ github.sha }}" -- \
+                    'data/brand-directory/*/bible-visual.json' \
+                    'data/brand-directory/*/palette/brand.json' || true)
+          if [ -z "$files" ]; then
+            echo "no bible-visual / palette files changed"
+            exit 0
+          fi
+          brands=$(echo "$files" | sed -n 's|data/brand-directory/\([^/]*\)/.*|\1|p' | sort -u)
+          rc=0
+          for b in $brands; do
+            python3 scripts/lint_brand_visual.py . "data/brand-directory/$b" || rc=1
+          done
+          exit $rc
