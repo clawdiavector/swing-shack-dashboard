@@ -9,8 +9,7 @@
 
 ## Commit under test
 
-Record the tip after this handoff lands (handoff commit may follow the feature commit):
-
+- **Branch tip (pushed):** `ad319da2250207b46a56fcf3076e9b976e8f83c4` — includes this handoff
 - **Feature commit:** `b87d4dba7f5b30e4ac9817c2e134f25e17457903` — `feat(creative): Phase 1 one-shot prompt pipeline cleanup`
 
 ## Verification (worker)
