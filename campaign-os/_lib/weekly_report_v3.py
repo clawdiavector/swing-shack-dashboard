@@ -581,6 +581,21 @@ def _render_stories(bid: str, periods: Optional[Dict[str, str]] = None) -> str:
         intrx = s.get("interactions") or 0
         follows = s.get("follows") or 0
         perma = s.get("permalink") or ""
+        # If the story was published within the last 48h and reach
+        # came back as 0, show 'Pending' instead of a fake 0 (Meta
+        # typically takes 24–48h to populate lifetime metrics).
+        from datetime import datetime as _dt, timezone as _tz, timedelta as _td2
+        _now_utc = _dt.now(_tz.utc)
+        reach_disp = _fmt(reach)
+        reach_class = ""
+        if reach == 0 and pa and (_now_utc - pa) < _td2(hours=48):
+            reach_disp = "Pending"
+            reach_class = " reach-pending"
+        intrx_disp = _fmt(intrx)
+        intrx_class = ""
+        if intrx == 0 and pa and (_now_utc - pa) < _td2(hours=48):
+            intrx_disp = "Pending"
+            intrx_class = " reach-pending"
         link_html = (f'<a href="{_esc(perma)}" target="_blank" '
                        f'rel="noopener" class="story-link">View ↗</a>'
                        if perma else "")
@@ -591,8 +606,8 @@ def _render_stories(bid: str, periods: Optional[Dict[str, str]] = None) -> str:
             <span class="story-type">{_esc(med_word)}</span>
           </div>
           <div class="story-stats">
-            <span>Reach: <strong>{_esc(_fmt(reach))}</strong></span>
-            <span>Interactions: <strong>{_esc(_fmt(intrx))}</strong></span>
+            <span class="reach-row{reach_class}">Reach: <strong>{_esc(reach_disp)}</strong></span>
+            <span class="reach-row{intrx_class}">Interactions: <strong>{_esc(intrx_disp)}</strong></span>
             <span>Follows: <strong>{_esc(_fmt(follows))}</strong></span>
           </div>
           {link_html}
@@ -1756,6 +1771,32 @@ table.data .trend-flat, table.data .trend-neutral {{ color: var(--ink-muted); }}
   .action-card {{ padding: 12px 14px; }}
   .page-footer {{ flex-direction: column; gap: 8px; padding: 16px 14px; }}
   .footer-period {{ font-size: 11px; }}
+  /* Tables: shrink cell padding + font, allow horizontal scroll inside
+     report-section so columns don't push the page wider than the viewport. */
+  table.data {{ display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }}
+  table.data thead th, table.data td {{ padding: 6px 8px; font-size: 12px; white-space: nowrap; }}
+  table.data thead th {{ font-size: 10px; }}
+  table.data th:first-child, table.data td:first-child {{ white-space: normal; }}
+  /* Acquisitions row label can wrap; the bar/pct stay inline. */
+  .acq-row {{ gap: 10px; flex-wrap: wrap; }}
+  .acq-bar {{ margin-right: 6px; }}
+  /* Content card thumb should scale with the card width on small phones. */
+  .content-card .thumb {{ width: 100%; aspect-ratio: 16/9; }}
+  .content-card .thumb img {{ width: 100%; height: 100%; object-fit: cover; }}
+  /* Caption and stats stack tightly so the card stays within 360-ish phone widths. */
+  .content-card .caption {{ font-size: 13px; }}
+  .content-card .stats {{ font-size: 12px; gap: 12px; flex-wrap: wrap; }}
+  /* Header brand block and period block side-by-side would overflow —
+     stack them with the period block taking the full width. */
+  .brand-block {{ flex-basis: 100%; }}
+  .header-inner > div[style*="flex: 0 0 auto"] {{ flex-basis: 100% !important; text-align: left !important; }}
+  /* Report-block headings + eyebrow text scale down so they fit in 360px. */
+  .report-title {{ font-size: 18px; line-height: 1.25; }}
+  .report-eyebrow {{ font-size: 10px; letter-spacing: .08em; }}
+  .section-eyebrow {{ font-size: 10px; }}
+  /* Reach/interactions 'Pending' label — Meta hasn't populated lifetime
+     metrics yet for fresh posts (<48h). Visually muted, not a fake 0. */
+  .reach-row.reach-pending strong {{ color: var(--ink-muted); font-style: italic; font-weight: 500; }}
 }}
 @media print {{
   body {{ background: white; }}
@@ -2252,6 +2293,24 @@ def _render_best_content(bid: str, organic: Dict[str, Any],
         permalink = p.get("permalink") or ""
         reach = p.get("reach") or 0
         interactions = p.get("interactions") or 0
+        # Instagram typically populates lifetime reach for a media within
+        # 24–48h of publish. If the post is fresh (<48h) AND reach came
+        # back as exactly 0, show 'Pending' instead of '0' — telling the
+        # operator the data isn't there yet is more honest than a fake 0.
+        # Older posts with reach=0 stay as '0' (and the operator can see
+        # the post has been live for a while).
+        from datetime import datetime, timezone, timedelta as _td
+        now_utc = datetime.now(timezone.utc)
+        reach_disp = _fmt(reach)
+        reach_class = ""
+        if reach == 0 and pa and (now_utc - pa) < _td(hours=48):
+            reach_disp = "Pending"
+            reach_class = " reach-pending"
+        inter_disp = _fmt(interactions)
+        inter_class = ""
+        if interactions == 0 and pa and (now_utc - pa) < _td(hours=48):
+            inter_disp = "Pending"
+            inter_class = " reach-pending"
         permalink_html = (f'<a href="{_esc(permalink)}" target="_blank" '
                             f'rel="noopener" class="content-permalink">'
                             f'View on Instagram ↗</a>' if permalink else '')
@@ -2265,8 +2324,8 @@ def _render_best_content(bid: str, organic: Dict[str, Any],
             </div>
             <div class="caption">{_esc(caption) or '<span class="kpi-secondary">(no caption)</span>'}</div>
             <div class="stats">
-              <span>Reach: <strong>{_esc(_fmt(reach))}</strong></span>
-              <span>Interactions: <strong>{_esc(_fmt(interactions))}</strong></span>
+              <span class="reach-row{reach_class}">Reach: <strong>{_esc(reach_disp)}</strong></span>
+              <span class="reach-row{inter_class}">Interactions: <strong>{_esc(inter_disp)}</strong></span>
             </div>
             {permalink_html}
           </div>
