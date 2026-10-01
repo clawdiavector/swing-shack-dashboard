@@ -187,17 +187,147 @@ def check_llms_txt(brand: str) -> Dict[str, Any]:
 
     url = f"{_BRAND_DOMAINS.get(brand, '').rstrip('/')}/llms.txt"
     status, text = _http_get(url)
+    # V1.1 calibration (2026-10-01): llms.txt is EXPERIMENTAL, not a proven
+    # AI citation signal. Some crawlers read it, most LLMs do not cite content
+    # surfaced only via llms.txt. We track it as an OPTIONAL signal with no
+    # severity weight in the GEO score.
     result = {
         "check": "llms_txt",
+        "signal_type": "EXPERIMENTAL",
         "status": "OK" if status == 200 else "MISSING",
-        "severity": "high",
-        "message": "llms.txt found" if status == 200 else "llms.txt not found at domain root",
+        "severity": "low",
+        "message": (
+            "llms.txt found (experimental — adoption is fragmented; not a "
+            "proven AI citation signal yet)"
+            if status == 200
+            else "llms.txt not found (optional experimental asset; most LLMs "
+                 "still do not index it; not weighted in GEO score)"
+        ),
         "fix_suggestion": None,
     }
     if status != 200:
         result["fix_suggestion"] = _build_llms_txt_suggestion(brand)
     _cache_set(cache_key, result)
     return result
+
+
+# ── Robots.txt review (V1.1) ────────────────────────────────────────────────────
+# Per operator direction: do NOT label robots.txt as a high-severity GEO
+# blocker just because it lacks a generic User-agent: * group. Most crawlers
+# default to allow when no rule matches. Only REVIEW_RECOMMENDED when an
+# actual crawler block is proved or when a Sitemap: directive is missing.
+
+def _build_robots_review(brand: str) -> Dict[str, Any]:
+    """Fetch /robots.txt, classify current state, surface proposed state with
+    per-line effect. Never returns high severity unless a real block exists."""
+    domain = _BRAND_DOMAINS.get(brand, "")
+    if not domain:
+        return {
+            "check": "robots_review",
+            "signal_type": "TECHNICAL_SEO",
+            "status": "UNKNOWN",
+            "severity": "low",
+            "excluded_from_score": True,
+            "message": "No domain configured for brand",
+            "fix_suggestion": None,
+        }
+    url = f"{domain.rstrip('/')}/robots.txt"
+    status, text = _http_get(url)
+
+    if status != 200:
+        # No robots.txt at all — that is a low-severity REVIEW_RECOMMENDED,
+        # not high. Crawlers default to allow-everything.
+        return {
+            "check": "robots_review",
+            "signal_type": "TECHNICAL_SEO",
+            "status": "MISSING",
+            "severity": "low",
+            "message": f"No robots.txt at {url} (default: all crawlers allowed; recommended to publish one with sitemap pointer)",
+            "fix_suggestion": _build_robots_proposed_text(brand),
+        }
+
+    has_sitemap = bool(re.search(r"^\s*Sitemap\s*:", text, re.IGNORECASE | re.MULTILINE))
+    has_explicit_allow = "Allow:" in text or "Disallow: /" in text
+    has_meta_only = "meta-externalagent" in text and len(text.splitlines()) <= 3
+
+    if has_meta_only:
+        # Operator's exact case: swingshack has only meta-externalagent entry.
+        # Not a crawl block. Sitemap pointer is the real gap.
+        return {
+            "check": "robots_review",
+            "signal_type": "TECHNICAL_SEO",
+            "status": "REVIEW_RECOMMENDED",
+            "severity": "low",
+            "message": (
+                "Current robots.txt only configures meta-externalagent — no actual "
+                "crawler block. Real gap: missing Sitemap: directive. See proposed "
+                "text for the fix."
+            ),
+            "fix_suggestion": _build_robots_proposed_text(brand, current_text=text),
+            "current_robots": text,
+        }
+
+    if has_sitemap and has_explicit_allow:
+        return {
+            "check": "robots_review",
+            "signal_type": "TECHNICAL_SEO",
+            "status": "OK",
+            "severity": "low",
+            "message": "robots.txt looks configured (sitemap + allow rules present)",
+            "fix_suggestion": None,
+            "current_robots": text,
+        }
+
+    return {
+        "check": "robots_review",
+        "signal_type": "TECHNICAL_SEO",
+        "status": "REVIEW_RECOMMENDED",
+        "severity": "low",
+        "message": (
+            f"robots.txt present but missing {'Sitemap: directive' if not has_sitemap else 'explicit Allow/Disallow rules'}. Not a crawl block; recommendation only."
+        ),
+        "fix_suggestion": _build_robots_proposed_text(brand, current_text=text),
+        "current_robots": text,
+    }
+
+
+def _build_robots_proposed_text(brand: str, current_text: str = "") -> str:
+    """Build a proposed robots.txt with sitemap pointer + clear allow rules.
+    Includes current vs proposed vs per-line effect so operator can audit
+    before any live write."""
+    domain = _BRAND_DOMAINS.get(brand, "")
+    if brand == "swing-shack":
+        site_label = "Swing Shack — Johannesburg indoor golf + TrackMan + coaching"
+        sitemap_xml = "sitemap_index.xml"
+    else:
+        site_label = "Stick Golf — Paarl / Cape Winelands golf coaching + TrackMan"
+        sitemap_xml = "sitemap_index.xml"
+    return (
+        f"# CURRENT — held for review. NOT pushed to live WP.\n"
+        f"# {current_text.strip() or '(no robots.txt currently)'}\n\n"
+        f"# PROPOSED — Operator-approved candidate. Diff with current above.\n\n"
+        f"# {site_label}\n\n"
+        f"User-agent: *\n"
+        f"Allow: /\n"
+        f"Disallow: /cart/\n"
+        f"Disallow: /checkout/\n"
+        f"Disallow: /my-account/\n"
+        f"Disallow: /*?s=\n"
+        f"Disallow: /*?add-to-cart=\n\n"
+        f"# Meta's scraper (Instagram link previews, etc.)\n"
+        f"User-agent: meta-externalagent\n"
+        f"Allow: /\n\n"
+        f"Sitemap: {domain.rstrip('/')}/{sitemap_xml}\n"
+        f"Sitemap: {domain.rstrip('/')}/news-sitemap.xml\n\n"
+        f"# Per-line effect:\n"
+        f"#   User-agent: *          — applies to all crawlers that do not match a more specific group below\n"
+        f"#   Allow: /                — explicitly allow crawling of the whole site\n"
+        f"#   Disallow: /cart/        — block checkout-thrash pages\n"
+        f"#   Disallow: /*?s=         — block WordPress internal search result pages\n"
+        f"#   Disallow: /*?add-to-cart= — block product add-to-cart queries\n"
+        f"#   meta-externalagent      — keep explicit allowance for Instagram link previews\n"
+        f"#   Sitemap: ...            — points crawlers at the Yoast-generated sitemap (currently MISSING)\n"
+    )
 
 
 def _build_llms_txt_suggestion(brand: str) -> str:
@@ -263,15 +393,31 @@ def check_faqpage(brand: str, html: str) -> Dict[str, Any]:
     blocks = _extract_jsonld(html)
     items = _flatten_jsonld(blocks)
     faq = _find_schema(items, "FAQPage")
+    # V1.1 calibration: FAQPage is TECHNICAL_SEO/structured_data. Only
+    # relevant when genuine FAQ content exists on the page. Adding FAQPage
+    # schema to a page that has no FAQ content will not improve AI citation
+    # and may reduce trust signals. We mark CONTEXTUAL and keep severity low.
+    faq_present_in_html = bool(re.search(r"\bFAQ\b|<h[1-6][^>]*>[^<]*\?[^<]*</h[1-6]>|frequently asked|questions and answers", html, re.IGNORECASE))
     result = {
         "check": "faqpage_schema",
+        "signal_type": "TECHNICAL_SEO",
         "status": "OK" if faq else "MISSING",
-        "severity": "medium",
-        "message": "FAQPage schema found" if faq else "No FAQPage JSON-LD found",
+        "severity": "low",
+        "message": (
+            "FAQPage schema found"
+            if faq
+            else (
+                "FAQPage JSON-LD missing but FAQ content detected on page — adding schema may help"
+                if faq_present_in_html
+                else "FAQPage JSON-LD missing and no FAQ content detected — adding schema now would not improve AI citation"
+            )
+        ),
         "fix_suggestion": None,
     }
-    if not faq:
+    if not faq and faq_present_in_html:
         result["fix_suggestion"] = _build_faqpage_suggestion(brand)
+    # If no FAQ content exists, we deliberately do NOT suggest adding the
+    # schema — that would be the wrong recommendation.
     _cache_set(cache_key, result)
     return result
 
@@ -327,19 +473,25 @@ def check_organization_schema(brand: str, html: str) -> Dict[str, Any]:
     blocks = _extract_jsonld(html)
     items = _flatten_jsonld(blocks)
     org = _find_schema(items, "Organization")
+    # V1.1 calibration: Organization schema is ENTITY_DISCOVERY. LLMs use it
+    # to identify the entity behind a domain. Incomplete Organization schema
+    # is a real medium-priority gap (entity identification under-specifies the
+    # brand), but it is a SITE READINESS signal, not a citation-rate signal.
     result = {
         "check": "organization_schema",
+        "signal_type": "ENTITY_DISCOVERY",
         "status": "OK",
         "severity": "medium",
-        "message": "Organization schema found",
+        "message": "Organization schema found (entity discovery — helps LLMs identify the brand behind the domain)",
         "fix_suggestion": None,
     }
     if not org:
         result = {
             "check": "organization_schema",
+            "signal_type": "ENTITY_DISCOVERY",
             "status": "MISSING",
             "severity": "medium",
-            "message": "No Organization JSON-LD found",
+            "message": "No Organization JSON-LD found (entity discovery gap — LLMs cannot confidently identify the brand)",
             "fix_suggestion": _build_org_schema_suggestion(brand),
         }
     else:
@@ -434,9 +586,14 @@ def check_open_graph(html: str) -> Dict[str, Any]:
 
     result = {
         "check": "og_tags",
+        "signal_type": "SOCIAL_METADATA",
         "status": "OK" if not missing else ("PARTIAL" if len(missing) < len(required) else "MISSING"),
-        "severity": "high",
-        "message": f"Open Graph {'complete' if not missing else 'incomplete — missing: ' + ', '.join(missing)}",
+        "severity": "low",
+        "message": (
+            "Open Graph complete (social metadata only — not a direct AI citation signal)"
+            if not missing
+            else f"Open Graph incomplete — missing: {', '.join(missing)} (social metadata only; some AI crawlers read og:image, most do not weight it for citation)"
+        ),
         "fix_suggestion": None,
     }
     if missing:
@@ -478,9 +635,14 @@ def check_twitter_cards(html: str) -> Dict[str, Any]:
 
     result = {
         "check": "twitter_card",
+        "signal_type": "SOCIAL_METADATA",
         "status": "OK" if not missing else ("PARTIAL" if len(missing) < len(required) else "MISSING"),
         "severity": "low",
-        "message": f"Twitter Cards {'complete' if not missing else 'incomplete — missing: ' + ', '.join(missing)}",
+        "message": (
+            "Twitter Cards complete (social metadata only — minimal AI citation influence)"
+            if not missing
+            else f"Twitter Cards incomplete — missing: {', '.join(missing)} (social metadata only; minimal AI citation influence)"
+        ),
         "fix_suggestion": None,
     }
     if missing:
@@ -503,17 +665,24 @@ def check_blog_schema(posts: List[Dict], homepage_html: str = "") -> Dict[str, A
 
     result = {
         "check": "blog_post_schema",
+        "signal_type": "TECHNICAL_SEO",
         "status": "OK",
-        "severity": "medium",
+        "severity": "low",
         "message": "Blog post schema found on recent posts",
         "fix_suggestion": None,
     }
     if not posts:
+        # V1.1 calibration: if we cannot reach the WP posts feed, we mark
+        # this check UNKNOWN and EXCLUDE it from the GEO score. We do NOT
+        # fabricate a severity. Operator must investigate WP connectivity
+        # before this finding earns any weight.
         result = {
             "check": "blog_post_schema",
-            "status": "CHECK_FAILED",
-            "severity": "medium",
-            "message": "No WP posts found — could not check schema",
+            "signal_type": "TECHNICAL_SEO",
+            "status": "UNKNOWN",
+            "severity": "low",
+            "excluded_from_score": True,
+            "message": "No WP posts found — check could not run. EXCLUDED FROM GEO SCORE until WP feed is reachable.",
             "fix_suggestion": None,
         }
         _cache_set(cache_key, result)
@@ -535,13 +704,16 @@ def check_blog_schema(posts: List[Dict], homepage_html: str = "") -> Dict[str, A
     if posts_with_schema == 0:
         result = {
             "check": "blog_post_schema",
+            "signal_type": "TECHNICAL_SEO",
             "status": "MISSING",
-            "severity": "medium",
-            "message": "No Article/BlogPosting JSON-LD found on recent posts",
+            "severity": "low",
+            "message": "No Article/BlogPosting JSON-LD found on recent posts (may help article extraction in AI crawlers, not proven)",
             "fix_suggestion": _build_blog_schema_suggestion(posts[0] if posts else {}),
         }
     elif posts_with_schema < 3:
         result["status"] = "PARTIAL"
+        result["severity"] = "low"
+        result["signal_type"] = "TECHNICAL_SEO"
         result["message"] = f"Only {posts_with_schema}/3 recent posts have Article schema"
 
     _cache_set(cache_key, result)
@@ -640,59 +812,73 @@ def run_geo_audit(brand: str, force_refresh: bool = False) -> Dict[str, Any]:
 
     checks = []
 
-    # llms.txt
+    # llms.txt — EXPERIMENTAL
     checks.append(check_llms_txt(brand))
 
-    # FAQPage
+    # FAQPage — TECHNICAL_SEO (only relevant when FAQ content exists)
     if homepage_html:
         checks.append(check_faqpage(brand, homepage_html))
     else:
         checks.append({
             "check": "faqpage_schema",
-            "status": "CHECK_FAILED",
-            "severity": "medium",
-            "message": "Could not fetch homepage HTML",
+            "signal_type": "TECHNICAL_SEO",
+            "status": "UNKNOWN",
+            "severity": "low",
+            "excluded_from_score": True,
+            "message": "Could not fetch homepage HTML — check excluded from GEO score until reachable",
             "fix_suggestion": None,
         })
 
-    # Organization schema
+    # Organization schema — ENTITY_DISCOVERY
     if homepage_html:
         checks.append(check_organization_schema(brand, homepage_html))
     else:
         checks.append({
             "check": "organization_schema",
-            "status": "CHECK_FAILED",
-            "severity": "medium",
-            "message": "Could not fetch homepage HTML",
+            "signal_type": "ENTITY_DISCOVERY",
+            "status": "UNKNOWN",
+            "severity": "low",
+            "excluded_from_score": True,
+            "message": "Could not fetch homepage HTML — check excluded from GEO score until reachable",
             "fix_suggestion": None,
         })
 
-    # Blog post schema
+    # Blog post schema — TECHNICAL_SEO
     checks.append(check_blog_schema(posts, homepage_html))
 
-    # OG tags (from homepage)
+    # OG tags — SOCIAL_METADATA
     if homepage_html:
         checks.append(check_open_graph(homepage_html))
     else:
         checks.append({
             "check": "og_tags",
-            "status": "CHECK_FAILED",
-            "severity": "high",
-            "message": "Could not fetch homepage HTML",
+            "signal_type": "SOCIAL_METADATA",
+            "status": "UNKNOWN",
+            "severity": "low",
+            "excluded_from_score": True,
+            "message": "Could not fetch homepage HTML — check excluded from GEO score until reachable",
             "fix_suggestion": None,
         })
 
-    # Twitter cards
+    # Twitter cards — SOCIAL_METADATA
     if homepage_html:
         checks.append(check_twitter_cards(homepage_html))
     else:
         checks.append({
             "check": "twitter_card",
-            "status": "CHECK_FAILED",
+            "signal_type": "SOCIAL_METADATA",
+            "status": "UNKNOWN",
             "severity": "low",
-            "message": "Could not fetch homepage HTML",
+            "excluded_from_score": True,
+            "message": "Could not fetch homepage HTML — check excluded from GEO score until reachable",
             "fix_suggestion": None,
         })
+
+    # Robots.txt — TECHNICAL_SEO. V1.1 calibration: only REVIEW_RECOMMENDED
+    # when an actual crawler block is proven. Default low. Show current
+    # state, proposed state, and per-line effect so operator can decide.
+    robots_review = _build_robots_review(brand)
+    checks.append(robots_review)
 
     # Merge with existing SEO audit findings for this brand
     seo_findings = []
@@ -705,13 +891,18 @@ def run_geo_audit(brand: str, force_refresh: bool = False) -> Dict[str, Any]:
                 if page.get("brand", "").lower().replace(" ", "-") == brand.replace("swing-shack", "swing-shack"):
                     for finding in page.get("findings", []):
                         finding_type = finding.get("type", "")
-                        # Map SEO findings to GEO checks where applicable
+                        # Map SEO findings to GEO checks where applicable.
+                        # V1.1 calibration: missing_h1 + missing_meta_description
+                        # are TECHNICAL_SEO, low severity. missing_faq stays
+                        # TECHNICAL_SEO but only meaningful when FAQ content
+                        # actually exists on the page.
                         if finding_type in ("missing_h1", "missing_meta_description", "missing_faq"):
                             geo_finding = {
                                 "check": finding_type,
+                                "signal_type": "TECHNICAL_SEO",
                                 "status": "MISSING",
-                                "severity": finding.get("severity", "medium"),
-                                "message": f"[SEO audit] {finding.get('message', '')}",
+                                "severity": "low",
+                                "message": f"[SEO audit] {finding.get('message', '')} — why this may help: clearer on-page structure for AI crawlers; not proven to lift citation rate.",
                                 "fix_suggestion": None,
                             }
                             if finding_type == "missing_h1":

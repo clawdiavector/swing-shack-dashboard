@@ -36,10 +36,12 @@ interface WatchlistEntry {
 
 interface GeoCheck {
   check: string
+  signal_type?: 'AI_CITATION' | 'ENTITY_DISCOVERY' | 'TECHNICAL_SEO' | 'SOCIAL_METADATA' | 'EXPERIMENTAL'
   status: string
   severity: string
   message: string
   fix_suggestion: string | null
+  excluded_from_score?: boolean
 }
 
 interface AuditResult {
@@ -58,6 +60,47 @@ interface ApplyFixResult {
   check: string
   details: Record<string, unknown>
   audit_trail: Record<string, unknown>
+}
+
+// V1.1 (2026-10-01): GEO score is split into OBSERVED AI PERFORMANCE
+// (the primary score, from real citation records) and SITE READINESS
+// (supporting diagnostic). One must not masquerade as the other.
+interface ObservedAI {
+  citation_rate: number | null
+  url_citation_rate: number | null
+  query_coverage: number | null
+  competitor_share: number | null
+  weekly_delta: number | null
+  top_models: { model: string; count: number }[]
+  recent: Array<Record<string, unknown>>
+}
+
+interface SiteReadinessCheck {
+  check: string
+  signal_type?: string
+  status: string
+  severity: string
+  excluded_from_score?: boolean
+}
+
+interface SiteReadiness {
+  ok: boolean
+  checks: SiteReadinessCheck[]
+  domain?: string
+  fetched_at?: string
+  error?: string | null
+}
+
+interface Scorecard {
+  ok: boolean
+  brand: string
+  stage: 'NO_DATA' | 'BASELINE' | 'TRENDING'
+  n: number
+  sample_size_label: string
+  observed_ai_performance: ObservedAI
+  site_readiness: SiteReadiness
+  disclaimer: string
+  generated_at: string
 }
 
 // ── Sub-components ──────────────────────────────────────────────────────────────
@@ -321,38 +364,153 @@ export default function GEO() {
 
       {/* ── SCORECARD TAB ── */}
       {tab === 'scorecard' && scorecard && (
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiTile
-              label="Total Queries"
-              value={scorecard.total_queries}
-              sub="LLM answers pasted"
-            />
-            <KpiTile
-              label="Brand Citation Rate"
-              value={scorecard.citation_rate != null ? `${scorecard.citation_rate}%` : null}
-              sub="mentions brand name"
-              tone={scorecard.citation_rate && scorecard.citation_rate >= 50 ? 'good' : scorecard.citation_rate === 0 ? 'bad' : 'neutral'}
-            />
-            <KpiTile
-              label="URL Citation Rate"
-              value={scorecard.url_citation_rate != null ? `${scorecard.url_citation_rate}%` : null}
-              sub="mentions your URL"
-              tone={scorecard.url_citation_rate && scorecard.url_citation_rate >= 20 ? 'good' : 'neutral'}
-            />
-            <KpiTile
-              label="Weekly Delta"
-              value={scorecard.weekly_delta != null ? `${scorecard.weekly_delta > 0 ? '+' : ''}${scorecard.weekly_delta}%` : null}
-              sub="vs last week"
-              tone={scorecard.weekly_delta && scorecard.weekly_delta > 0 ? 'good' : scorecard.weekly_delta !== null ? 'bad' : 'neutral'}
-            />
+        <div className="space-y-5">
+          {/* V1.1: stage + sample-size label must always be visible above the
+              numbers so operators never see a meaningful-looking citation
+              percentage when the sample is tiny. */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
+                  scorecard.stage === 'NO_DATA'
+                    ? 'bg-tx3/15 text-tx3'
+                    : scorecard.stage === 'BASELINE'
+                    ? 'bg-yel/15 text-yel'
+                    : 'bg-ac/15 text-ac'
+                }`}
+              >
+                {scorecard.stage}
+              </span>
+              <span className="text-sm text-tx2">{scorecard.sample_size_label}</span>
+            </div>
+            <span className="text-[11px] text-tx3 italic max-w-xl text-right">
+              {scorecard.disclaimer}
+            </span>
           </div>
 
-          {scorecard.top_models.length > 0 && (
+          {/* OBSERVED AI PERFORMANCE — the primary GEO score. Always shown.
+              Empty values stay blank — never a fake 0%. */}
+          <section>
+            <div className="mb-2 flex items-center gap-2">
+              <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-tx2">
+                Observed AI performance
+              </h3>
+              <span className="text-[10px] text-tx3">primary GEO score</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <KpiTile
+                label="n observations"
+                value={scorecard.n}
+                sub={scorecard.stage === 'NO_DATA' ? 'paste LLM answers to populate' : 'past 30 days'}
+              />
+              <KpiTile
+                label="Brand citation rate"
+                value={
+                  scorecard.observed_ai_performance.citation_rate != null
+                    ? `${scorecard.observed_ai_performance.citation_rate}%`
+                    : null
+                }
+                sub={
+                  scorecard.stage === 'NO_DATA'
+                    ? 'n too small to report'
+                    : 'mentions brand name'
+                }
+              />
+              <KpiTile
+                label="URL citation rate"
+                value={
+                  scorecard.observed_ai_performance.url_citation_rate != null
+                    ? `${scorecard.observed_ai_performance.url_citation_rate}%`
+                    : null
+                }
+                sub={
+                  scorecard.stage === 'NO_DATA'
+                    ? 'n too small to report'
+                    : 'cites your domain'
+                }
+              />
+              <KpiTile
+                label="Query coverage"
+                value={scorecard.observed_ai_performance.query_coverage}
+                sub="distinct watchlist queries with at least 1 observation"
+              />
+              <KpiTile
+                label="Competitor share"
+                value={
+                  scorecard.observed_ai_performance.competitor_share != null
+                    ? `${scorecard.observed_ai_performance.competitor_share}%`
+                    : null
+                }
+                sub="answers mentioning a competitor"
+              />
+              <KpiTile
+                label="Weekly delta"
+                value={
+                  scorecard.observed_ai_performance.weekly_delta != null
+                    ? `${scorecard.observed_ai_performance.weekly_delta > 0 ? '+' : ''}${scorecard.observed_ai_performance.weekly_delta}%`
+                    : null
+                }
+                sub="vs prior 7d window"
+              />
+            </div>
+          </section>
+
+          {/* SITE READINESS — supporting diagnostic. Never blended into the
+              primary score. Shown as a separate bucket with a clear label
+              so operators know these are NOT citations. */}
+          <section>
+            <div className="mb-2 flex items-center gap-2">
+              <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-tx2">
+                Site readiness
+              </h3>
+              <span className="text-[10px] text-tx3">supporting diagnostic · not citation rate</span>
+            </div>
+            {!scorecard.site_readiness.ok ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-tx3">
+                {scorecard.site_readiness.error
+                  ? `Audit fetch failed: ${scorecard.site_readiness.error}`
+                  : 'Audit fetch in progress…'}
+              </div>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {scorecard.site_readiness.checks.map((c, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-xl border bg-white/5 p-3 ${
+                      c.excluded_from_score ? 'border-dashed border-white/10' : 'border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-mono uppercase tracking-wide text-tx3">
+                        {c.signal_type || 'TECHNICAL_SEO'}
+                      </span>
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          c.status === 'OK'
+                            ? 'bg-ac/15 text-ac'
+                            : c.status === 'UNKNOWN' || c.excluded_from_score
+                            ? 'bg-tx3/15 text-tx3'
+                            : 'bg-yel/15 text-yel'
+                        }`}
+                      >
+                        {c.status}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-tx">{c.check.replace(/_/g, ' ')}</div>
+                    {c.excluded_from_score && (
+                      <div className="mt-1 text-[10px] italic text-tx3">excluded from score</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {scorecard.observed_ai_performance.top_models.length > 0 && (
             <div className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
-              <h3 className="mb-3 font-display text-base font-semibold text-tx">Top models citing you</h3>
+              <h3 className="mb-3 font-display text-base font-semibold text-tx">Top models observed</h3>
               <div className="flex flex-wrap gap-2">
-                {scorecard.top_models.map(m => (
+                {scorecard.observed_ai_performance.top_models.map(m => (
                   <span key={m.model} className="flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-sm text-tx2">
                     <Star className="h-3 w-3 text-yel" />
                     {m.model} · {m.count}
@@ -362,9 +520,9 @@ export default function GEO() {
             </div>
           )}
 
-          {scorecard.recent.length > 0 && (
+          {scorecard.observed_ai_performance.recent.length > 0 && (
             <div className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
-              <h3 className="mb-3 font-display text-base font-semibold text-tx">Recent citations</h3>
+              <h3 className="mb-3 font-display text-base font-semibold text-tx">Recent observations</h3>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/5 text-left text-xs font-semibold text-tx3 uppercase tracking-wider">
@@ -375,10 +533,10 @@ export default function GEO() {
                   </tr>
                 </thead>
                 <tbody>
-                  {scorecard.recent.map((c, i) => (
-                    <tr key={c.id ?? i} className="border-b border-white/5 last:border-0">
-                      <td className="py-2 text-tx2">{c.model}</td>
-                      <td className="py-2 text-tx3">{c.date}</td>
+                  {scorecard.observed_ai_performance.recent.map((c, i) => (
+                    <tr key={(c.id as string) ?? i} className="border-b border-white/5 last:border-0">
+                      <td className="py-2 text-tx2">{String(c.model ?? c.model_provider ?? '')}</td>
+                      <td className="py-2 text-tx3">{String(c.date ?? '')}</td>
                       <td className="py-2">
                         {c.mentions_brand
                           ? <CheckCircle className="h-4 w-4 text-ac" />
@@ -396,11 +554,11 @@ export default function GEO() {
             </div>
           )}
 
-          {scorecard.total_queries === 0 && (
+          {scorecard.n === 0 && (
             <div className="glass rounded-2xl border-[1.5px] border-white/10 p-8 text-center backdrop-blur-xl">
               <BotMessageSquare className="mx-auto h-10 w-10 text-tx3 mb-3" />
-              <p className="text-tx2 font-semibold">No citations yet</p>
-              <p className="mt-1 text-sm text-tx3">Paste your first LLM answer in the Citations tab to get started.</p>
+              <p className="text-tx2 font-semibold">No observations yet</p>
+              <p className="mt-1 text-sm text-tx3">Paste your first LLM answer in the Citations tab to start a baseline.</p>
             </div>
           )}
         </div>

@@ -117,6 +117,16 @@ def _now_iso() -> str:
     return datetime.datetime.utcnow().isoformat() + "Z"
 
 
+def _stage_sample_label(stage: str, n: int) -> str:
+    """V1.1: Sample-size label that pairs with the stage so operators never
+    see a meaningful-looking citation percentage when the sample is tiny."""
+    if stage == "NO_DATA":
+        return f"n={n} — NO DATA. Rate not reported."
+    if stage == "BASELINE":
+        return f"n={n} — BASELINE. First observation window. Rate is directional only."
+    return f"n={n} — TRENDING. Rate is meaningful with this sample size."
+
+
 # ── Citations helpers ────────────────────────────────────────────────────────
 
 def _citations_path(brand: str) -> Path:
@@ -205,17 +215,32 @@ def register_routes(app):
             brand = _validate_brand(brand)
         except ValueError as e:
             return jsonify({"ok": False, "error": str(e)}), 400
+        # V1.1 calibration (2026-10-01): canonical observation schema. The OS
+        # can only ingest observations the operator pastes from a real LLM
+        # answer. Each entry is tagged MANUAL_OBSERVATION by default. Future
+        # automated capture would set source='AUTOMATED'.
+        run_ts = _now_iso()
         entry = {
             "id": str(uuid.uuid4()),
-            "brand": brand,
-            "model": body.get("model", "unknown"),
-            "prompt": body.get("prompt", ""),
+            "operating_brand": brand,
+            "canonical_query_id": body.get("canonical_query_id") or body.get("query_id") or None,
+            "exact_prompt": body.get("exact_prompt") or body.get("prompt", ""),
+            "model_provider": body.get("model_provider") or body.get("model", "unknown"),
+            "model": body.get("model") or body.get("model_provider", "unknown"),
+            "model_version": body.get("model_version") or None,
+            "run_timestamp": body.get("run_timestamp") or run_ts,
+            "added_at": run_ts,
             "answer_text": body.get("answer_text", ""),
+            "brand_mentioned": bool(body.get("brand_mentioned") if body.get("brand_mentioned") is not None else body.get("mentions_brand", False)),
             "mentions_brand": bool(body.get("mentions_brand", False)),
+            "cited": bool(body.get("cited", False)),
             "mentions_url": bool(body.get("mentions_url", False)),
+            "cited_urls": body.get("cited_urls") or ([body["url_cited"]] if body.get("url_cited") else []),
             "url_cited": body.get("url_cited") or None,
+            "competitor_mentions": body.get("competitor_mentions") or [],
+            "source": "MANUAL_OBSERVATION",
+            "actor": body.get("actor") or "heidi",
             "date": body.get("date") or datetime.date.today().isoformat(),
-            "added_at": _now_iso(),
         }
         _save_citation(brand, entry)
         return jsonify({"ok": True, "entry": entry}), 201
@@ -251,25 +276,63 @@ def register_routes(app):
         citations = _load_citations(brand)
         total = len(citations)
 
-        # Citation rate
+        # V1.1 calibration (2026-10-01): GEO score is split into two buckets.
+        # OBSERVED AI PERFORMANCE is the primary score, computed from real
+        # citation records. SITE READINESS is a supporting diagnostic from
+        # the audit, NEVER blended into the GEO score.
+        # Stage labels: NO_DATA (n<3), BASELINE (n=3-9), TRENDING (n>=10).
+
+        def _stage(n: int) -> str:
+            if n == 0:
+                return "NO_DATA"
+            if n < 3:
+                return "NO_DATA"  # too small to call meaningful
+            if n < 10:
+                return "BASELINE"
+            return "TRENDING"
+
+        stage = _stage(total)
+
+        # Citation rate (only meaningful when stage != NO_DATA)
         if total == 0:
             citation_rate = None
             url_citation_rate = None
+            competitor_share = None
+            query_coverage = None
         else:
-            cited = sum(1 for c in citations if c.get("mentions_brand"))
-            url_cited = sum(1 for c in citations if c.get("mentions_url"))
+            cited = sum(1 for c in citations if c.get("mentions_brand") or c.get("brand_mentioned"))
+            url_cited = sum(1 for c in citations if c.get("mentions_url") or c.get("cited"))
             citation_rate = round(cited / total * 100, 1)
             url_citation_rate = round(url_cited / total * 100, 1)
+            # Competitor share: count citations where ANY competitor is mentioned
+            competitor_mention_count = sum(
+                1 for c in citations
+                if isinstance(c.get("competitor_mentions"), list) and c["competitor_mentions"]
+            )
+            competitor_share = round(competitor_mention_count / total * 100, 1)
+            # Query coverage: distinct canonical_query_ids that have observations
+            query_ids = {c.get("canonical_query_id") for c in citations if c.get("canonical_query_id")}
+            query_coverage = len(query_ids)
 
         # Weekly delta
         weekly_delta = None
         try:
             cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=7)
-            recent = [c for c in citations if datetime.datetime.fromisoformat(c.get("added_at", "1970").replace("Z", "+00:00")) >= cutoff]
-            older = [c for c in citations if datetime.datetime.fromisoformat(c.get("added_at", "1970").replace("Z", "+00:00")) < cutoff]
-            if recent and older:
-                recent_rate = sum(1 for c in recent if c.get("mentions_brand")) / len(recent) * 100
-                older_rate = sum(1 for c in older if c.get("mentions_brand")) / len(older) * 100
+            recent = []
+            older = []
+            for c in citations:
+                ts = c.get("added_at") or c.get("run_timestamp") or "1970"
+                try:
+                    dt = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                except Exception:
+                    continue
+                if dt >= cutoff:
+                    recent.append(c)
+                else:
+                    older.append(c)
+            if recent and older and stage != "NO_DATA":
+                recent_rate = sum(1 for c in recent if c.get("mentions_brand") or c.get("brand_mentioned")) / len(recent) * 100
+                older_rate = sum(1 for c in older if c.get("mentions_brand") or c.get("brand_mentioned")) / len(older) * 100
                 weekly_delta = round(recent_rate - older_rate, 1)
         except Exception:
             pass
@@ -277,19 +340,62 @@ def register_routes(app):
         # Top models
         model_counts: Dict[str, int] = {}
         for c in citations:
-            m = c.get("model", "unknown")
+            m = c.get("model") or c.get("model_provider") or "unknown"
             model_counts[m] = model_counts.get(m, 0) + 1
         top_models = sorted(model_counts.items(), key=lambda x: -x[1])[:5]
+
+        # V1.1: Site readiness is fetched as a parallel diagnostic. It is
+        # NOT part of the observed AI performance score.
+        site_readiness = {"ok": False, "checks": [], "error": None}
+        try:
+            from _lib.geo_audit import run_geo_audit
+            audit = run_geo_audit(brand, force_refresh=False)
+            if audit.get("ok"):
+                site_readiness = {
+                    "ok": True,
+                    "checks": [
+                        {
+                            "check": c.get("check"),
+                            "signal_type": c.get("signal_type", "TECHNICAL_SEO"),
+                            "status": c.get("status"),
+                            "severity": c.get("severity"),
+                            "excluded_from_score": c.get("excluded_from_score", False),
+                        }
+                        for c in audit.get("checks", [])
+                    ],
+                    "domain": audit.get("domain"),
+                    "fetched_at": audit.get("fetched_at"),
+                }
+            else:
+                site_readiness["error"] = audit.get("error")
+        except Exception as e:
+            site_readiness["error"] = str(e)
 
         return jsonify({
             "ok": True,
             "brand": brand,
-            "total_queries": total,
-            "citation_rate": citation_rate,
-            "url_citation_rate": url_citation_rate,
-            "weekly_delta": weekly_delta,
-            "top_models": [{"model": m, "count": n} for m, n in top_models],
-            "recent": citations[-10:] if citations else [],
+            "stage": stage,
+            "n": total,
+            "sample_size_label": _stage_sample_label(stage, total),
+            # OBSERVED AI PERFORMANCE — the primary GEO score
+            "observed_ai_performance": {
+                "citation_rate": citation_rate,  # % of pastes mentioning the brand
+                "url_citation_rate": url_citation_rate,  # % of pastes citing the brand URL
+                "query_coverage": query_coverage,  # distinct canonical queries with observations
+                "competitor_share": competitor_share,  # % of answers mentioning a competitor
+                "weekly_delta": weekly_delta,
+                "top_models": [{"model": m, "count": n} for m, n in top_models],
+                "recent": citations[-10:] if citations else [],
+            },
+            # SITE READINESS — supporting diagnostic, never blended into score
+            "site_readiness": site_readiness,
+            "disclaimer": (
+                "Citation rate is only meaningful when n >= 3 observations. "
+                "Below that the stage is NO_DATA and the rate is reported as null."
+                if stage == "NO_DATA"
+                else f"Sample size n={total} ({stage}). A single observation does "
+                     "not represent general model behaviour."
+            ),
             "generated_at": _now_iso(),
         }), 200
 
@@ -406,7 +512,11 @@ def register_routes(app):
         )
 
         result: Dict[str, Any] = {
-            "status": "MANUAL_APPROACH_REQUIRED",
+            # V1.1 calibration (2026-10-01): default to MANUAL_APPROVAL_REQUIRED
+            # so every code path is human-gated unless explicitly upgraded.
+            # The audit_trail.approved_by stays null until an operator manually
+            # confirms and the OS writes to WP.
+            "status": "MANUAL_APPROVAL_REQUIRED",
             "check": check,
             "fix_id": fix_id,
             "brand": brand,
@@ -415,6 +525,8 @@ def register_routes(app):
                 "check": check,
                 "fix_id": fix_id,
                 "ts": _now_iso(),
+                "approved_by": None,
+                "auto_written_to_wp": False,
             },
         }
 
@@ -425,10 +537,10 @@ def register_routes(app):
             wp_resp = _wp_request(brand, "GET", "/llms")
             if wp_resp.get("ok"):
                 result["status"] = "APPLIED"
+                result["audit_trail"]["auto_written_to_wp"] = True
                 result["details"] = wp_resp.get("data")
             else:
                 content = _build_llms_txt_suggestion(brand)
-                result["status"] = "MANUAL_APPROACH_REQUIRED"
                 result["details"] = {
                     "note": "WP REST has no standard llms.txt endpoint. Paste the content below into a file named llms.txt at the domain root via your hosting provider (Railway Nixpack or cPanel File Manager).",
                     "content": content,
@@ -443,7 +555,6 @@ def register_routes(app):
         elif check == "missing_faqpage_schema":
             # Return the JSON-LD block for operator to paste into a blog post
             faq_json = _build_faqpage_suggestion(brand)
-            result["status"] = "MANUAL_APPROACH_REQUIRED"
             result["details"] = {
                 "note": "Add FAQPage JSON-LD to a WP blog post. Use a Custom HTML block or a Yoast FAQ block.",
                 "jsonld": faq_json,
@@ -471,10 +582,10 @@ def register_routes(app):
                 if patch_resp.get("ok"):
                     result["auto_patch"] = patch_resp.get("data")
                     result["status"] = "PARTIAL_APPLIED"
+                    result["audit_trail"]["auto_written_to_wp"] = True
                     result["details"]["note"] += " Yoast FAQ meta flag set on post. Operator still needs to add FAQ content via the editor."
 
         elif check == "missing_h1":
-            result["status"] = "MANUAL_APPROACH_REQUIRED"
             result["details"] = {
                 "note": "Yoast SEO manages H1 and meta descriptions in the WP editor. Programmatic write not available via REST in this module.",
                 "fix": "Edit the page in WP, ensure the main heading is an <h1> tag, not bold text or <h2>. Save and update.",
@@ -482,7 +593,6 @@ def register_routes(app):
             }
 
         elif check == "missing_meta_description":
-            result["status"] = "MANUAL_APPROACH_REQUIRED"
             result["details"] = {
                 "note": "Add a meta description via the Yoast SEO snippet editor in the WP page/post editor.",
                 "fix": "Open the page in WP → scroll to Yoast SEO panel → edit the snippet (meta description). Keep it 120–160 characters.",
@@ -490,7 +600,6 @@ def register_routes(app):
             }
 
         elif check == "missing_organization_schema":
-            result["status"] = "MANUAL_APPROACH_REQUIRED"
             result["details"] = {
                 "note": "Organization schema is theme-controlled. Add via a child theme or a Schema plugin.",
                 "jsonld": _build_org_schema_suggestion(brand),
@@ -509,7 +618,6 @@ def register_routes(app):
             }
 
         elif check == "og_tags":
-            result["status"] = "MANUAL_APPROACH_REQUIRED"
             result["details"] = {
                 "note": "Add Open Graph meta tags to the <head> of the page.",
                 "fix": "In WP: use Yoast SEO → Social, or add to your theme's header.php",
@@ -517,11 +625,37 @@ def register_routes(app):
             }
 
         elif check == "twitter_card":
-            result["status"] = "MANUAL_APPROACH_REQUIRED"
             result["details"] = {
                 "note": "Add Twitter Card meta tags to the <head> of the page.",
                 "fix": "In WP: use Yoast SEO → Social → Twitter, or add to theme header.php",
                 "twitter_tags": _build_twitter_suggestion(domain, brand),
+            }
+
+        elif check == "blog_post_schema":
+            result["details"] = {
+                "note": "Add Article/BlogPosting JSON-LD to recent blog posts. Most themes emit BlogPosting automatically; Yoast handles this when schema is enabled.",
+                "instructions": "In WP → Settings → Reading → Theme, ensure 'Article' is set. Or install 'Schema & Structured Data for WP' plugin.",
+            }
+
+        elif check == "robots_review":
+            # V1.1: robots.txt is held for human review — there is no clean
+            # programmatic write path through WP REST. Return the current
+            # and proposed states with per-line effect.
+            from _lib.geo_audit import _build_robots_review
+            review = _build_robots_review(brand)
+            result["details"] = {
+                "note": (
+                    "robots.txt is a site-level file. There is no standard WP "
+                    "REST endpoint to write it. The OS proposes a new robots.txt "
+                    "with sitemap pointer + per-line effect; operator reviews "
+                    "the diff and either pastes it into their hosting control "
+                    "panel (Railway Nixpack static-files or cPanel File Manager) "
+                    "or rejects the change. NEVER auto-write to live WP."
+                ),
+                "current": review.get("current_robots"),
+                "proposed": review.get("fix_suggestion"),
+                "classification": review.get("status"),
+                "signal_type": "TECHNICAL_SEO",
             }
 
         else:
