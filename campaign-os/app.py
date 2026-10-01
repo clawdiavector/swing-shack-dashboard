@@ -7237,6 +7237,27 @@ def brand_library_shelf(brand_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/brands/<brand_id>/library/bulk', methods=['POST'])
+def brand_library_bulk(brand_id):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        payload = _library_shelf.apply_library_bulk(
+            brand_id,
+            lane=str(body.get("lane") or ""),
+            action=str(body.get("action") or ""),
+            ids=list(body.get("ids") or []),
+            include_approved=bool(body.get("include_approved")),
+        )
+        return jsonify({"ok": True, **payload}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("brand_library_bulk failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/brand-directory-media/<brand_id>/<path:relpath>', methods=['GET'])
 def brand_directory_media(brand_id, relpath):
     """Serve brand-directory assets (template refs, goldens) with traversal guard."""

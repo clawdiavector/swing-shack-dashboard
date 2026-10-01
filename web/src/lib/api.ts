@@ -1950,6 +1950,33 @@ export function fetchBrandLibrary(brandId: string, params?: { view?: string }) {
   return getJson<LibraryPayload>(`/api/brands/${encodeURIComponent(brandId)}/library${q}`)
 }
 
+export type LibraryBulkResult = {
+  ok?: boolean
+  brand_id?: string
+  lane?: 'drafts' | 'sandbox'
+  action?: 'archive' | 'delete'
+  applied?: Array<{ id: string; title?: string }>
+  skipped?: Array<{ id: string; reason: string; title?: string }>
+  applied_count?: number
+  skipped_count?: number
+  error?: string
+}
+
+export function postBrandLibraryBulk(
+  brandId: string,
+  body: {
+    lane: 'drafts' | 'sandbox'
+    action: 'archive' | 'delete'
+    ids: string[]
+    include_approved?: boolean
+  },
+) {
+  return postJson<LibraryBulkResult>(
+    `/api/brands/${encodeURIComponent(brandId)}/library/bulk`,
+    body,
+  )
+}
+
 export function fetchTemplateGallery(brandId: string) {
   return getJson<TemplateGalleryPayload>(
     `/api/brands/${encodeURIComponent(brandId)}/template-gallery`,
