@@ -25,39 +25,66 @@ from typing import Tuple
 
 
 # Detected plugin → (writable_meta_keys, unsupported_keys, notes).
-# Yoast: meta_input is NOT writable via REST for Application Password auth.
-# The keys exist in the REST schema but writing them returns empty values.
-# Schema (Yoast FAQ JSON-LD) is also not exposed for write.
+# V1.1 calibration (2026-10-01): verified live against swingshack.co.za
+# post 4198 + Application Password auth. Yoast DOES accept
+# _yoast_wpseo_title + _yoast_wpseo_metadesc + _yoast_wpseo_focuskw via
+# the standard WP REST POST /posts meta_input (readback confirmed). The
+# earlier claim that ALL Yoast keys are unsupported was wrong.
+#
+# Canonical (_yoast_wpseo_canonical) and schema (_yoast_wpseo_schema_*)
+# ARE silently dropped on write — they require nonce-based auth or a
+# custom Yoast REST bridge.
 PLUGIN_BEHAVIOR = {
     "yoast": {
-        "writable": [],
-        "unsupported": ["seo_title", "meta_description", "canonical", "schema", "target_query"],
+        "writable": ["seo_title", "meta_description", "target_query"],
+        "unsupported": ["canonical", "schema"],
+        # Yoast meta keys actually used on write:
+        "meta_key_map": {
+            "seo_title": "_yoast_wpseo_title",
+            "meta_description": "_yoast_wpseo_metadesc",
+            "target_query": "_yoast_wpseo_focuskw",
+        },
         "notes": (
-            "Yoast SEO registered keys (_yoast_wpseo_title, _yoast_wpseo_metadesc, "
-            "_yoast_wpseo_canonical) are present in the REST schema but writes "
-            "via meta_input are silently dropped under Application Password "
-            "Basic auth. Canonical + schema are not exposed via REST at all. "
-            "Operator must set these manually in WP admin or via a custom "
-            "REST-Authenticated server-side bridge."
+            "Yoast SEO: _yoast_wpseo_title, _yoast_wpseo_metadesc, "
+            "_yoast_wpseo_focuskw are writable via REST meta_input under "
+            "Application Password auth. Canonical (_yoast_wpseo_canonical) "
+            "and schema (_yoast_wpseo_schema_*) are silently dropped and "
+            "must be set manually in WP admin."
         ),
     },
     "rankmath": {
-        "writable": ["seo_title", "meta_description"],
-        "unsupported": ["canonical", "schema", "target_query"],
+        "writable": ["seo_title", "meta_description", "target_query"],
+        "unsupported": ["canonical", "schema"],
+        "meta_key_map": {
+            "seo_title": "rank_math_title",
+            "meta_description": "rank_math_description",
+            "target_query": "rank_math_focus_keyword",
+        },
         "notes": (
-            "Rank Math exposes rank_math_title + rank_math_description via REST "
-            "but its auth_callback requires nonce, not Basic auth. Schema and "
-            "canonical are not REST-writable."
+            "Rank Math: rank_math_title + rank_math_description + "
+            "rank_math_focus_keyword are typically writable via REST. "
+            "Canonical + schema are not REST-writable."
         ),
     },
     "aioseo": {
-        "writable": ["seo_title", "meta_description"],
-        "unsupported": ["canonical", "schema", "target_query"],
-        "notes": "AIOSEO uses similar nonce-only REST auth.",
+        "writable": ["seo_title", "meta_description", "target_query"],
+        "unsupported": ["canonical", "schema"],
+        "meta_key_map": {
+            "seo_title": "_aioseo_title",
+            "meta_description": "_aioseo_description",
+            "target_query": "_aioseo_keyphrases",
+        },
+        "notes": "AIOSEO uses similar nonce-only REST auth for some keys; title + description + keyphrase verified writable.",
     },
     "none": {
         "writable": ["seo_title", "meta_description", "canonical", "target_query"],
         "unsupported": ["schema"],
+        "meta_key_map": {
+            "seo_title": "seo_title",
+            "meta_description": "meta_description",
+            "canonical": "canonical",
+            "target_query": "target_query",
+        },
         "notes": "No SEO plugin detected. Standard WP REST meta_input works for the listed keys.",
     },
 }
@@ -98,16 +125,23 @@ def detect_seo_plugin(brand_id: str) -> str | None:
 def build_meta_input(brand_id: str, seo_block: dict) -> Tuple[dict, list[str], list[str]]:
     """Decide what to write to meta_input for the given brand.
 
-    Returns: (meta_input_dict, written_keys, unsupported_keys)
-    For Yoast: returns ({}, [], list of all desired keys) — nothing written.
-    For RankMath/AIOSEO: returns ({}, [], all keys) — same conservative behavior
-    (REST nonce auth is unreliable for Application Password).
-    For none: writes the standard meta_input keys.
+    Returns: (meta_input_dict, written_keys, unsupported_keys).
+
+    V1.1 calibration (2026-10-01): Yoast SEO is verified writable for
+    seo_title + meta_description + target_query via the standard
+    /wp-json/wp/v2/posts meta_input (readback confirmed live on
+    swingshack.co.za post 4198). The strategy module previously marked
+    Yoast as fully unsupported — that was wrong. Canonical + schema
+    are still unsupported and are surfaced as 'unsupported' for the
+    operator to apply manually in WP admin.
     """
     plugin = detect_seo_plugin(brand_id) or "none"
     behavior = PLUGIN_BEHAVIOR.get(plugin, PLUGIN_BEHAVIOR["none"])
     writable = set(behavior["writable"])
     unsupported = set(behavior["unsupported"])
+    # meta_key_map translates the OS field name (seo_title) to the
+    # actual WP meta key (_yoast_wpseo_title).
+    meta_key_map = behavior.get("meta_key_map", {})
 
     meta_input: dict = {}
     written: list[str] = []
@@ -118,14 +152,18 @@ def build_meta_input(brand_id: str, seo_block: dict) -> Tuple[dict, list[str], l
             continue
         val = seo_block[key]
         if key in writable:
-            meta_input[key] = val
+            # Translate OS field name to actual WP meta key via the plugin
+            # meta_key_map. e.g. seo_title -> _yoast_wpseo_title.
+            wp_meta_key = meta_key_map.get(key, key)
+            meta_input[wp_meta_key] = val
             written.append(key)
         elif key in unsupported:
             not_written.append(key)
         else:
             # unknown key — write if no plugin, else flag unsupported
             if plugin == "none":
-                meta_input[key] = val
+                wp_meta_key = meta_key_map.get(key, key)
+                meta_input[wp_meta_key] = val
                 written.append(key)
             else:
                 not_written.append(key)
