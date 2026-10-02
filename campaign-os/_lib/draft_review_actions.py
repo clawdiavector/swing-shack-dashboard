@@ -379,7 +379,11 @@ def regenerate_photo(draft_id: str, *, note: str) -> dict[str, Any]:
             "brand_id": brand_id,
             **cap_info,
         }
-    if is_oneshot and cap_info.get("at_oneshot_cap"):
+    if (
+        is_oneshot
+        and cap_info.get("at_oneshot_cap")
+        and str(ctx["sidecar"].get("action") or "") != "draft_oneshot"
+    ):
         return {
             "ok": False,
             "error": f"One-shot cap reached for {brand_id}",

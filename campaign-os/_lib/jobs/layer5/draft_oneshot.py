@@ -444,15 +444,18 @@ def process_draft_oneshot_row(
     if not img_ok:
         return None, "cap_reached" if "cap" in img_reason.lower() else img_reason
 
-    os_ok, os_reason = check_brand_oneshot_submit(brand_id)
-    if not os_ok:
-        return None, os_reason
+    is_regen = bundle.regen_count > 0
+    if not is_regen:
+        os_ok, os_reason = check_brand_oneshot_submit(brand_id)
+        if not os_ok:
+            return None, os_reason
 
     output_base = str(_data_dir() / "draft-assets" / "images")
 
     llm_spend.write_approval_receipt(route="job:draft_oneshot", estimate_usd=bundle.est, brand_id=brand_id)
     record_brand_image_submit(brand_id)
-    record_brand_oneshot_submit(brand_id)
+    if not is_regen:
+        record_brand_oneshot_submit(brand_id)
 
     try:
         result = generate_image_with_persistence(
