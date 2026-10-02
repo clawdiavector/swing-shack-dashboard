@@ -161,6 +161,13 @@ BRAND_EXCLUSIONS = {
 
 _PROMPT_MIN_CHARS = 400
 _PROMPT_MAX_CHARS = 1200
+# Render-text (one-shot) jobs get a much tighter cap. Evidence (2026-10-02):
+# a hand-written ~400-char scene+literal-text prompt rendered clean text on
+# ideogram-3; the ~1000+ char COS wire (full brand philosophy block next to
+# the literal-text instruction) rendered garbled hallucinated body copy on
+# the same model, same literal line. Keep render-text prompts short and
+# concrete — every extra sentence is measured risk, not safety margin.
+_PROMPT_MAX_CHARS_RENDER_TEXT = 550
 _SECTION_ORDER = (
     "JOB",
     "BRAND",
@@ -225,9 +232,12 @@ def compose_prompt(
     sections: list[dict[str, str]] = []
 
     if job and job.strip():
-        sections.append({"key": "JOB", "content": f"You are creating: {job.strip()}"})
+        # No "You are creating:" framing — it's instructional filler with no
+        # visual content. Image models render concrete descriptions; meta
+        # preamble is just noise ahead of the part that matters.
+        sections.append({"key": "JOB", "content": job.strip()})
 
-    brand_block = _build_brand_block(brand_ctx, brand_id)
+    brand_block = _build_brand_block(brand_ctx, brand_id, render_text=render_text)
     if brand_block.strip():
         sections.append({"key": "BRAND", "content": brand_block})
 
@@ -240,6 +250,7 @@ def compose_prompt(
         human_direction=human_direction,
         environment=environment,
         material_texture=material_texture,
+        render_text=render_text,
     )
     subject_block = subject_meta["text"]
     if subject_block.strip():
@@ -258,12 +269,17 @@ def compose_prompt(
     comp_content = ""
     if composition:
         comp_content = "; ".join(f"{k}: {v}" for k, v in composition.items() if v)
-    if not comp_content:
+    if not comp_content and not render_text:
+        # Render-text jobs already get a concrete scene from the caller (the
+        # JOB text) — the generic default composition sentence is redundant
+        # padding that only adds risk for no benefit on these jobs.
         comp_content = _default_composition(brand_ctx)
     if comp_content.strip():
         sections.append({"key": "COMPOSITION", "content": comp_content})
 
-    light_content = (lighting or "").strip() or _default_lighting(brand_ctx)
+    light_content = (lighting or "").strip()
+    if not light_content and not render_text:
+        light_content = _default_lighting(brand_ctx)
     if light_content:
         sections.append({"key": "LIGHTING", "content": light_content})
 
@@ -303,7 +319,9 @@ def compose_prompt(
         sections.append({"key": "NEGATIVE", "content": negative_prompt})
 
     sections = _order_sections(sections)
-    master_prompt, wire_prompt, sections = _fit_master_prompt_length(sections, brand_ctx)
+    master_prompt, wire_prompt, sections = _fit_master_prompt_length(
+        sections, brand_ctx, render_text=render_text
+    )
 
     # Model routing — pick based on the job's capability requirements
     requirements = _infer_requirements(
@@ -811,12 +829,27 @@ def _palette_colour_anchor(palette: dict) -> str:
     return f"Colour anchor: {', '.join(colors[:6])}"
 
 
-def _build_brand_block(brand_ctx: dict, brand_id: str) -> str:
-    """Construct the BRAND section of the prompt from bible + palette."""
-    parts: list[str] = []
-    bible = brand_ctx.get("bible", {})
+def _build_brand_block(brand_ctx: dict, brand_id: str, *, render_text: bool = False) -> str:
+    """Construct the BRAND section of the prompt from bible + palette.
+
+    Render-text jobs get ONLY the colour-hex anchor. Everything else here —
+    philosophy prose, composition rules, people/text policy — is written for
+    a human reading brand strategy, not an image model. It sits right next
+    to the literal-text instruction, and evidence (2026-10-02 A/B test: same
+    model, same literal line, COS wire garbled / hand-written short prompt
+    clean) shows it's exactly what the model free-associates from instead of
+    staying on the one quoted line. `text_policy` is even actively
+    contradictory for these jobs — it says "no model-rendered text" while we
+    are deliberately asking the model to render text.
+    """
     palette = brand_ctx.get("palette", {})
     anchor = _palette_colour_anchor(palette)
+
+    if render_text:
+        return anchor
+
+    parts: list[str] = []
+    bible = brand_ctx.get("bible", {})
     if anchor:
         parts.append(anchor)
     phil = bible.get("philosophy") or bible.get("visual_philosophy") or ""
@@ -873,6 +906,7 @@ def _build_subject_block(
     human_direction: Optional[str],
     environment: Optional[str],
     material_texture: Optional[str],
+    render_text: bool = False,
 ) -> dict[str, Any]:
     """Expand calendar angle into who / action / gear / setting."""
     lines: list[str] = []
@@ -902,11 +936,15 @@ def _build_subject_block(
         lines.append(f"Materials: {material_texture.strip()}")
     if human_direction and human_direction.strip():
         lines.append(f"Human direction: {human_direction.strip()}")
-    bible = brand_ctx.get("bible") or {}
-    bias = bible.get("subject_bias") or {}
-    toward = bias.get("lean_toward") or []
-    if isinstance(toward, list) and toward:
-        lines.append("Lean toward: " + ", ".join(str(t) for t in toward[:4]))
+    if not render_text:
+        # Same reasoning as the BRAND block: these are abstract positioning
+        # phrases ("ironic golf habit callouts"), not visual descriptors —
+        # noise next to a literal-text instruction. Skip for render-text jobs.
+        bible = brand_ctx.get("bible") or {}
+        bias = bible.get("subject_bias") or {}
+        toward = bias.get("lean_toward") or []
+        if isinstance(toward, list) and toward:
+            lines.append("Lean toward: " + ", ".join(str(t) for t in toward[:4]))
     has_person = bool(
         (human_direction and human_direction.strip())
         or who
@@ -1006,7 +1044,10 @@ def _drop_subject_lines(sec: dict[str, str]) -> bool:
 def _fit_master_prompt_length(
     sections: list[dict[str, str]],
     brand_ctx: dict,
+    *,
+    render_text: bool = False,
 ) -> tuple[str, str, list[dict[str, str]]]:
+    max_chars = _PROMPT_MAX_CHARS_RENDER_TEXT if render_text else _PROMPT_MAX_CHARS
     working = _order_sections([dict(s) for s in sections])
 
     def _wire() -> str:
@@ -1018,7 +1059,9 @@ def _fit_master_prompt_length(
     wire = _wire()
     master = _master()
 
-    if len(wire) < _PROMPT_MIN_CHARS:
+    # Render-text jobs: short and concrete is the goal, not a gap to fill —
+    # skip the pad-to-minimum-length step entirely for these.
+    if len(wire) < _PROMPT_MIN_CHARS and not render_text:
         pad = (
             "35mm prime lens, shallow depth of field, subtle grain, "
             "premium sports campaign framing, overlay-safe margins."
@@ -1040,7 +1083,7 @@ def _fit_master_prompt_length(
 
     brand_sec = next((s for s in working if s["key"] == "BRAND"), None)
     comp_rule_budget = 6
-    while len(_wire()) > _PROMPT_MAX_CHARS and brand_sec and comp_rule_budget > 2:
+    while len(_wire()) > max_chars and brand_sec and comp_rule_budget > 2:
         if _trim_brand_composition_rules(brand_sec, comp_rule_budget):
             comp_rule_budget -= 1
             wire = _wire()
@@ -1049,7 +1092,7 @@ def _fit_master_prompt_length(
         break
 
     trim_targets = ("SUBJECT", "LIGHTING", "COMPOSITION", "NEGATIVE")
-    while len(_wire()) > _PROMPT_MAX_CHARS:
+    while len(_wire()) > max_chars:
         trimmed = False
         for key in trim_targets:
             if key == "LITERAL TEXT":
@@ -1079,12 +1122,12 @@ def _fit_master_prompt_length(
         wire = _wire()
         master = _master()
 
-    if len(wire) > _PROMPT_MAX_CHARS:
+    if len(wire) > max_chars:
         literal_sec = next((s for s in working if s["key"] == "LITERAL TEXT"), None)
         if literal_sec:
             wire = _wire()
         else:
-            wire = wire[:_PROMPT_MAX_CHARS].rstrip(" ,;.")
+            wire = wire[:max_chars].rstrip(" ,;.")
 
     while len(_master()) > _PROMPT_MAX_CHARS:
         trimmed = False
