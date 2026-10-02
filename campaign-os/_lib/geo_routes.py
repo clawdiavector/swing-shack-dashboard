@@ -293,8 +293,13 @@ def register_routes(app):
 
         stage = _stage(total)
 
-        # Citation rate (only meaningful when stage != NO_DATA)
-        if total == 0:
+        # Citation rate (only meaningful when stage != NO_DATA).
+        # V1.2.1 (2026-10-02): the canonical rule is "n < 3 → rates are null",
+        # not "total == 0 → null". The previous branch (`if total == 0`)
+        # computed non-null rates for n=1 and n=2, which contradicted the
+        # NO_DATA stage. Operator directive: fix only this bug; do not
+        # redesign the scorecard.
+        if stage == "NO_DATA":
             citation_rate = None
             url_citation_rate = None
             competitor_share = None

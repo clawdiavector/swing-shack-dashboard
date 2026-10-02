@@ -421,6 +421,14 @@ def run_one_query(
         "web_grounding_used": bool(web_used),
         "country": country,
         "locale": locale,
+        # V1.2.1 (2026-10-02): The OpenAI Responses API and chat.completions
+        # have no country/locale/search-region parameter that biases retrieval.
+        # Geo context therefore only enters via the query text itself, not via
+        # any provider-side locale control. Recorded honestly so the scorecard
+        # can distinguish "operator-canonical query carries the location" from
+        # "operator forced a SA-only retrieval view".
+        "geo_context_source": "QUERY_TEXT",
+        "provider_locale_control": "UNSUPPORTED",
         "fresh_session": True,
         "isolation_status": "CLEAN_ISOLATED",
         "source": "AUTOMATED_OBSERVATION",
@@ -644,6 +652,12 @@ def cost_estimate(
         input: $0.15
         output: $0.60
     Web search adds a per-call fee ($0.000-0.025 per call depending on model).
+
+    The proposed weekly canonical plan is:
+        10 canonical queries (5 swing-shack + 5 stick; bag-drop excluded
+        because its watchlist is empty)
+        × 2 independent WEB_GROUNDED replicates per query
+        = 20 API_MODEL_WEB_GROUNDED calls/week
     """
     # Typical tokens per call (verified from real calls):
     #   gpt-4o-mini Responses + web_search: ~2000 input + 250 output

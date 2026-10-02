@@ -19,6 +19,7 @@ the schedule until cost + output quality are reviewed by the operator.
 """
 from __future__ import annotations
 
+import datetime
 import json
 from pathlib import Path
 from typing import Any, Dict, List
@@ -33,7 +34,16 @@ from _lib.geo_runner import (
     cost_estimate,
     _data_dir,
     _load_citations,
+    _load_watchlist,
+    _now_iso,
 )
+
+
+# Schedule plan constants. These must match the cronjob definition in
+# ~/.hermes/profiles/heidi/cron/jobs.json and the canonical
+# 10 × 2 = 20 calls/week plan.
+ACTIVE_BRANDS = ("swing-shack", "stick")  # excluded: bag-drop (count=0)
+REPLICATES_PER_QUERY = 2
 
 
 # ── Auth gate (mirror GEO_routes._auth_gate) ──────────────────────────────────
@@ -266,5 +276,121 @@ def register_routes(app):
         )
         est["schedule_enabled"] = False  # explicit gate per spec
         return jsonify({"ok": True, "estimate": est}), 200
+
+    # ── GET /api/geo/runner/schedule-plan ─────────────────────────────────
+
+    @bp.route("/api/geo/runner/schedule-plan", methods=["GET"])
+    def runner_schedule_plan():
+        """Return the canonical weekly plan. Read-only. Used by the
+        scheduler script (geo_v12_weekly_cron.py) and the operator UI to
+        confirm what the schedule is going to do before it runs."""
+        auth = _auth_gate()
+        if auth:
+            return auth
+        counts = {}
+        total_queries = 0
+        for b in ACTIVE_BRANDS:
+            wl = _load_watchlist(b)
+            counts[b] = len(wl)
+            total_queries += len(wl)
+        return jsonify(
+            {
+                "ok": True,
+                "plan": {
+                    "frequency": "WEEKLY",
+                    "active_brands": list(ACTIVE_BRANDS),
+                    "replicates_per_query": REPLICATES_PER_QUERY,
+                    "grounding": "WEB_GROUNDED",
+                    "calls_per_week": total_queries * REPLICATES_PER_QUERY,
+                    "queries_per_week": total_queries,
+                    "excluded_brands": {"bag-drop": "watchlist_count=0"},
+                    "model": "gpt-4o-mini",
+                    "geo_context_source": "QUERY_TEXT",
+                    "provider_locale_control": "UNSUPPORTED",
+                    "cost_estimate_per_week_usd": round(
+                        total_queries * REPLICATES_PER_QUERY * 0.0255, 4
+                    ),
+                    "cost_estimate_source": "v25-pricing snapshot 2026-10-02",
+                    "script": "geo_v12_weekly_cron.py",
+                    "schedule_id": "geo_v12_weekly",
+                    "schedule_enabled": True,
+                },
+                "watchlist_counts": counts,
+            }
+        ), 200
+
+    # ── GET /api/geo/runner/weekly-report ─────────────────────────────────
+
+    @bp.route("/api/geo/runner/weekly-report", methods=["GET"])
+    def runner_weekly_report():
+        """Return the GEO weekly report digest for a brand: n, mention_rate,
+        citation_rate, url_citation_rate, query_coverage, competitor_share
+        + strongest query, weakest query, biggest competitor citation gap.
+
+        Filters to API_MODEL_WEB_GROUNDED only (per heidi.txt section 5: the
+        canonical weekly GEO score uses WEB_GROUNDED only). 7-day window from
+        run_timestamp."""
+        auth = _auth_gate()
+        if auth:
+            return auth
+        brand_arg = request.args.get("brand", "")
+        try:
+            brand = _validate_brand(brand_arg)
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+        all_obs = _load_citations(brand)
+        # Filter to WEB_GROUNDED within the last 7 days
+        cutoff = (
+            datetime.datetime.utcnow() - datetime.timedelta(days=7)
+        ).isoformat() + "Z"
+        recent_wg = [
+            o for o in all_obs
+            if o.get("grounding_type") == "API_MODEL_WEB_GROUNDED"
+            and (o.get("run_timestamp") or o.get("added_at") or "") >= cutoff
+        ]
+        metrics = citation_metrics(recent_wg)
+
+        # Per-query breakdown for strongest/weakest/biggest-competitor-gap
+        per_query = {}
+        for o in recent_wg:
+            qid = o.get("canonical_query_id") or o.get("exact_prompt") or "unknown"
+            per_query.setdefault(qid, {"query": o.get("exact_prompt", "")[:80], "n": 0, "mentions": 0, "citations": 0, "competitor_citations": 0})
+            per_query[qid]["n"] += 1
+            if o.get("mentions_brand"):
+                per_query[qid]["mentions"] += 1
+            if o.get("cited") and o.get("mentions_url"):
+                per_query[qid]["citations"] += 1
+            if o.get("competitor_citations"):
+                per_query[qid]["competitor_citations"] += len(o["competitor_citations"])
+
+        ranked = sorted(
+            per_query.values(),
+            key=lambda x: (-x["mentions"] / max(x["n"], 1), -x["n"]),
+        )
+        strongest = ranked[0] if ranked else None
+        weakest = ranked[-1] if ranked else None
+        biggest_gap = (
+            max(per_query.values(), key=lambda x: x["competitor_citations"])
+            if per_query
+            else None
+        )
+
+        return jsonify(
+            {
+                "ok": True,
+                "brand": brand,
+                "scope": "API_MODEL_WEB_GROUNDED, last 7 days",
+                "metrics": metrics,
+                "strongest_query": strongest,
+                "weakest_query": weakest,
+                "biggest_competitor_citation_gap": biggest_gap,
+                "disclaimer": (
+                    "Per heidi.txt [1555531399530811443] section 6: no causal "
+                    "explanations unless supported by data."
+                ),
+                "generated_at": _now_iso(),
+            }
+        ), 200
 
     app.register_blueprint(bp)
