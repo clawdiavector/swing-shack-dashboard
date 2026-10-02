@@ -51431,6 +51431,13 @@ if __name__ == '__main__':
         print('[boot] GEO routes registered', flush=True, file=_sys.stderr)
     except Exception as _e:
         print(f'[boot] GEO routes failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    # ─── GEO V1.2 runner (clean-room API observations) ────────────────────
+    try:
+        from _lib.geo_runner_routes import register_routes as _register_geo_runner_routes
+        _register_geo_runner_routes(app)
+        print('[boot] GEO V1.2 runner routes registered', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] GEO V1.2 runner routes failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     port = int(os.environ.get('PORT', 8000))
     print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
     try:
