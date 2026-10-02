@@ -249,7 +249,7 @@ def _complete_row(
     png_path: Path,
 ) -> None:
     action = str(row.get("action") or "")
-    if action != "draft_gen_slots" and _moment_has_image(brand_id, item_id):
+    if action not in ("draft_gen_slots", "draft_oneshot") and _moment_has_image(brand_id, item_id):
         row["status"] = "done"
         row.pop("note", None)
         image_jobs_state.drop_entry(item_id)
@@ -361,7 +361,8 @@ def _process_waiting_row(row: dict[str, Any], *, deadline: float) -> str:
         _complete_row(row, brand_id=brand_id, item_id=item_id, job_entry=job_entry, png_path=png_path)
         return "completed"
 
-    if _moment_has_image(brand_id, item_id):
+    action = str(row.get("action") or "")
+    if action != "draft_oneshot" and _moment_has_image(brand_id, item_id):
         row["status"] = "done"
         image_jobs_state.drop_entry(item_id)
         return "completed"

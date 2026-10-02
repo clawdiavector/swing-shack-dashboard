@@ -722,6 +722,16 @@ def _explicit_caption_regen(rows_for_moment: list[tuple[dict[str, Any], str]]) -
     return False
 
 
+def _pending_oneshot_regen(rows_for_moment: list[tuple[dict[str, Any], str]]) -> bool:
+    """Review or manual regen queued draft_oneshot while a poster already exists."""
+    for row, action in rows_for_moment:
+        if action != "draft_oneshot":
+            continue
+        if str(row.get("status") or "").lower() == "pending":
+            return True
+    return False
+
+
 def _rewrite_caption_keep_image(
     *,
     asset_id: str,
@@ -1518,7 +1528,11 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 skipped += _count_pending_rows(moment_items, idx)
                 break
 
-            if _moment_has_composed(brand_id, item_id) and not _explicit_caption_regen(rows_for_moment):
+            if (
+                _moment_has_composed(brand_id, item_id)
+                and not _explicit_caption_regen(rows_for_moment)
+                and not _pending_oneshot_regen(rows_for_moment)
+            ):
                 for row, action in rows_for_moment:
                     if action != "draft_gbp":
                         row["status"] = "done"
