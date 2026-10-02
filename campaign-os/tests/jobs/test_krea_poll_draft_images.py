@@ -23,6 +23,7 @@ PNG_1x1 = base64.b64decode(
 
 
 def _seed_waiting(tmp_path: Path, *, brand: str = "swing-shack", job_id: str = "j1") -> str:
+    from _lib.jobs.layer1._io import utc_now_iso
     cal_dir = tmp_path / "intelligence" / "marketing-calendar"
     cal_dir.mkdir(parents=True, exist_ok=True)
     record = {
@@ -44,7 +45,7 @@ def _seed_waiting(tmp_path: Path, *, brand: str = "swing-shack", job_id: str = "
                 "brand": brand,
                 "size": "1024x1024",
                 "est_usd": 0.04,
-                "submitted_at": "2026-09-25T07:15:04Z",
+                "submitted_at": utc_now_iso(),
                 "last_status": "running",
                 "polls": 0,
                 "retry_count": 0,

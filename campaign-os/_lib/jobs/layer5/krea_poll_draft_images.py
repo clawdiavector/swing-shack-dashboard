@@ -205,7 +205,13 @@ def _finalize_draft_from_poll(
     )
 
 
-def _record_poll_spend(item_id: str, job_entry: dict[str, Any], *, brand_id: str) -> None:
+def _record_poll_spend(
+    item_id: str,
+    job_entry: dict[str, Any],
+    *,
+    brand_id: str,
+    action: str = "draft_photo",
+) -> None:
     from _lib import llm_spend, post_cost  # noqa: PLC0415
 
     if image_jobs_state.is_settled(item_id):
@@ -225,7 +231,7 @@ def _record_poll_spend(item_id: str, job_entry: dict[str, Any], *, brand_id: str
         kind="image",
         route="job:krea_poll_draft_images/image",
         inbox_item_id=item_id,
-        action="draft_photo",
+        action=action,
         cost_source="krea",
         model="krea",
         provider="krea",
@@ -248,7 +254,8 @@ def _complete_row(
         row.pop("note", None)
         image_jobs_state.drop_entry(item_id)
         return
-    _record_poll_spend(item_id, job_entry, brand_id=brand_id)
+    poll_action = action if action in ("draft_oneshot", "draft_gen_slots") else "draft_photo"
+    _record_poll_spend(item_id, job_entry, brand_id=brand_id, action=poll_action)
     if action == "draft_gen_slots":
         from .draft_gen_slots import finalize_gen_slots_from_krea_poll  # noqa: PLC0415
 
@@ -263,6 +270,20 @@ def _complete_row(
             row["status"] = "pending"
             row["note"] = "gen slot poll finalize failed (QC or recipe)"
             return
+    elif action == "draft_oneshot":
+        from .draft_oneshot import finalize_draft_oneshot_from_krea_poll  # noqa: PLC0415
+
+        asset_id = finalize_draft_oneshot_from_krea_poll(
+            row,
+            item_id=item_id,
+            brand_id=brand_id,
+            png_path=png_path,
+            job_entry=job_entry,
+        )
+        if not asset_id:
+            row["status"] = "pending"
+            row["note"] = "oneshot poll finalize failed"
+            return
     else:
         _finalize_draft_from_poll(
             brand_id=brand_id,
@@ -274,7 +295,7 @@ def _complete_row(
     row["status"] = "done"
     row.pop("note", None)
     image_jobs_state.drop_entry(item_id)
-    if not _moment_has_composed(brand_id, item_id):
+    if action != "draft_oneshot" and not _moment_has_composed(brand_id, item_id):
         from _lib.l5_create_enqueue import enqueue_compose_post_for_moment  # noqa: PLC0415
 
         rows = _read_queue()
@@ -402,7 +423,8 @@ def run(brand: str | None = None) -> dict[str, Any]:
     waiting = [
         r
         for r in rows
-        if str(r.get("action") or "") in ("draft_photo", "draft_image", "draft_gen_slots")
+        if str(r.get("action") or "")
+        in ("draft_photo", "draft_image", "draft_gen_slots", "draft_oneshot")
         and str(r.get("status") or "").lower() == "waiting"
         and (brand is None or str(r.get("brand") or "") == brand)
     ]
