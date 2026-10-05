@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -16,6 +17,7 @@ from .draft_assets import (
     _sidecar_for_moment,
     _write_draft,
 )
+from .oneshot_art_direction import OneshotArtDirection, build_art_direction
 from .image_draft_context import (
     ImageDraftContext,
     background_plate_scene_prompt,
@@ -25,14 +27,45 @@ from .image_draft_context import (
 )
 
 ONESHOT_SIZE = "1024x1280"
-_DEFAULT_TEXT_PLACEMENT = (
-    "Upper third, generous overlay-safe margins, high contrast against the plate, "
-    "single line unless it wraps naturally. Leave the bottom-right corner clear for a logo lockup."
-)
+# Default one-shot model. Ideogram 4 is the text-rendering upgrade over 3 and is
+# live on Krea (web slug `ideogram-v4`), but the exact MCP model string has not
+# been confirmed with a real call from here — `_MODEL_CAPABILITIES` still marks
+# it `verified: False` for that reason. `_ONESHOT_FALLBACK_MODEL` covers the
+# case where Krea's upstream rejects the id, the way it already does for models
+# that `list_models` advertises but will not run (see creative_director's note
+# on google/gemini-3-pro-image). Operators override per card with
+# `oneshot_model` — recraft/recraft-v4 is the pick for collage cards.
+ONESHOT_DEFAULT_MODEL = "ideogram/ideogram-4"
+_ONESHOT_FALLBACK_MODEL = "ideogram/ideogram-3"
 _LOGO_DRIFT_WARNING = (
     "AI-rendered logo. The mark will drift from the brand asset — proportions, spacing "
     "and letterforms are not reproducible. Check it before approving."
 )
+# Swapped in for _BACKGROUND_PLATE_SUFFIX on render-text jobs. The background
+# suffix bans "no text, no letters, no logos, no typography" outright, which
+# is wrong here — we want exactly one line rendered. But stripping it to
+# nothing (the old behaviour) also threw away "no UI overlays, no
+# infographic elements", leaving nothing to stop the model treating a
+# mentioned screen/monitor as a second surface to put text on. Evidence
+# (2026-10-02): the hardcoded "TrackMan launch monitor glow" scene string
+# produced garbled UI-looking text on the monitor and on an overhead
+# fixture in testing. Keep the non-text safety, replace the text ban with
+# an explicit "screens are dark" instruction instead of silence.
+_RENDER_TEXT_SCENE_SUFFIX = (
+    " Single unified photograph, not a collage, not split panels, not a poster or "
+    "brochure layout. No people required. Any monitor, screen, or illuminated sign "
+    "visible in the shot is dark or shows only a soft unreadable glow, not legible "
+    "content. No infographic elements."
+)
+
+
+_MODEL_REJECTION_MARKERS = ("unsupported", "unknown model", "invalid model", "no such model")
+
+
+def _is_model_rejection(exc: Exception) -> bool:
+    """True when a Krea upstream error looks like 'this model id is not callable'."""
+    msg = str(exc).lower()
+    return any(marker in msg for marker in _MODEL_REJECTION_MARKERS) and "model" in msg
 
 
 class OneshotCopyMissing(Exception):
@@ -56,6 +89,7 @@ class _OneshotBundle:
     event_key: str | None
     size: str
     est: float
+    art: OneshotArtDirection
 
 
 def _origin_kind(record: dict) -> str:
@@ -65,9 +99,69 @@ def _origin_kind(record: dict) -> str:
     return str(origin or "").strip().lower()
 
 
+@dataclass
+class OneshotCopy:
+    """The lines the model is asked to paint, and where they came from."""
+
+    headline: str
+    kicker: str
+    source: str
+
+    @property
+    def literal_text(self) -> str:
+        return f"{self.headline}\n{self.kicker}".strip() if self.kicker else self.headline
+
+
+def _normalise_label(text: str) -> str:
+    return "".join(ch for ch in (text or "").lower() if ch.isalnum())
+
+
+def _caption_draft_sidecar(item_id: str) -> dict[str, Any]:
+    """The draft_caption sidecar for this moment, if the caption job has run.
+
+    `compose_headline` / `compose_cta` are the approved poster copy the
+    template path overlays (written by `poster_copy.compose_fields_from_copy_package`).
+    One-shot used to ignore them and read the calendar record only — which is
+    why cards with no `headline` fell through to the card title.
+    """
+    draft_dir = _data_dir() / "draft-assets"
+    if not draft_dir.is_dir():
+        return {}
+    newest: dict[str, Any] = {}
+    newest_at = ""
+    for path in sorted(draft_dir.glob("*.json")):
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(sidecar, dict):
+            continue
+        if sidecar.get("source_inbox_item_id") != item_id:
+            continue
+        if sidecar.get("action") != "draft_caption":
+            continue
+        created = str(sidecar.get("created_at") or "")
+        if created >= newest_at:
+            newest, newest_at = sidecar, created
+    return newest
+
+
 def literal_line_for_card(brand_id: str, item_id: str, record: dict) -> tuple[str, str]:
-    """Return (line, source). Raises OneshotCopyMissing when empty."""
-    del brand_id, item_id
+    """Back-compat wrapper — (line, source). Prefer `oneshot_copy_for_card`."""
+    copy = oneshot_copy_for_card(brand_id, item_id, record)
+    return copy.literal_text, copy.source
+
+
+def oneshot_copy_for_card(brand_id: str, item_id: str, record: dict) -> OneshotCopy:
+    """Resolve the real headline (+ kicker) for a one-shot card.
+
+    Refuses rather than falling back to the calendar card's `title`. The title
+    is a planning label — "Coaching promo — one-shot" — and painting it onto a
+    poster is exactly the failure in the 2 Oct review card. A one-shot with no
+    approved copy is a card that is not ready to render, not a card to render
+    with its own filename on it.
+    """
+    del brand_id
     process = str(record.get("process") or "").strip().lower()
     if process == "humour" or _origin_kind(record) == "meme_lord":
         meme = record.get("meme")
@@ -78,26 +172,46 @@ def literal_line_for_card(brand_id: str, item_id: str, record: dict) -> tuple[st
         if not line:
             raise OneshotCopyMissing("humour card missing meme.caption")
         source = f"meme_lord:{flavour}" if flavour else "meme_lord:unknown"
-        return line, source
+        return OneshotCopy(headline=line, kicker="", source=source)
 
     headline = str(record.get("headline") or "").strip()
+    kicker = str(record.get("cta") or "").strip()
+    source = "card:headline"
+    if not headline:
+        sidecar = _caption_draft_sidecar(item_id)
+        headline = str(sidecar.get("compose_headline") or "").strip()
+        kicker = str(sidecar.get("compose_cta") or "").strip()
+        source = "caption_draft:compose_headline"
+    if not headline:
+        raise OneshotCopyMissing(
+            "no approved headline for this card — run draft_caption first, or set "
+            "headline on the calendar record. One-shot will not paint the card title."
+        )
+
     title = str(record.get("title") or "").strip()
-    cta = str(record.get("cta") or "").strip()
-    if headline:
-        line = f"{headline}\n{cta}".strip() if cta else headline
-        return line, "card:headline"
-    if title:
-        line = f"{title}\n{cta}".strip() if cta else title
-        return line, "card:title"
-    raise OneshotCopyMissing("no headline or title on card")
+    if title and _normalise_label(headline) == _normalise_label(title):
+        raise OneshotCopyMissing(
+            f"resolved headline is the card label ({title!r}) — needs real poster copy"
+        )
+    if _normalise_label(kicker) == _normalise_label(headline):
+        kicker = ""
+    return OneshotCopy(headline=headline, kicker=kicker, source=source)
 
 
 def oneshot_scene_prompt(brand_id: str, item_id: str, ctx: ImageDraftContext) -> str:
-    """Scene plate without the no-text background suffix."""
+    """Scene plate with the no-text background suffix swapped for a render-text-safe one."""
     from .image_draft_context import _BACKGROUND_PLATE_SUFFIX  # noqa: PLC0415
 
     base = background_plate_scene_prompt(brand_id, item_id, ctx)
-    return base.replace(_BACKGROUND_PLATE_SUFFIX, "").strip()
+    return base.replace(_BACKGROUND_PLATE_SUFFIX, _RENDER_TEXT_SCENE_SUFFIX).strip()
+
+
+def _brand_palette(brand_id: str) -> dict[str, Any]:
+    """Role-keyed palette (primary/accent/neutral_light) for art direction."""
+    from _lib.creative_director import _load_brand_context  # noqa: PLC0415
+
+    palette = _load_brand_context(brand_id).get("palette")
+    return palette if isinstance(palette, dict) else {}
 
 
 def _calendar_record(brand_id: str, item_id: str) -> dict[str, Any]:
@@ -134,29 +248,50 @@ def _prepare_oneshot_bundle(
             row["note"] = "not a one-shot card"
         return None, "not_oneshot"
 
-    try:
-        literal_text, literal_source = literal_line_for_card(brand_id, item_id, record)
-    except OneshotCopyMissing as exc:
-        if row is not None:
-            row["status"] = "error"
-            row["note"] = str(exc)[:240]
-        return None, str(exc)
-
     ctx = draft_ctx or build_image_draft_context(brand_id, item_id)
     calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
     if not record and calendar:
         record = calendar
 
+    # Copy first — a card with no approved headline never reaches the model.
+    try:
+        copy = oneshot_copy_for_card(brand_id, item_id, record)
+    except OneshotCopyMissing as exc:
+        # "copy:" prefix is load-bearing — draft_assets routes a one-shot error
+        # to row status "error" (not "skipped") on that word, and a copy
+        # problem is a card that needs attention, not one to pass over.
+        note = f"copy: {exc}"
+        if row is not None:
+            row["status"] = "error"
+            row["note"] = note[:240]
+        return None, note
+    literal_text = copy.literal_text
+    literal_source = copy.source
+
     ai_logo = bool(record.get("oneshot_ai_logo"))
-    scene = oneshot_scene_prompt(brand_id, item_id, ctx)
-    text_placement = _DEFAULT_TEXT_PLACEMENT if not ai_logo else (
-        f"{_DEFAULT_TEXT_PLACEMENT} Include the brand logo lockup as described in brand guidelines."
+    post_type = str(record.get("post_type") or calendar.get("post_type") or "").strip().lower()
+    art = build_art_direction(
+        brand_id=brand_id,
+        post_type=post_type,
+        headline=copy.headline,
+        kicker=copy.kicker,
+        ai_logo=ai_logo,
+        palette=_brand_palette(brand_id),
+        fallback_scene=oneshot_scene_prompt(brand_id, item_id, ctx),
     )
+    type_spec = art.type_spec
+    if ai_logo:
+        type_spec = (
+            f"{type_spec} Include the brand logo lockup in the bottom-right corner as "
+            "described in brand guidelines."
+        )
     cd = compose_prompt(
         brand_id=brand_id,
-        job=scene,
+        job=art.scene,
         literal_text=literal_text,
-        text_placement=text_placement,
+        literal_text_spec=type_spec,
+        brand_colours_inline=True,
+        output_style=art.output_style,
         render_text=True,
         ai_rendered_logo=ai_logo,
         format_aspect="4:5",
@@ -170,8 +305,17 @@ def _prepare_oneshot_bundle(
     requested = str(record.get("oneshot_model") or "").strip() or None
     routing = pick_model(
         {"needs_reference": False, "photoreal": False, "typography": True, "edit": False},
-        requested_model=requested,
+        requested_model=requested or ONESHOT_DEFAULT_MODEL,
     )
+    if not requested:
+        # pick_model's requested-model path words its reason as an operator
+        # choice. This one is the route default, so say so — the sidecar is
+        # what gets read back when a gen is reviewed.
+        routing = dict(routing)
+        routing["reason"] = (
+            f"one-shot default ({ONESHOT_DEFAULT_MODEL}) — unverified, no live Krea run yet; "
+            f"falls back to {_ONESHOT_FALLBACK_MODEL} if upstream rejects the id"
+        )
 
     existing = _sidecar_for_moment(item_id)
     reuse_id: str | None = None
@@ -210,6 +354,7 @@ def _prepare_oneshot_bundle(
             event_key=event_key,
             size=size,
             est=est,
+            art=art,
         ),
         None,
     )
@@ -334,6 +479,12 @@ def _write_oneshot_draft_from_image(
         "negative_prompt": bundle.negative,
         "literal_text": bundle.literal_text,
         "literal_text_source": bundle.literal_source,
+        "art_direction": {
+            "treatment": bundle.art.treatment,
+            "post_type": bundle.art.post_type,
+            "scene_source": bundle.art.scene_source,
+            "type_spec": bundle.art.type_spec,
+        },
         "sections": cd.get("sections") or [],
         "model_routing": model_routing,
         "router_sidecar_path": getattr(result, "saved_sidecar_path", None),
@@ -424,7 +575,11 @@ def process_draft_oneshot_row(
     draft_ctx: ImageDraftContext | None = None,
 ) -> tuple[Optional[str], Optional[str]]:
     from _lib import llm_spend  # noqa: PLC0415
-    from _lib.image_gen_router import ImageGenAuthError, generate_image_with_persistence  # noqa: PLC0415
+    from _lib.image_gen_router import (  # noqa: PLC0415
+        ImageGenAuthError,
+        ImageGenUpstreamError,
+        generate_image_with_persistence,
+    )
     from _lib.image_submit_quota import (  # noqa: PLC0415
         check_brand_image_submit,
         check_brand_oneshot_submit,
@@ -457,21 +612,42 @@ def process_draft_oneshot_row(
     if not is_regen:
         record_brand_oneshot_submit(brand_id)
 
-    try:
-        result = generate_image_with_persistence(
+    def _generate(model: str | None):
+        return generate_image_with_persistence(
             brand_id=brand_id,
             prompt=bundle.wire,
             negative_prompt=bundle.negative,
             size=bundle.size,
             output_base=output_base,
             provider=bundle.routing.get("provider"),
-            model=bundle.routing.get("model"),
+            model=model,
             inbox_item_id=item_id,
             event_key=bundle.event_key,
             draft_asset_id=bundle.pending_asset_id,
             cost_action="draft_oneshot",
             background_plate=True,
         )
+
+    try:
+        try:
+            result = _generate(bundle.routing.get("model"))
+        except ImageGenUpstreamError as exc:
+            # Krea's upstream rejects model ids its own list_models advertises
+            # (verified for google/gemini-3-pro-image). The one-shot default is
+            # marked unverified for exactly this reason — take one shot at the
+            # known-good id rather than failing the card. Quota and spend were
+            # already recorded above and are not re-charged.
+            current = str(bundle.routing.get("model") or "")
+            if not _is_model_rejection(exc) or current == _ONESHOT_FALLBACK_MODEL:
+                raise
+            bundle.routing = dict(bundle.routing)
+            bundle.routing["model"] = _ONESHOT_FALLBACK_MODEL
+            bundle.routing["reason"] = (
+                f"{current} rejected by Krea upstream — fell back to "
+                f"{_ONESHOT_FALLBACK_MODEL}"
+            )
+            bundle.routing["fallback_from"] = current
+            result = _generate(_ONESHOT_FALLBACK_MODEL)
     except ImageGenAuthError:
         return None, "missing OPENAI_API_KEY"
     except Exception as exc:  # noqa: BLE001

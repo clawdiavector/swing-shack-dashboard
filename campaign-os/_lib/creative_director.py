@@ -69,7 +69,21 @@ _MODEL_CAPABILITIES = {
     "openai/gpt-image-2":       {"category": "image", "fidelity": 0.8, "photorealism": 0.85, "speed": 0.6, "typography": 0.85, "ref_image": True, "edit": True, "verified": False, "material": 0.8, "lighting": 0.85, "composition": 0.85, "human": 0.8},
     "openai/gpt-image":         {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.6, "typography": 0.8, "ref_image": True, "edit": True, "verified": False, "material": 0.75, "lighting": 0.8, "composition": 0.8, "human": 0.75},
     "ideogram/ideogram-3":      {"category": "image", "fidelity": 0.75, "photorealism": 0.7, "speed": 0.7, "typography": 0.95, "ref_image": True, "verified": True, "material": 0.7, "lighting": 0.75, "composition": 0.8, "human": 0.65},
+    # Krea web slug is "ideogram-v4" (confirmed via krea.ai/models/ideogram-4-0,
+    # 2026-10-02). Exact MCP generate_image model string NOT yet live-verified —
+    # unlike the entries above, this one hasn't been confirmed against Krea's
+    # actual upstream. Do not flip verified:True without one real test call.
+    # Scores are provisional, from published Ideogram 4.0 benchmarks (0.97 OCR
+    # accuracy, direct upgrade over 3.0 on text), not from live testing here.
+    "ideogram/ideogram-4":      {"category": "image", "fidelity": 0.8, "photorealism": 0.75, "speed": 0.65, "typography": 0.98, "ref_image": True, "verified": False, "material": 0.75, "lighting": 0.78, "composition": 0.82, "human": 0.7},
     "recraft/recraft-v3":       {"category": "image", "verified": False},
+    # Krea's UI (per your own screenshots, 2026-10-02) shows "Recraft V4", not
+    # v3 — v3 above is kept only because a test pins to it, v4 is the one
+    # actually current. Exact MCP model string still NOT live-verified (same
+    # caveat as ideogram-4 above). Published sources describe strong
+    # single-line/short-headline typography, less reliable on complex
+    # multi-weight layouts — scores reflect that profile.
+    "recraft/recraft-v4":       {"category": "image", "fidelity": 0.82, "photorealism": 0.75, "speed": 0.6, "typography": 0.9, "ref_image": True, "verified": False, "material": 0.78, "lighting": 0.78, "composition": 0.85, "human": 0.7},
     "black-forest-labs/flux-3-video": {"category": "video", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.4, "duration_max": 15, "ref_image": True},
     "bytedance/seedance-2":     {"category": "video", "fidelity": 0.85, "photorealism": 0.8, "speed": 0.6, "duration_max": 15, "ref_image": True, "audio": True},
     "bytedance/seedance-2-fast": {"category": "video", "fidelity": 0.8, "photorealism": 0.75, "speed": 0.85, "duration_max": 15, "ref_image": True, "audio": True},
@@ -167,7 +181,21 @@ _PROMPT_MAX_CHARS = 1200
 # the literal-text instruction) rendered garbled hallucinated body copy on
 # the same model, same literal line. Keep render-text prompts short and
 # concrete — every extra sentence is measured risk, not safety margin.
-_PROMPT_MAX_CHARS_RENDER_TEXT = 550
+#
+# Raised 550 → 900 (2026-10-05). 550 was set when the only thing the wire
+# carried was a one-sentence scene plus a bare quoted line; it is below the
+# length of the hand prompts that actually won (the photo reference lands
+# ~560 chars, the collage reference ~870). The risk was never length as
+# such — it was brand-strategy prose sitting next to the quoted line. An
+# art-directed scene and an explicit type spec are visual content and earn
+# their characters; the trim loop still protects the quoted lines.
+#
+# 1100 bounds the art-directed paragraph as a whole. Note the trim loop cannot
+# reduce a render-text prompt to fit: JOB and LITERAL TEXT are both exempt, and
+# on these jobs they are nearly the whole prompt. The real control is the
+# length of the recipes in `jobs/layer5/oneshot_art_direction.py`, which
+# `test_oneshot_art_direction.py` holds under this budget.
+_PROMPT_MAX_CHARS_RENDER_TEXT = 1100
 _SECTION_ORDER = (
     "JOB",
     "BRAND",
@@ -213,6 +241,8 @@ def compose_prompt(
     pillar_name: Optional[str] = None,
     calendar_title: Optional[str] = None,
     literal_text: Optional[str] = None,
+    literal_text_spec: Optional[str] = None,
+    brand_colours_inline: bool = False,
     text_placement: Optional[str] = None,
     render_text: bool = False,
     ai_rendered_logo: bool = False,
@@ -238,6 +268,14 @@ def compose_prompt(
         sections.append({"key": "JOB", "content": job.strip()})
 
     brand_block = _build_brand_block(brand_ctx, brand_id, render_text=render_text)
+    # A caller that art-directs its own scene names the palette hexes in the
+    # sentences where they apply ("teal #00B3BA accent lighting over a deep
+    # navy #073C52 field", "large bold uppercase text in teal #00B3BA").
+    # Appending the anchor on top leaves a dangling label fragment — "Colour
+    # anchor: navy deep #073C52, teal #00B3BA, white #FFFFFF" — with no verb
+    # and no instruction, sitting right next to the line we want rendered.
+    if brand_colours_inline:
+        brand_block = ""
     if brand_block.strip():
         sections.append({"key": "BRAND", "content": brand_block})
 
@@ -287,11 +325,31 @@ def compose_prompt(
         sections.append({"key": "CAMERA", "content": camera.strip()})
 
     line = (literal_text or "").strip()
-    if line:
+    spec = (literal_text_spec or "").strip()
+    if spec:
+        # The caller art-directed the type itself — size, case, colour hex,
+        # position, "no background box" — with the lines already quoted inside
+        # it, the way the reference prompts did. Quoting them a second time in
+        # a generic LITERAL TEXT sentence just gives the model two competing
+        # instructions for the same words, so this replaces both that sentence
+        # and the separate TEXT PLACEMENT section.
+        sections.append({"key": "LITERAL TEXT", "content": spec})
+    elif line:
+        # "No other text" stated inline, in the same sentence the model reads
+        # to decide what to draw — not only in the separate negative_prompt
+        # field. Evidence (2026-10-02): a prompt stating this inline rendered
+        # clean on Ideogram 3.0 twice; the COS wire relied on the negative
+        # field alone and rendered extra hallucinated text (a fake tagline,
+        # garbled UI text on a mentioned screen) both times it was tested
+        # without that field attached. Negatives are cargo that can get lost
+        # in testing or dropped by a provider; this can't be.
         sections.append(
             {
                 "key": "LITERAL TEXT",
-                "content": f'Render this exact line, character for character: "{line}"',
+                "content": (
+                    f'Render this exact line, character for character: "{line}". '
+                    "No other text anywhere in the image."
+                ),
             }
         )
         placement = (text_placement or _DEFAULT_TEXT_PLACEMENT).strip()
@@ -991,6 +1049,13 @@ def _section_to_prose(key: str, content: str) -> str:
     if key == "BRAND":
         return text.replace("\n", " ").strip()
     if key == "OUTPUT STYLE":
+        # The built-in defaults are fragments ("photograph, no text, no logo")
+        # and need the "Render as …" frame. A caller that supplies its own
+        # closing sentence — the reference prompts end on "No other text, no
+        # logo, no watermark. 4:5 portrait aspect ratio." — already reads as
+        # prose, and wrapping it produces "Render as A single photograph. …".
+        if text.endswith(".") and text[:1].isupper():
+            return text
         return f"Render as {text.rstrip('.')}."
     return text.replace("\n", " ").strip()
 
