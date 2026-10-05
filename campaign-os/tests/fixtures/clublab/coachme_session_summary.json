@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "data": {
+    "totalSessions": 42,
+    "totalPlayers": 30,
+    "sessionsByPeriod": [{"period": "2025-09", "count": 4}]
+  },
+  "requestId": "fixture-req-coach-sess",
+  "timestamp": "2025-10-01T00:00:00Z"
+}

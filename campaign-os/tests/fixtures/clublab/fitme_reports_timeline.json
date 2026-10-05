@@ -1,0 +1,8 @@
+{
+  "success": true,
+  "data": {
+    "fittingsOverTime": [{"period": "2025-09", "completedCount": 5, "cancelledCount": 0}]
+  },
+  "requestId": "fixture-req-fitme-timeline",
+  "timestamp": "2025-10-01T00:00:00Z"
+}

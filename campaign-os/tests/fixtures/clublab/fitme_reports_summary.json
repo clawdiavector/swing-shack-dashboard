@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "data": {
+    "headlines": {
+      "completedFittings": {"value": 90, "changePct": 2},
+      "inProgress": 4,
+      "cancelled": {"value": 2, "changePct": 0}
+    },
+    "buildPipeline": {"inBuild": 3, "fulfilled": 10, "awaitingPayment": 1},
+    "topFitters": [{"name": "Person Name", "completedCount": 5}],
+    "facilities": [{"name": "Hidden Facility", "completedCount": 1}]
+  },
+  "requestId": "fixture-req-fitme-sum",
+  "timestamp": "2025-10-01T00:00:00Z"
+}

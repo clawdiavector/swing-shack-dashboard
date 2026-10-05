@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "data": {
+    "clientCount": 120,
+    "lifecycle": {"active": 80, "atRisk": 5, "dormant": 10, "total": 95},
+    "revenue": {"periodPaidTotal": 45000, "periodPaidBookingTotal": 1200},
+    "nps": {"score": 62, "promoters": 40, "passives": 50, "detractors": 30},
+    "reviewText": "should strip"
+  },
+  "requestId": "fixture-req-reports",
+  "timestamp": "2025-10-01T00:00:00Z"
+}

@@ -105,6 +105,7 @@ DUAL_AUTH_PATHS = frozenset({
     '/api/calendar/v3/runs',
     # L4 unified inbox list (Mac/foreman bearer approve flow)
     '/api/inbox/unified',
+    '/api/clublab-pull/run',
 })
 
 # Dynamic-segment dual-auth prefixes. Each MUST end in '/' — see _gate comment.
@@ -319,6 +320,12 @@ def _resolve_v23_actor() -> Dict[str, Any]:
 # Additive job-runner bearer (t15). Unset in local/dev; workflows set in prod.
 # Dual-auth is temporary — tighten to bearer-only when deferred security (t02–t04) lands.
 COS_JOB_TOKEN = os.environ.get('COS_JOB_TOKEN')
+
+try:
+    from _lib.clublab_pull_routes import register_routes as _register_clublab_pull_routes
+    _register_clublab_pull_routes(app)
+except Exception as _clublab_route_err:
+    print(f'[boot] clublab pull routes failed (non-fatal): {_clublab_route_err}', flush=True, file=sys.stderr)
 
 
 def _is_job_authed():

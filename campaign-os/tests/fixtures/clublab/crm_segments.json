@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "data": [
+    {"id": 1, "name": "VIP", "slug": "vip", "members": [{"firstName": "Strip", "email": "x@example.com"}]},
+    {"id": 2, "name": "Regular", "slug": "regular", "size": 50}
+  ],
+  "requestId": "fixture-req-segments",
+  "timestamp": "2025-10-01T00:00:00Z"
+}
