@@ -1,0 +1,111 @@
+[
+  {
+    "brand": "swing-shack",
+    "archetype": "ss-fitting-headline",
+    "slug": "mon-iron-fitting",
+    "channels": [
+      "instagram"
+    ],
+    "fields": {
+      "caption_hook": "HIT MORE GREENS WITH AN",
+      "service_lockup": "IRON FITTING"
+    }
+  },
+  {
+    "brand": "swing-shack",
+    "archetype": "ss-did-you-know",
+    "slug": "tue-smash-factor",
+    "channels": [
+      "instagram"
+    ],
+    "fields": {
+      "caption_hook": "SMASH FACTOR\nNOT SWING\nSPEED"
+    }
+  },
+  {
+    "brand": "swing-shack",
+    "archetype": "ss-service-promo",
+    "slug": "wed-driver-fitting",
+    "channels": [
+      "instagram"
+    ],
+    "fields": {
+      "caption_hook": "YOUR DRIVER\nISN'T MATCHED\nTO YOUR SWING",
+      "service_label": "DRIVER FITTING",
+      "cta": "BOOK A DRIVER FITTING"
+    }
+  },
+  {
+    "brand": "swing-shack",
+    "archetype": "ss-zen-venue-promo",
+    "slug": "thu-zen-stage",
+    "channels": [
+      "instagram"
+    ],
+    "fields": {
+      "caption_hook": "ZEN SWING STAGE",
+      "qualifier": "FOUR TRACKMAN BAYS NEXT DOOR."
+    },
+    "photo": "data/brand-directory/swing-shack/templates/fitting-headline/photos/standin-iron-venue.jpg"
+  },
+  {
+    "brand": "swing-shack",
+    "archetype": "ss-lesson-corner",
+    "slug": "fri-coaching",
+    "channels": [
+      "instagram"
+    ],
+    "fields": {
+      "caption_hook": "1-ON-1 TRACKMAN COACHING",
+      "cta": "BOOK YOUR SESSION"
+    }
+  },
+  {
+    "brand": "stick",
+    "archetype": "stick-shop-corner",
+    "slug": "mon-psycho-bunny",
+    "channels": [
+      "instagram"
+    ],
+    "photo": "data/brand-directory/stick/images/Products/psychobunny-maverick/maverick-front-full.png",
+    "fields": {
+      "caption_hook": "NEW IN"
+    }
+  },
+  {
+    "brand": "stick",
+    "archetype": "stick-service-start",
+    "slug": "tue-shaft-matrix",
+    "channels": [
+      "instagram"
+    ],
+    "fields": {
+      "caption_hook": "FULL SHAFT\nMATRIX",
+      "cta": "FIT FIRST.\nBUY SECOND."
+    }
+  },
+  {
+    "brand": "stick",
+    "archetype": "stick-shop-corner",
+    "slug": "wed-psycho-bunny-detail",
+    "channels": [
+      "instagram"
+    ],
+    "photo": "data/brand-directory/stick/images/Products/psychobunny-maverick/maverick-back-pocket.png",
+    "fields": {
+      "caption_hook": "PSYCHO BUNNY"
+    }
+  },
+  {
+    "brand": "stick",
+    "archetype": "stick-service-start",
+    "slug": "fri-workshop",
+    "channels": [
+      "instagram"
+    ],
+    "fields": {
+      "caption_hook": "PRECISION\nWORKSHOP",
+      "cta": "FIT FIRST.\nBUY SECOND."
+    }
+  }
+]
