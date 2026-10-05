@@ -67,6 +67,20 @@ def runtime_data_dir() -> Path:
     return Path(env) if env else CAMPAIGN_OS / "data"
 
 
+def pin_data_dir() -> Path:
+    """Make DATA_DIR explicit before any _lib import reads it.
+
+    marketing_calendar resolves its own storage from $DATA_DIR. With the var
+    unset this script defaulted to campaign-os/data while that module picked a
+    different directory, so campaign-data.json and the calendar moments landed
+    in two places and the week board found no moments to join. Pin one value so
+    every module agrees.
+    """
+    resolved = runtime_data_dir()
+    os.environ["DATA_DIR"] = str(resolved)
+    return resolved
+
+
 def brands_registry_path() -> Path:
     return runtime_data_dir() / "brands.json"
 
@@ -168,6 +182,94 @@ def build_asset(spec: dict, batch_name: str, *, approval: str, publish: str) -> 
     return campaign_id, asset_id, asset
 
 
+def ensure_calendar_moment(spec: dict, asset_id: str) -> tuple[str, str]:
+    """Create/update the calendar moment the post sits on. Returns (cal_id, note).
+
+    "This week" is driven by marketing-calendar moments, not by asset rows --
+    week_board() walks canonical_records() and joins drafts onto them. A post
+    with only an asset row has no moment to sit on, so the week shows "Nothing
+    going out" even though the post exists and is in Review. That is exactly
+    what happened on 2026-10-05.
+    """
+    sys.path.insert(0, str(CAMPAIGN_OS))
+    from _lib.marketing_calendar import upsert_event  # noqa: PLC0415
+
+    brand = spec["brand"]
+    date_s = spec.get("date")
+    if not date_s:
+        return "", "no date -- cannot place it on the calendar"
+    # upsert_event enforces an event_key prefixed "<brand_id>:" -- a hyphen is
+    # rejected with "does not match brand_id".
+    cal_key = f"{brand}:{spec['slug']}"
+    record = {
+        "event_key": cal_key,
+        "brand_id": brand,
+        "title": (spec.get("caption") or spec["slug"]).split("\n", 1)[0].strip()[:72],
+        "event_date": date_s,
+        "event_start": date_s,
+        "event_end": date_s,
+        # Not an automation writer: V2.8 routes scout/heidi/reactive to a
+        # separate intake store and blocks template/demo writers outright.
+        # This is operator-equivalent work, so it belongs on the main calendar.
+        # week_board only shows moments whose status is in
+        # {approved, candidate, active, completed}. A record with no status is
+        # silently skipped, which is why the week read "Nothing going out" while
+        # the posts sat in Review. "approved" = the slot is booked; whether the
+        # POST may go out is the asset's own approvalStatus/publishStatus.
+        "status": "approved",
+        "source_origin": "internal_strategy",
+        "created_by": "campaign-os-schedule-posts",
+        "post_type": spec.get("archetype") or "feed-post",
+        "primary_channel": (spec.get("channels") or ["instagram"])[0],
+        "render_mode": "deterministic-template",
+    }
+    try:
+        result = upsert_event(brand, record)
+    except Exception as e:  # noqa: BLE001
+        return "", f"calendar upsert failed: {type(e).__name__}: {e}"
+    rec = result.get("record") or {}
+    cal_id = str(rec.get("calendar_id") or rec.get("event_key") or cal_key)
+
+    # upsert_event does not accept `status` from the caller -- it stays None,
+    # and week_board skips any moment whose status is not in
+    # {approved, candidate, active, completed}. Transition it explicitly so the
+    # slot is booked and visible in This week.
+    if str(rec.get("status") or "") not in ("approved", "candidate", "active", "completed"):
+        from _lib.marketing_calendar import transition_status  # noqa: PLC0415
+        try:
+            transition_status(brand, cal_id, "approved",
+                              reason="booked by campaign-os/schedule_posts.py")
+        except Exception as e:  # noqa: BLE001
+            return cal_id, f"moment created but status transition failed: {e}"
+    return cal_id, ""
+
+
+def write_draft_sidecar(spec: dict, campaign_id: str, asset_id: str, cal_id: str) -> None:
+    """The join row week_board() indexes by calendar_id.
+
+    _index_draft_sidecars() reads draft-assets/*.json and resolves the moment
+    from source_inbox_item_id, which must be calendar_candidate:<brand>:<cal_id>.
+    Without this file the post never joins its moment and the week stays empty.
+    """
+    brand = spec["brand"]
+    channel = (spec.get("channels") or ["instagram"])[0]
+    visual_url, _ = _image_urls(brand, spec["slug"], channel)
+    sidecar = {
+        "asset_id": asset_id,
+        "campaign_id": campaign_id,
+        "brand_id": brand,
+        "source_inbox_item_id": f"calendar_candidate:{brand}:{cal_id}",
+        "composed": {channel: visual_url},
+        "image_url": visual_url,
+        "created_at": _now(),
+        "action": "compose_post",
+        "created_by": "campaign-os/schedule_posts.py",
+    }
+    out = runtime_data_dir() / "draft-assets" / f"{asset_id}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(sidecar, indent=2, ensure_ascii=False) + "\n")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -176,9 +278,12 @@ def main() -> int:
                     help="override every post's approval state")
     ap.add_argument("--publish-status", choices=VALID_PUBLISH,
                     help="override every post's publish state")
+    ap.add_argument("--no-calendar", action="store_true",
+                    help="skip the calendar moment (post will not show in This week)")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
+    pin_data_dir()
     specs = json.loads(Path(a.batch).read_text())
     batch_name = Path(a.batch).stem
 
@@ -215,6 +320,13 @@ def main() -> int:
             warn = register_campaign_ownership(spec["brand"], cid)
             if warn:
                 skipped.append(f"{spec.get('slug')}: {warn}")
+            if not a.no_calendar:
+                cal_id, cal_warn = ensure_calendar_moment(spec, aid)
+                if cal_warn:
+                    skipped.append(f"{spec.get('slug')}: {cal_warn}")
+                else:
+                    asset["calendarId"] = cal_id
+                    write_draft_sidecar(spec, cid, aid, cal_id)
         written.append((spec.get("date"), spec["brand"], aid, approval, publish))
 
     if not a.dry_run:

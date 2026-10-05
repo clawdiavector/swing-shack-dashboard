@@ -47,6 +47,23 @@ go live."*
 Override per post with `approval_status` / `publish_status` in the batch, or for
 the whole run with `--approval-status` / `--publish-status`.
 
+## Two more traps, both silent
+
+**The calendar moment.** "This week" is driven by marketing-calendar moments,
+not asset rows: `week_board()` walks `canonical_records()` and joins drafts onto
+them. A post with only an asset row has no moment, so the week reads "Nothing
+going out" while the post sits happily in Review. Worse, `upsert_event()` does
+not accept `status` from the caller — it stays `None`, and `week_board` skips
+any moment whose status is not in {approved, candidate, active, completed}. So
+the moment needs an explicit `transition_status(..., "approved")` after
+creation. That is the slot being booked; whether the post may go out is still
+the asset's own `publishStatus`.
+
+**DATA_DIR must be pinned before importing `_lib`.** `marketing_calendar`
+resolves its storage from `$DATA_DIR` at import. With the var unset it picks a
+different directory than this script's default, so `campaign-data.json` and the
+moments land in two places and nothing joins.
+
 ## Brand ownership — the trap
 
 `review_inbox()` filters brand-scoped views through
