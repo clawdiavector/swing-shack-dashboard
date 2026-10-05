@@ -25,10 +25,32 @@ credentials/
 credentials/**
 
 # Brand directory: keep dissector outputs but exclude raw image files
-# (they live in Google Drive as source of truth)
-data/brand-directory/*/images/*.jpg
-data/brand-directory/*/images/*.jpeg
-data/brand-directory/*/images/*.png
+# (they live in Google Drive as source of truth).
+#
+# These patterns matched ONE level only, so everything under images/<subdir>/
+# -- Products/, Services/, Location/, Swing Shack RAW/ -- was committed anyway.
+# That is how 572 MB of imagery across 615 files ended up in a 996 MB .git.
+# The app serves DATA_DIR/brand-directory/<brand>/images FIRST and only falls
+# back to the bundled repo copy, and prod can refill its own volume straight
+# from Drive, so git never needed these.
+data/brand-directory/*/images/**
+
+# Rendered and generated output. These grow with every week's posts and every
+# Krea lab round -- 42 MB of lab renders and the week's composed posts were
+# already stageable -- and none of it is an input: render_post.py recreates
+# composed posts from the templates deterministically, and lab output is a
+# probe, not a source. Keep the prompt scripts, drop the pixels.
+out/
+data/brand-directory/*/image-prompts/**/*.png
+data/brand-directory/*/image-prompts/**/*.jpg
+data/brand-directory/*/image-prompts/**/*.jpeg
+data/brand-directory/*/image-prompts/**/*.webp
+__pycache__/
+
+!data/brand-directory/*/images/**/
+!data/brand-directory/*/images/**/*.json
+!data/brand-directory/*/images/*.json
+!data/brand-directory/*/images/**/README.md
 data/freshness-detail.json
 
 # Nightshift scratch dir (probes, screenshots, ad-hoc test scripts).
