@@ -419,20 +419,24 @@ def image_generate(
         ).strip()
     # Krea MCP expects the model at the envelope level, prompt + options
     # inside the `input` record. Flux wants width + height. Ideogram's
-    # documented control is aspect_ratio (enum includes 4:5), not a pixel
-    # string. Unknown ratios used to collapse to 1:1.
+    # documented control is aspect_ratio only (enum includes 4:5). Sending
+    # width/height with that enum makes Krea 422 the model.
     inner = {"prompt": enriched_prompt}
     ar = normalize_krea_aspect(aspect_ratio)
     w, h = _KREA_ASPECT_PIXELS[ar]
-    if extra and ("width" in extra or "height" in extra):
+    ideogram = "ideogram" in (model or "").lower()
+    if ideogram and extra:
+        extra.pop("width", None)
+        extra.pop("height", None)
+    if not ideogram and extra and ("width" in extra or "height" in extra):
         if "width" in extra:
             inner["width"] = extra.pop("width")
         if "height" in extra:
             inner["height"] = extra.pop("height")
-    else:
+    elif not ideogram:
         inner["width"] = w
         inner["height"] = h
-    if ar != "1:1":
+    if ideogram or ar != "1:1":
         inner["aspect_ratio"] = ar
     if extra:
         # Flux image models do not accept negative_prompt on MCP input.

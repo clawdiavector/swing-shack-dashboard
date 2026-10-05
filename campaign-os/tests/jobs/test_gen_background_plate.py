@@ -109,6 +109,35 @@ def test_krea_image_generate_strips_negative_prompt_extra(monkeypatch):
     assert inner.get("seed") == 1
 
 
+def test_krea_ideogram_sends_aspect_without_pixels(monkeypatch):
+    from _lib import krea_mcp
+
+    captured: dict = {}
+
+    def fake_mcp_call(method, params=None, *, timeout=120):
+        captured["params"] = params
+        return {"structuredContent": {"job_id": "test-job", "status": "queued"}}
+
+    monkeypatch.setattr(krea_mcp, "mcp_call", fake_mcp_call)
+    monkeypatch.setattr(krea_mcp, "_ensure_initialized", lambda: None)
+    monkeypatch.setattr(krea_mcp, "_read_token_from_env", lambda: "tok")
+    monkeypatch.setattr(krea_mcp, "_read_token_from_disk", lambda: None)
+
+    krea_mcp.image_generate(
+        "portrait scene",
+        brand="stick",
+        model="ideogram/ideogram-4",
+        aspect_ratio="1024x1280",
+        extra={"width": 1024, "height": 1280},
+        background_plate=True,
+    )
+    inner = captured["params"]["arguments"]["input"]
+    assert inner.get("aspect_ratio") == "4:5"
+    assert "width" not in inner
+    assert "height" not in inner
+    assert captured["params"]["arguments"]["model"] == "ideogram/ideogram-4"
+
+
 def test_mcp_call_raises_on_tool_is_error(monkeypatch):
     from _lib import krea_mcp
 
