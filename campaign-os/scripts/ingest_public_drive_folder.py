@@ -253,6 +253,13 @@ def main() -> int:
     )
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--data-dir",
+        default=None,
+        help="Directory CONTAINING brand-directory/. Defaults to <repo>/data. "
+             "On Railway pass $DATA_DIR (/data/campaign-os) so the ingest fills "
+             "the volume, which the image routes resolve before the repo copy.",
+    )
     args = parser.parse_args()
 
     # Never fall back to another brand's root: that silently files one brand's
@@ -270,6 +277,7 @@ def main() -> int:
         folder_id,
         limit=args.limit,
         dry_run=args.dry_run,
+        data_dir=Path(args.data_dir) if args.data_dir else None,
     )
     print(json.dumps(summary, indent=2))
     return 1 if summary.get("download_errors") else 0
