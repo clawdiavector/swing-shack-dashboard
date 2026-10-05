@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": {
+    "needsAttentionCount": 2,
+    "atRiskCount": 1,
+    "dormantCount": 3,
+    "overdueFollowUpCount": 2,
+    "dueTodayFollowUpCount": 1,
+    "followUpsStillOpen": 4,
+    "newClientsToday": 0,
+    "totalActive": 120,
+    "newThisMonth": 5,
+    "topAtRisk": [{"firstName": "Hidden", "email": "hidden@example.com"}]
+  },
+  "requestId": "fixture-req-dash",
+  "timestamp": "2025-10-01T00:00:00Z"
+}

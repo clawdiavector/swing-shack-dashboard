@@ -1,1 +1,19 @@
-[{"id": "fac-demo-1", "name": "Demo Facility"}]
+{
+  "success": true,
+  "data": [
+    {
+      "facilityId": "101",
+      "name": "Stick Lab",
+      "email": "strip-me@example.com",
+      "address": "Hidden Street",
+      "bankingDetails": "hidden"
+    },
+    {
+      "facilityId": "102",
+      "name": "Swing Shack Lab",
+      "email": "also-strip@example.com"
+    }
+  ],
+  "requestId": "fixture-req-fac",
+  "timestamp": "2025-10-01T00:00:00Z"
+}

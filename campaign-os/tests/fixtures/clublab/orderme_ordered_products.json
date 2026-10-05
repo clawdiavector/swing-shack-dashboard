@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "data": {
+    "period": "30d",
+    "items": [
+      {
+        "productKey": "drv-1",
+        "productName": "Pro V1",
+        "category": "Driver",
+        "totalQuantity": 12,
+        "orderCount": 8,
+        "firstOrderDate": "2025-01-01",
+        "lastOrderDate": "2025-09-01",
+        "client": {"email": "strip-me@example.com"}
+      }
+    ]
+  },
+  "requestId": "fixture-req-orderme",
+  "timestamp": "2025-10-01T00:00:00Z"
+}

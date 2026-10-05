@@ -1,1 +1,11 @@
-[{"tag": "slice", "count": 12}]
+{
+  "success": true,
+  "data": {
+    "tags": [
+      {"tagId": 1, "label": "Tempo", "usageCount": 12},
+      {"tagId": 2, "label": "Path", "usageCount": 8}
+    ]
+  },
+  "requestId": "fixture-req-coach-tags",
+  "timestamp": "2025-10-01T00:00:00Z"
+}

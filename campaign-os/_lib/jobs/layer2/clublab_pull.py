@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -38,25 +38,28 @@ DENY_KEYS = frozenset(
         "comments",
         "photo",
         "imageurl",
+        "bankingdetails",
+        "address",
     }
 )
 
 CRM_DASHBOARD_DROP = frozenset({"topAtRisk", "top_at_risk", "topatrisk"})
+FITME_SUMMARY_DROP = frozenset({"topFitters", "top_fitters", "topfitters", "facilities"})
 
 REQUIRED_GET_PATHS = (
     "/api/v1/facilities",
-    "/api/v1/crm/dashboard/summary",
-    "/api/v1/crm/reports/summary",
+    "/api/v1/crm/dashboard",
+    "/api/v1/crm/reports",
     "/api/v1/crm/segments",
-    "/api/v1/orderme/orders/summary",
-    "/api/v1/fitme/summary",
-    "/api/v1/fitme/equipment/top",
+    "/api/v1/orderme/ordered-products",
+    "/api/v1/fitme-reports/summary",
+    "/api/v1/fitme-reports/equipment",
+    "/api/v1/fitme-reports/timeline",
     "/api/v1/costme/catalogue",
     "/api/v1/Reports/session-summary",
-    "/api/v1/Reports/tag-frequency",
 )
 
-OPTIONAL_GET_PATHS = ("/api/v1/fitme/timeline",)
+OPTIONAL_GET_PATHS = ("/api/v1/Reports/tag-frequency",)
 
 _http_client_factory: Callable[[], Any] | None = None
 
@@ -88,6 +91,12 @@ def sanitize_tree(value: Any) -> tuple[Any, list[str]]:
 def _drop_keys(obj: dict[str, Any], keys: frozenset[str]) -> dict[str, Any]:
     drop_norm = {_norm_key(k) for k in keys}
     return {k: v for k, v in obj.items() if _norm_key(k) not in drop_norm}
+
+
+def _unwrap_envelope(body: Any) -> Any:
+    if isinstance(body, dict) and body.get("success") is True and "data" in body:
+        return body["data"]
+    return body
 
 
 def _parse_env_file(path: Path) -> dict[str, str]:
@@ -156,7 +165,11 @@ class ClublabHttpClient:
                 raw = exc.read().decode("utf-8")
             except Exception:  # noqa: BLE001
                 raw = ""
-            raise ClublabPullError(status, url, raw) from exc
+            try:
+                parsed = json.loads(raw) if raw else {}
+            except json.JSONDecodeError:
+                parsed = raw
+            return HttpResponse(status=status, body=parsed, url=url)
         except URLError as exc:
             raise ClublabPullError(0, url, describe_exception(exc)) from exc
         try:
@@ -182,7 +195,6 @@ def login_token(origin: str) -> str:
     password = (os.environ.get("CLUBLAB_PASSWORD") or "").strip()
     if not email or not password:
         raise ClublabPullError(401, f"{origin}/api/v1/auth/login", "missing CLUBLAB_EMAIL or CLUBLAB_PASSWORD")
-    client = ClublabHttpClient(origin, token="")
     req = Request(
         f"{origin}/api/v1/auth/login",
         data=json.dumps({"email": email, "password": password}).encode("utf-8"),
@@ -221,106 +233,244 @@ def _build_client() -> ClublabHttpClient:
 def _require_ok(resp: HttpResponse, path: str) -> Any:
     if resp.status >= 400:
         raise ClublabPullError(resp.status, resp.url, str(resp.body)[:200])
-    return resp.body
+    return _unwrap_envelope(resp.body)
+
+
+def _get_optional(client: ClublabHttpClient, path: str, *, facility_id: str) -> Any | None:
+    resp = client.get(path, facility_id=facility_id)
+    if resp.status == 404:
+        return None
+    return _require_ok(resp, path)
+
+
+def _normalize_facility_refs(raw: Any) -> list[dict[str, str]]:
+    items = raw if isinstance(raw, list) else []
+    out: list[dict[str, str]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        fid = str(item.get("facilityId") or item.get("id") or "")
+        name = str(item.get("name") or fid)
+        if fid:
+            out.append({"facilityId": fid, "name": name})
+    return out
+
+
+def _trim_segments(raw: Any) -> list[dict[str, Any]]:
+    items = raw if isinstance(raw, list) else []
+    out: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        row = {k: item[k] for k in ("id", "name", "slug") if k in item}
+        if row:
+            out.append(row)
+    return out
+
+
+def _normalize_ordered_products(raw: Any) -> list[dict[str, Any]]:
+    items: list[Any]
+    if isinstance(raw, dict):
+        items = raw.get("items") if isinstance(raw.get("items"), list) else []
+    elif isinstance(raw, list):
+        items = raw
+    else:
+        items = []
+    products: list[dict[str, Any]] = []
+    for p in items:
+        if not isinstance(p, dict):
+            continue
+        products.append(
+            {
+                "productKey": p.get("productKey"),
+                "name": p.get("productName") or p.get("name"),
+                "category": p.get("category"),
+                "quantity": p.get("totalQuantity") if p.get("totalQuantity") is not None else p.get("quantity"),
+                "orderCount": p.get("orderCount"),
+                "firstOrderDate": p.get("firstOrderDate"),
+                "lastOrderDate": p.get("lastOrderDate"),
+            }
+        )
+    return products
+
+
+def _trim_fitme_summary(raw: Any) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        return {}
+    trimmed = _drop_keys(raw, FITME_SUMMARY_DROP)
+    keep: dict[str, Any] = {}
+    for key in ("headlines", "buildPipeline", "clubTypeMix", "engagement", "alerts"):
+        if key in trimmed:
+            keep[key] = trimmed[key]
+    return keep
+
+
+def _trim_costme_catalogue(raw: Any) -> list[dict[str, Any]]:
+    rows = raw if isinstance(raw, list) else []
+    out: list[dict[str, Any]] = []
+    for c in rows:
+        if not isinstance(c, dict):
+            continue
+        out.append(
+            {
+                "brand": c.get("brand"),
+                "model": c.get("model"),
+                "component": c.get("component"),
+                "category": c.get("category"),
+                "sellPrice": c.get("sell") if c.get("sell") is not None else c.get("sellPrice"),
+                "margin": c.get("grossMarginPercent") if c.get("grossMarginPercent") is not None else c.get("margin"),
+            }
+        )
+    return out
+
+
+def _normalize_tag_frequency(raw: Any) -> list[dict[str, Any]] | None:
+    if raw is None:
+        return None
+    if isinstance(raw, dict):
+        tags = raw.get("tags") if isinstance(raw.get("tags"), list) else []
+    elif isinstance(raw, list):
+        tags = raw
+    else:
+        tags = []
+    out: list[dict[str, Any]] = []
+    for t in tags:
+        if not isinstance(t, dict):
+            continue
+        out.append({"tag": t.get("label") or t.get("tag") or t.get("name"), "count": t.get("usageCount") or t.get("count")})
+    return out
+
+
+def _fitme_completed(summary: dict[str, Any]) -> int:
+    headlines = summary.get("headlines") if isinstance(summary.get("headlines"), dict) else {}
+    cf = headlines.get("completedFittings")
+    if isinstance(cf, dict) and cf.get("value") is not None:
+        return int(cf["value"])
+    if headlines.get("completed") is not None:
+        return int(headlines["completed"])
+    if summary.get("completed") is not None:
+        return int(summary["completed"])
+    return 0
+
+
+def _fitme_in_build(summary: dict[str, Any]) -> int:
+    bp = summary.get("buildPipeline") if isinstance(summary.get("buildPipeline"), dict) else {}
+    if bp.get("inBuild") is not None:
+        return int(bp["inBuild"])
+    return 0
+
+
+def _crm_revenue_total(reports: dict[str, Any]) -> float:
+    rev = reports.get("revenue") if isinstance(reports.get("revenue"), dict) else {}
+    for key in ("periodPaidTotal", "total", "periodPaidBookingTotal"):
+        val = rev.get(key)
+        if val is not None:
+            return float(val)
+    return 0.0
+
+
+def _coach_session_count(sess: dict[str, Any]) -> int:
+    if not isinstance(sess, dict):
+        return 0
+    for key in ("totalSessions", "sessionCount", "count"):
+        if sess.get(key) is not None:
+            return int(sess[key])
+    return 0
 
 
 def _fetch_facility(client: ClublabHttpClient, facility_id: str, name: str) -> tuple[dict[str, Any], list[str]]:
     stripped_all: list[str] = []
 
-    dash_raw = _require_ok(client.get("/api/v1/crm/dashboard/summary", facility_id=facility_id), "crm dashboard")
+    dash_raw = _require_ok(client.get("/api/v1/crm/dashboard", facility_id=facility_id), "crm dashboard")
     dash = _drop_keys(dash_raw if isinstance(dash_raw, dict) else {}, CRM_DASHBOARD_DROP)
     dash, s = sanitize_tree(dash)
     stripped_all.extend(s)
 
-    reports_raw = _require_ok(client.get("/api/v1/crm/reports/summary", facility_id=facility_id), "crm reports")
-    reports, s = sanitize_tree(reports_raw)
+    reports_raw = _require_ok(client.get("/api/v1/crm/reports", facility_id=facility_id), "crm reports")
+    reports, s = sanitize_tree(reports_raw if isinstance(reports_raw, dict) else {})
     stripped_all.extend(s)
 
     segments_raw = _require_ok(client.get("/api/v1/crm/segments", facility_id=facility_id), "crm segments")
-    segments, s = sanitize_tree(segments_raw if isinstance(segments_raw, list) else [])
+    segments, s = sanitize_tree(_trim_segments(segments_raw))
     stripped_all.extend(s)
 
-    order_raw = _require_ok(client.get("/api/v1/orderme/orders/summary", facility_id=facility_id), "orderme")
-    order_doc = order_raw if isinstance(order_raw, dict) else {"products": order_raw}
-    products = order_doc.get("products") if isinstance(order_doc, dict) else order_doc
-    products, s = sanitize_tree(products if isinstance(products, list) else [])
+    order_raw = _require_ok(client.get("/api/v1/orderme/ordered-products", facility_id=facility_id), "orderme")
+    products, s = sanitize_tree(_normalize_ordered_products(order_raw))
     stripped_all.extend(s)
 
-    fit_summary_raw = _require_ok(client.get("/api/v1/fitme/summary", facility_id=facility_id), "fitme summary")
-    fit_summary, s = sanitize_tree(fit_summary_raw)
+    fit_summary_raw = _require_ok(
+        client.get("/api/v1/fitme-reports/summary", facility_id=facility_id), "fitme summary"
+    )
+    fit_summary, s = sanitize_tree(_trim_fitme_summary(fit_summary_raw))
     stripped_all.extend(s)
 
-    fit_equip_raw = _require_ok(client.get("/api/v1/fitme/equipment/top", facility_id=facility_id), "fitme equip")
-    fit_equip, s = sanitize_tree(fit_equip_raw if isinstance(fit_equip_raw, list) else [])
+    fit_equip_raw = _require_ok(
+        client.get("/api/v1/fitme-reports/equipment", facility_id=facility_id), "fitme equipment"
+    )
+    fit_equip, s = sanitize_tree(fit_equip_raw if isinstance(fit_equip_raw, dict) else {})
+    stripped_all.extend(s)
+
+    timeline_raw = _require_ok(
+        client.get("/api/v1/fitme-reports/timeline", facility_id=facility_id), "fitme timeline"
+    )
+    timeline, s = sanitize_tree(timeline_raw if isinstance(timeline_raw, dict) else {})
     stripped_all.extend(s)
 
     cost_raw = _require_ok(client.get("/api/v1/costme/catalogue", facility_id=facility_id), "costme")
-    cost_rows, s = sanitize_tree(cost_raw if isinstance(cost_raw, list) else [])
+    cost_rows, s = sanitize_tree(_trim_costme_catalogue(cost_raw))
     stripped_all.extend(s)
 
     coach_sess_raw = _require_ok(
         client.get("/api/v1/Reports/session-summary", facility_id=facility_id), "coachme sessions"
     )
-    coach_sess, s = sanitize_tree(coach_sess_raw)
+    coach_sess, s = sanitize_tree(coach_sess_raw if isinstance(coach_sess_raw, dict) else {})
     stripped_all.extend(s)
 
-    coach_tags_raw = _require_ok(
-        client.get("/api/v1/Reports/tag-frequency", facility_id=facility_id), "coachme tags"
-    )
-    coach_tags, s = sanitize_tree(coach_tags_raw if isinstance(coach_tags_raw, list) else coach_tags_raw)
+    coach_tags_raw = _get_optional(client, "/api/v1/Reports/tag-frequency", facility_id=facility_id)
+    coach_tags, s = sanitize_tree(_normalize_tag_frequency(coach_tags_raw))
     stripped_all.extend(s)
-
-    timeline = None
-    try:
-        tl_resp = client.get("/api/v1/fitme/timeline", facility_id=facility_id)
-        if tl_resp.status < 400:
-            timeline, s = sanitize_tree(tl_resp.body)
-            stripped_all.extend(s)
-    except ClublabPullError:
-        timeline = None
 
     row: dict[str, Any] = {
-        "id": facility_id,
+        "facilityId": facility_id,
         "name": name,
         "crm": {"dashboard": dash, "reports": reports, "segments": segments},
         "orderme": {"products": products},
-        "fitme": {"summary": fit_summary, "equipment": fit_equip},
+        "fitme": {"summary": fit_summary, "equipment": fit_equip, "timeline": timeline},
         "costme": {"catalogue": cost_rows},
         "coachme": {"sessionSummary": coach_sess, "tagFrequency": coach_tags},
     }
-    if timeline is not None:
-        row["fitme"]["timeline"] = timeline
     return row, stripped_all
 
 
 def _compute_totals(facilities: list[dict[str, Any]]) -> dict[str, Any]:
-    crm_revenue = 0
-    order_count = 0
+    crm_revenue = 0.0
+    order_qty = 0
     fitme_completed = 0
+    fitme_in_build = 0
     costme_skus = 0
     coach_sessions = 0
     for fac in facilities:
         reports = (fac.get("crm") or {}).get("reports") or {}
-        rev = reports.get("revenue") if isinstance(reports, dict) else {}
-        if isinstance(rev, dict):
-            crm_revenue += int(rev.get("total") or 0)
+        if isinstance(reports, dict):
+            crm_revenue += _crm_revenue_total(reports)
         products = (fac.get("orderme") or {}).get("products") or []
         if isinstance(products, list):
-            order_count += sum(int(p.get("orderCount") or 0) for p in products if isinstance(p, dict))
+            order_qty += sum(int(p.get("quantity") or 0) for p in products if isinstance(p, dict))
         fit_summary = (fac.get("fitme") or {}).get("summary") or {}
         if isinstance(fit_summary, dict):
-            fitme_completed += int(fit_summary.get("completed") or 0)
+            fitme_completed += _fitme_completed(fit_summary)
+            fitme_in_build += _fitme_in_build(fit_summary)
         catalogue = (fac.get("costme") or {}).get("catalogue") or []
         if isinstance(catalogue, list):
             costme_skus += len(catalogue)
         sess = (fac.get("coachme") or {}).get("sessionSummary") or {}
-        if isinstance(sess, dict):
-            coach_sessions += int(sess.get("totalSessions") or sess.get("sessionCount") or sess.get("count") or 0)
+        coach_sessions += _coach_session_count(sess if isinstance(sess, dict) else {})
     return {
         "facilityCount": len(facilities),
-        "crmRevenueTotal": crm_revenue,
-        "ordermeOrderCount": order_count,
+        "crmRevenueTotal": int(crm_revenue),
+        "ordermeOrderCount": order_qty,
         "fitmeCompleted": fitme_completed,
+        "fitmeInBuild": fitme_in_build,
         "costmeSkuCount": costme_skus,
         "coachmeSessionCount": coach_sessions,
     }
@@ -328,16 +478,12 @@ def _compute_totals(facilities: list[dict[str, Any]]) -> dict[str, Any]:
 
 def build_snapshot(client: ClublabHttpClient) -> tuple[dict[str, Any], list[str]]:
     fac_resp = _require_ok(client.get("/api/v1/facilities"), "facilities")
-    facilities_raw = fac_resp if isinstance(fac_resp, list) else []
+    facility_refs = _normalize_facility_refs(fac_resp)
     stripped_all: list[str] = []
     facility_rows: list[dict[str, Any]] = []
-    for item in facilities_raw:
-        if not isinstance(item, dict):
-            continue
-        fid = str(item.get("id") or item.get("facilityId") or "")
-        name = str(item.get("name") or fid)
-        if not fid:
-            continue
+    for ref in facility_refs:
+        fid = ref["facilityId"]
+        name = ref["name"]
         row, stripped = _fetch_facility(client, fid, name)
         stripped_all.extend(stripped)
         facility_rows.append(row)
@@ -369,20 +515,24 @@ def counts_summary(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
         if not isinstance(fac, dict):
             continue
         dash = ((fac.get("crm") or {}).get("dashboard") or {}) if isinstance(fac.get("crm"), dict) else {}
+        reports = ((fac.get("crm") or {}).get("reports") or {}) if isinstance(fac.get("crm"), dict) else {}
         products = (fac.get("orderme") or {}).get("products") or []
+        fit_summary = ((fac.get("fitme") or {}).get("summary") or {}) if isinstance(fac.get("fitme"), dict) else {}
         out.append(
             {
-                "facility_id": fac.get("id"),
+                "facility_id": fac.get("facilityId"),
                 "facility_name": fac.get("name"),
-                "crm_active_total": dash.get("activeTotal") if isinstance(dash, dict) else None,
-                "crm_client_count": ((fac.get("crm") or {}).get("reports") or {}).get("clientCount")
-                if isinstance(fac.get("crm"), dict)
-                else None,
+                "crm_active_total": dash.get("totalActive") or dash.get("activeTotal"),
+                "crm_client_count": reports.get("clientCount") if isinstance(reports, dict) else None,
+                "crm_revenue_period_paid": int(_crm_revenue_total(reports)) if isinstance(reports, dict) else 0,
                 "orderme_product_rows": len(products) if isinstance(products, list) else 0,
-                "fitme_completed": ((fac.get("fitme") or {}).get("summary") or {}).get("completed"),
+                "orderme_quantity_total": sum(int(p.get("quantity") or 0) for p in products if isinstance(p, dict)),
+                "fitme_completed": _fitme_completed(fit_summary) if isinstance(fit_summary, dict) else None,
+                "fitme_in_build": _fitme_in_build(fit_summary) if isinstance(fit_summary, dict) else None,
                 "costme_skus": len(((fac.get("costme") or {}).get("catalogue") or [])),
-                "coachme_sessions": ((fac.get("coachme") or {}).get("sessionSummary") or {}).get("totalSessions")
-                or ((fac.get("coachme") or {}).get("sessionSummary") or {}).get("sessionCount"),
+                "coachme_sessions": _coach_session_count(
+                    (fac.get("coachme") or {}).get("sessionSummary") or {}
+                ),
             }
         )
     return out

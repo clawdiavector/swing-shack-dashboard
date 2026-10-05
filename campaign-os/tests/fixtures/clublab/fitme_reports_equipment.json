@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "data": {
+    "topShafts": [{"rank": 1, "name": "Shaft A", "selectionCount": 10}],
+    "topHeads": [{"rank": 1, "name": "Head B", "selectionCount": 8}]
+  },
+  "requestId": "fixture-req-fitme-equip",
+  "timestamp": "2025-10-01T00:00:00Z"
+}

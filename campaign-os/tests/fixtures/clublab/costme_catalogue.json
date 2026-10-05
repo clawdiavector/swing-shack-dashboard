@@ -1,1 +1,17 @@
-[{"brand": "Titleist", "model": "TSR3", "variant": "9°", "category": "Driver", "sellPrice": 8999}]
+{
+  "success": true,
+  "data": [
+    {
+      "catalogueItemId": 1,
+      "brand": "Acme",
+      "model": "X1",
+      "component": "Driver",
+      "category": "Woods",
+      "sell": 499.0,
+      "grossMarginPercent": 22.5,
+      "email": "vendor@example.com"
+    }
+  ],
+  "requestId": "fixture-req-costme",
+  "timestamp": "2025-10-01T00:00:00Z"
+}

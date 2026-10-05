@@ -38,12 +38,13 @@ class FixtureClublabClient:
 
         mapping = {
             "/api/v1/facilities": "facilities.json",
-            "/api/v1/crm/dashboard/summary": "crm_dashboard_summary.json",
-            "/api/v1/crm/reports/summary": "crm_reports_summary.json",
+            "/api/v1/crm/dashboard": "crm_dashboard.json",
+            "/api/v1/crm/reports": "crm_reports.json",
             "/api/v1/crm/segments": "crm_segments.json",
-            "/api/v1/orderme/orders/summary": "orderme_orders_summary.json",
-            "/api/v1/fitme/summary": "fitme_summary.json",
-            "/api/v1/fitme/equipment/top": "fitme_equipment_top.json",
+            "/api/v1/orderme/ordered-products": "orderme_ordered_products.json",
+            "/api/v1/fitme-reports/summary": "fitme_reports_summary.json",
+            "/api/v1/fitme-reports/equipment": "fitme_reports_equipment.json",
+            "/api/v1/fitme-reports/timeline": "fitme_reports_timeline.json",
             "/api/v1/costme/catalogue": "costme_catalogue.json",
             "/api/v1/Reports/session-summary": "coachme_session_summary.json",
             "/api/v1/Reports/tag-frequency": "coachme_tag_frequency.json",
@@ -111,11 +112,21 @@ def test_login_token_reads_data_access_token(monkeypatch):
         assert clublab_pull.login_token("https://clublab.test") == "abc"
 
 
+def test_unwrap_envelope():
+    from _lib.jobs.layer2 import clublab_pull
+
+    wrapped = {"success": True, "data": [{"facilityId": "1"}], "requestId": "x"}
+    assert clublab_pull._unwrap_envelope(wrapped) == [{"facilityId": "1"}]
+    assert clublab_pull._unwrap_envelope({"plain": 1}) == {"plain": 1}
+
+
 def test_run_returns_rows(pull_env):
     tmp_path, clublab_pull = pull_env
     result = clublab_pull.run()
     assert result["ok"] is True
-    assert result["rows"] == 1
+    assert result["rows"] == 2
+    assert result["totals"]["facilityCount"] == 2
+    assert result["totals"]["coachmeSessionCount"] == 84
     assert (tmp_path / "clublab-snapshot.json").is_file()
 
 
@@ -126,7 +137,14 @@ def test_run_writes_snapshot(pull_env):
     assert snap_path.is_file()
     doc = json.loads(snap_path.read_text(encoding="utf-8"))
     assert doc["schema"] == clublab_pull.SCHEMA
-    assert len(doc["facilities"]) == 1
+    assert len(doc["facilities"]) == 2
+    fac0 = doc["facilities"][0]
+    assert "facilityId" in fac0 and "email" not in fac0
+    assert fac0["orderme"]["products"][0]["name"] == "Pro V1"
+    assert "topFitters" not in json.dumps(fac0["fitme"]["summary"])
+    assert "topAtRisk" not in json.dumps(fac0["crm"]["dashboard"])
+    segs = fac0["crm"]["segments"]
+    assert segs[0]["slug"] == "vip" and "members" not in segs[0]
 
 
 def test_deny_list_strips_identity_fields(pull_env):
