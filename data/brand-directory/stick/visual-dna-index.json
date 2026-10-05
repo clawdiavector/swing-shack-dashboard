@@ -130,13 +130,6 @@
       "JORDAN_BAG copy.jpg",
       "JORDAN_BAG.jpg"
     ],
-    "Mileseey": [
-      "mileseey.jpg",
-      "mileseey2.jpg",
-      "mileseey3 copy.jpg",
-      "mileseey3.jpg",
-      "mileseey4.jpg"
-    ],
     "Callaway Quantum": [
       "Quantammini1 copy 2.jpg",
       "Quantammini1 copy.jpg",
@@ -145,6 +138,23 @@
     "Srixon Bag": [
       "SRIXON_BAG copy.jpg",
       "SRIXON_BAG.jpg"
+    ],
+    "Vessel Bag": [
+      "VESSELBAG_STAFF copy.jpg",
+      "VESSELBAG_STAFF.jpg",
+      "VESSEL_BAG copy.jpg",
+      "VESSEL_BAG.jpg"
+    ],
+    "Vice Bag": [
+      "VICEBAG copy.jpg",
+      "VICEBAG.jpg"
+    ],
+    "Mileseey": [
+      "mileseey.jpg",
+      "mileseey2.jpg",
+      "mileseey3 copy.jpg",
+      "mileseey3.jpg",
+      "mileseey4.jpg"
     ],
     "GTS Putter": [
       "stick_fitting_gts.jpg",
@@ -172,19 +182,9 @@
       "takomo_post copy 4.jpg",
       "takomo_post copy.jpg",
       "takomo_post.jpg"
-    ],
-    "Vessel Bag": [
-      "VESSEL_BAG copy.jpg",
-      "VESSEL_BAG.jpg",
-      "VESSELBAG_STAFF copy.jpg",
-      "VESSELBAG_STAFF.jpg"
-    ],
-    "Vice Bag": [
-      "VICEBAG copy.jpg",
-      "VICEBAG.jpg"
     ]
   },
   "errors": [],
   "product_taxonomy_version": "2026-07-29.1",
-  "tagged_count": 280
+  "tagged_count": 316
 }

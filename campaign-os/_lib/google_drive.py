@@ -528,6 +528,19 @@ def download_public_file(
                     resp.raise_for_status()
                     break
 
+    # After following the confirm, the body must be the file. Drive sometimes
+    # serves its "Virus scan warning" interstitial again, and writing that HTML
+    # to dest produced a 2 KB "image" that was hashed into the manifest and
+    # reported as a clean download (swing-shack/Products/ss_post_t250.jpg,
+    # 2026-10-05). Fail loudly instead so the caller counts it as an error.
+    final_type = (resp.headers.get("Content-Type") or "").lower()
+    if "text/html" in final_type:
+        resp.close()
+        raise RuntimeError(
+            f"Drive served HTML rather than the file for {file_id} "
+            f"(likely the virus-scan interstitial); not written"
+        )
+
     with dest_path.open("wb") as fh:
         for chunk in resp.iter_content(chunk_size=1024 * 256):
             if chunk:

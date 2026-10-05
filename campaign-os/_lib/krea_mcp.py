@@ -388,7 +388,9 @@ def image_generate(
     prompt: str,
     *,
     brand: str = "swing-shack",
-    model: str = "flux-fast",
+    # "flux-fast" was never a Krea model id (verified against list_models
+    # 2026-10-05). bfl/flux-1-dev is the live fast Flux.
+    model: str = "bfl/flux-1-dev",
     aspect_ratio: str = "1:1",
     extra: Optional[dict] = None,
     background_plate: bool = False,

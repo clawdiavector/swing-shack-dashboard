@@ -11,6 +11,20 @@
       "files_downloaded": 0,
       "files_skipped": 0,
       "files_errored": 122
+    },
+    {
+      "date": "2026-10-05",
+      "method": "public_folder_http",
+      "folder_id": "1n9pHD6hwr7oEfRBAGBriRrsqv_I-qGge",
+      "files_downloaded": 16,
+      "files_skipped_dedupe": 120,
+      "files_skipped_non_image": 1,
+      "download_errors": 0,
+      "counts_by_folder": {
+        "Products": 2,
+        "Swing Shack RAW": 14
+      },
+      "dry_run": false
     }
   ]
 }

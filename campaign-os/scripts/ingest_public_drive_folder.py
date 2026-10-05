@@ -22,7 +22,27 @@ from _lib import google_drive as gd  # noqa: E402
 from _lib.image_dissector import dissect  # noqa: E402
 from _lib.visual_dna_query import tag_directory  # noqa: E402
 
-STICK_PUBLIC_ROOT = "1k5icaxY3AKBD9z2-oIO6i42PUnq1gYUG"
+# Per-brand ingest roots. The folder humans share is the parent of these two,
+# not a third brand. Roles, the parent id, and the subsets that must not be
+# ingested as roots live in `.claude/skills/campaign-os-map/SKILL.md`
+# ("Brand imagery"). Keep this table and that section in step.
+# `drive.map_names_roots` fails if the skill drops an id from this table.
+#
+#   stick        306 images  Location/{In Store Photos for walkthrough,Photos of iron sets}, Other, Products, Services
+#   swing-shack  136 images  Products, Services, Swing Shack RAW, Others
+#
+# A third id, 1FYeac0rVLezYFcS_02Yqsn7fOw1ecghd, appears in
+# tests/test_google_drive_public.py as SERVICES_FOLDER_ID. It is NOT a third
+# root: it is Stick's own Services subfolder (all 34 of its images are a strict
+# subset of the Stick root) and exists only as a parse fixture. Do not ingest it
+# directly or its files land at the images root instead of under Services/.
+BRAND_PUBLIC_ROOTS = {
+    "stick": "1k5icaxY3AKBD9z2-oIO6i42PUnq1gYUG",
+    "swing-shack": "1n9pHD6hwr7oEfRBAGBriRrsqv_I-qGge",
+}
+
+# Back-compat for callers that imported the old single-brand constant.
+STICK_PUBLIC_ROOT = BRAND_PUBLIC_ROOTS["stick"]
 
 
 def _manifest_key(folder: str, name: str) -> str:
@@ -62,9 +82,15 @@ def run_ingest(
     limit: int | None = None,
     dry_run: bool = False,
     repo_root: Path | None = None,
+    data_dir: Path | None = None,
 ) -> dict:
+    # data_dir names the directory that CONTAINS brand-directory/. Locally that
+    # is <repo>/data; on Railway it is the volume at $DATA_DIR, which the app
+    # resolves before the bundled repo copy. Passing it lets prod refill its own
+    # volume from Drive instead of depending on images being committed to git.
     root = repo_root or REPO_ROOT
-    brand_dir = root / "data" / "brand-directory" / brand
+    base = Path(data_dir) if data_dir else (root / "data")
+    brand_dir = base / "brand-directory" / brand
     images_root = brand_dir / "images"
     manifest_path = brand_dir / "ingest-manifest.json"
     source_path = brand_dir / "source.json"
@@ -184,7 +210,7 @@ def run_ingest(
         )
         source_path.write_text(json.dumps(source, indent=2))
 
-        tag_result = tag_directory(brand, base_dir=root / "data" / "brand-directory")
+        tag_result = tag_directory(brand, base_dir=base / "brand-directory")
     else:
         tag_result = {"skipped": "dry_run"}
 
@@ -220,14 +246,28 @@ def run_ingest(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Ingest public Google Drive folder")
     parser.add_argument("--brand", required=True)
-    parser.add_argument("--folder-id", default=STICK_PUBLIC_ROOT)
+    parser.add_argument(
+        "--folder-id",
+        default=None,
+        help="Override the brand's canonical root from BRAND_PUBLIC_ROOTS.",
+    )
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
+    # Never fall back to another brand's root: that silently files one brand's
+    # imagery under the other, and md5 dedupe is per-brand so nothing catches it.
+    folder_id = args.folder_id or BRAND_PUBLIC_ROOTS.get(args.brand)
+    if not folder_id:
+        parser.error(
+            f"no canonical Drive root for brand {args.brand!r}. "
+            f"Known: {', '.join(sorted(BRAND_PUBLIC_ROOTS))}. "
+            f"Pass --folder-id explicitly to ingest something else."
+        )
+
     summary = run_ingest(
         args.brand,
-        args.folder_id,
+        folder_id,
         limit=args.limit,
         dry_run=args.dry_run,
     )

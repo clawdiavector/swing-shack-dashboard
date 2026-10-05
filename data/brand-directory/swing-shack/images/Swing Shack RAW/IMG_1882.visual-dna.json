@@ -1,0 +1,184 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/finder-workspace/repos/work/swing-shack-dashboard-main/data/brand-directory/swing-shack/images/Swing Shack RAW/IMG_1882.jpeg",
+  "layer1_metadata": {
+    "filename": "IMG_1882.jpeg",
+    "format": "MPO",
+    "mode": "RGB",
+    "width_px": 5712,
+    "height_px": 4284,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 14614794,
+    "modified": 1791224708.018164,
+    "exif": {
+      "322": 640,
+      "323": 896,
+      "34853": 2694,
+      "296": 2,
+      "34665": 266,
+      "271": "Apple",
+      "272": "iPhone 15 Pro Max",
+      "305": "26.5",
+      "274": 1,
+      "306": "2026:05:29 15:47:41",
+      "531": 1,
+      "316": "iPhone 15 Pro Max"
+    }
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#a19a8e",
+        "rgb": [
+          161,
+          154,
+          142
+        ],
+        "share": 0.1419
+      },
+      {
+        "hex": "#39383e",
+        "rgb": [
+          57,
+          56,
+          62
+        ],
+        "share": 0.1368
+      },
+      {
+        "hex": "#5d4e3f",
+        "rgb": [
+          93,
+          78,
+          63
+        ],
+        "share": 0.1339
+      },
+      {
+        "hex": "#c3bdae",
+        "rgb": [
+          195,
+          189,
+          174
+        ],
+        "share": 0.1236
+      },
+      {
+        "hex": "#252224",
+        "rgb": [
+          37,
+          34,
+          36
+        ],
+        "share": 0.12
+      },
+      {
+        "hex": "#6e6c68",
+        "rgb": [
+          110,
+          108,
+          104
+        ],
+        "share": 0.1177
+      },
+      {
+        "hex": "#927d65",
+        "rgb": [
+          146,
+          125,
+          101
+        ],
+        "share": 0.1176
+      },
+      {
+        "hex": "#111424",
+        "rgb": [
+          17,
+          20,
+          36
+        ],
+        "share": 0.1085
+      }
+    ],
+    "mean_brightness": 96.8,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 119.8,
+    "brightness_bottom": 82.2,
+    "edge_density_grid": [
+      [
+        14.4,
+        24.01,
+        12.2
+      ],
+      [
+        8.13,
+        19.51,
+        9.52
+      ],
+      [
+        8.87,
+        13.24,
+        7.14
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": null,
+      "white_text_or_border_present": null,
+      "headings_all_caps": null,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#a19a8e",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

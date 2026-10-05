@@ -433,6 +433,33 @@ def layer17_recipe(meta: dict, palette: dict, comp: dict, ocr: dict, typo: dict,
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _colors_from_palette(brand_dir: Path) -> dict[str, list[str]] | None:
+    """Build layer 8's dark/accent/light groups from palette/brand.json."""
+    path = Path(brand_dir) / "palette" / "brand.json"
+    if not path.is_file():
+        return None
+    try:
+        palette = (json.loads(path.read_text()) or {}).get("palette") or {}
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    def hexes(*names: str) -> list[str]:
+        out = []
+        for name in names:
+            row = palette.get(name)
+            value = row.get("hex") if isinstance(row, dict) else row
+            if isinstance(value, str) and value.startswith("#"):
+                out.append(value)
+        return out
+
+    groups = {
+        "dark": hexes("primary", "neutral_dark"),
+        "accent": hexes("accent", "secondary"),
+        "light": hexes("neutral_light", "neutral_mid"),
+    }
+    return groups if any(groups.values()) else None
+
+
 def dissect(image_path: Path | str, bible_path: Path | str | None = None) -> dict[str, Any]:
     """Run full visual DNA extraction. Returns dict ready to JSON-serialize."""
     image_path = Path(image_path)
@@ -444,6 +471,15 @@ def dissect(image_path: Path | str, bible_path: Path | str | None = None) -> dic
     bible = None
     if bible_path and bible_path.exists():
         bible = json.loads(bible_path.read_text())
+        if bible is not None and "colors" not in bible:
+            # bible-visual.json no longer carries a `colors` block; the palette
+            # moved to palette/brand.json and layer 8 was never updated. Because
+            # the whole dissection is wrapped in one try/except, the resulting
+            # KeyError aborted layers 8 AND 17, so every newly ingested image
+            # silently lost its compliance score and its recipe.
+            derived = _colors_from_palette(bible_path.parent)
+            if derived:
+                bible = {**bible, "colors": derived}
 
     result: dict[str, Any] = {
         "schema_version": "0.1",

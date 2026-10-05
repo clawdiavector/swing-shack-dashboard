@@ -35,7 +35,10 @@ ONESHOT_SIZE = "1024x1280"
 # that `list_models` advertises but will not run (see creative_director's note
 # on google/gemini-3-pro-image). Operators override per card with
 # `oneshot_model` — recraft/recraft-v4 is the pick for collage cards.
-ONESHOT_DEFAULT_MODEL = "ideogram/ideogram-4"
+# Verified against Krea list_models on 2026-10-05: there is no
+# "ideogram/ideogram-4". The 4.x line ships as 4.5 and 4.5-precise, so the
+# old id could only ever 422. Keep this in step with verify_specs.py.
+ONESHOT_DEFAULT_MODEL = "ideogram/ideogram-4.5"
 _ONESHOT_FALLBACK_MODEL = "ideogram/ideogram-3"
 _LOGO_DRIFT_WARNING = (
     "AI-rendered logo. The mark will drift from the brand asset — proportions, spacing "

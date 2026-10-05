@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "campaign-os",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "cd campaign-os && DATA_DIR=\"$PWD/data\" PORT=8010 python3 app.py"
+      ],
+      "port": 8010
+    }
+  ]
+}

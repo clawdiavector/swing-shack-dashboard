@@ -1767,128 +1767,68 @@ def visual_dna_products(brand_id):
 
 @app.route('/api/visual-dna/<brand_id>/scrape-and-dissect', methods=['POST'])
 def visual_dna_scrape_and_dissect(brand_id):
-    """POST /api/visual-dna/<brand>/scrape-and-dissect — re-walk Drive folder, ingest new, re-dissect.
+    """POST /api/visual-dna/<brand>/scrape-and-dissect — pull Drive, ingest new, dissect.
 
-    Body: {"folder_id": "1n9pHD...", "brand": "swing-shack"}
-    Compares against existing ingest-manifest.json by md5 — only downloads new files.
-    Runs the dissector on new files only.
+    Body: {"folder_id": "1n9pHD..."}  (optional — defaults to the brand's
+    canonical public root), {"dry_run": true}, {"limit": N},
+    {"target": "volume"|"bundled"}.
+
+    Refills DATA_DIR (the Railway volume) by default, which the image routes
+    resolve BEFORE the bundled repo copy. That is what lets raw imagery stay out
+    of git: prod fetches it from Drive, the source of truth, rather than relying
+    on it being committed.
+
+    Rewritten 2026-10-05. The previous implementation used the OAuth Drive
+    client, which is the path whose 2026-07-29 run errored on all 122 Swing
+    Shack files and downloaded none. It also wrote every file to the images root
+    even though it computed a rel_path, so subfolders collapsed; rebuilt the
+    manifest from scratch, dropping entries it had not just seen; and wrote into
+    the bundled repo copy rather than the volume. It now delegates to the same
+    run_ingest() the CLI uses, over the public embed path verified against 442
+    images across both brands.
     """
     try:
-        from _lib.google_drive import connect, _DEFAULT_CREDENTIALS_DIRS
-        from googleapiclient.http import MediaIoBaseDownload
-        from pathlib import Path
-        import hashlib, json as jsonlib
+        import sys as _sys
+        from pathlib import Path as _P
+
+        scripts_dir = str(_P(__file__).resolve().parent / "scripts")
+        if scripts_dir not in _sys.path:
+            _sys.path.insert(0, scripts_dir)
+        from ingest_public_drive_folder import (  # noqa: PLC0415
+            BRAND_PUBLIC_ROOTS,
+            run_ingest,
+        )
 
         body = request.get_json(force=True, silent=True) or {}
-        folder_id = body.get("folder_id")
+        folder_id = body.get("folder_id") or BRAND_PUBLIC_ROOTS.get(brand_id)
         if not folder_id:
-            return jsonify({"error": "missing folder_id"}), 400
+            return jsonify({
+                "ok": False,
+                "error": f"no canonical Drive root for {brand_id}",
+                "known_brands": sorted(BRAND_PUBLIC_ROOTS),
+                "hint": "pass folder_id explicitly to ingest something else",
+            }), 400
 
-        drive = connect()
-        if not drive:
-            return jsonify({"error": "Drive not connected"}), 401
+        # Default to the volume. "bundled" writes into the repo copy, which is
+        # only right for a local dev tree.
+        target = (body.get("target") or "volume").lower()
+        if target == "bundled":
+            data_dir = _P(BUNDLED_DATA_DIR)
+        else:
+            data_dir = _P(DATA_DIR)
 
-        # Walk folder recursively
-        def walk(fid, rel=""):
-            items = drive.files().list(
-                q=f"'{fid}' in parents and trashed=false",
-                fields="files(id,name,mimeType,size,modifiedTime,md5Checksum)",
-                pageSize=200,
-            ).execute().get("files", [])
-            out = []
-            for f in items:
-                if f["mimeType"] == "application/vnd.google-apps.folder":
-                    out.extend(walk(f["id"], f"{rel}{f['name']}/"))
-                elif f["mimeType"].startswith("image/"):
-                    f["rel_path"] = f"{rel}{f['name']}"
-                    out.append(f)
-            return out
-
-        files = walk(folder_id)
-        images_dir = Path(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "images"
-        images_dir.mkdir(parents=True, exist_ok=True)
-
-        # Existing manifest
-        manifest_path = Path(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "ingest-manifest.json"
-        existing_md5 = set()
-        if manifest_path.exists():
-            existing = json.loads(manifest_path.read_text())
-            for entry in existing.get("images", {}).values():
-                if entry.get("md5"):
-                    existing_md5.add(entry["md5"])
-
-        # Drive md5 lookup
-        drive_md5_to_file = {f.get("md5Checksum", "").lower(): f for f in files if f.get("md5Checksum")}
-
-        new_count = 0
-        skipped = 0
-        errors = []
-        for f in files:
-            if f.get("md5Checksum") and f["md5Checksum"].lower() in existing_md5:
-                skipped += 1
-                continue
-            out = images_dir / f["name"]
-            try:
-                req = drive.files().get_media(fileId=f["id"])
-                with open(out, 'wb') as fh:
-                    dl = MediaIoBaseDownload(fh, req)
-                    done = False
-                    while not done:
-                        _, done = dl.next_chunk()
-                new_count += 1
-            except Exception as e:
-                errors.append({"file": f["name"], "error": str(e)})
-                if out.exists():
-                    out.unlink()
-
-        # Update manifest
-        manifest = {"brand": brand_id, "images": {}, "errors": []}
-        for f in files:
-            local_p = images_dir / f["name"]
-            if local_p.exists():
-                md5 = hashlib.md5(local_p.read_bytes()).hexdigest()
-                manifest["images"][f["name"]] = {
-                    "drive_id": f["id"],
-                    "size": f.get("size"),
-                    "md5": md5,
-                    "modified": f.get("modifiedTime"),
-                }
-        if errors:
-            manifest["errors"] = errors
-        manifest_path.write_text(json.dumps(manifest, indent=2))
-
-        # Re-dissect only NEW files
-        from _lib.image_dissector import dissect
-        bible_path = Path(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "bible-visual.json"
-        if not bible_path.exists():
-            bible_path = None
-        re_dissected = 0
-        for f in files:
-            local_p = images_dir / f["name"]
-            dna_p = local_p.with_suffix(".visual-dna.json") if local_p.suffix == ".jpg" else local_p.parent / f"{local_p.stem}.visual-dna.json"
-            if not local_p.exists():
-                continue
-            # Re-dissect if new OR if dna missing
-            if f.get("md5Checksum") and f["md5Checksum"].lower() in existing_md5 and dna_p.exists():
-                continue
-            dna = dissect(local_p, bible_path)
-            dna_p.write_text(json.dumps(dna, indent=2))
-            re_dissected += 1
-
-        # Re-tag with products
-        from _lib.visual_dna_query import tag_directory
-        tag_result = tag_directory(brand_id)
-
-        return jsonify({
-            "brand": brand_id,
-            "folder_id": folder_id,
-            "drive_files_found": len(files),
-            "new_downloaded": new_count,
-            "skipped_existing": skipped,
-            "re_dissected": re_dissected,
-            "errors": errors[:5],
-            "tag_summary": tag_result,
-        })
+        summary = run_ingest(
+            brand_id,
+            folder_id,
+            limit=body.get("limit"),
+            dry_run=bool(body.get("dry_run")),
+            data_dir=data_dir,
+        )
+        summary["ok"] = not summary.get("download_errors")
+        summary["target"] = target
+        summary["data_dir"] = str(data_dir)
+        status = 200 if summary["ok"] else 207
+        return jsonify(summary), status
     except Exception as e:
         _app_log.exception("visual_dna_scrape_and_dissect failed")
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -27222,7 +27162,7 @@ def krea_image_generate():
     Body:
       prompt: str             — the creative brief
       brand: str              — brand id (default swing-shack)
-      model: str              — Krea model id (default flux-fast)
+      model: str              — Krea model id (default bfl/flux-1-dev)
       aspect_ratio: str       — 1:1, 16:9, 9:16, etc. (default 1:1)
       extra: dict             — passed through to Krea (seed, style_preset, etc.)
 
@@ -27235,7 +27175,7 @@ def krea_image_generate():
     if not prompt:
         return jsonify({"ok": False, "error": "prompt is required"}), 400
     brand = body.get("brand", "swing-shack")
-    model = body.get("model", "flux-fast")
+    model = body.get("model", "bfl/flux-1-dev")
     aspect_ratio = body.get("aspect_ratio", "1:1")
     extra = body.get("extra")
     try:
@@ -42325,7 +42265,7 @@ def build_post_draft():
         if store_brand == "takomo" or product_brand == "takomo":
             krea_model = "bfl/flux-1.1-pro"
         elif lane == "product_led":
-            krea_model = "ideogram/turbo"
+            krea_model = "ideogram/ideogram-2-turbo"  # "ideogram/turbo" is not a Krea model id
         else:
             krea_model = "bfl/flux-1.1-pro"
         package["krea_model"] = krea_model

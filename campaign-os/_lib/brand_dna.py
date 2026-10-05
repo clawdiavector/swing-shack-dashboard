@@ -73,6 +73,7 @@ class BrandContext:
     archetypes: list[dict] = field(default_factory=list)  # list of archetype spec dicts
     bible: dict = field(default_factory=dict)          # bible-visual.json content (creative direction)
     top_references: list[dict] = field(default_factory=list)  # [{filename, score, dominant, ...}]
+    facts: dict = field(default_factory=dict)          # knowledge.json verified_facts
     summary: str = ""                                  # human-readable 1-2 line summary
     sources: dict = field(default_factory=dict)        # which files actually loaded
     warnings: list[str] = field(default_factory=list)  # missing pieces
@@ -104,6 +105,27 @@ def _load_palette(brand_path: Path) -> dict:
     if not data:
         return {}
     return data.get("palette", {}) or {}
+
+
+def _load_verified_facts(brand_path: Path) -> dict:
+    """Read knowledge.json -> verified_facts, flattened to {key: value}.
+
+    These are the brand's own checked claims — location, what the business
+    actually is, tagline. Reading them is what stops one brand's city being
+    asserted about another.
+    """
+    data = _safe_read_json(brand_path / "knowledge.json")
+    if not data:
+        return {}
+    raw = data.get("verified_facts")
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, str] = {}
+    for key, row in raw.items():
+        value = row.get("value") if isinstance(row, dict) else row
+        if isinstance(value, str) and value.strip():
+            out[key] = value.strip()
+    return out
 
 
 def _load_archetypes(brand_path: Path) -> list[dict]:
@@ -205,6 +227,11 @@ def load_brand_context(brand_id: str, base_dir: Optional[Path] = None) -> BrandC
             "bible-visual.json is a PLACEHOLDER — fill in TODOs for tighter brand constraints"
         )
 
+    facts = _load_verified_facts(brand_path)
+    sources["knowledge.json"] = bool(facts)
+    if not facts:
+        warnings.append("knowledge.json verified_facts missing — identity line will be generic")
+
     top_refs = _load_top_references(brand_path)
     sources["visual-dna-index.json"] = bool(top_refs)
     if not top_refs:
@@ -226,6 +253,7 @@ def load_brand_context(brand_id: str, base_dir: Optional[Path] = None) -> BrandC
         archetypes=archetypes,
         bible=bible,
         top_references=top_refs,
+        facts=facts,
         summary=summary,
         sources=sources,
         warnings=warnings,
@@ -233,6 +261,37 @@ def load_brand_context(brand_id: str, base_dir: Optional[Path] = None) -> BrandC
 
 
 # ── Prompt builders ────────────────────────────────────────────────────
+
+
+def _identity_sentence(brand_ctx: BrandContext) -> str:
+    """Describe the brand from its own verified facts, not from a neighbour's.
+
+    This line used to read "a premium indoor golf studio in Johannesburg, SA"
+    for every brand. Swing Shack is an indoor club in Randburg, Johannesburg;
+    Stick is a fitting studio, workshop and retailer in Paarl, Western Cape.
+    Asserting the wrong city and the wrong business type is the kind of error
+    that reaches a caption or an image, so the sentence is built from
+    knowledge.json -> verified_facts and refuses to guess when they are absent.
+    """
+    facts = brand_ctx.facts or {}
+    name = (facts.get("verified_brand_name") or brand_ctx.brand_id).strip()
+
+    what = (facts.get("verified_business_mix") or facts.get("verified_one_line") or "").strip()
+    location = (facts.get("verified_location") or "").strip()
+    if not what and not location:
+        return (f"You are designing for {name}, a premium golf brand. "
+                "Do not assert a city, venue type or address that is not in the brief.")
+
+    parts = [f"You are designing for {name}."]
+    if what:
+        parts.append(f"What it is: {what.rstrip('.')}.")
+    if location:
+        # verified_location can carry a parenthetical and a second clause:
+        # "Paarl, Western Cape (Stick's home market); Cape Town + Winelands is ..."
+        primary = location.split(";")[0].split("(")[0].strip().rstrip(",")
+        parts.append(f"Where it is: {primary}.")
+        parts.append("Do not place it in any other city.")
+    return " ".join(parts)
 
 
 def build_system_message(brand_ctx: BrandContext) -> str:
@@ -257,10 +316,7 @@ def build_system_message(brand_ctx: BrandContext) -> str:
     # 1. Brand identity
     bible = brand_ctx.bible or {}
     brand_voice = bible.get("voice") or bible.get("tone") or "premium, confident, data-driven"
-    parts.append(
-        f"You are designing for {brand_ctx.brand_id}, a premium indoor golf studio in Johannesburg, SA. "
-        f"Brand voice: {brand_voice}."
-    )
+    parts.append(f"{_identity_sentence(brand_ctx)} Brand voice: {brand_voice}.")
 
     # 2. Visual philosophy (from bible if set, else fall back to placeholder text)
     philosophy = bible.get("visual_philosophy") or bible.get("philosophy")

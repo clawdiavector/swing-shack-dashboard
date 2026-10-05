@@ -1,0 +1,189 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/finder-workspace/repos/work/swing-shack-dashboard-main/data/brand-directory/stick/images/Location/Photos of iron sets/dji_mimo_20261005_125306_20261005125307_1791201115741_photo.JPG",
+  "layer1_metadata": {
+    "filename": "dji_mimo_20261005_125306_20261005125307_1791201115741_photo.JPG",
+    "format": "MPO",
+    "mode": "RGB",
+    "width_px": 1728,
+    "height_px": 3072,
+    "aspect_ratio": 0.5625,
+    "orientation": "portrait",
+    "file_size_bytes": 5693440,
+    "modified": 1791223517.346751,
+    "exif": {
+      "34853": 746,
+      "296": 2,
+      "34665": 260,
+      "270": "default",
+      "271": "DJI",
+      "272": "PP-101",
+      "305": "10.00.55.15",
+      "274": 1,
+      "306": "2026:10:05 12:53:07",
+      "531": 2
+    }
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#aca64d",
+        "rgb": [
+          172,
+          166,
+          77
+        ],
+        "share": 0.1555
+      },
+      {
+        "hex": "#a0993b",
+        "rgb": [
+          160,
+          153,
+          59
+        ],
+        "share": 0.1406
+      },
+      {
+        "hex": "#8c872d",
+        "rgb": [
+          140,
+          135,
+          45
+        ],
+        "share": 0.1396
+      },
+      {
+        "hex": "#646322",
+        "rgb": [
+          100,
+          99,
+          34
+        ],
+        "share": 0.1377
+      },
+      {
+        "hex": "#7c7a28",
+        "rgb": [
+          124,
+          122,
+          40
+        ],
+        "share": 0.1251
+      },
+      {
+        "hex": "#959138",
+        "rgb": [
+          149,
+          145,
+          56
+        ],
+        "share": 0.1029
+      },
+      {
+        "hex": "#2c2d1a",
+        "rgb": [
+          44,
+          45,
+          26
+        ],
+        "share": 0.1013
+      },
+      {
+        "hex": "#cbc798",
+        "rgb": [
+          203,
+          199,
+          152
+        ],
+        "share": 0.0974
+      }
+    ],
+    "mean_brightness": 110.9,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.562,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 131.1,
+    "brightness_bottom": 118.2,
+    "edge_density_grid": [
+      [
+        6.43,
+        5.31,
+        5.57
+      ],
+      [
+        17.52,
+        14.51,
+        14.5
+      ],
+      [
+        28.16,
+        23.06,
+        28.2
+      ]
+    ],
+    "subject_estimate_position": "bottom-right"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": null,
+      "white_text_or_border_present": null,
+      "headings_all_caps": null,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": false
+    },
+    "off_brand_dominants": [
+      "#aca64d",
+      "#a0993b",
+      "#8c872d",
+      "#7c7a28",
+      "#959138",
+      "#cbc798"
+    ],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#aca64d",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "bottom-right",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}
