@@ -37,6 +37,9 @@ def oneshot_env(monkeypatch, tmp_path):
         "event_key": "cal-os",
         "status": "approved",
         "title": "Hello world",
+        "headline": "Hit more greens",
+        "cta": "Book a fitting",
+        "post_type": "fitting_headline",
         "event_start": "2026-10-01",
         "type": "content",
         "render_mode": "oneshot",
@@ -87,7 +90,7 @@ def test_cook_writes_draft_mocked(oneshot_env):
     assert sidecars
     sidecar = json.loads(sidecars[0].read_text(encoding="utf-8"))
     assert sidecar.get("action") == "draft_oneshot"
-    assert sidecar.get("literal_text") == "Hello world"
+    assert sidecar.get("literal_text") == "Hit more greens\nBook a fitting"
     assert sidecar.get("image_size") == "1024x1280"
 
 
@@ -126,6 +129,9 @@ def test_krea_poll_finalizes_oneshot(oneshot_env):
                 "event_key": "cal-os",
                 "status": "approved",
                 "title": "Hello world",
+                "headline": "Hit more greens",
+                "cta": "Book a fitting",
+                "post_type": "fitting_headline",
                 "event_start": "2026-10-01",
                 "type": "content",
                 "render_mode": "oneshot",
@@ -183,6 +189,155 @@ def test_krea_poll_finalizes_oneshot(oneshot_env):
     assert sidecars
     sidecar = json.loads(sidecars[0].read_text(encoding="utf-8"))
     assert sidecar.get("action") == "draft_oneshot"
-    assert sidecar.get("literal_text") == "Hello world"
+    assert sidecar.get("literal_text") == "Hit more greens\nBook a fitting"
     rows = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))["rows"]
     assert rows[0]["status"] == "done"
+
+
+def _write_calendar(tmp_path, record: dict) -> None:
+    cal_dir = tmp_path / "intelligence" / "marketing-calendar"
+    cal_dir.mkdir(parents=True, exist_ok=True)
+    (cal_dir / "stick.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+
+_BASE_RECORD = {
+    "calendar_id": "cal-os",
+    "event_key": "cal-os",
+    "status": "approved",
+    "title": "Coaching promo — one-shot",
+    "post_type": "coaching_promo",
+    "event_start": "2026-10-01",
+    "type": "content",
+    "render_mode": "oneshot",
+}
+
+
+def test_card_with_only_a_title_refuses_instead_of_painting_the_label(oneshot_env):
+    """The 2 Oct review card rendered its own planning label. Never again."""
+    tmp_path, item_id = oneshot_env
+    from _lib.jobs.layer5 import draft_assets
+
+    _write_calendar(tmp_path, dict(_BASE_RECORD))
+    _seed_queue_row(tmp_path, action="draft_oneshot", item_id=item_id, brand="stick")
+
+    with patch("_lib.image_gen_router.generate_image_with_persistence") as gen_mock:
+        draft_assets.run(brand="stick")
+
+    gen_mock.assert_not_called()
+    row = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))["rows"][0]
+    assert row["status"] == "error"
+    assert row["note"].startswith("copy:")
+    assert "headline" in row["note"]
+
+
+def test_headline_equal_to_the_card_title_is_refused(oneshot_env):
+    tmp_path, item_id = oneshot_env
+    from _lib.jobs.layer5.draft_oneshot import OneshotCopyMissing, oneshot_copy_for_card
+
+    record = dict(_BASE_RECORD, headline="Coaching promo — one-shot")
+    with pytest.raises(OneshotCopyMissing) as exc:
+        oneshot_copy_for_card("stick", item_id, record)
+    assert "card label" in str(exc.value)
+
+
+def test_falls_back_to_the_approved_poster_copy_from_the_caption_draft(oneshot_env):
+    """compose_headline/compose_cta are what the template path overlays."""
+    tmp_path, item_id = oneshot_env
+    from _lib.jobs.layer5.draft_oneshot import oneshot_copy_for_card
+
+    drafts = tmp_path / "draft-assets"
+    drafts.mkdir(parents=True, exist_ok=True)
+    (drafts / "draft-caption1.json").write_text(
+        json.dumps(
+            {
+                "asset_id": "draft-caption1",
+                "action": "draft_caption",
+                "source_inbox_item_id": item_id,
+                "created_at": "2026-10-04T00:00:00Z",
+                "compose_headline": "Hit more greens",
+                "compose_cta": "Book a fitting",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    copy = oneshot_copy_for_card("stick", item_id, dict(_BASE_RECORD))
+    assert copy.headline == "Hit more greens"
+    assert copy.kicker == "Book a fitting"
+    assert copy.source == "caption_draft:compose_headline"
+
+
+def test_default_model_is_ideogram_4_with_a_named_fallback(oneshot_env):
+    tmp_path, item_id = oneshot_env
+    from _lib.jobs.layer5 import draft_oneshot
+
+    _write_calendar(tmp_path, dict(_BASE_RECORD, headline="Hit more greens"))
+    bundle, err = draft_oneshot._prepare_oneshot_bundle("stick", item_id)
+    assert err is None and bundle is not None
+    assert bundle.routing["model"] == draft_oneshot.ONESHOT_DEFAULT_MODEL == "ideogram/ideogram-4"
+    assert bundle.routing["provider"] == "krea"
+    assert draft_oneshot._ONESHOT_FALLBACK_MODEL in bundle.routing["reason"]
+    assert bundle.art.treatment == "photo"
+    assert bundle.art.scene_source == "recipe:coaching_promo"
+
+
+def test_operator_override_still_wins_and_recraft_v4_is_selectable(oneshot_env):
+    tmp_path, item_id = oneshot_env
+    from _lib.jobs.layer5 import draft_oneshot
+
+    _write_calendar(
+        tmp_path,
+        dict(
+            _BASE_RECORD,
+            headline="Range balls.",
+            cta="The lie you keep telling yourself",
+            post_type="humour_card",
+            oneshot_model="recraft/recraft-v4",
+        ),
+    )
+    bundle, err = draft_oneshot._prepare_oneshot_bundle("stick", item_id)
+    assert err is None and bundle is not None
+    assert bundle.routing["model"] == "recraft/recraft-v4"
+    assert bundle.art.treatment == "collage"
+
+
+def test_krea_rejecting_the_model_id_falls_back_once(oneshot_env):
+    tmp_path, item_id = oneshot_env
+    from _lib.image_gen_router import ImageGenUpstreamError
+    from _lib.jobs.layer5 import draft_assets, draft_oneshot
+
+    _write_calendar(tmp_path, dict(_BASE_RECORD, headline="Hit more greens"))
+    _seed_queue_row(tmp_path, action="draft_oneshot", item_id=item_id, brand="stick")
+
+    png_path = tmp_path / "out.png"
+    png_path.write_bytes(PNG_1x1)
+    ok = MagicMock()
+    ok.model = draft_oneshot._ONESHOT_FALLBACK_MODEL
+    ok.provider = "krea"
+    ok.bytes = PNG_1x1
+    ok.saved_path = str(png_path)
+    ok.saved_sidecar_path = None
+    ok.prompt_used = "wire"
+    ok.provider_job_id = None
+    ok.cost_usd = 0.05
+    ok.cost_source = "estimate"
+
+    calls: list[str] = []
+
+    def flaky(**kwargs):
+        calls.append(str(kwargs.get("model")))
+        if len(calls) == 1:
+            raise ImageGenUpstreamError("Krea error (400): Unsupported image model")
+        return ok
+
+    with patch("_lib.image_gen_router.generate_image_with_persistence", side_effect=flaky), patch(
+        "_lib.brand_overlay.overlay_logo_only", side_effect=lambda b, *a, **k: b
+    ):
+        draft_assets.run(brand="stick")
+
+    assert calls == ["ideogram/ideogram-4", draft_oneshot._ONESHOT_FALLBACK_MODEL]
+    sidecars = list((tmp_path / "draft-assets").glob("draft-*.json"))
+    assert sidecars
+    sidecar = json.loads(sidecars[0].read_text(encoding="utf-8"))
+    routing = sidecar["model_routing"]["pick_model"]
+    assert routing["fallback_from"] == "ideogram/ideogram-4"
