@@ -109,7 +109,7 @@ def test_krea_image_generate_strips_negative_prompt_extra(monkeypatch):
     assert inner.get("seed") == 1
 
 
-def test_krea_ideogram_sends_aspect_without_pixels(monkeypatch):
+def test_krea_ideogram_sends_pixels_without_aspect(monkeypatch):
     from _lib import krea_mcp
 
     captured: dict = {}
@@ -128,13 +128,12 @@ def test_krea_ideogram_sends_aspect_without_pixels(monkeypatch):
         brand="stick",
         model="ideogram/ideogram-4",
         aspect_ratio="1024x1280",
-        extra={"width": 1024, "height": 1280},
         background_plate=True,
     )
     inner = captured["params"]["arguments"]["input"]
-    assert inner.get("aspect_ratio") == "4:5"
-    assert "width" not in inner
-    assert "height" not in inner
+    assert "aspect_ratio" not in inner
+    assert inner.get("width") == 1024
+    assert inner.get("height") == 1280
     assert captured["params"]["arguments"]["model"] == "ideogram/ideogram-4"
 
 
