@@ -378,17 +378,11 @@ def _overlay_logo_on_file(
     ai_logo: bool,
     image_path_str: str | None,
 ) -> bytes:
-    if ai_logo:
-        return raw_bytes
-    from _lib.brand_overlay import overlay_logo_only  # noqa: PLC0415
-
-    final_bytes = overlay_logo_only(raw_bytes, brand_id, position="bottom-right")
-    if image_path_str and isinstance(final_bytes, (bytes, bytearray)):
-        try:
-            Path(str(image_path_str)).write_bytes(final_bytes)
-        except OSError:
-            pass
-    return final_bytes
+    # Logo stamp paused. The volume asset is an opaque white plate and was
+    # painting a white square over the poster. Re-enable when logo.png is a
+    # transparent mark.
+    del brand_id, ai_logo, image_path_str
+    return raw_bytes
 
 
 def _write_oneshot_draft_from_image(
@@ -616,7 +610,9 @@ def process_draft_oneshot_row(
         return generate_image_with_persistence(
             brand_id=brand_id,
             prompt=bundle.wire,
-            negative_prompt=bundle.negative,
+            # Krea folds negatives into the prompt as "Avoid: …". That essay
+            # was not in the Krea UI paste that matched the art direction.
+            negative_prompt=None,
             size=bundle.size,
             output_base=output_base,
             provider=bundle.routing.get("provider"),
