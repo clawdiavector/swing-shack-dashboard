@@ -1,0 +1,11 @@
+{
+  "needsAttention": 2,
+  "atRisk": 1,
+  "dormant": 3,
+  "followUps": 4,
+  "newToday": 0,
+  "newThisMonth": 5,
+  "activeTotal": 120,
+  "completionRate": 0.82,
+  "topAtRisk": [{"firstName": "Hidden", "email": "hidden@example.com"}]
+}

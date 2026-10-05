@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ClubLab pull — Campaign OS</title>
+<style>
+:root {
+  --bg: #0a0c10; --panel: #131720; --panel-2: #1a1f2c; --line: #2a3142;
+  --text: #e6e8eb; --muted: #8a92a6; --accent: #6ea8ff; --danger: #ef5350; --ok: #4caf50;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 14px; }
+header { padding: 16px 20px; background: var(--panel); border-bottom: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+header h1 { margin: 0; font-size: 18px; color: var(--accent); }
+.layout { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 60px); }
+aside { background: var(--panel-2); border-right: 1px solid var(--line); padding: 12px; overflow-y: auto; }
+main { padding: 16px 20px 80px; overflow-y: auto; }
+.fac { display: block; width: 100%; text-align: left; margin: 4px 0; padding: 8px 10px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 8px; cursor: pointer; }
+.fac.active { border-color: var(--accent); outline: 1px solid var(--accent); }
+.section { margin-bottom: 20px; }
+.section h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); margin: 0 0 8px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.kpi .v { font-size: 20px; font-weight: 700; }
+.kpi .l { font-size: 11px; color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 6px 4px; }
+footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px; background: rgba(19,23,32,.95);
+  border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 8px;
+  padding: 8px 12px; font-weight: 600; cursor: pointer; }
+.btn.primary { background: var(--accent); color: #0a0c10; border-color: transparent; }
+.banner { background: rgba(239,83,80,.15); border: 1px solid var(--danger); color: var(--danger);
+  padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; display: none; }
+.banner.show { display: block; }
+.empty { color: var(--muted); padding: 24px; text-align: center; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>ClubLab pull</h1>
+  <span style="color:var(--muted);font-size:12px">Read-only aggregates · deny-list enforced</span>
+  <a class="btn" href="/ops?layer=jobs">Ops jobs</a>
+  <button class="btn primary" id="run-live" type="button">Run live pull</button>
+</header>
+<div id="banner" class="banner">Snapshot contains unexpected fields — verify deny-list</div>
+<div class="layout">
+  <aside>
+    <div class="section"><h2>Facilities</h2><div id="fac-list"></div></div>
+  </aside>
+  <main id="main"><div class="empty">Loading snapshot…</div></main>
+</div>
+<footer id="footer">Snapshot —</footer>
+<script>
+const DENY = ['firstname','lastname','fullname','email','phone','clientdisplayname','reviewtext','reviewbody','comments','photo','imageurl'];
+let snapshot = null;
+let meta = {};
+let selectedId = null;
+
+function normKey(k) { return String(k).replace(/[^a-zA-Z0-9]/g,'').toLowerCase(); }
+
+function findDeny(obj, path='') {
+  const hits = [];
+  if (obj && typeof obj === 'object') {
+    if (Array.isArray(obj)) {
+      obj.forEach((v,i) => hits.push(...findDeny(v, path+'['+i+']')));
+    } else {
+      for (const [k,v] of Object.entries(obj)) {
+        if (DENY.includes(normKey(k))) hits.push(path ? path+'.'+k : k);
+        else hits.push(...findDeny(v, path ? path+'.'+k : k));
+      }
+    }
+  }
+  return hits;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function kpi(label, val) {
+  return `<div class="kpi"><div class="v">${esc(val ?? '—')}</div><div class="l">${esc(label)}</div></div>`;
+}
+
+function renderFacility(fac) {
+  const crm = fac.crm || {};
+  const dash = crm.dashboard || {};
+  const reports = crm.reports || {};
+  const nps = reports.nps || {};
+  const segments = crm.segments || [];
+  const products = (fac.orderme || {}).products || [];
+  const topProducts = [...products].sort((a,b) => (b.quantity||0)-(a.quantity||0)).slice(0, 15);
+  const fit = fac.fitme || {};
+  const fitSum = fit.summary || {};
+  const equip = fit.equipment || [];
+  const catalogue = (fac.costme || {}).catalogue || [];
+  const coach = fac.coachme || {};
+  const tags = coach.tagFrequency || [];
+
+  const segRows = segments.map(s => `<tr><td>${esc(s.name)}</td><td>${esc(s.size)}</td></tr>`).join('');
+  const prodRows = topProducts.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.category)}</td><td>${esc(p.quantity)}</td><td>${esc(p.orderCount)}</td><td>${esc(p.firstOrderDate)}</td><td>${esc(p.lastOrderDate)}</td></tr>`).join('');
+  const equipRows = equip.map(e => `<tr><td>${esc(e.name)}</td><td>${esc(e.type)}</td><td>${esc(e.count)}</td></tr>`).join('');
+  const catRows = catalogue.slice(0, 40).map(c => `<tr><td>${esc(c.brand)}</td><td>${esc(c.model)}</td><td>${esc(c.variant)}</td><td>${esc(c.category)}</td><td>${esc(c.sellPrice)}</td></tr>`).join('');
+  const tagRows = (Array.isArray(tags) ? tags : []).map(t => `<tr><td>${esc(t.tag || t.name)}</td><td>${esc(t.count ?? t.frequency)}</td></tr>`).join('');
+
+  return `
+    <h2 style="margin-top:0">${esc(fac.name)} <span style="color:var(--muted);font-size:12px">${esc(fac.id)}</span></h2>
+    <div class="section"><h2>CRM</h2>
+      <div class="kpis">
+        ${kpi('Active', dash.activeTotal)} ${kpi('At risk', dash.atRisk)} ${kpi('Dormant', dash.dormant)}
+        ${kpi('Follow-ups', dash.followUps)} ${kpi('New today', dash.newToday)} ${kpi('NPS', nps.score)}
+      </div>
+      <p style="color:var(--muted);font-size:12px">Clients: ${esc(reports.clientCount)} · Segments: ${segments.length}</p>
+      <table><thead><tr><th>Segment</th><th>Size</th></tr></thead><tbody>${segRows || '<tr><td colspan="2">—</td></tr>'}</tbody></table>
+    </div>
+    <div class="section"><h2>OrderMe</h2>
+      <table><thead><tr><th>Product</th><th>Category</th><th>Qty</th><th>Orders</th><th>First</th><th>Last</th></tr></thead>
+      <tbody>${prodRows || '<tr><td colspan="6">—</td></tr>'}</tbody></table>
+    </div>
+    <div class="section"><h2>FitMe</h2>
+      <div class="kpis">${kpi('Completed', fitSum.completed)} ${kpi('In progress', fitSum.inProgress)} ${kpi('Cancelled', fitSum.cancelled)}</div>
+      <table><thead><tr><th>Equipment</th><th>Type</th><th>Count</th></tr></thead><tbody>${equipRows || '<tr><td colspan="3">—</td></tr>'}</tbody></table>
+    </div>
+    <div class="section"><h2>CostMe</h2>
+      <table><thead><tr><th>Brand</th><th>Model</th><th>Variant</th><th>Category</th><th>Price</th></tr></thead>
+      <tbody>${catRows || '<tr><td colspan="5">—</td></tr>'}</tbody></table>
+    </div>
+    <div class="section"><h2>CoachMe</h2>
+      <pre style="background:var(--panel);padding:10px;border-radius:8px;font-size:11px;overflow:auto">${esc(JSON.stringify(coach.sessionSummary || {}, null, 2))}</pre>
+      <table><thead><tr><th>Tag</th><th>Count</th></tr></thead><tbody>${tagRows || '<tr><td colspan="2">—</td></tr>'}</tbody></table>
+    </div>`;
+}
+
+function render() {
+  const facs = (snapshot && snapshot.facilities) || [];
+  const list = document.getElementById('fac-list');
+  list.innerHTML = facs.map(f => `<button type="button" class="fac ${f.id===selectedId?'active':''}" data-id="${esc(f.id)}">${esc(f.name)}</button>`).join('');
+  list.querySelectorAll('.fac').forEach(btn => btn.addEventListener('click', () => {
+    selectedId = btn.dataset.id;
+    render();
+  }));
+  if (!selectedId && facs[0]) selectedId = facs[0].id;
+  const fac = facs.find(f => f.id === selectedId);
+  document.getElementById('main').innerHTML = fac ? renderFacility(fac) : '<div class="empty">No facilities in snapshot.</div>';
+  const stripped = (meta && meta.sanitized_keys) ? meta.sanitized_keys.length : 0;
+  document.getElementById('footer').textContent =
+    `Snapshot generated_at ${snapshot?.generated_at || '—'} · ${facs.length} facilities · deny-list applied: ${stripped} keys stripped`;
+}
+
+async function loadSnapshot() {
+  const r = await fetch('/api/clublab-snapshot');
+  const data = await r.json();
+  if (!data.ok) {
+    document.getElementById('main').innerHTML = '<div class="empty">No snapshot yet. Run the clublab_pull job or live pull.</div>';
+    return;
+  }
+  snapshot = data.snapshot;
+  meta = data.meta || {};
+  const hits = findDeny(snapshot);
+  if (hits.length) {
+    console.warn('Deny-list hits', hits);
+    document.getElementById('banner').classList.add('show');
+  }
+  render();
+}
+
+document.getElementById('run-live').addEventListener('click', async () => {
+  const btn = document.getElementById('run-live');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/clublab-pull/run', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const data = await r.json();
+    if (!data.ok) alert('Pull failed: ' + (data.error || r.status));
+    await loadSnapshot();
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+loadSnapshot();
+</script>
+</body>
+</html>
