@@ -6,6 +6,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -81,6 +82,33 @@ def app_client(monkeypatch, tmp_path):
     app_module.COS_JOB_TOKEN = "test-job-token-not-a-secret"
     app_module._GIT_SYNC_DONE = True
     return app_module.app.test_client()
+
+
+def test_login_token_reads_data_access_token(monkeypatch):
+    monkeypatch.delenv("CLUBLAB_TOKEN", raising=False)
+    monkeypatch.setenv("CLUBLAB_EMAIL", "u@example.com")
+    monkeypatch.setenv("CLUBLAB_PASSWORD", "pw-not-logged")
+    for mod in list(sys.modules):
+        if mod.startswith("_lib.jobs.layer2.clublab_pull"):
+            del sys.modules[mod]
+    from _lib.jobs.layer2 import clublab_pull
+
+    body = json.dumps({"success": True, "data": {"accessToken": "abc"}}).encode("utf-8")
+
+    class _FakeResp:
+        status = 200
+
+        def read(self) -> bytes:
+            return body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    with patch.object(clublab_pull, "urlopen", return_value=_FakeResp()):
+        assert clublab_pull.login_token("https://clublab.test") == "abc"
 
 
 def test_run_returns_rows(pull_env):

@@ -198,7 +198,12 @@ def login_token(origin: str) -> str:
     doc = json.loads(raw) if raw else {}
     if not isinstance(doc, dict):
         raise ClublabPullError(status, f"{origin}/api/v1/auth/login", "invalid login response")
-    tok = doc.get("token") or doc.get("accessToken") or doc.get("access_token")
+    data = doc.get("data")
+    tok = None
+    if isinstance(data, dict):
+        tok = data.get("accessToken") or data.get("token") or data.get("access_token")
+    if not tok:
+        tok = doc.get("token") or doc.get("accessToken") or doc.get("access_token")
     if not tok:
         raise ClublabPullError(status, f"{origin}/api/v1/auth/login", "no token in response")
     return str(tok)
