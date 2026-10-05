@@ -34,6 +34,19 @@ credentials/**
 # back to the bundled repo copy, and prod can refill its own volume straight
 # from Drive, so git never needed these.
 data/brand-directory/*/images/**
+
+# Rendered and generated output. These grow with every week's posts and every
+# Krea lab round -- 42 MB of lab renders and the week's composed posts were
+# already stageable -- and none of it is an input: render_post.py recreates
+# composed posts from the templates deterministically, and lab output is a
+# probe, not a source. Keep the prompt scripts, drop the pixels.
+out/
+data/brand-directory/*/image-prompts/**/*.png
+data/brand-directory/*/image-prompts/**/*.jpg
+data/brand-directory/*/image-prompts/**/*.jpeg
+data/brand-directory/*/image-prompts/**/*.webp
+__pycache__/
+
 !data/brand-directory/*/images/**/
 !data/brand-directory/*/images/**/*.json
 !data/brand-directory/*/images/*.json
