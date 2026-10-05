@@ -11,7 +11,22 @@ from typing import Any
 _LOCK = threading.Lock()
 SCHEMA = "campaign-os/image-submit-count/v1"
 DEFAULT_MAX_PER_DAY = 2
-ONESHOT_MAX_PER_DAY = 1
+DEFAULT_ONESHOT_MAX_PER_DAY = 5
+
+
+def oneshot_max_per_day() -> int:
+    """Daily one-shot submits per brand.
+
+    ``CAMPAIGN_OS_ONESHOT_MAX_PER_DAY`` overrides the default. The general
+    image cap is a separate env (``CAMPAIGN_OS_MAX_IMAGES_PER_DAY``).
+    """
+    raw = (os.environ.get("CAMPAIGN_OS_ONESHOT_MAX_PER_DAY") or "").strip()
+    if not raw:
+        return DEFAULT_ONESHOT_MAX_PER_DAY
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return DEFAULT_ONESHOT_MAX_PER_DAY
 
 
 def _data_dir() -> str:
@@ -114,7 +129,7 @@ def oneshot_count_for_brand(brand_id: str, *, day: str | None = None) -> int:
 
 
 def check_brand_oneshot_submit(brand_id: str) -> tuple[bool, str]:
-    cap = ONESHOT_MAX_PER_DAY
+    cap = oneshot_max_per_day()
     if cap <= 0:
         return False, "one-shot submit cap is zero"
     used = oneshot_count_for_brand(brand_id)
@@ -136,7 +151,7 @@ def record_brand_oneshot_submit(brand_id: str) -> dict[str, int]:
             _save(data)
         except OSError:
             pass
-        return {"brand_id": brand_id, "count": used, "cap": ONESHOT_MAX_PER_DAY}
+        return {"brand_id": brand_id, "count": used, "cap": oneshot_max_per_day()}
 
 
 def record_brand_image_submit(brand_id: str) -> dict[str, int]:

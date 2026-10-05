@@ -12,6 +12,7 @@ if str(CAMPAIGN_OS) not in sys.path:
 
 def test_oneshot_cap_and_global(monkeypatch, tmp_path):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("CAMPAIGN_OS_ONESHOT_MAX_PER_DAY", "1")
     from _lib.image_submit_quota import (
         check_brand_image_submit,
         check_brand_oneshot_submit,
@@ -28,6 +29,15 @@ def test_oneshot_cap_and_global(monkeypatch, tmp_path):
     assert "cap" in reason.lower()
     ok3, _ = check_brand_image_submit("stick")
     assert ok3
+
+
+def test_krea_pixel_size_maps_to_4_5():
+    from _lib.krea_mcp import normalize_krea_aspect
+
+    assert normalize_krea_aspect("1024x1280") == "4:5"
+    assert normalize_krea_aspect("1024:1280") == "4:5"
+    assert normalize_krea_aspect("4:5") == "4:5"
+    assert normalize_krea_aspect("1024x1024") == "1:1"
 
 
 def test_old_day_file_without_oneshot_key(monkeypatch, tmp_path):

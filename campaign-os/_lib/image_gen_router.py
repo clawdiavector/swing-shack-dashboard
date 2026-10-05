@@ -1051,7 +1051,9 @@ def generate_image(
                     recipe_summary = build_recipe_summary(brand_ctx)
                 except Exception as e:
                     _LOG.warning("brand_dna wiring failed for Krea path %s: %s", brand_id, e)
-        aspect_ratio = size.replace("x", ":")
+        from _lib.krea_mcp import normalize_krea_aspect  # noqa: PLC0415
+
+        aspect_ratio = normalize_krea_aspect(size)
         # Flux models reject MCP input key negative_prompt (422). Negatives are
         # already folded into enhanced prompt as "Avoid: …" for background_plate.
         krea_extra: dict | None = None

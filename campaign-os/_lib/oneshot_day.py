@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from _lib.image_submit_quota import (
-    ONESHOT_MAX_PER_DAY,
+    oneshot_max_per_day,
     check_brand_oneshot_submit,
     max_images_per_day,
     oneshot_count_for_brand,
@@ -22,14 +22,14 @@ def enqueue_oneshot_day(*, brand_id: str, date: str, editor: str = "operator") -
     cap_info = {
         **cap_info,
         "oneshot_today": oneshot_count_for_brand(brand_id),
-        "oneshot_cap": ONESHOT_MAX_PER_DAY,
-        "at_oneshot_cap": oneshot_count_for_brand(brand_id) >= ONESHOT_MAX_PER_DAY,
+        "oneshot_cap": oneshot_max_per_day(),
+        "at_oneshot_cap": oneshot_count_for_brand(brand_id) >= oneshot_max_per_day(),
     }
 
     enqueued: list[dict[str, str]] = []
     skipped: list[dict[str, str]] = []
     oneshot_seen = 0
-    started_at_oneshot_cap = oneshot_count_for_brand(brand_id) >= ONESHOT_MAX_PER_DAY
+    started_at_oneshot_cap = oneshot_count_for_brand(brand_id) >= oneshot_max_per_day()
     os_ok_pre, _ = check_brand_oneshot_submit(brand_id)
 
     for record in canonical_records(brand_id):
@@ -51,11 +51,11 @@ def enqueue_oneshot_day(*, brand_id: str, date: str, editor: str = "operator") -
         except OneshotCopyMissing as exc:
             skipped.append({"calendar_id": cal_id, "reason": str(exc)})
             continue
-        if not os_ok_pre or oneshot_seen >= ONESHOT_MAX_PER_DAY:
+        if not os_ok_pre or oneshot_seen >= oneshot_max_per_day():
             skipped.append(
                 {
                     "calendar_id": cal_id,
-                    "reason": f"one-shot cap reached for {brand_id} ({cap_info['oneshot_today']}/{ONESHOT_MAX_PER_DAY})",
+                    "reason": f"one-shot cap reached for {brand_id} ({cap_info['oneshot_today']}/{oneshot_max_per_day()})",
                 }
             )
             continue
@@ -75,8 +75,8 @@ def enqueue_oneshot_day(*, brand_id: str, date: str, editor: str = "operator") -
     cap_info = {
         **brand_images_today(brand_id),
         "oneshot_today": oneshot_count_for_brand(brand_id),
-        "oneshot_cap": ONESHOT_MAX_PER_DAY,
-        "at_oneshot_cap": oneshot_count_for_brand(brand_id) >= ONESHOT_MAX_PER_DAY,
+        "oneshot_cap": oneshot_max_per_day(),
+        "at_oneshot_cap": oneshot_count_for_brand(brand_id) >= oneshot_max_per_day(),
         "max_images_per_day": max_images_per_day(),
     }
 
