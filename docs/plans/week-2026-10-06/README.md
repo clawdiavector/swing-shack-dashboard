@@ -2,8 +2,12 @@
 
 Rendered deterministically from measured templates. No image model, no credits.
 
+The batch lives in `data/post-batches/` rather than beside this README because
+`docs/` is in `.dockerignore`, so anything here is invisible to the container.
+`data/` is copied by the Dockerfile, so prod can render the same batch itself.
+
 ```bash
-python3 campaign-os/scripts/render_post.py --batch docs/plans/week-2026-10-06/week.json --out out/week-2026-10-06/
+python3 campaign-os/scripts/render_post.py --batch data/post-batches/week-2026-10-06.json --out out/week-2026-10-06/
 ```
 
 ## What is in the week

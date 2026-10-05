@@ -120,15 +120,44 @@ def cmd_describe(brand: str, archetype_id: str) -> int:
     return 0
 
 
+def _rel(p: Path) -> str:
+    """Repo-relative when possible; absolute otherwise (e.g. --out /tmp on prod)."""
+    try:
+        return str(p.relative_to(REPO))
+    except ValueError:
+        return str(p)
+
+
+def _photo_candidates(explicit: str) -> list[Path]:
+    """Where a spec's photo path might live, volume first.
+
+    A batch file says data/brand-directory/<brand>/images/... because that is
+    the local layout. On Railway the same imagery lives on the volume at
+    $DATA_DIR/brand-directory/<brand>/images/..., with no data/ prefix, and the
+    repo copy may not have it at all once raw imagery stops being committed.
+    Resolve the volume first and fall back to the repo, which is the order the
+    app's own image routes use.
+    """
+    raw = Path(explicit)
+    if raw.is_absolute():
+        return [raw]
+    out: list[Path] = []
+    parts = raw.parts
+    if parts and parts[0] == "data":
+        out.append(runtime_data_dir().joinpath(*parts[1:]))
+    out.append(runtime_data_dir() / raw)
+    out.append(REPO / raw)
+    return out
+
+
 def _pick_photo(brand: str, arc: dict, explicit: str | None, seed: int | None) -> bytes | None:
     """Explicit path wins; otherwise take one from the archetype's own pack."""
     if explicit:
-        p = Path(explicit)
-        if not p.is_absolute():
-            p = REPO / p
-        if not p.is_file():
-            raise SystemExit(f"photo not found: {p}")
-        return p.read_bytes()
+        for cand in _photo_candidates(explicit):
+            if cand.is_file():
+                return cand.read_bytes()
+        tried = ", ".join(str(c) for c in _photo_candidates(explicit))
+        raise SystemExit(f"photo not found. Tried: {tried}")
     pack = arc.get("template_pack")
     if not pack:
         return None
@@ -261,14 +290,14 @@ def main() -> int:
             label = f"{spec.get('brand')}/{spec.get('archetype')}"
             try:
                 for p in render_one(spec, out_dir, seed=a.seed, publish=a.publish):
-                    print(f"  ok   {p.relative_to(REPO)}")
+                    print(f"  ok   {_rel(p)}")
             except SystemExit as e:
                 print(f"  FAIL {i}. {label}: {e}")
                 failures += 1
             except Exception as e:  # noqa: BLE001
                 print(f"  FAIL {i}. {label}: {type(e).__name__}: {e}")
                 failures += 1
-        print(f"\n{len(specs) - failures}/{len(specs)} rendered into {out_dir.relative_to(REPO)}")
+        print(f"\n{len(specs) - failures}/{len(specs)} rendered into {_rel(out_dir)}")
         return failures
 
     if not (a.brand and a.archetype):
@@ -284,7 +313,7 @@ def main() -> int:
     if a.channels:
         spec["channels"] = [c.strip() for c in a.channels.split(",") if c.strip()]
     for p in render_one(spec, out_dir, seed=a.seed, publish=a.publish):
-        print(f"  ok   {p.relative_to(REPO)}")
+        print(f"  ok   {_rel(p)}")
     return 0
 
 
