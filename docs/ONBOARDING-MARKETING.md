@@ -15,9 +15,14 @@ working directory.
 
 ```bash
 git clone https://github.com/clawdiavector/swing-shack-dashboard.git
+cd swing-shack-dashboard
+git checkout feat/campaign-os-plugin
 ```
 
 Needs access to the `clawdiavector` org — ask Kyle if the clone 404s.
+
+The branch matters: the plugin is not on `main` yet. Once Kyle merges it, the
+checkout line drops off and plain `main` is enough.
 
 ### 2. Install the Python dependencies
 
