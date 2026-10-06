@@ -1,0 +1,15 @@
+[
+  {
+    "brand": "swing-shack",
+    "slug": "spoon-wrong-clubs",
+    "channels": [
+      "instagram"
+    ],
+    "date": "2026-10-06",
+    "image": "data/brand-directory/swing-shack/images/oneshots/spoon-wrong-clubs.jpg",
+    "render": "oneshot:ideogram/ideogram-4.5",
+    "caption": "You wouldn't dig with a spoon. So why play the wrong clubs?\n\nThe right tool makes the job simple. Loft, lie, length, shaft, grip. Matched to your swing, not guessed.\n\nFit first. Hit second.",
+    "approval_status": "review",
+    "publish_status": "planned"
+  }
+]
