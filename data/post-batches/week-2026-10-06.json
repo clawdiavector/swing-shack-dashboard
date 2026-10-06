@@ -13,7 +13,8 @@
     "date": "2026-10-06",
     "caption": "Hit more greens with an iron fitting.\n\nTrackMan shows what your irons actually do. Gapping, dispersion, launch. Measured, not guessed.\n\nBook your session → swingshack.co.za",
     "approval_status": "review",
-    "publish_status": "planned"
+    "publish_status": "planned",
+    "photo": "data/brand-directory/swing-shack/templates/fitting-headline/photos/venue-taildrop-fitting.png"
   },
   {
     "brand": "swing-shack",
@@ -28,7 +29,8 @@
     "date": "2026-10-07",
     "caption": "Smash factor. Not swing speed.\n\nSpeed without centre contact is just noise. The bay shows you the difference.\n\nTrackMan doesn't lie.",
     "approval_status": "review",
-    "publish_status": "planned"
+    "publish_status": "planned",
+    "photo": "data/brand-directory/swing-shack/templates/did-you-know/photos/venue-taildrop-coaching.png"
   },
   {
     "brand": "swing-shack",
@@ -45,7 +47,8 @@
     "date": "2026-10-08",
     "caption": "Your driver isn't matched to your swing.\n\nDriver fitting isolates 4 variables. We match them to your swing.\n\nBook a driver fitting → swingshack.co.za",
     "approval_status": "review",
-    "publish_status": "planned"
+    "publish_status": "planned",
+    "photo": "data/brand-directory/swing-shack/templates/service-promo/photos/venue-taildrop-service-promo.png"
   },
   {
     "brand": "swing-shack",
@@ -78,7 +81,8 @@
     "date": "2026-10-10",
     "caption": "1-on-1 TrackMan coaching.\n\nTrackMan launch monitors. Zen Swing Stage. Club fitting.\n\nBook your session → swingshack.co.za",
     "approval_status": "review",
-    "publish_status": "planned"
+    "publish_status": "planned",
+    "photo": "data/brand-directory/swing-shack/templates/lesson-corner/photos/venue-taildrop-fitting.png"
   },
   {
     "brand": "stick",
@@ -110,7 +114,8 @@
     "date": "2026-10-07",
     "caption": "Full shaft matrix.\n\nSame head. Different shaft. Completely different feel. That's the clever bit.\n\nFit first. Buy second.",
     "approval_status": "review",
-    "publish_status": "planned"
+    "publish_status": "planned",
+    "photo": "data/brand-directory/stick/images/Location/In Store Photos for walkthrough/IMG_4111.jpg"
   },
   {
     "brand": "stick",
@@ -141,6 +146,82 @@
     },
     "date": "2026-10-10",
     "caption": "Precision workshop.\n\nBrand-agnostic TrackMan fittings. Full shaft matrix. Purpose-built equipment.\n\nFit first. Buy second.",
+    "approval_status": "review",
+    "publish_status": "planned",
+    "photo": "data/brand-directory/stick/images/Location/In Store Photos for walkthrough/IMG_4107.jpg"
+  },
+  {
+    "brand": "stick",
+    "archetype": "stick-service-start",
+    "slug": "thu-fitting-bay",
+    "channels": [
+      "instagram"
+    ],
+    "date": "2026-10-09",
+    "photo": "data/brand-directory/stick/images/Location/In Store Photos for walkthrough/IMG_4114.jpg",
+    "fields": {
+      "caption_hook": "TRACKMAN\nFITTING",
+      "cta": "FIT FIRST.\nBUY SECOND."
+    },
+    "caption": "Brand-agnostic TrackMan fittings.\n\nStick matches equipment to the player, not the player to the equipment.\n\nFit first. Buy second.",
+    "approval_status": "review",
+    "publish_status": "planned"
+  },
+  {
+    "brand": "stick",
+    "archetype": "stick-shop-corner",
+    "slug": "sat-apparel",
+    "channels": [
+      "instagram"
+    ],
+    "date": "2026-10-11",
+    "photo": "data/brand-directory/stick/images/Location/In Store Photos for walkthrough/IMG_4124.jpg",
+    "fields": {
+      "caption_hook": "APPAREL"
+    },
+    "caption": "Apparel, in store.\n\nEverything has to earn its place.\n\nBetter begins here.",
+    "approval_status": "review",
+    "publish_status": "planned"
+  },
+  {
+    "brand": "swing-shack",
+    "archetype": "ss-did-you-know",
+    "slug": "sat-attack-angle",
+    "channels": [
+      "instagram"
+    ],
+    "date": "2026-10-11",
+    "photo": "data/brand-directory/swing-shack/templates/did-you-know/photos/venue-taildrop-service-promo.png",
+    "fields": {
+      "caption_hook": "ATTACK ANGLE\nWITHIN 0.5"
+    },
+    "caption": "TrackMan shows attack angle within 0.5°.\n\nThe 30-minute session shows what your coach can't see.\n\nBook your session → swingshack.co.za",
+    "approval_status": "review",
+    "publish_status": "planned"
+  },
+  {
+    "brand": "stick",
+    "slug": "sun-range-balls",
+    "channels": [
+      "instagram"
+    ],
+    "date": "2026-10-12",
+    "image": "data/brand-directory/stick/images/oneshots/range-balls-collage.png",
+    "render": "oneshot:recraft/recraft-v4.1-flash",
+    "caption": "Range balls. The lie you keep telling yourself.\n\nHope isn't a fitting strategy.\n\nBetter begins here.",
+    "approval_status": "review",
+    "publish_status": "planned"
+  },
+  {
+    "brand": "swing-shack",
+    "slug": "sun-iron-fitting-oneshot",
+    "channels": [
+      "instagram"
+    ],
+    "date": "2026-10-12",
+    "image": "data/brand-directory/swing-shack/images/oneshots/iron-fitting-bay.png",
+    "render": "oneshot:ideogram/ideogram-4.5",
+    "caption": "Hit more greens with an iron fitting.\n\nTrackMan shows attack angle within 0.5°. The 30-minute session shows what your coach can't see.\n\nBook your session → swingshack.co.za",
     "approval_status": "review",
     "publish_status": "planned"
   }

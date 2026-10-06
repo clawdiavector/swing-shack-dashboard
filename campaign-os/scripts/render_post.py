@@ -216,9 +216,53 @@ def publish_into_campaign_os(brand: str, slug: str, channel: str, png: bytes) ->
     }
 
 
+def _render_oneshot(spec: dict, out_dir: Path, *, publish: bool) -> list[Path]:
+    """Place a finished image as a post, cover-cropped to the canvas.
+
+    Used for model-generated one-shots, where the headline is part of the
+    picture. Everything downstream -- scheduling, captions, Review -- is
+    identical to a composed post; only the picture's origin differs.
+    """
+    from PIL import Image  # noqa: PLC0415
+
+    brand = spec["brand"]
+    slug = spec.get("slug") or "oneshot"
+    channels = spec.get("channels") or ["instagram"]
+    for cand in _photo_candidates(str(spec["image"])):
+        if cand.is_file():
+            src = cand
+            break
+    else:
+        raise SystemExit(f"one-shot image not found: {spec['image']}")
+
+    w, h = 1080, 1350
+    im = Image.open(src).convert("RGB")
+    sw, sh = im.size
+    scale = max(w / sw, h / sh)
+    nw, nh = int(sw * scale + 0.5), int(sh * scale + 0.5)
+    im = im.resize((nw, nh), Image.Resampling.LANCZOS)
+    left, top = (nw - w) // 2, (nh - h) // 2
+    im = im.crop((left, top, left + w, top + h))
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    written = []
+    for channel in channels:
+        path = out_dir / f"{brand}__{slug}__{channel}.png"
+        im.save(path, format="PNG")
+        written.append(path)
+        if publish:
+            placed = publish_into_campaign_os(brand, slug, channel, path.read_bytes())
+            print(f"       -> Campaign OS {placed['url']} (one-shot)")
+    return written
+
+
 def render_one(spec: dict, out_dir: Path, *, seed: int | None = None,
                publish: bool = False) -> list[Path]:
     brand = spec["brand"]
+    # One-shot: the image is already finished (a model baked the type in), so
+    # there is no template to compose. Pass it straight through at post size.
+    if spec.get("image") and not spec.get("archetype"):
+        return _render_oneshot(spec, out_dir, publish=publish)
     arc = _get(brand, spec["archetype"])
     applies = arc.get("applies_to") or {}
     channels = spec.get("channels") or applies.get("channels") or ["instagram"]
