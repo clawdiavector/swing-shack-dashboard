@@ -228,6 +228,19 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "and before asset_qc in the Layer 2–7 daily cron."
         ),
     },
+    "render_batch": {
+        "title": "Render calendar posts deterministically",
+        "summary": "Composes calendar records carrying a render_spec into real posts on the volume.",
+        "detail": (
+            "Walks canonical_records per brand for records with a render_spec and a "
+            "render_status that is absent or pending, composes each via "
+            "compose_post_for_channels (no model, no credits), writes the PNG plus an "
+            "IG/FB-tuned JPEG under $DATA_DIR/draft-assets/images/<brand>/, and adds the "
+            "asset row to campaign-data.json as review/planned. Sets render_status=done "
+            "as an idempotency latch, so re-running is safe. Exists so an operator can "
+            "schedule a templated post with a bearer token alone, without the Railway CLI."
+        ),
+    },
     "holiday_inject": {
         "title": "SA public holiday inject",
         "summary": "Upserts deterministic SA public holidays into each brand calendar.",
