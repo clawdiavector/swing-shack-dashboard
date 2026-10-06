@@ -2569,29 +2569,45 @@ def _render_worked_attention(v24: dict, primary: str) -> str:
                 f"{_fmt(cur_v)} last week — worth checking why.")
     # V2.5.1 freshness gate (2026-10-06): the impressions-fall and
     # duplicate-campaigns alerts both come from `pm = paid_media_v24`. If the
-    # Meta account is NOT_CONNECTED / NO_DATA / PENDING, the `pm` snapshot can
-    # be hours-to-weeks stale and these alerts will fire on dead campaign IDs
-    # that no longer exist on the live account. Gate both on data_status == LIVE
-    # and surface a single "data not fresh" signal so the operator knows the
-    # alerts are not firing because of staleness, not because the alerts are
-    # cleanly empty.
+    # Meta account is NOT_CONNECTED / NO_DATA / PENDING, OR if the snapshot
+    # is too old to trust, the alerts will fire on dead campaign IDs
+    # (e.g. the 120249168112110241/120249168228820241 pair that surfaced
+    # against a 15-day-old LIVE-tagged cache on 2026-10-06 — the cache
+    # said "LIVE" but hadn't actually been refreshed in 15 days).
+    # Gate on (data_status == LIVE) AND (fetched_at within 24h).
+    # Surface a single "data not fresh" signal so the operator sees silence
+    # explained, not silence mistaken for a clean bill of health.
     pm_status = (pm.get("data_status") or "").upper()
-    pm_fresh = pm_status == "LIVE"
     pm_fetched = pm.get("fetched_at")
+    pm_age_hours = None
+    if pm_fetched:
+        try:
+            # V2.5.1: use the class form `datetime.datetime.fromisoformat`
+            # (the module `datetime` has no `fromisoformat` attribute).
+            fetched_dt = _dt_mod.datetime.fromisoformat(
+                str(pm_fetched).replace("Z", "+00:00"))
+            pm_age_hours = (
+                _dt_mod.datetime.now(_dt_mod.timezone.utc) - fetched_dt
+            ).total_seconds() / 3600.0
+        except Exception:
+            pm_age_hours = None
+    # A cache that's "LIVE" but older than 24h is treated as not-fresh
+    # because the V2.4 ingestion cron should be refreshing it daily.
+    FRESHNESS_HOURS_MAX = 24
+    if pm_status == "LIVE" and pm_age_hours is not None \
+            and pm_age_hours > FRESHNESS_HOURS_MAX:
+        pm_fresh = False
+        pm_status = f"LIVE_BUT_STALE ({pm_age_hours:.1f}h old)"
+    else:
+        pm_fresh = pm_status == "LIVE"
     pm_freshness_age = None
     if pm_fresh and pm_fetched:
-        try:
-            fetched_dt = datetime.fromisoformat(pm_fetched.replace("Z", "+00:00"))
-            pm_freshness_age_hours = (
-                datetime.now(timezone.utc) - fetched_dt
-            ).total_seconds() / 3600.0
+        if pm_age_hours is not None:
             pm_freshness_age = (
-                f"{pm_freshness_age_hours:.1f}h"
-                if pm_freshness_age_hours >= 1
-                else f"{pm_freshness_age_hours*60:.0f}m"
+                f"{pm_age_hours:.1f}h"
+                if pm_age_hours >= 1
+                else f"{pm_age_hours*60:.0f}m"
             )
-        except Exception:
-            pm_freshness_age = None
     if (pm_fresh
             and cur.get("total_impressions", 0) > 0
             and prev.get("total_impressions", 0) > 0):
