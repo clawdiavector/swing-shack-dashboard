@@ -1,6 +1,6 @@
 ---
 description: Render a post from a measured template — deterministic, free, correct text
-allowed-tools: Bash(python3 campaign-os/scripts/render_post.py:*), Bash(ls:*), Bash(find:*), Read, Write, Grep
+allowed-tools: Bash(python3 campaign-os/scripts/render_post.py:*), Bash(python campaign-os/scripts/render_post.py:*), Bash(ls:*), Bash(find:*), Read, Write, Grep
 argument-hint: "[brand] [archetype] | --list | week"
 ---
 

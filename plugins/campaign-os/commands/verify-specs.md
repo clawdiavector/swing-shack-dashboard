@@ -1,6 +1,6 @@
 ---
 description: Probe the specs this repo drifts on and report what is actually true
-allowed-tools: Bash(python3 campaign-os/scripts/verify_specs.py:*), Bash(git diff:*), Read, Grep, Edit
+allowed-tools: Bash(python3 campaign-os/scripts/verify_specs.py:*), Bash(python campaign-os/scripts/verify_specs.py:*), Bash(git diff:*), Read, Grep, Edit
 argument-hint: "[substring filter, e.g. krea | drive | archetypes]"
 ---
 

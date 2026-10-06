@@ -1,6 +1,6 @@
 ---
 description: Pull a brand's whole Instagram catalogue with insights and full-res images
-allowed-tools: Bash(python3 campaign-os/scripts/audit_social.py:*), Bash(python3 -c:*), Read, Grep
+allowed-tools: Bash(python3 campaign-os/scripts/audit_social.py:*), Bash(python campaign-os/scripts/audit_social.py:*), Bash(python3 -c:*), Bash(python -c:*), Read, Grep
 argument-hint: "<brand> [--no-images] [--max-pages N]"
 ---
 

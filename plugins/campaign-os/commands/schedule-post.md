@@ -1,6 +1,6 @@
 ---
 description: Turn rendered images into real posts — caption, date, state, Review queue
-allowed-tools: Bash(python3 campaign-os/scripts/render_post.py:*), Bash(python3 campaign-os/scripts/schedule_posts.py:*), Read, Write, Edit, Grep
+allowed-tools: Bash(python3 campaign-os/scripts/render_post.py:*), Bash(python campaign-os/scripts/render_post.py:*), Bash(python3 campaign-os/scripts/schedule_posts.py:*), Bash(python campaign-os/scripts/schedule_posts.py:*), Read, Write, Edit, Grep
 argument-hint: "[batch file | brand + date]"
 ---
 

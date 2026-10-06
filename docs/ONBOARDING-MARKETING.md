@@ -49,6 +49,32 @@ From inside the clone, in Claude Code:
 Restart Claude Code. Confirm it took by typing `/` — you should see
 `/audit-social`, `/render-post`, `/schedule-post` and `/verify-specs`.
 
+### 3b. On Windows, make `python3` resolve
+
+Skip this on Mac or Linux. Everything in this repo calls **`python3`** — including
+the Krea MCP server in the root `.mcp.json`, which Claude Code launches for you and
+which fails silently if the name does not resolve.
+
+Python installed from python.org gives you `python.exe` and `py.exe` but **no
+`python3`**. Only the Microsoft Store build creates that alias. Check first, in the
+same Git Bash shell Claude Code uses:
+
+```bash
+python3 --version
+```
+
+If that errors, create a shim once and reopen your shell:
+
+```bash
+mkdir -p ~/bin && printf '@py -3 %%*\r\n' > ~/bin/python3.bat
+```
+
+Confirm `python3 --version` now answers, then restart Claude Code so the Krea server
+starts against a working interpreter.
+
+The four commands accept `python` as well as `python3`, so they will run either way —
+but the MCP server will not, so do not skip the check.
+
 ### 4. Set the environment
 
 Put these in your shell profile. `DATA_DIR` is the one that matters most: it is the
@@ -60,6 +86,15 @@ export DATA_DIR="$HOME/.campaign-os-local"     # scratch; never the repo's data/
 export COS_JOB_TOKEN="ask-kyle"                # job endpoints
 export KREA_API_KEY="your-own-krea-key"        # image generation
 ```
+
+On Windows set them so they persist for every new shell, then reopen the terminal:
+
+```bash
+setx DATA_DIR "%USERPROFILE%\campaign-os-local"
+```
+
+`export` inside Git Bash works too, but only until you close the window — which is a
+confusing way to lose an afternoon.
 
 Credentials Kyle has to hand over or provision for you — none of these are in git,
 by design:
