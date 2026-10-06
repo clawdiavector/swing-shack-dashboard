@@ -26,6 +26,7 @@ is why this exists: **the plugin is now the canonical home** for these skills.
 | `campaign-os` | Ops hub — jobs, prod health, the ops API, host routing. Opens per-task modules. |
 | `campaign-os-template` | Turning a batch of real brand posts into a pixel-accurate compose template. |
 | `krea-lab` | Any Krea/Ideogram/Recraft/Flux work — look up model ids, schemas and resolutions *before* generating. |
+| `brand-voice-truth` | **Before writing any caption or headline.** What the feed actually says, measured over all 261 Stick posts — the bibles drift and prompts read the bibles. |
 
 ## The two rules that cost the most when broken
 
