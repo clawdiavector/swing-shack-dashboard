@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "campaign-os",
+  "description": "Five Friday marketing OS — Campaign OS tooling for the Swing Shack, Stick and Bag Drop brands.",
+  "owner": {
+    "name": "Five Friday",
+    "email": "kylem@fivefriday.com"
+  },
+  "plugins": [
+    {
+      "name": "campaign-os",
+      "description": "Campaign OS marketing operations — render posts deterministically, audit real brand voice, measure templates, verify drifting specs, and drive the jobs/ops API.",
+      "author": { "name": "Five Friday" },
+      "category": "marketing",
+      "source": "./plugins/campaign-os"
+    }
+  ]
+}

@@ -483,9 +483,15 @@ def _drive_map_names_roots():
     roots = getattr(mod, "BRAND_PUBLIC_ROOTS", None) or {}
     if not roots:
         return FAIL, "no BRAND_PUBLIC_ROOTS table to compare against the map"
-    map_path = REPO / ".claude" / "skills" / "campaign-os-map" / "SKILL.md"
-    if not map_path.is_file():
-        return FAIL, f"map missing at {map_path}"
+    # The map skill ships in the campaign-os plugin; it lived under .claude/skills/
+    # until 2026-10-06, so accept the old location too for older checkouts.
+    candidates = (
+        REPO / "plugins" / "campaign-os" / "skills" / "campaign-os-map" / "SKILL.md",
+        REPO / ".claude" / "skills" / "campaign-os-map" / "SKILL.md",
+    )
+    map_path = next((c for c in candidates if c.is_file()), None)
+    if map_path is None:
+        return FAIL, "map missing at " + " or ".join(str(c) for c in candidates)
     text = map_path.read_text()
     required = {
         "parent": _DRIVE_PARENT_ID,
