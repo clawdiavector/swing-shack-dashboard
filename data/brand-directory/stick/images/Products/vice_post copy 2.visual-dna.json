@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1",
-  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/vice_post copy 2.jpg",
+  "image_path": "data/brand-directory/stick/images/Products/vice_post copy 2.jpg",
   "layer1_metadata": {
     "filename": "vice_post copy 2.jpg",
     "format": "JPEG",

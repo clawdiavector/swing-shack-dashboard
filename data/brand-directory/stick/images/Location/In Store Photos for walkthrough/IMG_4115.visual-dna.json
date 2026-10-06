@@ -1,5 +1,5 @@
 {
   "schema_version": "0.1",
-  "image_path": "/home/kyle/finder-workspace/repos/work/swing-shack-dashboard-main/data/brand-directory/stick/images/Location/In Store Photos for walkthrough/IMG_4115.HEIC",
-  "error": "cannot identify image file '/home/kyle/finder-workspace/repos/work/swing-shack-dashboard-main/data/brand-directory/stick/images/Location/In Store Photos for walkthrough/IMG_4115.HEIC'"
+  "image_path": "data/brand-directory/stick/images/Location/In Store Photos for walkthrough/IMG_4115.HEIC",
+  "error": "cannot identify image file 'data/brand-directory/stick/images/Location/In Store Photos for walkthrough/IMG_4115.HEIC'"
 }

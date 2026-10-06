@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1",
-  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Other/stellenbosch copy.jpg",
+  "image_path": "data/brand-directory/stick/images/Other/stellenbosch copy.jpg",
   "layer1_metadata": {
     "filename": "stellenbosch copy.jpg",
     "format": "JPEG",

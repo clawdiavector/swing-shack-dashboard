@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1",
-  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/ripit_post copy.jpg",
+  "image_path": "data/brand-directory/stick/images/Products/ripit_post copy.jpg",
   "layer1_metadata": {
     "filename": "ripit_post copy.jpg",
     "format": "JPEG",
