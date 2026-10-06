@@ -7,8 +7,9 @@ argument-hint: "<brand> [--no-images] [--max-pages N]"
 ## Why this exists
 
 The brand bibles drift from the real feed. Stick's tagline "Better begins here."
-closes 173 of 261 captions and appears in no brand file; the bible is entirely
-fitting and TrackMan while 39% of posts are product arrivals. The audit output is
+appears in 173 of 258 captions and closes 121 of them, yet appears in no brand
+file; the bible is entirely fitting and TrackMan while only 15% of captions
+mention fitting at all. The audit output is
 the source of real voice — prefer it over the copy bible when they disagree.
 
 ## Run it

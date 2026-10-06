@@ -64,7 +64,7 @@ The ingest script's constants are the children only. Note the
 currently escape it — ~421 MB is committed that shouldn't be.
 
 **The brand bibles drift from the real feed.** Stick's tagline
-"Better begins here." closes 173 of 261 captions and appears in no brand file; the
+"Better begins here." appears in 173 of 258 captions and closes 121 of them, and is in no brand file; the
 bible is entirely fitting/TrackMan while 39% of posts are product arrivals. Treat
 `feedback/instagram-audit.json` as the source of real voice.
 
