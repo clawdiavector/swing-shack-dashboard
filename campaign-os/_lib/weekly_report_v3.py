@@ -2567,7 +2567,33 @@ def _render_worked_attention(v24: dict, primary: str) -> str:
             attn.append(
                 f"{ch.get('channel')} sessions fell from {_fmt(prev_v)} to "
                 f"{_fmt(cur_v)} last week — worth checking why.")
-    if (cur.get("total_impressions", 0) > 0
+    # V2.5.1 freshness gate (2026-10-06): the impressions-fall and
+    # duplicate-campaigns alerts both come from `pm = paid_media_v24`. If the
+    # Meta account is NOT_CONNECTED / NO_DATA / PENDING, the `pm` snapshot can
+    # be hours-to-weeks stale and these alerts will fire on dead campaign IDs
+    # that no longer exist on the live account. Gate both on data_status == LIVE
+    # and surface a single "data not fresh" signal so the operator knows the
+    # alerts are not firing because of staleness, not because the alerts are
+    # cleanly empty.
+    pm_status = (pm.get("data_status") or "").upper()
+    pm_fresh = pm_status == "LIVE"
+    pm_fetched = pm.get("fetched_at")
+    pm_freshness_age = None
+    if pm_fresh and pm_fetched:
+        try:
+            fetched_dt = datetime.fromisoformat(pm_fetched.replace("Z", "+00:00"))
+            pm_freshness_age_hours = (
+                datetime.now(timezone.utc) - fetched_dt
+            ).total_seconds() / 3600.0
+            pm_freshness_age = (
+                f"{pm_freshness_age_hours:.1f}h"
+                if pm_freshness_age_hours >= 1
+                else f"{pm_freshness_age_hours*60:.0f}m"
+            )
+        except Exception:
+            pm_freshness_age = None
+    if (pm_fresh
+            and cur.get("total_impressions", 0) > 0
             and prev.get("total_impressions", 0) > 0):
         imp_pct = ((cur["total_impressions"] - prev["total_impressions"])
                      / prev["total_impressions"] * 100)
@@ -2577,12 +2603,28 @@ def _render_worked_attention(v24: dict, primary: str) -> str:
                 f"({_fmt(prev['total_impressions'])} → "
                 f"{_fmt(cur['total_impressions'])} impressions). "
                 f"This is a meaningful drop in delivery.")
-    for grp in (pm.get("duplicate_campaigns_visible") or []):
+    if pm_fresh:
+        for grp in (pm.get("duplicate_campaigns_visible") or []):
+            attn.append(
+                f"Two campaigns with the same name are running at the same time "
+                f"({grp.get('campaign_count')} campaigns: "
+                f"{', '.join((grp.get('campaign_ids') or []))}). "
+                f"Check whether both are meant to be active.")
+    else:
+        # Paid-media alerts suppressed because the snapshot is not live.
+        # Tell the operator explicitly so the silence is not mistaken for
+        # a clean bill of health.
+        age_hint = (
+            f" (last fetched {pm_fetched})"
+            if pm_fetched
+            else ""
+        )
         attn.append(
-            f"Two campaigns with the same name are running at the same time "
-            f"({grp.get('campaign_count')} campaigns: "
-            f"{', '.join((grp.get('campaign_ids') or []))}). "
-            f"Check whether both are meant to be active.")
+            f"Meta paid-media alerts are paused — the v2.4 snapshot is "
+            f"not LIVE (status: {pm_status or 'UNKNOWN'}){age_hint}. "
+            f"Reconnect the Meta System User token to restore duplicate-"
+            f"campaign and impressions-drop detection."
+        )
     leads = _extract_kpi(v24, "Verified Leads")
     if leads.get("data_status") == "PENDING":
         attn.append(
