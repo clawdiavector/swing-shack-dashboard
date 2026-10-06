@@ -460,13 +460,37 @@ def _colors_from_palette(brand_dir: Path) -> dict[str, list[str]] | None:
     return groups if any(groups.values()) else None
 
 
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _portable_path(p: Path | str) -> str:
+    """Path as written into a sidecar.
+
+    Sidecars are committed, so an absolute path makes every file churn the
+    moment a second machine runs the ingest — 57 of them flipped the first time
+    this ran on Windows, with the only difference being the prefix. Emit a
+    repo-relative POSIX path when the file lives under the repo so the output is
+    identical on every machine; fall back to the absolute path otherwise.
+    """
+    path = Path(p)
+    try:
+        return path.resolve().relative_to(_REPO_ROOT).as_posix()
+    except (ValueError, OSError):
+        return str(path)
+
+
+def _scrub(text: str) -> str:
+    """Drop the repo prefix out of a library error string, same reasoning."""
+    return text.replace(str(_REPO_ROOT) + "/", "").replace(str(_REPO_ROOT), "")
+
+
 def dissect(image_path: Path | str, bible_path: Path | str | None = None) -> dict[str, Any]:
     """Run full visual DNA extraction. Returns dict ready to JSON-serialize."""
     image_path = Path(image_path)
     if bible_path is not None:
         bible_path = Path(bible_path)
     if not image_path.exists():
-        return {"error": "not_found", "path": str(image_path)}
+        return {"error": "not_found", "path": _portable_path(image_path)}
 
     bible = None
     if bible_path and bible_path.exists():
@@ -483,7 +507,7 @@ def dissect(image_path: Path | str, bible_path: Path | str | None = None) -> dic
 
     result: dict[str, Any] = {
         "schema_version": "0.1",
-        "image_path": str(image_path),
+        "image_path": _portable_path(image_path),
     }
 
     try:
@@ -522,7 +546,7 @@ def dissect(image_path: Path | str, bible_path: Path | str | None = None) -> dic
             result["layer17_recipe"] = recipe
 
     except Exception as e:
-        result["error"] = str(e)
+        result["error"] = _scrub(str(e))
 
     return result
 
