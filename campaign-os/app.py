@@ -106,6 +106,9 @@ DUAL_AUTH_PATHS = frozenset({
     # L4 unified inbox list (Mac/foreman bearer approve flow)
     '/api/inbox/unified',
     '/api/clublab-pull/run',
+    # Lodge a finished post from Claude Code on any machine (post_lodge.py).
+    # Lands it on the shelf; Release stays a session click.
+    '/api/posts/lodge',
 })
 
 # Dynamic-segment dual-auth prefixes. Each MUST end in '/' — see _gate comment.
@@ -14213,7 +14216,12 @@ def get_schedule():
 
 
 # ─── REVIEW UPLOAD + PUSH-TO-POSTIZ (added 2026-08-04 polish pass) ────
-ASSET_MEDIA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'asset-media')
+# On the volume when DATA_DIR is set. It used to sit inside the image
+# (/app/campaign-os/data/asset-media), so every deploy wiped what was uploaded.
+ASSET_MEDIA_DIR = (
+    os.path.join(os.environ['DATA_DIR'], 'asset-media') if os.environ.get('DATA_DIR')
+    else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'asset-media')
+)
 try:
     os.makedirs(ASSET_MEDIA_DIR, exist_ok=True)
 except (OSError, PermissionError):
@@ -14537,6 +14545,80 @@ def publish_sandbox_enqueue_route():
     except Exception as exc:
         _app_log.exception("publish sandbox enqueue failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/posts/lodge', methods=['POST'])
+def posts_lodge_route():
+    """POST /api/posts/lodge — one finished post onto the shelf (session or job bearer).
+
+    JSON:      {brand, slug, date, caption, image_base64 | archetype, fields?,
+                photo?, channels?, title?, created_by?, approve?}
+    Multipart: the same keys as form fields, the picture as file `image`;
+               channels comma-separated, fields as a JSON string.
+    Header:    X-Actor-Display-Name: <who is lodging it> (required).
+    """
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib.post_lodge import LodgeError, lodge_post
+
+    if request.files or request.form:
+        body = request.form.to_dict()
+        upload = request.files.get('image')
+        image_bytes = upload.read() if upload else None
+        raw_channels = body.get('channels') or ''
+        channels = [c.strip() for c in raw_channels.split(',') if c.strip()] or None
+        try:
+            fields = json.loads(body['fields']) if body.get('fields') else None
+        except ValueError:
+            return jsonify({"ok": False, "error": "fields must be a JSON object"}), 400
+    else:
+        body = request.get_json(silent=True) or {}
+        channels = body.get('channels')
+        fields = body.get('fields')
+        image_bytes = None
+        b64 = body.get('image_base64') or ''
+        if b64:
+            if ',' in b64[:100] and b64.startswith('data:'):
+                b64 = b64.split(',', 1)[1]  # tolerate a data: URL
+            try:
+                image_bytes = base64.b64decode(b64, validate=True)
+            except (ValueError, TypeError):
+                return jsonify({"ok": False, "error": "image_base64 is not valid base64"}), 400
+    if fields is not None and not isinstance(fields, dict):
+        return jsonify({"ok": False, "error": "fields must be a JSON object"}), 400
+    # The V2.6 write-gate (_v26_wrapped_upsert_event) only books an approved
+    # slot for a request that names its person in this header. Checked here
+    # so the caller gets the fix, not a PermissionError from three layers down.
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip()
+    if not actor:
+        return jsonify({"ok": False, "error": (
+            "send your name in the X-Actor-Display-Name header -- the calendar "
+            "only books a slot for a named person")}), 400
+    approve = str(body.get('approve', 'true')).strip().lower() not in ('0', 'false', 'no')
+    try:
+        result = lodge_post(
+            brand=str(body.get('brand') or body.get('brand_id') or '').strip(),
+            slug=str(body.get('slug') or '').strip(),
+            date=str(body.get('date') or '').strip(),
+            caption=str(body.get('caption') or ''),
+            image_bytes=image_bytes,
+            archetype=(str(body.get('archetype') or '').strip() or None),
+            fields=fields,
+            photo=(str(body.get('photo') or '').strip() or None),
+            channels=channels,
+            title=(str(body.get('title') or '').strip() or None),
+            created_by=str(body.get('created_by') or actor).strip(),
+            approve=approve,
+        )
+    except LodgeError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), exc.status
+    except Exception as exc:
+        _app_log.exception("posts lodge failed")
+        return jsonify({"ok": False, "error": f"{type(exc).__name__}: {exc}"}), 500
+    base = request.host_url.rstrip('/')
+    result["links"] = {k: base + v for k, v in (result.get("links") or {}).items()}
+    result["images"] = {k: base + v for k, v in (result.get("images") or {}).items()}
+    return jsonify(result), 200
 
 
 @app.route('/api/publish/release', methods=['POST'])

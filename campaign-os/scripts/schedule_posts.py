@@ -244,26 +244,32 @@ def ensure_calendar_moment(spec: dict, asset_id: str) -> tuple[str, str]:
     return cal_id, ""
 
 
-def write_draft_sidecar(spec: dict, campaign_id: str, asset_id: str, cal_id: str) -> None:
+def write_draft_sidecar(spec: dict, campaign_id: str, asset_id: str, cal_id: str,
+                        *, composed: dict[str, str] | None = None,
+                        created_by: str = "campaign-os/schedule_posts.py") -> None:
     """The join row week_board() indexes by calendar_id.
 
     _index_draft_sidecars() reads draft-assets/*.json and resolves the moment
     from source_inbox_item_id, which must be calendar_candidate:<brand>:<cal_id>.
     Without this file the post never joins its moment and the week stays empty.
+
+    `composed` maps every rendered channel to its URL. The publish queue reads
+    it per platform, so a post rendered for Instagram and Facebook needs both.
     """
     brand = spec["brand"]
     channel = (spec.get("channels") or ["instagram"])[0]
     visual_url, _ = _image_urls(brand, spec["slug"], channel)
+    composed = dict(composed or {channel: visual_url})
     sidecar = {
         "asset_id": asset_id,
         "campaign_id": campaign_id,
         "brand_id": brand,
         "source_inbox_item_id": f"calendar_candidate:{brand}:{cal_id}",
-        "composed": {channel: visual_url},
-        "image_url": visual_url,
+        "composed": composed,
+        "image_url": composed.get(channel) or visual_url,
         "created_at": _now(),
         "action": "compose_post",
-        "created_by": "campaign-os/schedule_posts.py",
+        "created_by": created_by,
     }
     out = runtime_data_dir() / "draft-assets" / f"{asset_id}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
