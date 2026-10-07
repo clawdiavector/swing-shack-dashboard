@@ -25,8 +25,9 @@ exists, what's a stub, and what's measurably wrong.
 
 The marketing capability ships as a plugin in this repo —
 [`plugins/campaign-os/`](plugins/campaign-os/README.md): four commands
-(`/audit-social`, `/render-post`, `/schedule-post`, `/verify-specs`) and four skills
-(`campaign-os-map`, `campaign-os`, `campaign-os-template`, `krea-lab`). Install it
+(`/audit-social`, `/render-post`, `/schedule-post`, `/verify-specs`) and six skills
+(`campaign-os-map`, `campaign-os`, `campaign-os-template`, `krea-lab`,
+`brand-voice-truth`, `schedule-from-anywhere`). Install it
 with `/plugin marketplace add .` then `/plugin install campaign-os@campaign-os`.
 Onboarding a teammate: [`docs/ONBOARDING-MARKETING.md`](docs/ONBOARDING-MARKETING.md).
 
