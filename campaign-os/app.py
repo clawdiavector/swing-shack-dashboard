@@ -12816,6 +12816,12 @@ def admin_secrets_sync():
                         env_wired.append('META_APP_ID (from home meta-app.json)')
                 except Exception:
                     pass
+    elif service == 'ubersuggest-api':
+        # The wrapper reads one file, named by UBERSUGGEST_TOKEN_FILE. Point it
+        # at the pasted copy so the paste takes effect now and survives deploys.
+        if contents_obj.get('access_token') and rt_path:
+            os.environ['UBERSUGGEST_TOKEN_FILE'] = rt_path
+            env_wired.append('UBERSUGGEST_TOKEN_FILE')
     elif service == 'openrouter-api':
         if contents_obj.get('api_key'):
             os.environ['OPENROUTER_API_KEY'] = contents_obj['api_key']
@@ -27329,43 +27335,15 @@ def seo_competitors():
 
 
 def _ensure_ubersuggest_token_file():
-    """Mint a real token file at a writable path so the wrapper can find it.
-    Prefers the canonical path; falls back to /tmp/ubersuggest-api.json on
-    ephemeral filesystems (Railway)."""
-    tok = os.environ.get("UBERSUGGEST_ACCESS_TOKEN")
-    ref = os.environ.get("UBERSUGGEST_REFRESH_TOKEN")
-    if not tok:
+    """Point the Ubersuggest wrapper at the token file under DATA_DIR.
+    The persistent copy wins; the env vars only seed it (see
+    ubersuggest_mcp.ensure_token_file)."""
+    try:
+        from _lib import ubersuggest_mcp as _us
+        return _us.ensure_token_file(DATA_DIR)
+    except Exception:
+        _app_log.exception("ubersuggest ensure_token_file failed")
         return False
-    # Try the canonical path first
-    canonical = os.path.expanduser(
-        "~/.openclaw-instance2/workspace/clients/swing-shack/credentials/ubersuggest-api.json"
-    )
-    candidates = [canonical, "/tmp/ubersuggest-api.json", "/app/ubersuggest-api.json"]
-    payload = {
-        "access_token": tok,
-        "refresh_token": ref or "",
-        "token_type": "Bearer",
-        "obtained_at": int(_dt_cls.now(_tz.utc).timestamp()),
-        "expires_in": 172800,
-        "expires_at": int(_dt_cls.now(_tz.utc).timestamp()) + 172800,
-        "refreshed_at": int(_dt_cls.now(_tz.utc).timestamp()),
-        "scope": "profile domain keywords serp backlinks site_audit content projects utility",
-        "_source": "UBERSUGGEST_ACCESS_TOKEN env var",
-    }
-    for path_ in candidates:
-        try:
-            os.makedirs(os.path.dirname(path_), exist_ok=True)
-            with open(path_, "w") as f:
-                json.dump(payload, f, indent=2)
-            try:
-                os.chmod(path_, 0o600)
-            except Exception:
-                pass
-            os.environ["UBERSUGGEST_TOKEN_FILE"] = path_
-            return True
-        except Exception:
-            continue
-    return False
 
 _ensure_ubersuggest_token_file()
 
