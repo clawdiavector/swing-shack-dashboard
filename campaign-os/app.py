@@ -16625,20 +16625,38 @@ def connected_accounts_status_route():
             for d in [os.environ.get("DATA_DIR"), os.environ.get("BUNDLED_DATA_DIR"), BUNDLED_DATA_DIR]:
                 if d and d not in data_roots:
                     data_roots.append(d)
-            for channel, fname, handle_key, name_key in [
-                ("facebook", "facebook-business-analytics.json", "name", "name"),
-                ("instagram", "ig-business-analytics.json", "username", None),
+            # Brand lane first (brands/<brand>/), then the flat file. The flat
+            # file belongs to whichever brand last wrote it, so it is only
+            # accepted when its account id matches this brand's own id —
+            # otherwise Stick's card showed Swing Shack's page and handle.
+            for channel, fname, handle_key, name_key, own_id in [
+                ("facebook", "facebook-business-analytics.json", "name", "name",
+                 meta_out["page_id"]),
+                ("instagram", "ig-business-analytics.json", "username", None,
+                 meta_out["instagram_account_id"]),
             ]:
-                fp = None
+                d = None
                 for r in data_roots:
-                    candidate = os.path.join(r, fname)
-                    if os.path.exists(candidate):
-                        fp = candidate
+                    for candidate, is_flat in (
+                        (os.path.join(r, "brands", brand, fname), False),
+                        (os.path.join(r, fname), True),
+                    ):
+                        if not os.path.exists(candidate):
+                            continue
+                        try:
+                            with open(candidate) as f:
+                                loaded = json.load(f)
+                        except Exception:
+                            continue
+                        file_id = (loaded.get("account") or {}).get("id")
+                        if is_flat and own_id and file_id and str(file_id) != str(own_id):
+                            continue
+                        d = loaded
                         break
-                if fp:
+                    if d is not None:
+                        break
+                if d is not None:
                     try:
-                        with open(fp) as f:
-                            d = json.load(f)
                         account = d.get("account") or {}
                         followers = account.get("followers_count")
                         if channel == "facebook":
