@@ -42,6 +42,6 @@ stalled or you changed service variables.
 ## Do not
 
 - Commit `web/dist/` or `web/node_modules/`
-- Push `main` without Kyle naming that branch
+- Push `main` without Kyle or Christelle naming that branch
 - Use ClubLab `Invoke-ClubLabMacDeploy.sh` (wrong product)
 - Delete leftover HTML pages (they live under Other until Kyle reviews)

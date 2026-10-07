@@ -15,8 +15,8 @@ The Node fleet (`legacy/agents/` + most of `scripts/*.js`) was deleted in t33 (2
 ## 2. Branches — READ BEFORE YOU COMMIT
 
 - **Canonical:** `main`.
-- **Active program work lands on `integrate/campaign-os-brand-lanes-v1`**, never `main`, until Kyle merges at program end.
-- **NEVER** push `main` / `master` / `develop` without Kyle naming that branch in-session.
+- **Active program work lands on `integrate/campaign-os-brand-lanes-v1`**, never `main`, until Kyle or Christelle merges at program end.
+- **NEVER** push `main` / `master` / `develop` without Kyle or Christelle naming that branch in-session.
 - `feat/asset-state-engine` is dead history — do not push it, do not believe docs that cite it.
 - Doc: `context/protected-branch-push.md` in the agent-control repo.
 

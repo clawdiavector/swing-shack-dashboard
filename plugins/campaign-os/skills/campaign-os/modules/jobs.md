@@ -88,5 +88,5 @@ python3 ~/.hermes/scripts/campaign_os_digest.py
 ## Do not
 
 - Confuse **LLM spend pill** ($0/$5) with jobs — that tracks image-gen routes only
-- Push to `main` without Kyle approval
+- Push to `main` without Kyle or Christelle approval
 - Run watch/digest on Linux (Mac only). Never on both hosts.

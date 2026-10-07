@@ -89,7 +89,9 @@ so the bridge is the only shell.
 `/api/ops/*`. Everything else — `/api/krea/*`, `/api/meta/*`, `/api/ops/runbook` —
 is session-cookie only and returns 401 to bearer.
 
-**Never push `main` without Kyle approving it in the current message.**
+**Never push `main` without Kyle or Christelle approving it in the current message.**
+Either of them can approve their own merge — the rule stops agents shipping to prod
+unasked, not people.
 
 ## Verify, don't trust
 
