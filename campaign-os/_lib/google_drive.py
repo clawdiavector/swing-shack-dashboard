@@ -62,10 +62,16 @@ def _resolve_credentials_dir() -> Path:
 
 
 def _oauth_client_path() -> Path:
-    return Path(
-        os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
-        or (_resolve_credentials_dir() / "google-oauth-client.json")
-    )
+    # GOOGLE_OAUTH_CLIENT_SECRET is shared with gbp_oauth / gsc_oauth, which
+    # read it as the secret itself. Only take it as a path when it names a
+    # JSON file; otherwise the secret ends up in status() and error messages.
+    explicit = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET_FILE")
+    if explicit:
+        return Path(explicit)
+    shared = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET") or ""
+    if shared.lower().endswith(".json"):
+        return Path(shared)
+    return _resolve_credentials_dir() / "google-oauth-client.json"
 
 
 def _drive_token_path() -> Path:

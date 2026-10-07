@@ -170,7 +170,11 @@ def write_token_file(
         "refreshed_at": now,
         "obtained_at": now,
     }
-    if refresh_token is not None:
+    if refresh_token is None:
+        # A refresh response may omit refresh_token (no rotation). Keep the
+        # saved one, or the next refresh has nothing to send.
+        refresh_token = _read_refresh_token()
+    if refresh_token:
         payload["refresh_token"] = refresh_token.strip()
     if expires_in is not None:
         payload["expires_in"] = int(expires_in)
@@ -199,6 +203,82 @@ def write_token_file(
     _LOG.info("wrote Ubersuggest token file %s (scope=%s, expires_in=%s)",
               path, scope, expires_in)
     return path
+
+
+# Marks a token file that was written from the env vars and not touched since.
+# write_token_file() does not carry it over, so a refreshed file loses it.
+ENV_SEED_SOURCE = "UBERSUGGEST_ACCESS_TOKEN env var"
+
+
+def persistent_token_path(data_dir: str) -> str:
+    """Where the token file lives on a deploy: under the persistent DATA_DIR."""
+    return os.path.join(data_dir, "credentials", "ubersuggest-api.json")
+
+
+def ensure_token_file(data_dir: str) -> bool:
+    """Point the wrapper at the persistent token file, seeding it from env if needed.
+
+    The copy at DATA_DIR/credentials/ubersuggest-api.json wins: it holds
+    whatever the last refresh or /secrets-sync paste wrote. The
+    UBERSUGGEST_ACCESS_TOKEN / UBERSUGGEST_REFRESH_TOKEN env vars only seed
+    it when it is missing, or when it is still the untouched env seed and
+    the env values have changed since. Rewriting it from env on every boot
+    threw away refreshed tokens at each deploy.
+
+    Returns True when a usable token file is in place.
+    """
+    tok = (os.environ.get("UBERSUGGEST_ACCESS_TOKEN") or "").strip()
+    ref = (os.environ.get("UBERSUGGEST_REFRESH_TOKEN") or "").strip()
+    path = persistent_token_path(data_dir)
+
+    existing: dict = {}
+    try:
+        existing = json.loads(Path(path).read_text())
+        if not isinstance(existing, dict):
+            existing = {}
+    except (OSError, ValueError):
+        existing = {}
+
+    if existing.get("access_token"):
+        untouched_seed = existing.get("_source") == ENV_SEED_SOURCE
+        env_changed = bool(tok) and (
+            existing.get("access_token") != tok
+            or (existing.get("refresh_token") or "") != ref
+        )
+        if not (untouched_seed and env_changed):
+            os.environ["UBERSUGGEST_TOKEN_FILE"] = path
+            return True
+
+    if not tok:
+        return False
+
+    now = int(time.time())
+    payload = {
+        "access_token": tok,
+        "refresh_token": ref,
+        "token_type": "Bearer",
+        "obtained_at": now,
+        "expires_in": 172800,
+        "expires_at": now + 172800,
+        "refreshed_at": now,
+        "scope": DEFAULT_SCOPES,
+        "_source": ENV_SEED_SOURCE,
+    }
+    # Persistent path first; the rest are fallbacks for read-only volumes.
+    for candidate in (path, "/tmp/ubersuggest-api.json", "/app/ubersuggest-api.json"):
+        try:
+            os.makedirs(os.path.dirname(candidate), exist_ok=True)
+            with open(candidate, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2)
+            try:
+                os.chmod(candidate, 0o600)
+            except OSError:
+                pass
+            os.environ["UBERSUGGEST_TOKEN_FILE"] = candidate
+            return True
+        except OSError:
+            continue
+    return False
 
 
 def is_token_expired(within_seconds: int = 300) -> bool:

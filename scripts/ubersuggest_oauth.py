@@ -388,7 +388,9 @@ def exchange_code(code: str, code_verifier: str, redirect_uri: str) -> dict:
 def write_token_file(payload: dict) -> Path:
     """Atomic write of the credential file with chmod 600."""
     import tempfile
-    CRED_DIR.mkdir(parents=True, exist_ok=True)
+    # CRED_FILE honours UBERSUGGEST_TOKEN_FILE; CRED_DIR is the Mac default only.
+    cred_dir = CRED_FILE.parent
+    cred_dir.mkdir(parents=True, exist_ok=True)
 
     now = int(time.time())
     expires_in = payload.get("expires_in")
@@ -406,7 +408,7 @@ def write_token_file(payload: dict) -> Path:
         body["refresh_token"] = payload["refresh_token"]
 
     # Atomic rename-write pattern
-    fd, tmp = tempfile.mkstemp(prefix=".ubersuggest-", suffix=".json", dir=str(CRED_DIR))
+    fd, tmp = tempfile.mkstemp(prefix=".ubersuggest-", suffix=".json", dir=str(cred_dir))
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(body, f, indent=2)
@@ -449,7 +451,16 @@ def verify_token_via_auth_status() -> str:
     )
     try:
         with urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode())
+            raw = resp.read().decode()
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            # /mcp may answer as an SSE stream ("data: {...}" lines), not bare JSON.
+            data_lines = [ln[len("data:"):].strip() for ln in raw.splitlines()
+                          if ln.startswith("data:")]
+            if not data_lines:
+                return f"token saved, but /mcp reply was unreadable: {raw[:120]!r}"
+            data = json.loads(data_lines[0])
         return f"authenticated OK · {json.dumps(data.get('result', data))[:120]}"
     except HTTPError as e:
         try:

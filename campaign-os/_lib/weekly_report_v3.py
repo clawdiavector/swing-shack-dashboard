@@ -324,6 +324,24 @@ def _page_display_name(path: str) -> str:
 
 # ── formatting helpers ──────────────────────────────────────────
 
+# GA4 buckets for traffic it could not attribute. A rise there is a tracking
+# gap, not a channel that performed.
+_UNATTRIBUTED_CHANNELS = {"unassigned", "(not set)", "(other)"}
+
+
+def _is_attributed_channel(ch: Dict[str, Any]) -> bool:
+    return str(ch.get("channel") or "").strip().lower() not in _UNATTRIBUTED_CHANNELS
+
+
+def _rank_gains(seo_kw: Optional[dict]) -> List[Dict[str, Any]]:
+    """Keywords that moved up. seo_insights "winning" also holds keywords that
+    are merely still in the top 10, including ones that slipped (#2 -> #3)."""
+    gains = [k for k in ((seo_kw or {}).get("winning") or [])
+             if (k.get("delta") or 0) > 0]
+    gains.sort(key=lambda k: -(k.get("delta") or 0))
+    return gains
+
+
 def _fmt(v: Any, kind: str = "int") -> str:
     if v is None:
         return "—"
@@ -638,10 +656,22 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
         "stickgolf": "stick",
         "stick.paarl": "stick",
     }
+    # Facebook has no username to key on, so match on the file's declared
+    # brand first, then the page name. Without this every brand reported the
+    # default brand's page (Stick showed Swing Shack's fan count).
+    fb_page_brand_map = {
+        "swing shack": "swing-shack",
+        "swingshack": "swing-shack",
+        "stick": "stick",
+        "stick golf": "stick",
+        "stick paarl": "stick",
+    }
     ig_data = {}
     for r in (_data_root(),
                 Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
-        for fname in ("ig-business-analytics.json",
+        # Brand lane first, then the flat file (guarded by username below).
+        for fname in (f"brands/{bid}/ig-business-analytics.json",
+                         "ig-business-analytics.json",
                          "analytics/instagram-analytics.json"):
             p = r / fname
             if p.is_file():
@@ -695,15 +725,24 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
     fb_data = {}
     for r in (_data_root(),
                 Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
-        p = r / "fb-page-analytics.json"
-        if p.is_file():
-            try:
-                raw = json.loads(p.read_text(encoding="utf-8"))
-                fb_data = raw
-            except Exception:
-                continue
-            if fb_data:
-                break
+        for fname in (f"brands/{bid}/fb-page-analytics.json",
+                         "fb-page-analytics.json"):
+            p = r / fname
+            if p.is_file():
+                try:
+                    raw = json.loads(p.read_text(encoding="utf-8"))
+                    page_name = ((raw.get("page") or {}).get("name") or "")
+                    detected = (raw.get("brand")
+                                or fb_page_brand_map.get(page_name.strip().lower()))
+                    if detected and detected != bid:
+                        continue
+                    fb_data = raw
+                except Exception:
+                    continue
+                if fb_data:
+                    break
+        if fb_data:
+            break
     if fb_data:
         wt = fb_data.get("window_totals") or {}
         page = fb_data.get("page") or {}
@@ -1024,9 +1063,9 @@ def _kpi_cards(bid: str, v24: dict, periods: Dict[str, str]) -> List[Dict[str, A
         "label": "Meta leads",
         "value": _fmt(leads_cur),
         "change_pct": None,
-        "change_text": "from lead campaigns",
+        "change_text": None,
         "trend": "neutral",
-        "secondary": "bookings not yet linked",
+        "secondary": "from lead campaigns · bookings not yet linked",
     })
     return cards
 
@@ -2090,7 +2129,7 @@ def _render_seo(seo: Dict[str, Any], seo_kw: Dict[str, Any],
     else:
         fetched_label = "unknown"
     # Build winning / leaking lists (top 3 each)
-    winning = (seo_kw or {}).get("winning") or []
+    winning = _rank_gains(seo_kw)
     leaking = (seo_kw or {}).get("leaking") or []
     def _fmt_kw(kw):
         delta = kw.get("delta", 0)
@@ -2543,7 +2582,8 @@ def _render_worked_attention(v24: dict, primary: str) -> str:
         prev_v = ch.get("previous_sessions")
         if (cur_v is not None and prev_v is not None and cur_v > prev_v
                 and (cur_v - prev_v) >= 10
-                and ch.get("comparison_status") == "improving"):
+                and ch.get("comparison_status") == "improving"
+                and _is_attributed_channel(ch)):
             share = ch.get("share_of_sessions") or 0
             worked.append(
                 f"{ch.get('channel')} brought more visitors this week "
@@ -2780,7 +2820,7 @@ def _render_markdown(bid: str, v24: dict, organic: Dict[str, Any],
     L.append("")
     for c in cards:
         L.append(f"- **{c['label']}** — {c['value']} "
-                  f"(change vs last week: {c['change_text']})")
+                  f"(change vs last week: {c.get('change_text') or 'no comparison'})")
     L.append("")
     L.append("**What happened this week:**")
     L.append("")
@@ -2909,7 +2949,7 @@ def _render_markdown(bid: str, v24: dict, organic: Dict[str, Any],
         L.append(f"- Trending up this week: {wc.get('up', 0)}, "
                   f"down: {wc.get('down', 0)}, unchanged: {wc.get('unchanged', 0)}")
         L.append("")
-        winning = (seo_kw or {}).get("winning") or []
+        winning = _rank_gains(seo_kw)
         leaking = (seo_kw or {}).get("leaking") or []
         if winning:
             L.append("**Biggest gains:**")
@@ -2988,7 +3028,8 @@ def _render_markdown(bid: str, v24: dict, organic: Dict[str, Any],
         cur_v = ch.get("current_sessions"); prev_v = ch.get("previous_sessions")
         if (cur_v is not None and prev_v is not None
                 and cur_v > prev_v and (cur_v - prev_v) >= 10
-                and ch.get("comparison_status") == "improving"):
+                and ch.get("comparison_status") == "improving"
+                and _is_attributed_channel(ch)):
             share = ch.get("share_of_sessions") or 0
             L.append(f"- {ch.get('channel')} brought more visitors this week "
                       f"({_fmt(cur_v)} vs {_fmt(prev_v)}, "
