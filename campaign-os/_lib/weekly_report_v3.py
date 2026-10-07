@@ -638,10 +638,22 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
         "stickgolf": "stick",
         "stick.paarl": "stick",
     }
+    # Facebook has no username to key on, so match on the file's declared
+    # brand first, then the page name. Without this every brand reported the
+    # default brand's page (Stick showed Swing Shack's fan count).
+    fb_page_brand_map = {
+        "swing shack": "swing-shack",
+        "swingshack": "swing-shack",
+        "stick": "stick",
+        "stick golf": "stick",
+        "stick paarl": "stick",
+    }
     ig_data = {}
     for r in (_data_root(),
                 Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
-        for fname in ("ig-business-analytics.json",
+        # Brand lane first, then the flat file (guarded by username below).
+        for fname in (f"brands/{bid}/ig-business-analytics.json",
+                         "ig-business-analytics.json",
                          "analytics/instagram-analytics.json"):
             p = r / fname
             if p.is_file():
@@ -695,15 +707,24 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
     fb_data = {}
     for r in (_data_root(),
                 Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
-        p = r / "fb-page-analytics.json"
-        if p.is_file():
-            try:
-                raw = json.loads(p.read_text(encoding="utf-8"))
-                fb_data = raw
-            except Exception:
-                continue
-            if fb_data:
-                break
+        for fname in (f"brands/{bid}/fb-page-analytics.json",
+                         "fb-page-analytics.json"):
+            p = r / fname
+            if p.is_file():
+                try:
+                    raw = json.loads(p.read_text(encoding="utf-8"))
+                    page_name = ((raw.get("page") or {}).get("name") or "")
+                    detected = (raw.get("brand")
+                                or fb_page_brand_map.get(page_name.strip().lower()))
+                    if detected and detected != bid:
+                        continue
+                    fb_data = raw
+                except Exception:
+                    continue
+                if fb_data:
+                    break
+        if fb_data:
+            break
     if fb_data:
         wt = fb_data.get("window_totals") or {}
         page = fb_data.get("page") or {}
