@@ -9,6 +9,7 @@ Campaign OS is a Flask marketing cockpit on Railway: registered batch **jobs** (
 | Task | Read |
 |---|---|
 | Add a registered job | [`how-to.md`](how-to.md) → Add a job · [`jobs.md`](jobs.md) |
+| Schedule a post without the Railway CLI | [`render-batch.md`](render-batch.md) |
 | Add or change a Mac `cos-*` agent | [`how-to.md`](how-to.md) → Add a Mac agent · [`layers-and-agents.md`](layers-and-agents.md) |
 | Change Campaign Heroes (`/app`, `web/`) | [`frontend.md`](frontend.md) · `web/DESIGN.md`, `web/PRODUCT.md` |
 | Change classic `/` or `/ops` | [`frontend.md`](frontend.md) · `campaign-os/campaign-os.html` |
@@ -25,6 +26,7 @@ Campaign OS is a Flask marketing cockpit on Railway: registered batch **jobs** (
 | [`layers-and-agents.md`](layers-and-agents.md) | Ribbon, North Star mapping, queue, mark-done |
 | [`frontend.md`](frontend.md) | `/app`, `/`, `/ops` |
 | [`jobs.md`](jobs.md) | JobSpec, registry, verdicts, workflows |
+| [`render-batch.md`](render-batch.md) | Scheduling a post from any machine with a bearer token |
 | [`how-to.md`](how-to.md) | Implement recipes |
 | [`state-of-play.md`](state-of-play.md) | Branch snapshot (not a roadmap) |
 | [`conventions.md`](conventions.md) | Branches, secrets, tests, land |

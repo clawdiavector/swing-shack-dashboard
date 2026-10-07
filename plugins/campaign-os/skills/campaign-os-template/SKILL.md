@@ -23,7 +23,7 @@ Engine options: [reference.md](reference.md).
 
 - One brand at a time — never mix Stick and Swing Shack in a batch or a table.
 - Services/posters only unless Kyle asks for retail.
-- Work in a worktree off `integrate/campaign-os-brand-lanes-v1`; push `feat/*` only. `main` = Kyle names it.
+- Work in a worktree off `integrate/campaign-os-brand-lanes-v1`; push `feat/*` only. `main` = Kyle or Christelle names it.
 - Real copy comes from the caption (`caption_hook`, `cta`) — never ship reference text as fields.
 - New image per iteration (timestamped names) — the image viewer caches same-name files.
 

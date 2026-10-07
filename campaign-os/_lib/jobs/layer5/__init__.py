@@ -5,12 +5,19 @@ from __future__ import annotations
 from typing import Callable
 
 from ..spec import JobSpec
-from . import asset_qc, draft_assets, krea_poll_draft_images, retry_failed_images
+from . import (
+    asset_qc,
+    draft_assets,
+    krea_poll_draft_images,
+    render_batch,
+    retry_failed_images,
+)
 
 LAYER5_JOB_NAMES: tuple[str, ...] = (
     "retry_failed_images",
     "draft_assets",
     "krea_poll_draft_images",
+    "render_batch",
     "asset_qc",
 )
 
@@ -64,6 +71,23 @@ def layer5_specs() -> list[JobSpec]:
             reads=("agent-queue.json",),
             writes=("draft-assets/", "campaign-data.json"),
             upstream=("draft_assets",),
+            brand_mode="per_brand",
+            brands=_ALL_ACTIVE_BRANDS,
+        ),
+        JobSpec(
+            name="render_batch",
+            fn=render_batch.run,
+            every_seconds=LAYER5_DAILY,
+            timeout_seconds=180,
+            # A composer failure is a real failure: the operator is waiting on
+            # a post, and silence would read as "nothing to do".
+            best_effort=False,
+            criticality="MEDIUM",
+            retries=0,
+            # Deterministic — no model, no key, no credits.
+            credentials=(),
+            reads=("marketing-calendar/",),
+            writes=("draft-assets/", "campaign-data.json"),
             brand_mode="per_brand",
             brands=_ALL_ACTIVE_BRANDS,
         ),

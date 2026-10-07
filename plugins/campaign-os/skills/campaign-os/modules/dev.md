@@ -25,4 +25,4 @@
 
 Foreman **spawns a writer job** for product code — does not edit the product repo directly.
 
-Branch rule: never push `main` without Kyle approval.
+Branch rule: never push `main` without Kyle or Christelle approving it.

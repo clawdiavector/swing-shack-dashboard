@@ -49,7 +49,7 @@ then open the module that matches the task.
 - **Prod checks** — bearer or session; never print token values
 - **App code** — spawn a writer job; foreman edits agent-control only
 - **Mac-only** — `bin/mac-bridge-client.py dispatch --wait`
-- **Protected branches** — feature branch + PR; Kyle approves `main` push
+- **Protected branches** — feature branch + PR; Kyle or Christelle approves `main` push
 
 ## Entry handoffs
 

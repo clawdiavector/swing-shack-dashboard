@@ -1324,6 +1324,11 @@ def _material_change_detected(
         "event_lifecycle", "opportunity_mode",
         "pillars", "relevance_score",
         "title", "venue",
+        # What a record renders into is material by definition: without this,
+        # editing a render_spec no-ops and the post silently keeps the old copy.
+        # Records that carry no render_spec compare None to None and are
+        # unaffected.
+        "render_spec",
     ]
     changed_fields: List[str] = []
     for f in MATERIAL_FIELDS:
@@ -1365,6 +1370,8 @@ def _material_change_detected(
     if "title" in changed_fields:
         # Title change with same event_key usually = promotion/rebrand
         return True, "promotion", changed_fields
+    if "render_spec" in changed_fields:
+        return True, "render_change", changed_fields
     return True, "supersession", changed_fields
 
 

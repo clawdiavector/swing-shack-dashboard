@@ -16,13 +16,12 @@ working directory.
 ```bash
 git clone https://github.com/clawdiavector/swing-shack-dashboard.git
 cd swing-shack-dashboard
-git checkout feat/campaign-os-plugin
 ```
 
 Needs access to the `clawdiavector` org — ask Kyle if the clone 404s.
 
-The branch matters: the plugin is not on `main` yet. Once Kyle merges it, the
-checkout line drops off and plain `main` is enough.
+`main` is enough — the plugin and the `render_batch` job landed on `main` on
+2026-10-07. No branch checkout.
 
 ### 2. Install the Python dependencies
 
@@ -218,9 +217,11 @@ Every check is free.
 **2. `data/` is read-only.** Human-committed seed data. No automation writes it,
 ever. Runtime truth lives in `$DATA_DIR`.
 
-**3. Never push `main`.** It auto-deploys to Railway the moment it lands. Program
-work goes on a branch and Kyle merges it. Claude is instructed not to push `main`
-without Kyle approving it in the same message — don't talk it out of that.
+**3. `main` is prod.** It auto-deploys to Railway the moment it lands. Work goes
+on a branch and you merge it yourself — you have full merge rights, no sign-off
+from Kyle needed. Claude will ask you to confirm in the same message before it
+pushes or merges into `main`; that's a guard against agents shipping unasked,
+not a permission gate.
 
 **4. Deterministic beats generated.** Nothing should run at a higher tier than its
 uncertainty requires: **lab → script → job → agent**. If the layout is known,

@@ -27,6 +27,7 @@ is why this exists: **the plugin is now the canonical home** for these skills.
 | `campaign-os-template` | Turning a batch of real brand posts into a pixel-accurate compose template. |
 | `krea-lab` | Any Krea/Ideogram/Recraft/Flux work — look up model ids, schemas and resolutions *before* generating. |
 | `brand-voice-truth` | **Before writing any caption or headline.** What the feed actually says, measured over all 261 Stick posts — the bibles drift and prompts read the bibles. |
+| `schedule-from-anywhere` | Putting a finished post on the live calendar and into Review from any machine, with a bearer token alone — no Railway CLI, no Mac, no credits. |
 
 ## The two rules that cost the most when broken
 

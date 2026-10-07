@@ -4,7 +4,7 @@
 
 | Rule | Detail |
 |---|---|
-| Canonical release | `main` — Kyle merges; **never push `main`/`master`/`develop` without explicit approval** |
+| Canonical release | `main` — Kyle or Christelle merges; **never push `main`/`master`/`develop` without explicit approval** |
 | Active integration | **`integrate/campaign-os-brand-lanes-v1`** — feature branches merge here first |
 | Feature work | `feat/*`, `fix/*`, `integrate/*` as ticket specifies |
 | Dead history | `feat/asset-state-engine`, `integrate/campaign-os-option-c` — superseded; do not target |
