@@ -70,6 +70,7 @@ campaign-os/tests/test_v2026_08_13_html_export.py
 campaign-os/tests/test_v2026_08_13_postiz_dedup.py
 campaign-os/tests/test_v2026_08_13_review_inbox_stale_first.py
 campaign-os/tests/test_v2026_08_13_weekly_report_share.py
+campaign-os/tests/test_v2026_10_07_weekly_report_wording.py
 campaign-os/tests/test_v2026_08_13_winning_theme_ideas.py
 campaign-os/tests/test_v2026_08_14_ad_correlation_trend_summary.py
 campaign-os/tests/test_v2026_08_14_boot_selfheal.py
