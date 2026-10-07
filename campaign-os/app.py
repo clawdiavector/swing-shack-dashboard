@@ -14615,7 +14615,9 @@ def posts_lodge_route():
     except Exception as exc:
         _app_log.exception("posts lodge failed")
         return jsonify({"ok": False, "error": f"{type(exc).__name__}: {exc}"}), 500
-    base = request.host_url.rstrip('/')
+    # Railway terminates TLS at its proxy, so request.scheme reads http here.
+    scheme = (request.headers.get('X-Forwarded-Proto') or request.scheme).split(',')[0].strip()
+    base = f"{scheme}://{request.host}"
     result["links"] = {k: base + v for k, v in (result.get("links") or {}).items()}
     result["images"] = {k: base + v for k, v in (result.get("images") or {}).items()}
     return jsonify(result), 200

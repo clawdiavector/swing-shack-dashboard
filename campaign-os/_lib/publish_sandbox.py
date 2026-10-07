@@ -387,6 +387,18 @@ def sync_queue_rows_for_asset(
         _cid, camp_asset = _campaign_asset_for_id(_load_campaign_data(), asset_id)
     cap = (caption or str((camp_asset or {}).get("caption") or "")).strip()[:500]
 
+    # An edited calendar moment is a new revision with a new calendar_id. The
+    # sidecar follows it; the rows must too, or Release finds no row for the
+    # moment and a moved date still goes out on the old day.
+    moment_ref = str((side or {}).get("source_inbox_item_id") or "")
+    if not moment_ref.startswith("calendar_candidate:"):
+        moment_ref = ""
+    moment_date = ""
+    if moment_ref:
+        from _lib.jobs.layer5.image_draft_context import calendar_event_date_for_item  # noqa: PLC0415
+
+        moment_date = str(calendar_event_date_for_item(brand_id, moment_ref) or "")
+
     rows = _read_jsonl(_queue_path())
     updated = 0
     prefix = f"qc-{asset_id}-"
@@ -404,6 +416,13 @@ def sync_queue_rows_for_asset(
         url = _composed_url_for_platform(platform=platform, asset=camp_asset, sidecar=side)
         if url:
             row["image_url"] = url
+        if moment_ref:
+            row["inbox_item_id"] = moment_ref
+        # Only when the date actually moved, so a hand-set publish time on an
+        # unchanged day is left alone.
+        if moment_date and moment_date[:10] != str(row.get("event_date") or "")[:10]:
+            row["event_date"] = moment_date[:10]
+            row["would_publish_at"] = _would_publish_at_from_event_date(moment_date[:10])
         updated += 1
     if updated:
         _rewrite_jsonl(_queue_path(), rows)
