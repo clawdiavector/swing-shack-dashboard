@@ -69,6 +69,7 @@ campaign-os/tests/test_v2026_08_13_html_export.py
 campaign-os/tests/test_v2026_08_13_postiz_dedup.py
 campaign-os/tests/test_v2026_08_13_review_inbox_stale_first.py
 campaign-os/tests/test_v2026_08_13_weekly_report_share.py
+campaign-os/tests/test_v2026_10_07_weekly_report_wording.py
 campaign-os/tests/test_v2026_08_13_winning_theme_ideas.py
 campaign-os/tests/test_v2026_08_14_ad_correlation_trend_summary.py
 campaign-os/tests/test_v2026_08_14_boot_selfheal.py
@@ -123,4 +124,3 @@ campaign-os/tests/jobs/test_layer5_create.py
 campaign-os/tests/test_brand_lanes_p2b.py
 campaign-os/tests/test_meta_workflow_per_brand_20260923.py
 self-tests/test_cos_job_summary_self.py
-campaign-os/tests/test_v2026_10_07_weekly_report_wording.py
