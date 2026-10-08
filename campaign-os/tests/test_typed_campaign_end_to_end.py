@@ -224,6 +224,49 @@ class TypedCampaignEndToEnd(unittest.TestCase):
                                json={"brand_id": "stick", "opportunity_id": event_key})
         self.assertEqual(res.get_json().get("decision"), "IGNORE")
 
+    def _waiting(self, brand="stick"):
+        body = self.client.get(f"/api/planning/{brand}/waiting").get_json()
+        self.assertEqual(body["count"], len(body["suggestions"]))
+        return body["suggestions"]
+
+    def test_suggestion_waits_at_the_top_of_plan_until_it_is_added(self):
+        title = "Waiting list drive"
+        res = self.client.post("/api/calendar/candidates", json=_form_body(
+            title=title, start="2026-11-20", end="2026-11-21", public_peak="2026-11-20"))
+        cid = res.get_json()["record"]["calendar_id"]
+        rows = [s for s in self._waiting() if s["title"] == title]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0], {
+            "candidate_id": cid, "title": title, "date": "2026-11-20",
+            "end_date": "2026-11-21", "type": "campaign", "pillars": ["stick-retail"],
+            "why_it_matters": PURPOSE, "created_at": rows[0]["created_at"],
+        })
+        self.assertNotIn(title, [s["title"] for s in self._waiting("swing-shack")])
+
+        self.client.post(f"/api/planning/stick/candidates/{cid}/approve",
+                         json={}, headers={"X-Actor-Display-Name": "Christelle"})
+        self.assertNotIn(title, [s["title"] for s in self._waiting()])
+
+    def test_waiting_list_is_soonest_first(self):
+        for title, day in (("Wait later", "2027-03-01"), ("Wait sooner", "2026-12-01")):
+            self.client.post("/api/calendar/candidates", json=_form_body(
+                title=title, start=day, end=day, public_peak=day))
+        titles = [s["title"] for s in self._waiting() if s["title"].startswith("Wait ")]
+        self.assertEqual(titles, ["Wait sooner", "Wait later"])
+
+    def test_timeline_says_which_entries_already_have_a_brief(self):
+        def entry(key):
+            res = self.client.get("/api/planning/stick/timeline?start=2026-10-08&end=2027-10-08")
+            return next(e for e in res.get_json()["events"] if e.get("event_key") == key)
+
+        event_key = self._suggest_and_approve(title="Brief step drive")
+        self.assertEqual(entry(event_key)["brief_id"], "")
+        self.assertEqual(entry(event_key)["type"], "campaign")
+        brief = self.client.post(
+            "/api/brief/v1/create",
+            json={"brand_id": "stick", "opportunity_id": event_key}).get_json()["brief"]
+        self.assertEqual(entry(event_key)["brief_id"], brief["brief_id"])
+
 
 if __name__ == "__main__":
     unittest.main()

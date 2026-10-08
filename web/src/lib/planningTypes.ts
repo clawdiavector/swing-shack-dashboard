@@ -43,6 +43,11 @@ export type PlanningMonthView = {
 
 export type PlanningTimelineEvent = {
   id: string
+  event_key?: string
+  /** Operator-typed entries only: campaign | moment | content | reminder. */
+  type?: string
+  /** Brief already written for this entry, '' when none (range timeline only). */
+  brief_id?: string
   name?: string
   tier?: PlanningTier | string
   category?: string
@@ -118,4 +123,21 @@ export type PlanningEventDetail = {
   ok?: boolean
   event?: PlanningTimelineEvent
   always_on_pillars?: unknown[]
+}
+
+export type PlanningWaitingSuggestion = {
+  candidate_id: string
+  title: string
+  date?: string | null
+  end_date?: string | null
+  type?: string
+  pillars?: string[]
+  why_it_matters?: string | null
+  created_at?: string | null
+}
+
+export type PlanningWaiting = {
+  ok?: boolean
+  count?: number
+  suggestions?: PlanningWaitingSuggestion[]
 }

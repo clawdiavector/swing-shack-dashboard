@@ -34,7 +34,7 @@ export const RAIL: RailItem[] = [
   { to: '/review', label: 'Review', hint: 'Drafts', icon: ClipboardCheck },
   { to: '/shelf', label: 'Shelf', hint: 'Scheduled', icon: Library },
   { to: '/create', label: 'Create', hint: 'Studio', icon: Sparkles },
-  { to: '/calendar/lanes', label: 'Calendar', hint: 'Strategic', icon: CalendarDays },
+  { to: '/calendar/lanes', label: 'Plan', hint: 'Calendar', icon: CalendarDays },
   { to: '/publish', label: 'Publish', hint: 'Go live', icon: Rocket },
   { to: '/results', label: 'Results', hint: 'What worked', icon: Activity },
   { to: '/ops', label: 'Ops', hint: 'Jobs · agents · accounts', icon: Bot },

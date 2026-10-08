@@ -418,6 +418,11 @@ export function fetchPlanningCandidates(
   )
 }
 
+/** What the operator suggested and has not yet added to the Main Calendar. */
+export function fetchPlanningWaiting(brand: string) {
+  return getJson<Record<string, unknown>>(`/api/planning/${encodeURIComponent(brand)}/waiting`)
+}
+
 export function fetchPlanningEvent(brand: string, eventId: string) {
   return getJson<Record<string, unknown>>(
     `/api/planning/${encodeURIComponent(brand)}/event/${encodeURIComponent(eventId)}`,

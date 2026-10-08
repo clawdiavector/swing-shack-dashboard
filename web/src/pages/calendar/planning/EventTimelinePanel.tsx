@@ -52,76 +52,6 @@ function timelineBarMetrics(
   return { sPct, widthPct, peakPct }
 }
 
-function formatListDate(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(`${iso}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return iso
-  return `${d.getDate()} ${MONTH_NAMES[d.getMonth()].charAt(0)}${MONTH_NAMES[d.getMonth()].slice(1).toLowerCase()} ${d.getFullYear()}`
-}
-
-/** Every loaded event as readable rows, soonest first; undated last. */
-function EventList({
-  events,
-  onOpenEvent,
-}: {
-  events: PlanningTimelineEvent[]
-  onOpenEvent: (id: string) => void
-}) {
-  const rows = [...events].sort((a, b) => {
-    const da = a.start || a.public_peak || a.planning_start || '9999'
-    const db = b.start || b.public_peak || b.planning_start || '9999'
-    return da.localeCompare(db) || (a.name || '').localeCompare(b.name || '')
-  })
-  if (!rows.length) {
-    return (
-      <p className="rounded-lg border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-        No events in the next 12 months.
-      </p>
-    )
-  }
-  return (
-    <ul className="space-y-1" data-testid="timeline-list">
-      {rows.map((ev) => {
-        const tier = ev.tier || 'C-PIN'
-        const c = PIN_COLORS[tier] || PIN_COLORS['C-PIN']
-        const start = ev.start || ev.public_peak || ev.planning_start
-        const end = ev.end && ev.end !== start ? ev.end : ''
-        return (
-          <li key={ev.id}>
-            <button
-              type="button"
-              onClick={() => onOpenEvent(ev.id)}
-              data-testid="timeline-list-row"
-              className="grid w-full grid-cols-[9.5rem_4.5rem_1fr] items-baseline gap-3 rounded-md bg-bg2 px-3 py-2 text-left transition-colors hover:bg-bg1 sm:grid-cols-[13rem_4.5rem_1fr]"
-            >
-              <span className="text-[11px] font-semibold text-tx2">
-                {start ? formatListDate(start) : 'No date yet'}
-                {end ? ` – ${formatListDate(end)}` : ''}
-              </span>
-              <span
-                className="justify-self-start rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider"
-                style={{ background: c.bg, color: c.fg }}
-              >
-                {tier}
-              </span>
-              <span className="min-w-0">
-                <span className="text-xs font-bold text-tx">
-                  {ev.name || '(untitled)'}
-                  {ev.shopping_moment ? ' 🛍' : ''}
-                </span>
-                {ev.category ? <span className="ml-2 text-[10px] text-tx3">{ev.category}</span> : null}
-                {ev.commercial_push ? (
-                  <span className="mt-0.5 block truncate text-[11px] text-tx3">{ev.commercial_push}</span>
-                ) : null}
-              </span>
-            </button>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
-
 export function EventTimelinePanel({
   brand,
   year,
@@ -144,17 +74,6 @@ export function EventTimelinePanel({
       ? viewParam
       : '90'
   const zoomDays = zoomIdToDays(zoomId)
-  // List layout shows every loaded event (today to 12 months out) as rows.
-  const listMode = params.get('layout') === 'list'
-  const setLayout = useCallback(
-    (layout: 'timeline' | 'list') => {
-      const p = new URLSearchParams(params)
-      if (layout === 'list') p.set('layout', 'list')
-      else p.delete('layout')
-      setParams(p, { replace: true })
-    },
-    [params, setParams],
-  )
 
   // offset = days from today that the visible window starts at. 0 = anchored on today.
   const [offsetDays, setOffsetDays] = useState(0)
@@ -296,36 +215,8 @@ export function EventTimelinePanel({
     <section className="glass space-y-4 rounded-2xl border border-white/10 p-4">
       {/* Zoom selector + filter */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-semibold">
-          {listMode ? 'Event list · next 12 months' : `Event timeline · ${year}`}
-        </h2>
+        <h2 className="font-display text-lg font-semibold">Event timeline · {year}</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-bg1 p-1">
-            {(['timeline', 'list'] as const).map((layout) => {
-              const active = (layout === 'list') === listMode
-              return (
-                <button
-                  key={layout}
-                  type="button"
-                  title={
-                    layout === 'list'
-                      ? 'Every event of the year as rows, soonest first'
-                      : 'Events as bars on a timeline'
-                  }
-                  onClick={() => setLayout(layout)}
-                  data-testid={`layout-${layout}`}
-                  className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                    active
-                      ? 'bg-yel text-bg border border-yel'
-                      : 'bg-bg2 text-tx border border-bd hover:border-yel/60'
-                  }`}
-                >
-                  {layout === 'list' ? 'List' : 'Timeline'}
-                </button>
-              )
-            })}
-          </span>
-          {listMode ? null : (
           <span className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-bg1 p-1">
             {ZOOM_OPTIONS.map((opt) => {
               const active = opt.id === zoomId
@@ -347,7 +238,6 @@ export function EventTimelinePanel({
               )
             })}
           </span>
-          )}
           <button
             type="button"
             onClick={() => setShoppingOnly((v) => !v)}
@@ -363,11 +253,7 @@ export function EventTimelinePanel({
       </div>
 
       {/* Prev / Today / Next + window label */}
-      <div
-        className={`flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-bg2 px-3 py-2 ${
-          listMode ? 'hidden' : 'flex'
-        }`}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-bg2 px-3 py-2">
         <div className="flex items-center gap-1.5">
           <button
             type="button"
@@ -415,16 +301,6 @@ export function EventTimelinePanel({
       </div>
 
       {/* Scrollable viewport — full year canvas, anchored to (today + offset). */}
-      {listMode ? (
-        <EventList
-          events={
-            shoppingOnly
-              ? (timeline.events || []).filter((e) => e.shopping_moment)
-              : timeline.events || []
-          }
-          onOpenEvent={onOpenEvent}
-        />
-      ) : (
       <div
         ref={viewportRef}
         className="relative overflow-x-auto overflow-y-visible"
@@ -606,9 +482,8 @@ export function EventTimelinePanel({
           </div>
         </div>
       </div>
-      )}
 
-      {skippedCount > 0 && !listMode ? (
+      {skippedCount > 0 ? (
         <p className="text-xs text-tx3">
           {skippedCount} {skippedCount === 1 ? 'event' : 'events'} without dates (hidden from
           timeline).
