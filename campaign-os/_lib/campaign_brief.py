@@ -215,11 +215,12 @@ def _north_stars(brand_id: str) -> dict:
     except Exception:
         cfg = {}
     pillars = cfg.get("pillars") or []
+    pillar_keys = _pillar_keys(brand_id)
     if not pillars:
         # No strategy config — return operator_input_required for
         # each well-known pillar name so the brief engine doesn't
         # silently substitute stale constants.
-        for p in PILLAR_KEYS:
+        for p in pillar_keys:
             out[p] = {
                 "label": p.title(),
                 "target": "",
@@ -236,7 +237,7 @@ def _north_stars(brand_id: str) -> dict:
         canonical_id = p_cfg.get("pillar_id") or ""
         bare = (canonical_id.split("-")[-1] if "-" in canonical_id
                 else canonical_id).lower()
-        if bare not in PILLAR_KEYS:
+        if bare not in pillar_keys:
             continue
         nst = p_cfg.get("north_star_target") or {}
         nsm = p_cfg.get("north_star_metric") or ""
@@ -315,7 +316,7 @@ def _north_stars(brand_id: str) -> dict:
         }
     # Always include bare-name keys for the well-known pillars even
     # if they don't appear in the config — mark as unknown.
-    for p in PILLAR_KEYS:
+    for p in pillar_keys:
         if p not in out:
             out[p] = {
                 "label": p.title(),
@@ -333,6 +334,25 @@ def _north_stars(brand_id: str) -> dict:
 # ── Pillars ──────────────────────────────────────────────────────
 
 PILLAR_KEYS = ("retail", "fitting", "coaching")
+
+
+def _pillar_keys(brand_id: str) -> tuple:
+    """PILLAR_KEYS plus any other pillar the brand's calendar_config
+    declares, by bare name (e.g. Swing Shack's `ss-membership` ->
+    "membership"). A pillar the brand runs must be able to match an
+    opportunity, or its campaigns can never be briefed."""
+    keys = list(PILLAR_KEYS)
+    try:
+        cfg = _marketing_calendar_import().load_brand_config(brand_id) or {}
+    except Exception:
+        cfg = {}
+    for p_cfg in cfg.get("pillars") or []:
+        canonical_id = str(p_cfg.get("pillar_id") or "")
+        bare = (canonical_id.split("-")[-1] if "-" in canonical_id
+                else canonical_id).lower()
+        if bare and bare not in keys:
+            keys.append(bare)
+    return tuple(keys)
 
 
 def _pillar_mix(brand_id: str, days_back: int = 31) -> dict:
@@ -1527,14 +1547,14 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
     pillars_supported = opportunity.get("pillars") or {}
     always_on_pillar_match = []
     if isinstance(pillars_supported, dict):
-        for p in PILLAR_KEYS:
+        for p in _pillar_keys(brand_id):
             if p in pillars_supported:
                 always_on_pillar_match.append(p)
             elif any(isinstance(v, str) and p in v.lower()
                      for v in pillars_supported.values()):
                 always_on_pillar_match.append(p)
     elif isinstance(pillars_supported, list):
-        for p in PILLAR_KEYS:
+        for p in _pillar_keys(brand_id):
             pl = p.lower()
             for v in pillars_supported:
                 vs = str(v).lower()
@@ -1600,8 +1620,7 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
 
     # 1d. actionable brand angle — campaign lane OR
     # explicit commercial relevance from calendar
-    commercial = (any(p in ("retail", "fitting", "coaching")
-                       for p in always_on_pillar_match)
+    commercial = (bool(always_on_pillar_match)
                    or "commercial" in lane_keys
                    or "apparel" in lane_keys
                    or "retail" in lane_keys
@@ -2179,7 +2198,7 @@ def create_brief(brand_id: str, opportunity_id: str,
     always_on_pillar_match = []
     opp_pillars = opp.get("pillars") or {}
     if isinstance(opp_pillars, dict):
-        for p in PILLAR_KEYS:
+        for p in _pillar_keys(brand_id):
             if p in opp_pillars:
                 always_on_pillar_match.append(p)
             elif any(isinstance(v, str) and p in v.lower()
@@ -2187,7 +2206,7 @@ def create_brief(brand_id: str, opportunity_id: str,
                 always_on_pillar_match.append(p)
     elif isinstance(opp_pillars, list):
         # Match against canonical pillar IDs (e.g. 'stick-retail')
-        for p in PILLAR_KEYS:
+        for p in _pillar_keys(brand_id):
             pl = p.lower()
             for v in opp_pillars:
                 vs = str(v).lower()

@@ -73,11 +73,12 @@ class TypedCampaignEndToEnd(unittest.TestCase):
         os.environ.pop("DATA_DIR", None)
 
     def _suggest_and_approve(self, **over):
+        brand = over.get("brand_id", "stick")
         res = self.client.post("/api/calendar/candidates", json=_form_body(**over))
         self.assertEqual(res.status_code, 200, res.get_data(as_text=True))
         cid = res.get_json()["record"]["calendar_id"]
         res = self.client.post(
-            f"/api/planning/stick/candidates/{cid}/approve",
+            f"/api/planning/{brand}/candidates/{cid}/approve",
             json={}, headers={"X-Actor-Display-Name": "Christelle"})
         self.assertEqual(res.status_code, 200, res.get_data(as_text=True))
         return res.get_json()["event_key"]
@@ -102,6 +103,34 @@ class TypedCampaignEndToEnd(unittest.TestCase):
         self.assertEqual(brief["opportunity"]["operator_purpose"], PURPOSE)
         self.assertIn(PURPOSE, brief["opportunity"]["why_it_may_matter"])
         self.assertEqual(brief["business_objective"]["pillar_supported"], "retail")
+
+    def test_swing_shack_membership_campaign_reaches_a_brief(self):
+        purpose = "Sign up 20 new members before the summer season"
+        event_key = self._suggest_and_approve(
+            brand_id="swing-shack", title="Summer membership drive",
+            pillars=["ss-membership"], why_it_matters=purpose)
+
+        found = self.client.get(f"/api/brief/v1/swing-shack/find-by-event/{event_key}").get_json()
+        self.assertFalse(found["exists"])
+
+        res = self.client.post("/api/brief/v1/create",
+                               json={"brand_id": "swing-shack", "opportunity_id": event_key})
+        body = res.get_json()
+        self.assertEqual(res.status_code, 200, body)
+        brief = body["brief"]
+        self.assertEqual(brief["opportunity_gate"]["gate"], "BRIEF")
+        self.assertEqual(brief["business_objective"]["pillar_supported"], "membership")
+        self.assertEqual(brief["opportunity"]["operator_purpose"], purpose)
+
+        # What the Create Brief button relies on afterwards.
+        found = self.client.get(f"/api/brief/v1/swing-shack/find-by-event/{event_key}").get_json()
+        self.assertTrue(found["exists"])
+        self.assertEqual(found["brief"]["brief_id"], brief["brief_id"])
+        again = self.client.post("/api/brief/v1/create",
+                                 json={"brand_id": "swing-shack", "opportunity_id": event_key}).get_json()
+        self.assertEqual(again["existing_brief"]["brief_id"], brief["brief_id"])
+        review = self.client.get(f"/api/brief/v1/swing-shack/{brief['brief_id']}/review")
+        self.assertEqual(review.status_code, 200)
 
     def test_moment_from_the_same_form_is_still_refused(self):
         event_key = self._suggest_and_approve(
