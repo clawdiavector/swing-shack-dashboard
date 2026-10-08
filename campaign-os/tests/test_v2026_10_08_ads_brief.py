@@ -226,6 +226,16 @@ class Page(_JobCase):
         self.assertNotIn("<script>alert(1)", page)
         self.assertIn("&lt;script&gt;", page)
         self.assertIn("nothing here changes an ad", page)
+        self.assertIn('<a href="/daily">', page)
+
+    def test_unchanged_number_does_not_read_as_minus_zero(self):
+        self.assertIn("no change", ads_brief._delta(-0.001))
+        self.assertIn("no change", ads_brief._delta(0.0))
+        self.assertIn("-16%", ads_brief._delta(-0.16))
+        self.assertIn('class="good"', ads_brief._delta(-0.08, lower_is_better=True))
+        self.assertIn('class="good"', ads_brief._delta(0.6))
+        self.assertIn('class=""', ads_brief._delta(-0.16))
+        self.assertIn('class=""', ads_brief._delta(0.47, neutral=True))
 
     def test_weekly_page(self):
         self.run_job(fx.STICK, DAY)
