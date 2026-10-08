@@ -44975,6 +44975,34 @@ def important_key_dates(items):
     return out
 
 
+def _operator_record_as_timeline_event(record):
+    """Shape a marketing_calendar operator record like a spine event.
+
+    Operator records carry `title`, `event_key`, `event_start` and a list of
+    pillar ids; the timeline UI reads `name`, `id`, `start` and a
+    {pillar: text} dict. Without this the entry draws as an unnamed bar that
+    cannot be opened.
+    """
+    entry = dict(record)
+    entry.setdefault("id", record.get("event_key"))
+    if not entry.get("name"):
+        entry["name"] = record.get("title") or record.get("event_key")
+    if not entry.get("start"):
+        entry["start"] = record.get("event_start") or ""
+    if not entry.get("end"):
+        entry["end"] = record.get("event_end") or record.get("public_peak") or entry["start"]
+    purpose = str(record.get("purpose") or "").strip()
+    if purpose and not entry.get("commercial_push"):
+        entry["commercial_push"] = purpose
+    pillars = record.get("pillars")
+    if isinstance(pillars, list):
+        entry["pillars"] = {
+            str(p).split("-")[-1].lower(): purpose or "Operator campaign"
+            for p in pillars if p
+        }
+    return entry
+
+
 def _enrich_event(event):
     """Convert phase weeks_before_peak into absolute sequential date ranges.
 
@@ -45227,7 +45255,7 @@ def planning_timeline(brand_id):
                 except Exception:
                     continue
                 if r_end >= start_d and r_start <= end_d:
-                    combined_events[ek] = record
+                    combined_events[ek] = _operator_record_as_timeline_event(record)
             try:
                 sources.append(f"marketing_calendar[{brand_id}].jsonl")
             except Exception:
@@ -46041,7 +46069,11 @@ def planning_approve_candidate(brand_id, candidate_id):
                         "source": r.get("source_origin") or r.get("source"),
                         "source_url": r.get("source_url"),
                         "confidence": r.get("confidence"),
-                        "suggested_tier": r.get("tier"),
+                        # The Suggest Date form sends the operator's pick as
+                        # `importance`; "ASSESS" means no pick.
+                        "suggested_tier": r.get("tier") or (
+                            r.get("importance")
+                            if r.get("importance") in ("A-PIN", "B-PIN", "C-PIN") else None),
                         "recommended_lead_time_weeks": r.get("recommended_lead_time_weeks"),
                         "relevance_to_swing_shack": r.get("summary") or r.get("relevance_reason"),
                         "opportunity": r.get("summary"),
@@ -47760,6 +47792,20 @@ def planning_event_detail(brand_id, event_id):
                     "always_on_pillars": spine.get("always_on_pillars") or [],
                     "source": source,
                 }), 200
+    # Operator-approved entries live in the marketing_calendar store, not the spine.
+    try:
+        from _lib import marketing_calendar as _mc_event_detail
+        for record in (_mc_event_detail.list_records(brand_id) or []):
+            if record.get("event_key") == event_id and record.get("status") == "approved":
+                return jsonify({
+                    "ok": True,
+                    "brand_id": brand_id,
+                    "event": _enrich_event(_operator_record_as_timeline_event(record)),
+                    "always_on_pillars": [],
+                    "source": f"marketing_calendar[{brand_id}]",
+                }), 200
+    except Exception:
+        _app_log.exception("planning_event_detail: operator-store lookup failed")
     return jsonify({"ok": False, "error": "event not found", "event_id": event_id}), 404
 
 

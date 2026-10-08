@@ -132,6 +132,36 @@ class TypedCampaignEndToEnd(unittest.TestCase):
         review = self.client.get(f"/api/brief/v1/swing-shack/{brief['brief_id']}/review")
         self.assertEqual(review.status_code, 200)
 
+    def test_importance_picked_on_the_form_becomes_the_tier(self):
+        picked = self._suggest_and_approve(title="Picked B", importance="B-PIN")
+        self.assertEqual(self._record(picked)["tier"], "B-PIN")
+        assessed = self._suggest_and_approve(title="Left to assess", importance="ASSESS")
+        self.assertEqual(self._record(assessed)["tier"], "C-PIN")
+
+    def test_approved_entry_is_on_the_timeline_for_its_year(self):
+        self._suggest_and_approve(title="New Year New Swing", start="2027-01-01",
+                                  end="2027-01-02", public_peak="2027-01-01",
+                                  pillars=["stick-coaching"], importance="B-PIN")
+        # The range form is what the Calendar screen requests.
+        res = self.client.get("/api/planning/stick/timeline?start=2026-10-08&end=2027-10-08")
+        names = {e.get("name"): e for e in res.get_json().get("events", [])}
+        self.assertIn("New Year New Swing", names)
+        entry = names["New Year New Swing"]
+        self.assertEqual(entry["tier"], "B-PIN")
+        self.assertEqual(entry["start"], "2027-01-01")
+        self.assertTrue(entry["id"])
+        # Every event the timeline returns must be nameable and openable.
+        for ev in res.get_json()["events"]:
+            self.assertTrue(ev.get("name") and ev.get("id"), ev.get("event_key"))
+        self.assertEqual(entry["pillars"], {"coaching": PURPOSE})
+        self.assertEqual(entry["commercial_push"], PURPOSE)
+
+        from urllib.parse import quote
+        detail = self.client.get(f"/api/planning/stick/event/{quote(entry['id'], safe='')}")
+        self.assertEqual(detail.status_code, 200, detail.get_data(as_text=True))
+        self.assertEqual(detail.get_json()["event"]["name"], "New Year New Swing")
+        self.assertEqual(self.client.get("/api/planning/stick/event/nope").status_code, 404)
+
     def test_moment_from_the_same_form_is_still_refused(self):
         event_key = self._suggest_and_approve(
             type="moment", title="Ladies clinic at Stick", pillars=[])
