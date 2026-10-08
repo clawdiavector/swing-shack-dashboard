@@ -63,6 +63,7 @@ campaign-os/tests/test_v2026_08_12_no_emdashes_section_tips_and_modal.py
 campaign-os/tests/test_v2026_08_12_seo_rising_falling_fieldname.py
 campaign-os/tests/test_v2026_08_12_walker_nav_group_expansion.py
 campaign-os/tests/test_v2026_10_08_ads_brain.py
+campaign-os/tests/test_v2026_10_08_ads_brief.py
 campaign-os/tests/test_v2026_08_13_ad_correlation_duplicate_ga4_rows.py
 campaign-os/tests/test_v2026_08_13_brief_collapse.py
 campaign-os/tests/test_v2026_08_13_brief_recommended_action_skips_already_scheduled.py
@@ -72,6 +73,7 @@ campaign-os/tests/test_v2026_08_13_postiz_dedup.py
 campaign-os/tests/test_v2026_08_13_review_inbox_stale_first.py
 campaign-os/tests/test_v2026_08_13_weekly_report_share.py
 campaign-os/tests/test_v2026_10_07_weekly_report_wording.py
+campaign-os/tests/test_v2026_10_08_weekly_report_ads_brief.py
 campaign-os/tests/test_v2026_08_13_winning_theme_ideas.py
 campaign-os/tests/test_v2026_08_14_ad_correlation_trend_summary.py
 campaign-os/tests/test_v2026_08_14_boot_selfheal.py

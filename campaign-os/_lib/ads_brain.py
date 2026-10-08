@@ -97,6 +97,26 @@ _POST_FIELDS = "call_to_action,attachments{unshimmed_url,url,type}"
 _META_HOSTS = ("facebook.com", "fb.me", "fb.com", "instagram.com", "messenger.com", "m.me")
 
 
+# Mirrors _META_ADS_ACCOUNT_FOR_BRAND / _META_ADS_TOKEN_FOR_BRAND and its
+# fallbacks in app.py, so jobs can resolve them without importing app.
+ACCOUNT_FOR_BRAND = {
+    "stick": "act_2101557317059886",
+    "swing-shack": "act_1024882912541604",
+}
+TOKEN_ENV_FOR_BRAND = {
+    "stick": ("META_SYSTEM_USER_TOKEN_STICK", "META_SYSTEM_USER_TOKEN_STICK_PAARL",
+              "META_SYSTEM_USER_TOKEN"),
+    "swing-shack": ("META_SYSTEM_USER_TOKEN",),
+}
+
+
+def resolve_credentials(brand_id: str):
+    """(account_id, token) for a brand; either is None when not configured."""
+    token = next((os.environ[k] for k in TOKEN_ENV_FOR_BRAND.get(brand_id, ())
+                  if os.environ.get(k)), None)
+    return ACCOUNT_FOR_BRAND.get(brand_id), token
+
+
 # ── small helpers ────────────────────────────────────────────────────────
 
 def _num(x, cast=float):
@@ -306,9 +326,13 @@ def _destination(setting: dict, extra: dict, post, post_error) -> dict:
 
 def fetch_snapshot(brand_id: str, account_id: str, token: str, *,
                    days: int = 31, api_version: str | None = None,
-                   get=None, get_as=None, today: _dt.date | None = None) -> dict:
+                   get=None, get_as=None, today: _dt.date | None = None,
+                   insights_only: bool = False) -> dict:
     """Read one ad account at ad level. Each part fails independently and is
     recorded in ``errors``; scoring skips the rules a missing part would feed.
+
+    ``insights_only`` reads the two insight windows and nothing else: enough
+    for numbers, not enough to score.
 
     ``get(path, params) -> (json, error)`` uses the ads token and
     ``get_as(token, path, params)`` a token minted during the run; both are
@@ -342,17 +366,20 @@ def fetch_snapshot(brand_id: str, account_id: str, token: str, *,
     prev, err = insights(win["previous"], _INSIGHT_FIELDS)
     if err:
         errors.append(f"previous insights: {err}")
-    place, err = insights(win["current"],
-                          "ad_id,spend,impressions,inline_link_clicks,actions",
-                          breakdowns="publisher_platform,platform_position")
-    if err:
-        errors.append(f"placements: {err}")
-    settings, err = _get_all(get, f"{base}/ads", {"fields": _AD_FIELDS, "limit": 100})
-    if err:
-        errors.append(f"ad settings: {err}")
-    extras, err = _get_all(get, f"{base}/ads", {"fields": _CREATIVE_EXTRA_FIELDS, "limit": 100})
-    if err:
-        errors.append(f"creative destination fields: {err}")
+    place = settings = extras = None
+    if not insights_only:
+        place, err = insights(win["current"],
+                              "ad_id,spend,impressions,inline_link_clicks,actions",
+                              breakdowns="publisher_platform,platform_position")
+        if err:
+            errors.append(f"placements: {err}")
+        settings, err = _get_all(get, f"{base}/ads", {"fields": _AD_FIELDS, "limit": 100})
+        if err:
+            errors.append(f"ad settings: {err}")
+        extras, err = _get_all(get, f"{base}/ads",
+                               {"fields": _CREATIVE_EXTRA_FIELDS, "limit": 100})
+        if err:
+            errors.append(f"creative destination fields: {err}")
 
     prev_by = {r.get("ad_id"): r for r in prev or []}
     set_by = {s.get("id"): s for s in settings or []}

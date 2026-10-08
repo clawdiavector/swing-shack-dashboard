@@ -5,13 +5,14 @@ from __future__ import annotations
 from typing import Callable
 
 from ..spec import JobSpec
-from . import human_edit_signal, post_outcomes, proposal_outcome, winner_promotion
+from . import ads_brief, human_edit_signal, post_outcomes, proposal_outcome, winner_promotion
 
 LAYER7_JOB_NAMES: tuple[str, ...] = (
     "post_outcomes",
     "winner_promotion",
     "proposal_outcome",
     "human_edit_signal",
+    "ads_brief",
 )
 
 LAYER7_DAILY = 86400
@@ -82,6 +83,22 @@ def layer7_specs() -> list[JobSpec]:
             upstream=(),
             brand_mode="per_brand",
             brands=_ALL_ACTIVE_BRANDS,
+        ),
+        JobSpec(
+            name="ads_brief",
+            fn=ads_brief.run,
+            every_seconds=LAYER7_DAILY,
+            timeout_seconds=180,
+            # New and read-only: a bad Meta day should read LATE, not page anyone.
+            best_effort=True,
+            criticality="LOW",
+            credentials=("META_SYSTEM_USER_TOKEN",),
+            reads=(),
+            writes=(ads_brief.LATEST, ads_brief.WEEKLY, ads_brief.STATE, ads_brief.EVENTS),
+            upstream=(),
+            brand_mode="per_brand",
+            # The two brands with a Meta ad account.
+            brands=("swing-shack", "stick"),
         ),
     ]
 
