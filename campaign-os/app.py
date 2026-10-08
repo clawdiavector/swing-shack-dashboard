@@ -13471,6 +13471,59 @@ def get_campaign(campaign_id):
         return jsonify({"error": "Campaign not found"}), 404
     return jsonify(campaigns[campaign_id])
 
+
+@app.route('/api/campaigns/<campaign_id>', methods=['DELETE'])
+def archive_campaign(campaign_id):
+    """Archive a campaign, then remove it (and its assets) from campaign-data.json.
+
+    The full campaign is written to DATA_DIR/archive/campaigns/ before anything
+    is removed; if that write fails the campaign is left untouched.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if campaign_id not in campaigns:
+        return jsonify({"ok": False, "error": "Campaign not found"}), 404
+    campaign = campaigns[campaign_id]
+    assets = campaign.get("assets") or {}
+    was_active = data.get("activeCampaignId") == campaign_id
+
+    now = _now_iso()
+    archive_dir = os.path.join(_data_paths()['data_dir'], 'archive', 'campaigns')
+    safe_id = re.sub(r'[^A-Za-z0-9._-]+', '-', campaign_id)
+    archive_name = f"{safe_id}-{now.replace(':', '').replace('-', '')}.json"
+    try:
+        os.makedirs(archive_dir, exist_ok=True)
+        with open(os.path.join(archive_dir, archive_name), 'w', encoding='utf-8') as f:
+            json.dump({
+                "campaignId": campaign_id,
+                "archivedAt": now,
+                "wasActive": was_active,
+                "campaign": campaign,
+            }, f, indent=2, ensure_ascii=False)
+    except OSError as exc:
+        _app_log.exception("archive_campaign: archive write failed")
+        return jsonify({"ok": False, "error": f"Archive failed, campaign not removed: {exc}"}), 500
+
+    del campaigns[campaign_id]
+    data["campaigns"] = campaigns
+    if was_active:
+        brand_id = campaign.get("brand_id")
+        data["activeCampaignId"] = next(
+            (cid for cid, c in campaigns.items() if c.get("brand_id") == brand_id),
+            next(iter(campaigns), None),
+        )
+    save_data(data)
+    return jsonify({
+        "ok": True,
+        "campaignId": campaign_id,
+        "archivedAs": archive_name,
+        "assetsRemoved": len(assets),
+        "activeCampaignId": data.get("activeCampaignId"),
+    })
+
+
 @app.route('/api/campaigns', methods=['POST'])
 def create_campaign():
     """Create a new campaign."""

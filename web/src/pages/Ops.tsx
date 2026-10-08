@@ -5,29 +5,33 @@ import { useBrand } from '../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../components/chrome'
 import { Badge, Button, ClassicLink, StatCard, Tip } from '../components/ui'
 import {
+  archiveCampaign,
   fetchAccounts,
   fetchAgentQueue,
   fetchAgents,
+  fetchAllCampaigns,
   fetchJobsStatus,
   fetchLayers,
   type AccountItem,
   type AgentRow,
+  type CampaignListEntry,
   type JobEntry,
   type LayerEntry,
   type QueueRow,
 } from '../lib/api'
 import { formatStamp } from '../lib/stamp'
 
-type OpsTab = 'jobs' | 'agents' | 'accounts'
+type OpsTab = 'jobs' | 'agents' | 'accounts' | 'campaigns'
 
 const TAB_OPTIONS = [
   { id: 'jobs', label: 'Jobs' },
   { id: 'agents', label: 'Agents' },
   { id: 'accounts', label: 'Accounts' },
+  { id: 'campaigns', label: 'Campaigns' },
 ]
 
 function resolveTab(tab: string | null, layer: string | null): { tab: OpsTab; classicLayer: string | null } {
-  if (tab === 'jobs' || tab === 'agents' || tab === 'accounts') {
+  if (tab === 'jobs' || tab === 'agents' || tab === 'accounts' || tab === 'campaigns') {
     return { tab, classicLayer: null }
   }
   if (layer === 'agents') return { tab: 'agents', classicLayer: null }
@@ -553,6 +557,120 @@ function AccountsTab({ brandId }: { brandId: string }) {
   )
 }
 
+function campaignPostSummary(campaign: CampaignListEntry): string {
+  const assets = Object.values(campaign.assets || {})
+  if (!assets.length) return 'No posts'
+  const published = assets.filter(
+    (a) => a.status === 'published' || a.publishStatus === 'published',
+  ).length
+  const posts = `${assets.length} post${assets.length === 1 ? '' : 's'}`
+  return published ? `${posts}, ${published} published` : posts
+}
+
+function CampaignsTab() {
+  const [campaigns, setCampaigns] = useState<Record<string, CampaignListEntry> | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [msg, setMsg] = useState('')
+
+  const load = useCallback(() => {
+    setErr(null)
+    fetchAllCampaigns()
+      .then((res) => {
+        setCampaigns(res.campaigns || {})
+        setActiveId(res.activeCampaignId ?? null)
+      })
+      .catch((e) => {
+        setCampaigns(null)
+        setErr(e instanceof Error ? e.message : 'Could not load campaigns.')
+      })
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function handleArchive(id: string, name: string, summary: string) {
+    if (
+      !window.confirm(
+        `Archive "${name}" (${summary})? It is saved to the archive folder, then removed from the OS along with its posts. (live)`,
+      )
+    )
+      return
+    setBusyId(id)
+    setMsg('')
+    try {
+      const out = await archiveCampaign(id)
+      setMsg(`Archived "${name}" as ${out.archivedAs}. ${out.assetsRemoved ?? 0} posts removed.`)
+      load()
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Archive failed.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  if (campaigns === null && !err) return <SkeletonRows n={4} />
+  if (err) {
+    return (
+      <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">{err}</p>
+    )
+  }
+
+  const rows = Object.entries(campaigns || {})
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-tx2">
+        Campaigns stored by the old campaign builder, across all brands. Archiving saves a full copy
+        to the archive folder on the server, then removes the campaign and its posts.
+      </p>
+      {msg ? <p className="text-sm text-tx2">{msg}</p> : null}
+      {!rows.length ? (
+        <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
+          No stored campaigns.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {rows.map(([id, campaign]) => {
+            const name = campaign.identity?.name || id
+            const summary = campaignPostSummary(campaign)
+            const tip = `Archive ${name}, then remove it and its posts.`
+            return (
+              <li
+                key={id}
+                className="glass flex flex-wrap items-center justify-between gap-3 rounded-2xl border-[1.5px] border-bd px-4 py-3 backdrop-blur-xl"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-tx">{name}</p>
+                  <p className="text-xs text-tx3">
+                    {campaign.brand_id || 'no brand'} · {summary}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {id === activeId ? <Badge tone="gold">Active</Badge> : null}
+                  <Tip text={tip}>
+                    <button
+                      type="button"
+                      title={tip}
+                      disabled={busyId !== null}
+                      onClick={() => void handleArchive(id, name, summary)}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-red/15 px-3 py-1.5 text-xs font-semibold text-red disabled:opacity-60"
+                    >
+                      {busyId === id ? 'Archiving…' : 'Archive'}
+                    </button>
+                  </Tip>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export function Ops() {
   const { brandId } = useBrand()
   const scopeBrand = brandId ?? 'stick'
@@ -587,8 +705,8 @@ export function Ops() {
   return (
     <div className="space-y-6">
       <PageIntro here="/ops" title="Ops">
-        Jobs, agents, and connected accounts — native Heroes, same APIs as Classic. The fleet is
-        shared; accounts and per-brand job rows follow the brand switch.
+        Jobs, agents, connected accounts, and stored campaigns — native Heroes, same APIs as
+        Classic. The fleet is shared; accounts and per-brand job rows follow the brand switch.
       </PageIntro>
 
       <LayerRibbon layers={layers} onSelectTab={setTab} />
@@ -607,6 +725,7 @@ export function Ops() {
         <AgentsTab brandId={scopeBrand} highlightAgent={highlightAgent} />
       ) : null}
       {tab === 'accounts' ? <AccountsTab brandId={scopeBrand} /> : null}
+      {tab === 'campaigns' ? <CampaignsTab /> : null}
 
       <div className="flex flex-wrap gap-2 pt-2">
         <Button
