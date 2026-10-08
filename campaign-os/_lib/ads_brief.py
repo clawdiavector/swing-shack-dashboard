@@ -240,7 +240,7 @@ def _delta(change, lower_is_better=False, neutral=False) -> str:
     """Green when the number moved the right way. Spend is neither good nor bad."""
     if change is None:
         return '<span>no comparison</span>'
-    if abs(change) < 0.005:
+    if round(change * 100) == 0:
         return '<span>no change vs the 7 days before</span>'
     cls = "good" if (not neutral and (change < 0) == lower_is_better) else ""
     return f'<span class="{cls}">{change:+.0%} vs the 7 days before</span>'
@@ -273,6 +273,8 @@ def _section(brief: dict) -> str:
         age = f' · open {a["days_open"]} days' if a["days_open"] else ""
         parts.append(f'<div class="item"><span class="tag {a["severity"]}">{a["severity"]}{age}</span>'
                      f'<p><b>{i}. {_e(a["action"])}</b>{ads}</p><p class="mute">{_e(a["why"])}</p></div>')
+
+    parts.append(_creative_section(brief.get("creative")))
 
     def listing(title, rows, empty, resolved=False):
         parts.append(f'<h3>{title}</h3>')
@@ -315,6 +317,77 @@ def _section(brief: dict) -> str:
     parts.append('</details>')
     if brief["errors"]:
         parts.append('<p class="mute">Meta read notes: ' + _e("; ".join(brief["errors"])[:400]) + '</p>')
+    return "".join(parts)
+
+
+_RESULT_TEXT = {
+    "CHALLENGER_WON": "The new creative won.",
+    "CONTROL_WON": "The original ad won.",
+    "NO_CLEAR_WINNER": "No clear winner after six weeks.",
+    "INCONCLUSIVE_LOW_VOLUME": "Not enough results to call it.",
+    "INCONCLUSIVE_CONTROL_STOPPED": "The original ad stopped running, so there was nothing to compare.",
+}
+
+
+def _arm_text(arm: dict, label: str) -> str:
+    if not arm or not arm.get("results"):
+        return f"{_money((arm or {}).get('spend') or 0)} spent, no {label}s yet"
+    return (f"{arm['results']:,} {label}s at {_money(arm['cost_per_result'])} each "
+            f"({_money(arm['spend'])} spent)")
+
+
+def _creative_section(creative: dict | None) -> str:
+    """Creative tests: proposed, running and recently closed."""
+    if not creative:
+        return ""
+    parts = ['<h3>Creative to test</h3>']
+    if not (creative["proposed"] or creative["running"] or creative["closed_recently"]):
+        return parts[0] + '<p class="mute">No test to propose today.</p>'
+    for t in creative["running"]:
+        label = t["metric"]["label"]
+        p = t.get("progress") or {}
+        body = (f'<p>Original: {_e(_arm_text(p.get("control"), label))}.<br>'
+                f'New: {_e(_arm_text(p.get("challenger"), label))}.</p>'
+                if p else '<p class="mute">Launched today; numbers from tomorrow.</p>')
+        parts.append(f'<div class="item"><span class="tag medium">test running · day '
+                     f'{p.get("days", 0)}</span> <span class="mute">{_e(t["campaign_name"])}</span>'
+                     f'{body}<p class="mute">{_e(t["design"]["rule"])}</p></div>')
+    for t in creative["proposed"]:
+        label = t["metric"]["label"]
+        d = t["design"]
+        rows = ""
+        for c in t["challengers"]:
+            if c["kind"] == "ORGANIC_POST":
+                detail = (f'&ldquo;{_e(c["caption"])}&rdquo; '
+                          f'<a href="{_e(c["permalink"])}" rel="noopener">see the post</a>')
+            else:
+                detail = f'Template <b>{_e(c["archetype"])}</b>. {_e(c["next_step"])}'
+            ready = "ready to launch" if c["ready"] else "needs copy first"
+            rows += (f'<p><b>{_e(c["title"])}</b> <span class="mute">({_e(c["format"])}, {ready})'
+                     f'</span><br>{detail}<br><span class="mute">{_e(c["why"])}</span></p>')
+        if d["estimated_days"] is None:
+            timing = f'The original has no {label}s yet, so there is no way to estimate how long a test needs.'
+        elif d["budget_warning"]:
+            timing = (f'At the current budget this needs about {d["estimated_days"]} days, longer '
+                      f'than the six-week limit. Raise the budget for the test or treat the result '
+                      f'as a pointer.')
+        else:
+            timing = f'About {d["estimated_days"]} days at the current budget.'
+        parts.append(
+            f'<div class="item"><span class="tag low">proposed</span> '
+            f'<span class="mute">{_e(t["campaign_name"])}</span>'
+            f'<p>Test against <b>{_e(t["control"]["ad_name"])}</b> ({_e(t["control"]["format"])}): '
+            f'{_e(_arm_text(t["control"], label))}.</p>{rows}'
+            f'<p class="mute">{_e(d["how"])} {_e(d["rule"])} {_e(timing)}</p></div>')
+    for t in creative["closed_recently"]:
+        text = (_RESULT_TEXT.get(t.get("result"), "Closed.") if t["status"] == "DECIDED"
+                else "Proposed and not launched within 30 days.")
+        p = t.get("progress") or {}
+        label = t["metric"]["label"]
+        nums = (f'<p class="mute">Original: {_e(_arm_text(p.get("control"), label))}. '
+                f'New: {_e(_arm_text(p.get("challenger"), label))}.</p>' if p else "")
+        parts.append(f'<div class="item"><span class="tag good">closed</span> '
+                     f'<span class="mute">{_e(t["campaign_name"])}</span><p>{_e(text)}</p>{nums}</div>')
     return "".join(parts)
 
 

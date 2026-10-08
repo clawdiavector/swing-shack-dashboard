@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import datetime as _dt
 
-from _lib import ads_brain, ads_brief
+from _lib import ads_brain, ads_brief, ads_creative
 from _lib.brand_validate import validate_brand_id
 
 from ..layer1._io import as_dict, as_list, io_for_job
@@ -18,6 +18,8 @@ LATEST = "ads-brief/latest.json"
 WEEKLY = "ads-brief/weekly-latest.json"
 STATE = "ads-brief/state.json"
 EVENTS = "ads-brief/events.json"
+TESTS = "ads-creative/tests.json"
+ORGANIC = "post-outcomes.json"
 
 
 def run(*, brand: str | None = None, today: _dt.date | None = None,
@@ -47,12 +49,24 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
     prev_state = io.read(STATE, allow_flat_fallback=False)
     state = as_dict(prev_state) if prev_state else None
     daily, new_state, new_events = ads_brief.build_daily(lane_brand, scored, recent, state, today)
+
+    # Creative loop: move open tests on, then propose new ones.
+    tests = as_list(io.read(TESTS, allow_flat_fallback=False))
+    organic = as_list(as_dict(io.read(ORGANIC, allow_flat_fallback=False)).get("outcomes"))
+    tests = ads_creative.track(
+        tests, full,
+        lambda days: ads_brain.fetch_snapshot(lane_brand, account, token, days=days,
+                                              insights_only=True, **kw),
+        today)
+    tests += ads_creative.plan(lane_brand, scored, full, organic, tests, today)
+    daily["creative"] = ads_creative.summarise(tests, today)
     events = ads_brief.merge_events(as_list(io.read(EVENTS, allow_flat_fallback=False)), new_events)
 
     io.write(LATEST, daily)
     io.write(f"ads-brief/daily/{daily['date']}.json", daily)
     io.write(STATE, new_state)
     io.write(EVENTS, events)
+    io.write(TESTS, tests)
 
     wrote_weekly = False
     if today.weekday() == 0 or not io.read(WEEKLY, allow_flat_fallback=False):
@@ -65,5 +79,6 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
         "ok": True, "brand": lane_brand, "date": daily["date"],
         "headline": daily["headline"], "wrote_weekly": wrote_weekly,
         "scoring_version": daily["scoring_version"],
+        "creative_tests": {k: len(daily["creative"][k]) for k in ("proposed", "running")},
         "errors": daily["errors"][:3],
     }
