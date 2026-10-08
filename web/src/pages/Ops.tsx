@@ -10,10 +10,13 @@ import {
   fetchAgentQueue,
   fetchAgents,
   fetchAllCampaigns,
+  fetchArchivedCampaigns,
   fetchJobsStatus,
   fetchLayers,
+  restoreArchivedCampaign,
   type AccountItem,
   type AgentRow,
+  type ArchivedCampaign,
   type CampaignListEntry,
   type JobEntry,
   type LayerEntry,
@@ -570,6 +573,7 @@ function campaignPostSummary(campaign: CampaignListEntry): string {
 function CampaignsTab() {
   const [campaigns, setCampaigns] = useState<Record<string, CampaignListEntry> | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [archived, setArchived] = useState<ArchivedCampaign[]>([])
   const [err, setErr] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [msg, setMsg] = useState('')
@@ -585,6 +589,9 @@ function CampaignsTab() {
         setCampaigns(null)
         setErr(e instanceof Error ? e.message : 'Could not load campaigns.')
       })
+    fetchArchivedCampaigns()
+      .then((res) => setArchived(res.archived || []))
+      .catch(() => setArchived([]))
   }, [])
 
   useEffect(() => {
@@ -611,6 +618,22 @@ function CampaignsTab() {
     }
   }
 
+  async function handleRestore(item: ArchivedCampaign) {
+    const name = item.name || item.campaignId || item.file
+    if (!window.confirm(`Restore "${name}" and its ${item.assetCount ?? 0} posts? (live)`)) return
+    setBusyId(item.file)
+    setMsg('')
+    try {
+      const out = await restoreArchivedCampaign(item.file)
+      setMsg(`Restored "${name}". ${out.assetsRestored ?? 0} posts back.`)
+      load()
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Restore failed.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   if (campaigns === null && !err) return <SkeletonRows n={4} />
   if (err) {
     return (
@@ -624,7 +647,8 @@ function CampaignsTab() {
     <div className="space-y-4">
       <p className="text-sm text-tx2">
         Campaigns stored by the old campaign builder, across all brands. Archiving saves a full copy
-        to the archive folder on the server, then removes the campaign and its posts.
+        to the archive folder on the server, then removes the campaign and its posts. Archived
+        campaigns can be restored below.
       </p>
       {msg ? <p className="text-sm text-tx2">{msg}</p> : null}
       {!rows.length ? (
@@ -667,6 +691,45 @@ function CampaignsTab() {
           })}
         </ul>
       )}
+      {archived.length ? (
+        <section className="space-y-2">
+          <h2 className="font-display text-xl font-semibold">Archived</h2>
+          <ul className="space-y-2">
+            {archived.map((item) => {
+              const name = item.name || item.campaignId || item.file
+              const posts = `${item.assetCount ?? 0} post${item.assetCount === 1 ? '' : 's'}`
+              const tip = item.restorable
+                ? `Restore ${name} and its posts.`
+                : `A live campaign already uses this id. Archive that one first.`
+              return (
+                <li
+                  key={item.file}
+                  className="glass flex flex-wrap items-center justify-between gap-3 rounded-2xl border-[1.5px] border-bd px-4 py-3 backdrop-blur-xl"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-tx">{name}</p>
+                    <p className="text-xs text-tx3">
+                      {item.brand_id || 'no brand'} · {posts}
+                      {item.archivedAt ? ` · archived ${formatStamp(item.archivedAt)}` : ''}
+                    </p>
+                  </div>
+                  <Tip text={tip}>
+                    <button
+                      type="button"
+                      title={tip}
+                      disabled={busyId !== null || !item.restorable}
+                      onClick={() => void handleRestore(item)}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-ac/15 px-3 py-1.5 text-xs font-semibold text-ac disabled:opacity-60"
+                    >
+                      {busyId === item.file ? 'Restoring…' : 'Restore'}
+                    </button>
+                  </Tip>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ) : null}
     </div>
   )
 }

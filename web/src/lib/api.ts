@@ -1385,6 +1385,43 @@ export async function archiveCampaign(campaignId: string) {
   return data
 }
 
+export type ArchivedCampaign = {
+  file: string
+  campaignId?: string
+  name?: string
+  brand_id?: string | null
+  archivedAt?: string | null
+  assetCount?: number
+  restorable?: boolean
+}
+
+export function fetchArchivedCampaigns() {
+  return getJson<{ ok?: boolean; archived?: ArchivedCampaign[]; error?: string }>(
+    '/api/campaigns/archive',
+  )
+}
+
+export type RestoreCampaignResponse = {
+  ok?: boolean
+  campaignId?: string
+  assetsRestored?: number
+  activeCampaignId?: string | null
+  error?: string
+}
+
+/** Put an archived campaign and its posts back. */
+export async function restoreArchivedCampaign(file: string) {
+  const path = `/api/campaigns/archive/${encodeURIComponent(file)}/restore`
+  const res = await fetch(path, { method: 'POST', credentials: 'same-origin' })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json().catch(() => ({}))) as RestoreCampaignResponse
+  if (!res.ok || !data.ok) throw new Error(data.error || `${path} ${res.status}`)
+  return data
+}
+
 const MEDIA_ROOTS = [
   'assets/',
   'asset-media/',
