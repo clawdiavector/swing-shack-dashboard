@@ -51484,6 +51484,53 @@ def meta_ads_brain(brand_id):
     return jsonify({"ok": bool(out.get("ads")), "cached": False, "brain": out}), 200
 
 
+# ─── ADS BRIEF ────────────────────────────────────────────────────────
+# What the ads brain found, as a page a person reads each morning. Written
+# by the ads_brief job (_lib/jobs/layer7/ads_brief.py); these routes only
+# read what it wrote.
+
+_ADS_BRIEF_BRANDS = ("stick", "swing-shack")
+
+
+def _ads_brief_load(brand_id, kind):
+    from _lib.jobs.layer1._io import data_dir as _job_data_dir
+    name = "weekly-latest.json" if kind == "weekly" else "latest.json"
+    try:
+        with open(_job_data_dir() / "brands" / brand_id / "ads-brief" / name,
+                  encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+@app.route("/api/meta/ads/brief/<brand_id>", methods=["GET"])
+def meta_ads_brief(brand_id):
+    """GET /api/meta/ads/brief/<brand_id>[?kind=daily|weekly] — latest brief as JSON."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    kind = "weekly" if request.args.get("kind") == "weekly" else "daily"
+    brief = _ads_brief_load(brand_id, kind)
+    if brief is None:
+        return jsonify({"ok": False, "error": "no brief yet — run the ads_brief job"}), 404
+    return jsonify({"ok": True, "brief": brief}), 200
+
+
+@app.route("/ads-brief", methods=["GET"])
+def ads_brief_page():
+    """GET /ads-brief[?kind=weekly] — both brands on one page."""
+    if not _is_authed():
+        return redirect(url_for("login_page", next=request.full_path.rstrip("?")))
+    from _lib import ads_brief as _brief
+    kind = "weekly" if request.args.get("kind") == "weekly" else "daily"
+    loaded = {b: _ads_brief_load(b, kind) for b in _ADS_BRIEF_BRANDS}
+    page = _brief.render_html([v for v in loaded.values() if v], kind,
+                              missing=[b for b, v in loaded.items() if not v])
+    return page, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 # ─── CREATE V1 ────────────────────────────────────────────────────────
 # Per V1 §5-§25: Creative Package generation from approved Brief.
 # Read-only on Reporting V2.4.1. Read-only on canonical facts.

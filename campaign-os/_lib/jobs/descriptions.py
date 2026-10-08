@@ -207,6 +207,16 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Feeds winner_promotion and the Learn ops tab."
         ),
     },
+    "ads_brief": {
+        "title": "Meta ads brief",
+        "summary": "Scores every Meta ad and writes the daily brief (weekly on Mondays).",
+        "detail": (
+            "Reads each brand's ad account through the Graph API (read-only), scores the "
+            "31-day window with Scoring V1 and compares with the previous brief to say what "
+            "is new, resolved and still open. Writes brands/<brand>/ads-brief/. Shown at "
+            "/ads-brief. Never changes an ad."
+        ),
+    },
     "retry_failed_images": {
         "title": "Retry failed images",
         "summary": "Auto-enqueue operator calendar pairs and reset empty image queue rows.",
