@@ -25,9 +25,9 @@ exists, what's a stub, and what's measurably wrong.
 
 The marketing capability ships as a plugin in this repo —
 [`plugins/campaign-os/`](plugins/campaign-os/README.md): four commands
-(`/audit-social`, `/render-post`, `/schedule-post`, `/verify-specs`) and six skills
+(`/audit-social`, `/render-post`, `/schedule-post`, `/verify-specs`) and seven skills
 (`campaign-os-map`, `campaign-os`, `campaign-os-template`, `krea-lab`,
-`brand-voice-truth`, `schedule-from-anywhere`). Install it
+`brand-voice-truth`, `schedule-from-anywhere`, `the-algorithm`). Install it
 with `/plugin marketplace add .` then `/plugin install campaign-os@campaign-os`.
 Onboarding a teammate: [`docs/ONBOARDING-MARKETING.md`](docs/ONBOARDING-MARKETING.md).
 
@@ -37,6 +37,13 @@ Onboarding a teammate: [`docs/ONBOARDING-MARKETING.md`](docs/ONBOARDING-MARKETIN
 | write an API client | `grep -l <service> campaign-os/_lib/*.py` |
 | build context assembly or retrieval | `_lib/p11_context_engine.py` |
 | schedule a job | the Mac's launchd plists — it may exist and be dormant |
+
+## The algorithm
+
+Question the requirement → delete → simplify → accelerate → automate, in that order.
+Before building, load `the-algorithm` (or type `/the-algorithm`) — it switches on a
+per-prompt reminder and a one-time challenge on new files for that session only.
+`/the-algorithm off` mutes it. Rules in [`AGENTS.md`](AGENTS.md) §8b.
 
 ## Deterministic beats generated
 

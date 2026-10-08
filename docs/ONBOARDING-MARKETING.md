@@ -144,6 +144,17 @@ the line underneath.
 a deterministic composer, 13 measured templates. A full day was once lost rebuilding
 something that already shipped. This is the cheapest habit in the whole workflow.*
 
+### Before building or automating anything
+
+> /the-algorithm
+
+*Turns on the five steps for this session — question the requirement, delete,
+simplify, accelerate, automate last. You get a one-line reminder per prompt, and the
+first time Claude tries to create a new file in the code or the plugin it has to say
+whose requirement it is and what it tried deleting first. `/the-algorithm off` mutes
+it; a new session starts with it off. `/the-algorithm <a job or script>` runs it on
+something that already exists — that is where deleting pays most.*
+
 ### Making a post (the main loop)
 
 > Show me every post template we have measured, for all brands.
