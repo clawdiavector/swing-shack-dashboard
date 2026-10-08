@@ -66,26 +66,30 @@ class Plan(unittest.TestCase):
         self.assertEqual(self.by["ff1"]["control"]["results"], 18)
         self.assertAlmostEqual(self.by["ff1"]["control"]["cost_per_result"], 27.93, places=2)
 
-    def test_organic_challenger_matches_theme_and_skips_posts_already_running(self):
-        c = self.by["ff1"]["challengers"][0]
-        self.assertEqual((c["kind"], c["post_id"], c["ready"]), ("ORGANIC_POST", "o3", True))
-        self.assertEqual(c["format"], "image")  # the campaign has only run video
+    def test_every_challenger_is_a_video(self):
+        kinds = {x["kind"] for card in self.cards for x in card["challengers"]}
+        self.assertEqual(kinds, {"ORGANIC_REEL", "NEW_VIDEO"})
+        self.assertTrue(all(x["format"] == "video"
+                            for card in self.cards for x in card["challengers"]))
+
+    def test_organic_challenger_is_a_reel_on_theme_not_already_running(self):
+        c = self.by["cat"]["challengers"][0]
+        self.assertEqual((c["kind"], c["post_id"], c["ready"]), ("ORGANIC_REEL", "o2", True))
         picked = [x.get("post_id") for card in self.cards for x in card["challengers"]]
-        self.assertNotIn("o4", picked)  # already an ad
-        self.assertNotIn("o5", picked)  # off theme
+        # o1 and o3 are on theme but are images; o4 is already an ad; o5 is off theme.
+        for post in ("o1", "o3", "o4", "o5"):
+            self.assertNotIn(post, picked)
 
-    def test_one_organic_post_is_not_offered_to_two_tests(self):
-        picked = [x["post_id"] for card in self.cards for x in card["challengers"]
-                  if x["kind"] == "ORGANIC_POST"]
-        self.assertEqual(len(picked), len(set(picked)))
-        self.assertEqual(self.by["cat"]["challengers"][0]["post_id"], "o2")
-        # David is also a coaching ad; o2 is taken, so only the template is left.
-        self.assertEqual([x["kind"] for x in self.by["david"]["challengers"]], ["TEMPLATE_STATIC"])
+    def test_one_reel_is_not_offered_to_two_tests(self):
+        # David is also a coaching ad; o2 went to Coaching Cat.
+        self.assertEqual([x["kind"] for x in self.by["david"]["challengers"]], ["NEW_VIDEO"])
 
-    def test_template_challenger_is_marked_as_needing_copy(self):
-        t = next(x for x in self.by["cat"]["challengers"] if x["kind"] == "TEMPLATE_STATIC")
-        self.assertEqual((t["archetype"], t["ready"]), ("ss-lesson-corner", False))
-        self.assertIn("/render-post", t["next_step"])
+    def test_new_video_brief_is_always_there_and_never_ready(self):
+        for card in self.cards:
+            brief = card["challengers"][-1]
+            self.assertEqual((brief["kind"], brief["ready"]), ("NEW_VIDEO", False))
+            self.assertIn("first three seconds", brief["why"])
+            self.assertTrue(brief["keep"] and brief["change"])
 
     def test_rule_is_fixed_up_front_and_warns_on_a_small_budget(self):
         d = self.by["ff1"]["design"]
@@ -109,11 +113,10 @@ class Plan(unittest.TestCase):
         cards = ads_creative.plan("stick", scored, snap, ORGANIC, [], DAY)
         self.assertNotIn("aware", [c["control"]["ad_id"] for c in cards])
 
-    def test_nothing_to_offer_means_no_card(self):
-        acct = dict(_account(), ads=[dict(s, creative={"id": "c", "image_url": "x", "body": "copy"})
-                                     for s in _account()["ads"]])
-        cards, _ = _plan(organic=[], account=acct)
-        self.assertEqual(cards, [])
+    def test_no_static_or_generated_creative_is_ever_named(self):
+        blob = json.dumps(self.cards).lower()
+        for word in ("static", "template", "render", "krea", "image"):
+            self.assertNotIn(word, blob)
 
 
 def _test(**over):
@@ -189,6 +192,16 @@ class Track(unittest.TestCase):
         self.assertEqual(self._run(14, _m(0, 0), _m(250, 10))["result"],
                          "INCONCLUSIVE_CONTROL_STOPPED")
 
+    def test_static_proposals_from_before_the_video_rule_are_withdrawn(self):
+        old = _test(challengers=[{"kind": "TEMPLATE_STATIC", "archetype": "ss-fitting-headline"}])
+        snap = _snap(("ff1", "c-ff1", _m(100, 4)))
+        [t] = ads_creative.track([old], snap, None, DAY)
+        self.assertEqual(t["status"], "WITHDRAWN")
+        self.assertIn("real human video", t["reason"])
+        # Withdrawn cards neither block a new proposal nor show on the brief.
+        s = ads_creative.summarise([t], DAY)
+        self.assertEqual((s["proposed"], s["running"], s["closed_recently"]), ([], [], []))
+
     def test_summary_counts_the_record(self):
         done = _test(status="DECIDED", result="CHALLENGER_WON", closed_on="2026-10-30")
         old = _test(status="DECIDED", result="CONTROL_WON", closed_on="2026-08-01")
@@ -213,21 +226,44 @@ class InTheJob(bfx._JobCase):
         out = self.run_ss(_account())
         self.assertTrue(out["ok"], out)
         self.assertEqual(out["creative_tests"], {"proposed": 3, "running": 0})
+        self.assertEqual(out["organic"], {"posts_on_file": 5, "reels": 1,
+                                          "reels_with_a_theme": 1, "with_a_link": 5})
         brief = self.read("latest.json")
         self.assertEqual(len(brief["creative"]["proposed"]), 3)
         tests_path = self.lane.parent / "ads-creative" / "tests.json"
         self.assertEqual(len(json.loads(tests_path.read_text(encoding="utf-8"))), 3)
+        # A static card left by the earlier version is withdrawn and replaced in one run.
+        stored = json.loads(tests_path.read_text(encoding="utf-8"))
+        stored[0]["challengers"] = [{"kind": "TEMPLATE_STATIC", "archetype": "x"}]
+        tests_path.write_text(json.dumps(stored), encoding="utf-8")
+        self.run_ss(_account())
+        after = json.loads(tests_path.read_text(encoding="utf-8"))
+        self.assertEqual([t["status"] for t in after].count("WITHDRAWN"), 1)
+        self.assertEqual([t["status"] for t in after].count("PROPOSED"), 3)
+        tests_path.write_text(json.dumps([t for t in after if t["status"] == "PROPOSED"]),
+                              encoding="utf-8")
         # Second run: nothing new is proposed while those are open.
         self.run_ss(_account())
         self.assertEqual(len(json.loads(tests_path.read_text(encoding="utf-8"))), 3)
 
         page = ads_brief.render_html([brief], "daily")
         self.assertIn("Creative to test", page)
-        self.assertIn("Putter fitting changes everything", page)
-        self.assertIn('href="https://instagram.com/p/o3"', page)
-        self.assertIn("needs copy first", page)
-        self.assertIn("ss-lesson-corner", page)
+        self.assertIn("Coaching with Cat: one lesson, one fix", page)
+        self.assertIn('href="https://instagram.com/p/o2"', page)
+        self.assertIn("Film a new real-person video", page)
+        self.assertIn("needs filming", page)
+        creative_html = page[page.index("Creative to test"):page.index("New since the last brief")]
+        self.assertNotIn("emplate", creative_html)
+        self.assertNotIn("static", creative_html.lower())
         self.assertIn("longer than the six-week limit", page)
+
+    def test_page_says_why_no_organic_post_is_offered(self):
+        (self.lane.parent / "post-outcomes.json").write_text(json.dumps({"outcomes": [
+            {"post_id": "x", "caption_preview": "New arrivals in store", "permalink": "https://i/p/x",
+             "format_type": "image", "score": 9, "reach": 10}]}), encoding="utf-8")
+        self.run_ss(_account())
+        page = ads_brief.render_html([self.read("latest.json")], "daily")
+        self.assertIn("of 1 recent organic posts, 0 are reels and none matches", page)
 
     def test_brief_without_creative_still_renders(self):
         self.run_ss(_account())
