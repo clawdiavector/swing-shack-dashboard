@@ -1,19 +1,45 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { BrandProvider, BrandSwitch } from './BrandSwitch'
 import { PressIcon, Tip } from './ui'
 import { formatStamp } from '../lib/stamp'
-import { RAIL } from '../lib/nav'
+import { RAIL, SETTINGS, sectionFor, type RailItem } from '../lib/nav'
 import { TOOL_BY_SLUG, parentLabel } from '../lib/tools'
 
 const RAIL_ON =
   'bg-yel/12 text-yel shadow-[inset_0_0_0_1.5px_rgba(251,191,36,.85)]'
 
+function RailLink({ item, on }: { item: RailItem; on: boolean }) {
+  const Icon = item.icon
+  const tip = `Go to ${item.label}: ${item.hint}.`
+  return (
+    <Tip text={tip} block>
+      <Link
+        to={item.to}
+        title={tip}
+        aria-current={on ? 'page' : undefined}
+        className={[
+          'group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors duration-150',
+          on ? RAIL_ON : 'text-tx2 hover:bg-white/5 hover:text-tx',
+        ].join(' ')}
+      >
+        <span className="glass-pill grid shrink-0 place-items-center rounded-md p-1.5">
+          <PressIcon icon={Icon} className="h-4 w-4" tone={on ? 'on' : 'mute'} />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-semibold">{item.label}</span>
+          <span className={`block text-[13px] ${on ? 'text-yel/80' : 'text-tx3'}`}>{item.hint}</span>
+        </span>
+      </Link>
+    </Tip>
+  )
+}
+
 export function Shell() {
   const loc = useLocation()
   const toolSlug = loc.pathname.startsWith('/tool/') ? loc.pathname.split('/')[2] : ''
   const tool = toolSlug ? TOOL_BY_SLUG[toolSlug] : undefined
-  const current =
-    tool ? RAIL.find((item) => item.to === tool.from) : RAIL.find((item) => loc.pathname.startsWith(item.to))
+  // A classic tool belongs to the section it was opened from.
+  const current = sectionFor(tool ? tool.from : loc.pathname)
   const isDesk = loc.pathname.startsWith('/desk') || loc.pathname.startsWith('/tool')
 
   return (
@@ -36,54 +62,17 @@ export function Shell() {
             <p className="font-display text-lg font-semibold tracking-tight text-tx">
               Campaign OS
             </p>
-            <p className="text-[13px] text-tx3">Today · inbox · studio · go live</p>
+            <p className="text-[13px] text-tx3">Plan · create · publish · learn</p>
           </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-3" aria-label="Campaigner rail">
-          {RAIL.map((item) => {
-            const Icon = item.icon
-            const tip = `Go to ${item.label}: ${item.hint}.`
-            return (
-              <Tip key={item.to} text={tip} block>
-              <NavLink
-                to={item.to}
-                title={tip}
-                className={({ isActive }) => {
-                  const on = isActive || item.to === tool?.from
-                  return [
-                    'group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors duration-150',
-                    on ? RAIL_ON : 'text-tx2 hover:bg-white/5 hover:text-tx',
-                  ].join(' ')
-                }}
-              >
-                {({ isActive }) => {
-                  const on = isActive || item.to === tool?.from
-                  return (
-                  <>
-                    <span className="glass-pill grid shrink-0 place-items-center rounded-md p-1.5">
-                      <PressIcon
-                        icon={Icon}
-                        className="h-4 w-4"
-                        tone={on ? 'on' : 'mute'}
-                      />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block font-semibold">{item.label}</span>
-                      <span
-                        className={`block text-[13px] ${on ? 'text-yel/80' : 'text-tx3'}`}
-                      >
-                        {item.hint}
-                      </span>
-                    </span>
-                  </>
-                  )
-                }}
-              </NavLink>
-              </Tip>
-            )
-          })}
+          {RAIL.map((item) => (
+            <RailLink key={item.to} item={item} on={item === current} />
+          ))}
         </nav>
-        <p className="m-3 px-3 py-2 text-[13px] text-tx3">Campaign OS</p>
+        <div className="border-t border-white/10 px-3 py-3">
+          <RailLink item={SETTINGS} on={SETTINGS === current} />
+        </div>
       </aside>
 
       <div className="flex min-h-dvh flex-col pb-20 lg:h-dvh lg:min-h-0 lg:overflow-visible lg:pb-0">
@@ -120,35 +109,26 @@ export function Shell() {
       </div>
 
       <nav
-        className="glass fixed inset-x-0 bottom-0 z-20 grid grid-cols-8 border-t border-white/10 lg:hidden"
+        className="glass fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t border-white/10 lg:hidden"
         aria-label="Campaigner rail"
       >
-        {RAIL.map((item) => {
+        {[...RAIL, SETTINGS].map((item) => {
           const Icon = item.icon
-          const tip = `Go to ${item.label}: ${item.hint}.`
+          const on = item === current
           return (
-            <NavLink
+            <Link
               key={item.to}
               to={item.to}
-              title={tip}
-              className={({ isActive }) => {
-                const on = isActive || item.to === tool?.from
-                return [
-                  'flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[12px] font-medium leading-tight',
-                  on ? RAIL_ON : 'text-tx3',
-                ].join(' ')
-              }}
+              title={`Go to ${item.label}: ${item.hint}.`}
+              aria-current={on ? 'page' : undefined}
+              className={[
+                'flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[12px] font-medium leading-tight',
+                on ? RAIL_ON : 'text-tx3',
+              ].join(' ')}
             >
-              {({ isActive }) => {
-                const on = isActive || item.to === tool?.from
-                return (
-                  <>
-                    <PressIcon icon={Icon} className="h-4 w-4" tone={on ? 'on' : 'mute'} />
-                    {item.label}
-                  </>
-                )
-              }}
-            </NavLink>
+              <PressIcon icon={Icon} className="h-4 w-4" tone={on ? 'on' : 'mute'} />
+              {item.label}
+            </Link>
           )
         })}
       </nav>
