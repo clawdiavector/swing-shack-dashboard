@@ -125,6 +125,9 @@ def build_event_record(
     }
     if pillar:
         record["pillar"] = pillar
+        # `pillars` (a list) is the canonical field: the calendar view and
+        # the Brief engine read it. `pillar` alone is invisible to both.
+        record["pillars"] = [pillar]
     if channel:
         record["channel"] = channel
     if purpose:

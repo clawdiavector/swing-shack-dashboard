@@ -831,14 +831,24 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
         date_confidence = "HIGH"
     elif event_start and not event_end:
         date_confidence = "MEDIUM"
+    elif (event_start and r.get("type") == "campaign"
+            and r.get("source_origin") == "internal_strategy"
+            and r.get("trusted_for_planning") is True):
+        # A campaign the operator typed in and vouched for: they chose
+        # the date, so there is no external date left to verify. Other
+        # operator pins (content / moment / reminder) stay LOW.
+        date_confidence = "MEDIUM"
     else:
         date_confidence = "LOW"
+    # Records written by the Calendar add-event path before it set
+    # `pillars` carry only the singular `pillar`.
+    pillars = r.get("pillars") or ([r["pillar"]] if r.get("pillar") else {})
     return {
         "id": event_key,
         "event_key": event_key,
         "name": r.get("title") or r.get("name") or "",
         "year": (event_start or "")[:4] or "unknown",
-        "pillars": r.get("pillars") or {},
+        "pillars": pillars,
         "lanes": list((r.get("lanes") or {}).keys())
         + (["watchlist"] if source == "watchlist" else []),
         "duration_days": duration_days,
