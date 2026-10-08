@@ -213,6 +213,7 @@ class InTheJob(bfx._JobCase):
         out = self.run_ss(_account())
         self.assertTrue(out["ok"], out)
         self.assertEqual(out["creative_tests"], {"proposed": 3, "running": 0})
+        self.assertEqual(out["organic"], {"posts_on_file": 5, "with_a_theme": 4, "with_a_link": 5})
         brief = self.read("latest.json")
         self.assertEqual(len(brief["creative"]["proposed"]), 3)
         tests_path = self.lane.parent / "ads-creative" / "tests.json"
@@ -228,6 +229,14 @@ class InTheJob(bfx._JobCase):
         self.assertIn("needs copy first", page)
         self.assertIn("ss-lesson-corner", page)
         self.assertIn("longer than the six-week limit", page)
+
+    def test_page_says_why_no_organic_post_is_offered(self):
+        (self.lane.parent / "post-outcomes.json").write_text(json.dumps({"outcomes": [
+            {"post_id": "x", "caption_preview": "New arrivals in store", "permalink": "https://i/p/x",
+             "format_type": "image", "score": 9, "reach": 10}]}), encoding="utf-8")
+        self.run_ss(_account())
+        page = ads_brief.render_html([self.read("latest.json")], "daily")
+        self.assertIn("none of the 1 recent organic posts matches a campaign theme", page)
 
     def test_brief_without_creative_still_renders(self):
         self.run_ss(_account())

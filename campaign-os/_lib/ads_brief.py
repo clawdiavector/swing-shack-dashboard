@@ -341,8 +341,15 @@ def _creative_section(creative: dict | None) -> str:
     if not creative:
         return ""
     parts = ['<h3>Creative to test</h3>']
+    org = creative.get("organic")
+    if org and not org["with_a_theme"]:
+        parts.append('<p class="mute">No organic post is offered as a challenger: '
+                     + ("there are no recent organic posts on file."
+                        if not org["posts_on_file"] else
+                        f'none of the {org["posts_on_file"]} recent organic posts matches a '
+                        'campaign theme.') + '</p>')
     if not (creative["proposed"] or creative["running"] or creative["closed_recently"]):
-        return parts[0] + '<p class="mute">No test to propose today.</p>'
+        return "".join(parts) + '<p class="mute">No test to propose today.</p>'
     for t in creative["running"]:
         label = t["metric"]["label"]
         p = t.get("progress") or {}

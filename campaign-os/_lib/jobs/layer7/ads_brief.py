@@ -60,6 +60,13 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
         today)
     tests += ads_creative.plan(lane_brand, scored, full, organic, tests, today)
     daily["creative"] = ads_creative.summarise(tests, today)
+    # Why a card has no organic challenger: nothing on file, or nothing on theme.
+    daily["creative"]["organic"] = {
+        "posts_on_file": len(organic),
+        "with_a_theme": sum(1 for o in organic
+                            if ads_creative.themes_of(o.get("caption_preview"))),
+        "with_a_link": sum(1 for o in organic if o.get("permalink")),
+    }
     events = ads_brief.merge_events(as_list(io.read(EVENTS, allow_flat_fallback=False)), new_events)
 
     io.write(LATEST, daily)
@@ -80,5 +87,6 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
         "headline": daily["headline"], "wrote_weekly": wrote_weekly,
         "scoring_version": daily["scoring_version"],
         "creative_tests": {k: len(daily["creative"][k]) for k in ("proposed", "running")},
+        "organic": daily["creative"]["organic"],
         "errors": daily["errors"][:3],
     }
