@@ -53,7 +53,8 @@ function NextStep({ brandId, ev }: { brandId: string; ev: PlanningTimelineEvent 
     knownBriefId: ev.brief_id || '',
     lookup: false,
   })
-  const noBrief = NO_BRIEF_TYPES[ev.type || '']
+  // A scheduled post is already made; it is not something to brief.
+  const noBrief = ev.post_type ? 'Scheduled post' : NO_BRIEF_TYPES[ev.type || '']
 
   if (briefId) {
     return (
@@ -72,7 +73,11 @@ function NextStep({ brandId, ev }: { brandId: string; ev: PlanningTimelineEvent 
     return (
       <span
         className="shrink-0 px-3 py-1.5 text-xs text-tx3"
-        title="Briefs are written for campaigns. To brief this, suggest it again as a Campaign."
+        title={
+          ev.post_type
+            ? 'A post that is already scheduled for this day.'
+            : 'Briefs are written for campaigns. To brief this, suggest it again as a Campaign.'
+        }
       >
         {noBrief}
       </span>

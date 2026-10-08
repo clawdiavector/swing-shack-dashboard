@@ -247,6 +247,16 @@ class TypedCampaignEndToEnd(unittest.TestCase):
                          json={}, headers={"X-Actor-Display-Name": "Christelle"})
         self.assertNotIn(title, [s["title"] for s in self._waiting()])
 
+    def test_waiting_list_leaves_out_what_automation_wrote(self):
+        # cos-reactive leaves status=candidate rows in the operator store.
+        self.mc.add_candidate("stick", {
+            "type": "moment", "title": "Reactive watch find", "created_by": "cos-reactive",
+            "event_start": "2026-12-13", "event_end": "2026-12-16"})
+        self.assertNotIn("Reactive watch find", [s["title"] for s in self._waiting()])
+        # Still findable, with its Add to Main Calendar button.
+        rows = [r for r in self._search("reactive") if r["title"] == "Reactive watch find"]
+        self.assertEqual([r["state"] for r in rows], ["CANDIDATE"])
+
     def test_waiting_list_is_soonest_first(self):
         for title, day in (("Wait later", "2027-03-01"), ("Wait sooner", "2026-12-01")):
             self.client.post("/api/calendar/candidates", json=_form_body(

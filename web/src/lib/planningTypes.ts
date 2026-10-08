@@ -46,6 +46,8 @@ export type PlanningTimelineEvent = {
   event_key?: string
   /** Operator-typed entries only: campaign | moment | content | reminder. */
   type?: string
+  /** Set on posts the scheduler put on the calendar, e.g. "stick-shop-corner". */
+  post_type?: string
   /** Brief already written for this entry, '' when none (range timeline only). */
   brief_id?: string
   name?: string
