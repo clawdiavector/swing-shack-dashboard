@@ -306,16 +306,21 @@ def _destination(setting: dict, extra: dict, post, post_error) -> dict:
 
 def fetch_snapshot(brand_id: str, account_id: str, token: str, *,
                    days: int = 31, api_version: str | None = None,
-                   get=None, today: _dt.date | None = None) -> dict:
+                   get=None, get_as=None, today: _dt.date | None = None) -> dict:
     """Read one ad account at ad level. Each part fails independently and is
     recorded in ``errors``; scoring skips the rules a missing part would feed.
 
-    ``get(path, params) -> (json, error)`` is injectable for tests.
+    ``get(path, params) -> (json, error)`` uses the ads token and
+    ``get_as(token, path, params)`` a token minted during the run; both are
+    injectable for tests.
     """
     ver = api_version or DEFAULT_API_VERSION
     if get is None:
         def get(path, params):
             return _graph_get(path, token, params)
+    if get_as is None:
+        def get_as(tok, path, params):
+            return _graph_get(path, tok, params)
     win = period_windows(days, today)
     base = f"/{ver}/{account_id}"
     errors = []
@@ -355,7 +360,24 @@ def fetch_snapshot(brand_id: str, account_id: str, token: str, *,
 
     # Destinations: only ads that delivered in either window, and the post is
     # only fetched when the creative itself gave no link.
-    dest_by, post_errors = {}, set()
+    dest_by, post_errors, page_tokens = {}, set(), {}
+
+    def read_post(story):
+        """A post is only readable with its Page's own token. The story id is
+        '<page_id>_<post_id>', and the ads token can be exchanged for that
+        Page's token the same way meta_api.list_page_posts does it."""
+        page_id = str(story).split("_", 1)[0]
+        if page_id not in page_tokens:
+            body, xerr = get(f"/{ver}/{page_id}", {"fields": "access_token"})
+            page_tokens[page_id] = ((body or {}).get("access_token"), xerr)
+        page_tok, xerr = page_tokens[page_id]
+        if page_tok:
+            return get_as(page_tok, f"/{ver}/{story}", {"fields": _POST_FIELDS})
+        post, perr = get(f"/{ver}/{story}", {"fields": _POST_FIELDS})
+        if perr:
+            perr = f"{perr} (page token exchange: {xerr or 'no access_token returned'})"
+        return post, perr
+
     for ad_id in sorted({r.get("ad_id") for r in (cur or [])} | set(prev_by)):
         s = set_by.get(ad_id)
         if not s:
@@ -365,7 +387,7 @@ def fetch_snapshot(brand_id: str, account_id: str, token: str, *,
         story = ((s.get("creative") or {}).get("effective_object_story_id")
                  or extra.get("object_story_id"))
         if d["status"] == "UNKNOWN" and story:
-            post, perr = get(f"/{ver}/{story}", {"fields": _POST_FIELDS})
+            post, perr = read_post(story)
             if perr:
                 post_errors.add(perr)
             d = _destination(s, extra, post, perr)
@@ -817,10 +839,10 @@ def score_snapshot(snapshot: dict, *, now: _dt.datetime | None = None,
 
 
 def build(brand_id: str, account_id: str, token: str, *, days: int = 31,
-          data_dir=None, get=None, api_version: str | None = None) -> dict:
+          data_dir=None, get=None, get_as=None, api_version: str | None = None) -> dict:
     """Fetch, score and (when data_dir is given) cache one brand's verdict."""
     snap = fetch_snapshot(brand_id, account_id, token, days=days, get=get,
-                          api_version=api_version)
+                          get_as=get_as, api_version=api_version)
     out = score_snapshot(snap)
     out["ads"] = snap["ads"]
     if data_dir and snap["ads"]:

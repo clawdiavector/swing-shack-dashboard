@@ -19,6 +19,7 @@ sys.path.insert(0, str(CAMPAIGN_OS))
 
 from _lib import ads_brain  # noqa: E402
 
+PAGE_TOKEN = "page-secret"
 NOW = dt.datetime(2026, 10, 8, 12, 0, tzinfo=dt.timezone.utc)
 TODAY = dt.date(2026, 10, 8)
 
@@ -97,12 +98,12 @@ STICK = {
         _setting("fit", "ACTIVE", "LEAD_GENERATION", "2026-05-14T09:00:00+0200",
                  campaign_stop="2026-09-30T23:59:00+0200", objective="OUTCOME_LEADS",
                  link="http://fb.me/"),
-        _setting("rush", "ACTIVE", "LINK_CLICKS", "2026-07-30T09:00:00+0200", story="post-rush"),
+        _setting("rush", "ACTIVE", "LINK_CLICKS", "2026-07-30T09:00:00+0200", story="111_rush"),
         _setting("aware", "ACTIVE", "REACH", "2026-08-06T09:00:00+0200",
-                 objective="OUTCOME_AWARENESS", story="post-aware"),
+                 objective="OUTCOME_AWARENESS", story="111_aware"),
         _setting("coach", "CAMPAIGN_PAUSED", "LANDING_PAGE_VIEWS", "2026-09-04T09:00:00+0200",
-                 story="post-coach"),
-        _setting("tip", "ACTIVE", "LANDING_PAGE_VIEWS", "2026-09-29T09:00:00+0200", story="post-tip"),
+                 story="111_coach"),
+        _setting("tip", "ACTIVE", "LANDING_PAGE_VIEWS", "2026-09-29T09:00:00+0200", story="111_tip"),
         _setting("ball", "CAMPAIGN_PAUSED", "CONVERSATIONS", "2026-09-07T09:00:00+0200",
                  objective="OUTCOME_ENGAGEMENT"),
         _setting("free", "ACTIVE", "LINK_CLICKS", "2026-07-16T09:00:00+0200",
@@ -110,10 +111,10 @@ STICK = {
                  media="image"),
     ],
     "posts": {
-        "post-rush": _post("https://stickgolf.co.za/"),
-        "post-coach": _post("https://stickgolf.co.za/"),
-        "post-tip": _post("https://stickgolf.co.za/bookings/"),
-        "post-aware": {"id": "p"},
+        "111_rush": _post("https://stickgolf.co.za/"),
+        "111_coach": _post("https://stickgolf.co.za/"),
+        "111_tip": _post("https://stickgolf.co.za/bookings/"),
+        "111_aware": {"id": "p"},
     },
 }
 
@@ -149,12 +150,12 @@ SWING_SHACK = {
         _setting("cat2", "ACTIVE", "QUALITY_LEAD", "2026-05-29T09:00:00+0200",
                  objective="OUTCOME_LEADS", link="http://fb.me/"),
         _setting("david", "ACTIVE", "LANDING_PAGE_VIEWS", "2026-09-10T09:18:00+0200",
-                 story="post-david"),
+                 story="222_david"),
         _setting("putter", "ACTIVE", "LANDING_PAGE_VIEWS", "2026-09-10T09:18:00+0200",
-                 story="post-putter"),
+                 story="111_putter"),
     ],
-    # post-david is absent: the lookup fails, as it does without page access.
-    "posts": {"post-putter": _post("https://swing-shack.com")},
+    # Page 222 gives no page token, so David's post cannot be read.
+    "posts": {"111_putter": _post("https://swing-shack.com")},
 }
 
 
@@ -167,8 +168,11 @@ def _fake_get(account, fail=()):
         if path.endswith("/ads"):
             key = "ads"
         elif not path.endswith("/insights"):
-            post = (account.get("posts") or {}).get(path.rsplit("/", 1)[-1])
-            return (post, None) if post else (None, "HTTP 400: (#10) no page access")
+            node = path.rsplit("/", 1)[-1]
+            if node == "111":  # page token exchange
+                return {"access_token": PAGE_TOKEN, "id": "111"}, None
+            # A post read with the ads token, or a page that grants no token.
+            return None, "HTTP 400: (#10) requires pages_read_engagement"
         elif params.get("breakdowns"):
             key = "placements"
         elif json.loads(params["time_range"])["since"] == "2026-09-07":
@@ -183,8 +187,19 @@ def _fake_get(account, fail=()):
     return get
 
 
+def _fake_get_as(account):
+    """Posts are only readable with the Page's own token."""
+    def get_as(token, path, params):
+        post = (account.get("posts") or {}).get(path.rsplit("/", 1)[-1])
+        if token == PAGE_TOKEN and post:
+            return post, None
+        return None, "HTTP 400: (#100) unsupported get request"
+    return get_as
+
+
 def _score(account, **kw):
-    snap = ads_brain.fetch_snapshot("x", "act_1", "tok", get=_fake_get(account, **kw), today=TODAY)
+    snap = ads_brain.fetch_snapshot("x", "act_1", "tok", get=_fake_get(account, **kw),
+                                    get_as=_fake_get_as(account), today=TODAY)
     return snap, ads_brain.score_snapshot(snap, now=NOW)
 
 
@@ -327,6 +342,7 @@ class SwingShackVerdict(unittest.TestCase):
         f = _one(self.out, "home_page_destination", "david")
         self.assertEqual(f["status"], "UNKNOWN")
         self.assertIn("post lookup failed", f["evidence"]["reason"])
+        self.assertIn("page token exchange", f["evidence"]["reason"])
         self.assertTrue(any("post lookup" in e for e in self.snap["errors"]))
         self.assertEqual(_one(self.out, "home_page_destination", "putter")["status"], "HOME_PAGE")
 
@@ -410,7 +426,8 @@ class Degradation(unittest.TestCase):
                 return None, "HTTP 400: (#100) quality_ranking"
             return real(path, params)
 
-        snap = ads_brain.fetch_snapshot("x", "act_1", "tok", get=flaky, today=TODAY)
+        snap = ads_brain.fetch_snapshot("x", "act_1", "tok", get=flaky,
+                                        get_as=_fake_get_as(STICK), today=TODAY)
         self.assertEqual(len([a for a in snap["ads"] if a["current"]["spend"] > 0]), 6)
         self.assertEqual(len(snap["errors"]), 1)
 
@@ -440,9 +457,18 @@ class Degradation(unittest.TestCase):
         self.assertEqual(dest["ball"], "MESSAGING")
         self.assertEqual(dest["aware"], "UNKNOWN")
 
-    def test_token_never_reaches_the_snapshot(self):
+    def test_tokens_never_reach_the_snapshot(self):
         snap, out = _score(STICK)
-        self.assertNotIn("tok", json.dumps(snap) + json.dumps(out, default=str))
+        dumped = json.dumps(snap) + json.dumps(out, default=str)
+        self.assertNotIn("tok", dumped)
+        self.assertNotIn(PAGE_TOKEN, dumped)
+
+    def test_page_token_is_exchanged_once_per_page(self):
+        get = _fake_get(STICK)
+        ads_brain.fetch_snapshot("x", "act_1", "tok", get=get,
+                                 get_as=_fake_get_as(STICK), today=TODAY)
+        exchanges = [c for c in get.calls if c[1].get("fields") == "access_token"]
+        self.assertEqual(len(exchanges), 1)
 
 
 class Cache(unittest.TestCase):
@@ -459,7 +485,8 @@ class Cache(unittest.TestCase):
 
     def test_build_writes_under_data_dir_only_when_there_is_data(self):
         with tempfile.TemporaryDirectory() as d:
-            out = ads_brain.build("stick", "act_1", "tok", data_dir=d, get=_fake_get(STICK))
+            out = ads_brain.build("stick", "act_1", "tok", data_dir=d, get=_fake_get(STICK),
+                                  get_as=_fake_get_as(STICK))
             self.assertTrue((Path(d) / "ads-brain" / "stick__31d.json").exists())
             self.assertEqual(len(out["ads"]), 7)
         with tempfile.TemporaryDirectory() as d:
