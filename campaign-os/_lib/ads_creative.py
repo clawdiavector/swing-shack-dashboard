@@ -10,9 +10,10 @@ Two pure steps over the ads brain's output, run by the ads_brief job:
               campaign), wait for enough evidence, decide by the card's rule and
               keep the result.
 
-Ads for these brands run on real human video only, so a challenger is always
-a video: an organic reel that already worked, or a brief for a new one to film.
-Static images, generated images and generated video are never proposed.
+Ads for these brands run on real human video, so a challenger is a video: an
+organic reel that already worked, or a brief for a new one to film. The one
+exception is retail, where an animated still of the product can be an ad.
+A plain static image is never proposed.
 Nothing here writes copy with a model, and nothing creates or changes an ad:
 a person launches the challenger in Ads Manager.
 """
@@ -59,7 +60,12 @@ THEMES = {
     "grip": ("grip",),
     "bags": ("bag",),
     "membership": ("member",),
+    "retail": ("available at", "new in", "arrivals", "pre-order", "preorder", "in store",
+               "apparel", "psycho bunny", "bunny", "pants", "polo", "vessel", "vice ",
+               "takomo"),
 }
+# Where an animated product still is allowed as an ad.
+RETAIL_THEMES = frozenset({"retail", "bags"})
 
 OPEN = ("PROPOSED", "RUNNING")
 _RETIRED_KINDS = ("TEMPLATE_STATIC", "ORGANIC_POST")
@@ -121,6 +127,22 @@ def _new_video_challenger(control_themes: set):
                "what the test compares.",
         "keep": "The offer, the button and the destination of the original ad.",
         "change": "The person, the setting or the first line, and only one of them.",
+        "todo": "needs filming",
+    }
+
+
+def _animated_still_challenger(control_themes: set):
+    """Retail only: a product still that moves. Not a person, not a plain image."""
+    if not control_themes & RETAIL_THEMES:
+        return None
+    return {
+        "kind": "ANIMATED_STILL", "format": "animated still", "ready": False,
+        "title": "Animate a product still",
+        "why": "Retail is the one place a still can be an ad, as long as it moves: "
+               "the product doing something, not a flat photo.",
+        "keep": "The product, the price or offer, the button and the destination.",
+        "change": "One short motion idea for the product itself.",
+        "todo": "needs animating",
     }
 
 
@@ -158,7 +180,8 @@ def plan(brand_id: str, scored: dict, snapshot: dict, organic: list, tests: list
                            creative.get("body"), creative.get("title"))
         challengers = [c for c in (
             _reel_challenger(themes, organic, used, taken),
-            _new_video_challenger(themes)) if c]
+            _new_video_challenger(themes),
+            _animated_still_challenger(themes)) if c]
         taken.update(c["post_id"] for c in challengers if c.get("post_id"))
         control = _arm(ad["current"], key)
         per_day = control["results"] / max((snapshot.get("period") or {}).get("days") or 31, 1)

@@ -127,6 +127,16 @@ Nothing in this repo can change an ad.
 | campaign totals, current vs previous window | `GET /api/meta/ads/cache/<brand>?period_days=31` |
 | every ad scored, with one action each | `GET /api/meta/ads/brain/<brand>` (`&refresh=1` to re-read Meta) |
 | the rules and thresholds | `_lib/ads_brain.py` → `score_snapshot()`, `THRESHOLDS` |
+| the morning brief, both brands | `/ads-brief` (written by the `ads_brief` job, 07:15 SAST) |
+| creative tests proposed and tracked | `_lib/ads_creative.py`, shown on the brief |
+
+**Ad creative is real human video.** Christelle's rule, from her own testing: real
+people on video outperform everything else, and static vs video has already been
+tested (video won). The one exception is retail, where an animated still of the
+product can be an ad. Do not propose, render or generate a plain static image, or a
+generated video, as an ad. Image generation and the measured post templates are for
+organic feed content: retail and service information, and keeping the feed full.
+Scoring's `all_video` rule was retired in v1.1 for contradicting this.
 
 `ads_brain.fetch_snapshot()` reads at ad level: quality rankings, placements, the
 ad set's performance goal, creative copy, media type and destination link.
