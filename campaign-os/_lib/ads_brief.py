@@ -236,10 +236,13 @@ def _e(x) -> str:
     return html.escape("" if x is None else str(x))
 
 
-def _delta(change, lower_is_better=False) -> str:
+def _delta(change, lower_is_better=False, neutral=False) -> str:
+    """Green when the number moved the right way. Spend is neither good nor bad."""
     if change is None:
         return '<span>no comparison</span>'
-    cls = "good" if (change < 0) == lower_is_better and change != 0 else ""
+    if abs(change) < 0.005:
+        return '<span>no change vs the 7 days before</span>'
+    cls = "good" if (not neutral and (change < 0) == lower_is_better) else ""
     return f'<span class="{cls}">{change:+.0%} vs the 7 days before</span>'
 
 
@@ -255,7 +258,7 @@ def _section(brief: dict) -> str:
         parts.append('<div class="item warn"><b>Meta could not be read for this brief.</b>'
                      '<p>Findings below are carried over from the last good run.</p></div>')
     parts.append('<div class="tiles">'
-                 f'<div class="tile"><b>{_money(cur["spend"])}</b><div>spend</div>{_delta(ch["spend"])}</div>'
+                 f'<div class="tile"><b>{_money(cur["spend"])}</b><div>spend</div>{_delta(ch["spend"], neutral=True)}</div>'
                  f'<div class="tile"><b>{cur["leads"]}</b><div>leads</div>{_delta(ch["leads"])}</div>'
                  f'<div class="tile"><b>{_money(cur["cost_per_lead"])}</b><div>cost per lead</div>'
                  f'{_delta(ch["cost_per_lead"], lower_is_better=True)}</div>'
@@ -319,7 +322,8 @@ def render_html(briefs: list, kind: str, missing: list | None = None) -> str:
     """One page, every brand stacked. ``missing`` names brands with no brief yet."""
     date = max((b["date"] for b in briefs), default="")
     title = "Weekly ads brief" if kind == "weekly" else "Daily ads brief"
-    tabs = (f'<p class="tabs"><a href="/ads-brief" class="{"on" if kind != "weekly" else ""}">Daily</a>'
+    tabs = (f'<p class="tabs"><a href="/daily">&larr; Daily</a>'
+            f'<a href="/ads-brief" class="{"on" if kind != "weekly" else ""}">Daily</a>'
             f'<a href="/ads-brief?kind=weekly" class="{"on" if kind == "weekly" else ""}">Weekly</a></p>')
     body = "".join(_section(b) for b in briefs)
     for brand in missing or []:

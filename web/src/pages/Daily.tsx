@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Inbox,
   MapPin,
+  Megaphone,
   Rocket,
   Send,
   Share2,
@@ -321,6 +322,17 @@ export function Daily() {
             {greeting()},{' '}
             <BrandSwitch variant="inline" />
           </>
+        }
+        actions={
+          // A server-rendered page outside the SPA, so a plain link, not a router Link.
+          <a
+            href="/ads-brief"
+            title="What the Meta ads need today, for both brands"
+            className="glass-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-tx hover:border-ac hover:text-ac"
+          >
+            <Megaphone className="h-4 w-4" />
+            Ads brief
+          </a>
         }
       >
         {data?.summary || 'Loading your decisions for today…'}
