@@ -45669,6 +45669,9 @@ def planning_search(brand_id):
                 "recommended_lead_time_weeks": r.get("recommended_lead_time_weeks"),
                 "brand_id": brand_id,
                 "event_key": ek,
+                # Lets OPEN PLANNING resolve the entry (planning-context
+                # accepts the suggestion id or the event_key).
+                "candidate_id": (r.get("candidate_metadata") or {}).get("candidate_id") or ek,
                 "category": r.get("category"),
                 "origin": "operator-store",
             })
@@ -45792,12 +45795,30 @@ def planning_search(brand_id):
     try:
         from _lib import marketing_calendar as _mc_search_25
         mc_records_25 = _mc_search_25.list_records(brand_id) or []
+        # The store is append-only: an approved suggestion keeps its old
+        # status=candidate row. Only the last row per id is current, and a
+        # suggestion that an approved record was made from is done.
+        _current_status_25: Dict[str, Any] = {}
+        _approved_from_25 = set()
+        for _r in mc_records_25:
+            _rid = _r.get("calendar_id") or _r.get("event_key")
+            if _rid:
+                _current_status_25[_rid] = _r.get("status")
+            if _r.get("status") == "approved":
+                _src = (_r.get("candidate_metadata") or {}).get("candidate_id")
+                if _src:
+                    _approved_from_25.add(_src)
+        _seen_25 = set()
         for _r in mc_records_25:
             if _r.get("status") != "candidate":
                 continue
             _cid = _r.get("calendar_id") or _r.get("event_key")
             if not _cid:
                 continue
+            if (_current_status_25.get(_cid) != "candidate" or _cid in _approved_from_25
+                    or _cid in _seen_25):
+                continue
+            _seen_25.add(_cid)
             if not matches(
                 _r.get("title"), _r.get("name"), _r.get("summary"),
                 _r.get("venue"), _r.get("location"), _r.get("category"),
@@ -46304,6 +46325,64 @@ def planning_candidate_approval_status(brand_id, candidate_id):
 # already attached to the candidate's event_key.
 # ──────────────────────────────────────────────────────────────────────
 
+def _operator_store_candidate(brand_id, candidate_id):
+    """Find an operator-store entry and shape it like a planning candidate.
+
+    `candidate_id` may be the suggestion's calendar_id or the event_key of the
+    approved record made from it. The returned candidate always carries the
+    ORIGINAL suggestion id, so build_approval_record() derives the same
+    event_key the approval wrote. Returns None when nothing matches.
+    """
+    from _lib import marketing_calendar as _mc_lookup
+    try:
+        records = _mc_lookup.list_records(brand_id) or []
+    except Exception:
+        return None
+    base = None
+    original_id = candidate_id
+    for r in records:
+        if r.get("event_key") and r.get("event_key") == candidate_id:
+            base = r
+            original_id = (r.get("candidate_metadata") or {}).get("candidate_id") or r.get("calendar_id")
+    if base is None:
+        for r in records:
+            # The store is append-only; the last row for an id is its current state.
+            if r.get("calendar_id") == candidate_id:
+                base = r
+    if base is None:
+        for r in records:
+            if (r.get("candidate_metadata") or {}).get("candidate_id") == candidate_id:
+                base = r
+    if base is None:
+        return None
+    evidence = base.get("evidence") or {}
+    importance = base.get("importance")
+    return {
+        "id": original_id,
+        "calendar_id": original_id,
+        "name": base.get("title") or base.get("name"),
+        "title": base.get("title") or base.get("name"),
+        "category": base.get("category") or (base.get("candidate_metadata") or {}).get("category"),
+        "start": base.get("event_start") or base.get("start"),
+        "end": base.get("event_end") or base.get("end"),
+        "public_peak": base.get("public_peak") or base.get("event_start") or base.get("start"),
+        "geography": base.get("venue") or base.get("location") or evidence.get("geography"),
+        "source": base.get("source") or evidence.get("source") or base.get("source_origin"),
+        "source_url": base.get("source_url"),
+        "confidence": base.get("confidence") or (base.get("candidate_metadata") or {}).get("confidence"),
+        "suggested_tier": base.get("tier") or (
+            importance if importance in ("A-PIN", "B-PIN", "C-PIN") else None),
+        "recommended_lead_time_weeks": base.get("recommended_lead_time_weeks"),
+        "opportunity": base.get("summary") or evidence.get("opportunity"),
+        "why_it_matters": (base.get("purpose") or base.get("why_it_matters")
+                           or evidence.get("why_it_matters") or base.get("summary")
+                           or base.get("relevance_reason")),
+        "verification_status": base.get("verification_status"),
+        "type": base.get("type"),
+        "pillars": base.get("pillars") or [],
+    }
+
+
 @app.route("/api/planning/<brand_id>/candidates/<candidate_id>/planning-context", methods=["GET"])
 def planning_candidate_context(brand_id, candidate_id):
     """GET /api/planning/<brand>/candidates/<id>/planning-context
@@ -46349,6 +46428,10 @@ def planning_candidate_context(brand_id, candidate_id):
                 break
         except Exception:
             continue
+    if not candidate and not research_lead:
+        # Suggest Date entries (and what they become once approved) live in
+        # the operator store, not the candidates files.
+        candidate = _operator_store_candidate(brand_id, candidate_id)
     if not candidate and not research_lead:
         return jsonify({"ok": False, "error": "candidate not found"}), 404
     if research_lead:

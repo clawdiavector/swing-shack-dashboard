@@ -162,6 +162,60 @@ class TypedCampaignEndToEnd(unittest.TestCase):
         self.assertEqual(detail.get_json()["event"]["name"], "New Year New Swing")
         self.assertEqual(self.client.get("/api/planning/stick/event/nope").status_code, 404)
 
+    def _search(self, q, brand="stick"):
+        return [r for r in self.client.get(f"/api/planning/{brand}/search?q={q}").get_json()["results"]]
+
+    def test_search_shows_one_row_before_and_after_approval(self):
+        title = "Dupe check drive"
+        res = self.client.post("/api/calendar/candidates", json=_form_body(title=title))
+        cid = res.get_json()["record"]["calendar_id"]
+        rows = [r for r in self._search("dupe") if r["title"] == title]
+        self.assertEqual([r["state"] for r in rows], ["CANDIDATE"])
+        self.assertEqual(rows[0]["candidate_id"], cid)
+
+        approved = self.client.post(
+            f"/api/planning/stick/candidates/{cid}/approve",
+            json={}, headers={"X-Actor-Display-Name": "Christelle"}).get_json()
+        rows = [r for r in self._search("dupe") if r["title"] == title]
+        self.assertEqual([r["state"] for r in rows], ["ON_MAIN_CALENDAR"])
+        self.assertEqual(rows[0]["event_key"], approved["event_key"])
+        self.assertEqual(rows[0]["candidate_id"], cid)
+
+    def test_unapproved_suggestion_is_still_listed_once(self):
+        title = "Still a candidate"
+        self.client.post("/api/calendar/candidates", json=_form_body(title=title))
+        rows = [r for r in self._search("still") if r["title"] == title]
+        self.assertEqual([r["state"] for r in rows], ["CANDIDATE"])
+
+    def test_open_planning_resolves_operator_entries(self):
+        from urllib.parse import quote
+        title = "Planning context drive"
+        res = self.client.post("/api/calendar/candidates",
+                               json=_form_body(title=title, importance="B-PIN"))
+        cid = res.get_json()["record"]["calendar_id"]
+
+        before = self.client.get(f"/api/planning/stick/candidates/{cid}/planning-context")
+        self.assertEqual(before.status_code, 200, before.get_data(as_text=True))
+        self.assertFalse(before.get_json()["is_approved"])
+        self.assertEqual(before.get_json()["context"]["event"]["name"], title)
+
+        event_key = self.client.post(
+            f"/api/planning/stick/candidates/{cid}/approve",
+            json={}, headers={"X-Actor-Display-Name": "Christelle"}).get_json()["event_key"]
+        for ident in (cid, event_key):
+            ctx = self.client.get(
+                f"/api/planning/stick/candidates/{quote(ident, safe='')}/planning-context")
+            body = ctx.get_json()
+            self.assertEqual(ctx.status_code, 200, body)
+            self.assertTrue(body["is_approved"], ident)
+            self.assertEqual(body["event_key"], event_key)
+            self.assertEqual(body["context"]["planning_state"], "on_spine")
+            self.assertEqual(body["context"]["event"]["name"], title)
+            self.assertEqual(body["context"]["tier"], "B-PIN")
+
+        missing = self.client.get("/api/planning/stick/candidates/nope/planning-context")
+        self.assertEqual(missing.status_code, 404)
+
     def test_moment_from_the_same_form_is_still_refused(self):
         event_key = self._suggest_and_approve(
             type="moment", title="Ladies clinic at Stick", pillars=[])
