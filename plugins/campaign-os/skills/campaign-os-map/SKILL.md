@@ -117,6 +117,31 @@ Do not scrape Instagram HTML. Logged out it yields 12 posts as 640px centre-crop
 and the `oh=` signature covers the transform so URLs can't be rewritten for full
 resolution.
 
+## Paid ads — Meta Marketing API, read-only
+
+Both ad accounts are wired in (`_META_ADS_ACCOUNT_FOR_BRAND` in `app.py`).
+Nothing in this repo can change an ad.
+
+| Need | Use |
+|---|---|
+| campaign totals, current vs previous window | `GET /api/meta/ads/cache/<brand>?period_days=31` |
+| every ad scored, with one action each | `GET /api/meta/ads/brain/<brand>` (`&refresh=1` to re-read Meta) |
+| the rules and thresholds | `_lib/ads_brain.py` → `score_snapshot()`, `THRESHOLDS` |
+
+`ads_brain.fetch_snapshot()` reads at ad level: quality rankings, placements, the
+ad set's performance goal, creative copy, media type and destination link.
+`score_snapshot()` is pure and deterministic — no model.
+
+**`data/meta-ads.json` is synthetic** (built from Instagram posts in August). Never
+read it for ads work.
+
+**Do not open an ad's editor in Ads Manager to read it.** On 2026-10-08 opening
+`/adsmanager/manage/ads/edit` for one ad left an unpublished "Creative" draft on it
+with nothing typed. Read creative through the API.
+
+**Meta says `ACTIVE` for a campaign whose `stop_time` has passed.** Ads Manager
+shows it as Completed. `ads_brain._is_running()` checks the dates.
+
 ## Image generation — Krea
 
 See the `krea-lab` skill for model ids, schemas and the resolution allowlist.
