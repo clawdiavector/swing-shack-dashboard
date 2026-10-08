@@ -106,6 +106,9 @@ DUAL_AUTH_PATHS = frozenset({
     # L4 unified inbox list (Mac/foreman bearer approve flow)
     '/api/inbox/unified',
     '/api/clublab-pull/run',
+    # Lodge a finished post from Claude Code on any machine (post_lodge.py).
+    # Lands it on the shelf; Release stays a session click.
+    '/api/posts/lodge',
 })
 
 # Dynamic-segment dual-auth prefixes. Each MUST end in '/' — see _gate comment.
@@ -13468,6 +13471,141 @@ def get_campaign(campaign_id):
         return jsonify({"error": "Campaign not found"}), 404
     return jsonify(campaigns[campaign_id])
 
+
+@app.route('/api/campaigns/<campaign_id>', methods=['DELETE'])
+def archive_campaign(campaign_id):
+    """Archive a campaign, then remove it (and its assets) from campaign-data.json.
+
+    The full campaign is written to DATA_DIR/archive/campaigns/ before anything
+    is removed; if that write fails the campaign is left untouched.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if campaign_id not in campaigns:
+        return jsonify({"ok": False, "error": "Campaign not found"}), 404
+    campaign = campaigns[campaign_id]
+    assets = campaign.get("assets") or {}
+    was_active = data.get("activeCampaignId") == campaign_id
+
+    now = _now_iso()
+    archive_dir = os.path.join(_data_paths()['data_dir'], 'archive', 'campaigns')
+    safe_id = re.sub(r'[^A-Za-z0-9._-]+', '-', campaign_id)
+    archive_name = f"{safe_id}-{now.replace(':', '').replace('-', '')}.json"
+    try:
+        os.makedirs(archive_dir, exist_ok=True)
+        with open(os.path.join(archive_dir, archive_name), 'w', encoding='utf-8') as f:
+            json.dump({
+                "campaignId": campaign_id,
+                "archivedAt": now,
+                "wasActive": was_active,
+                "campaign": campaign,
+            }, f, indent=2, ensure_ascii=False)
+    except OSError as exc:
+        _app_log.exception("archive_campaign: archive write failed")
+        return jsonify({"ok": False, "error": f"Archive failed, campaign not removed: {exc}"}), 500
+
+    del campaigns[campaign_id]
+    data["campaigns"] = campaigns
+    if was_active:
+        brand_id = campaign.get("brand_id")
+        data["activeCampaignId"] = next(
+            (cid for cid, c in campaigns.items() if c.get("brand_id") == brand_id),
+            next(iter(campaigns), None),
+        )
+    save_data(data)
+    return jsonify({
+        "ok": True,
+        "campaignId": campaign_id,
+        "archivedAs": archive_name,
+        "assetsRemoved": len(assets),
+        "activeCampaignId": data.get("activeCampaignId"),
+    })
+
+
+_CAMPAIGN_ARCHIVE_NAME_RE = re.compile(r'^[A-Za-z0-9._-]+\.json$')
+
+
+def _campaign_archive_dir():
+    return os.path.join(_data_paths()['data_dir'], 'archive', 'campaigns')
+
+
+@app.route('/api/campaigns/archive', methods=['GET'])
+def list_archived_campaigns():
+    """List campaigns archived by DELETE /api/campaigns/<id>, newest first."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    archive_dir = _campaign_archive_dir()
+    live = load_data().get("campaigns", {})
+    items = []
+    for name in (os.listdir(archive_dir) if os.path.isdir(archive_dir) else []):
+        if not _CAMPAIGN_ARCHIVE_NAME_RE.match(name):
+            continue
+        doc = _read_json_file(os.path.join(archive_dir, name))
+        if not isinstance(doc, dict) or not isinstance(doc.get("campaign"), dict):
+            continue
+        campaign = doc["campaign"]
+        campaign_id = doc.get("campaignId") or ""
+        items.append({
+            "file": name,
+            "campaignId": campaign_id,
+            "name": (campaign.get("identity") or {}).get("name") or campaign_id,
+            "brand_id": campaign.get("brand_id"),
+            "archivedAt": doc.get("archivedAt"),
+            "assetCount": len(campaign.get("assets") or {}),
+            "restorable": campaign_id not in live,
+        })
+    items.sort(key=lambda i: i.get("archivedAt") or "", reverse=True)
+    return jsonify({"ok": True, "archived": items})
+
+
+@app.route('/api/campaigns/archive/<archive_name>/restore', methods=['POST'])
+def restore_archived_campaign(archive_name):
+    """Put an archived campaign back into campaign-data.json.
+
+    Refuses when a live campaign already uses the id. The archive file moves
+    to archive/campaigns/restored/ so it stops being offered.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _CAMPAIGN_ARCHIVE_NAME_RE.match(archive_name):
+        return jsonify({"ok": False, "error": "Archive not found"}), 404
+    archive_dir = _campaign_archive_dir()
+    archive_path = os.path.join(archive_dir, archive_name)
+    doc = _read_json_file(archive_path)
+    if not isinstance(doc, dict) or not isinstance(doc.get("campaign"), dict) or not doc.get("campaignId"):
+        return jsonify({"ok": False, "error": "Archive not found"}), 404
+    campaign_id = doc["campaignId"]
+
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if campaign_id in campaigns:
+        return jsonify({
+            "ok": False,
+            "error": f"A campaign with id '{campaign_id}' already exists; archive it first.",
+        }), 409
+    campaigns[campaign_id] = doc["campaign"]
+    data["campaigns"] = campaigns
+    if not data.get("activeCampaignId"):
+        data["activeCampaignId"] = campaign_id
+    save_data(data)
+
+    restored_dir = os.path.join(archive_dir, 'restored')
+    try:
+        os.makedirs(restored_dir, exist_ok=True)
+        os.replace(archive_path, os.path.join(restored_dir, archive_name))
+    except OSError:
+        # The campaign is back; a leftover archive file only means it is listed as not restorable.
+        _app_log.exception("restore_archived_campaign: could not move archive file")
+    return jsonify({
+        "ok": True,
+        "campaignId": campaign_id,
+        "assetsRestored": len(doc["campaign"].get("assets") or {}),
+        "activeCampaignId": data.get("activeCampaignId"),
+    })
+
+
 @app.route('/api/campaigns', methods=['POST'])
 def create_campaign():
     """Create a new campaign."""
@@ -14213,7 +14351,12 @@ def get_schedule():
 
 
 # ─── REVIEW UPLOAD + PUSH-TO-POSTIZ (added 2026-08-04 polish pass) ────
-ASSET_MEDIA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'asset-media')
+# On the volume when DATA_DIR is set. It used to sit inside the image
+# (/app/campaign-os/data/asset-media), so every deploy wiped what was uploaded.
+ASSET_MEDIA_DIR = (
+    os.path.join(os.environ['DATA_DIR'], 'asset-media') if os.environ.get('DATA_DIR')
+    else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'asset-media')
+)
 try:
     os.makedirs(ASSET_MEDIA_DIR, exist_ok=True)
 except (OSError, PermissionError):
@@ -14537,6 +14680,80 @@ def publish_sandbox_enqueue_route():
     except Exception as exc:
         _app_log.exception("publish sandbox enqueue failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/posts/lodge', methods=['POST'])
+def posts_lodge_route():
+    """POST /api/posts/lodge — one finished post onto the shelf (session or job bearer).
+
+    JSON:      {brand, slug, date, caption, image_base64 | archetype, fields?,
+                photo?, channels?, title?, created_by?, approve?}
+    Multipart: the same keys as form fields, the picture as file `image`;
+               channels comma-separated, fields as a JSON string.
+    Header:    X-Actor-Display-Name: <who is lodging it> (required).
+    """
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib.post_lodge import LodgeError, lodge_post
+
+    if request.files or request.form:
+        body = request.form.to_dict()
+        upload = request.files.get('image')
+        image_bytes = upload.read() if upload else None
+        raw_channels = body.get('channels') or ''
+        channels = [c.strip() for c in raw_channels.split(',') if c.strip()] or None
+        try:
+            fields = json.loads(body['fields']) if body.get('fields') else None
+        except ValueError:
+            return jsonify({"ok": False, "error": "fields must be a JSON object"}), 400
+    else:
+        body = request.get_json(silent=True) or {}
+        channels = body.get('channels')
+        fields = body.get('fields')
+        image_bytes = None
+        b64 = body.get('image_base64') or ''
+        if b64:
+            if ',' in b64[:100] and b64.startswith('data:'):
+                b64 = b64.split(',', 1)[1]  # tolerate a data: URL
+            try:
+                image_bytes = base64.b64decode(b64, validate=True)
+            except (ValueError, TypeError):
+                return jsonify({"ok": False, "error": "image_base64 is not valid base64"}), 400
+    if fields is not None and not isinstance(fields, dict):
+        return jsonify({"ok": False, "error": "fields must be a JSON object"}), 400
+    # The V2.6 write-gate (_v26_wrapped_upsert_event) only books an approved
+    # slot for a request that names its person in this header. Checked here
+    # so the caller gets the fix, not a PermissionError from three layers down.
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip()
+    if not actor:
+        return jsonify({"ok": False, "error": (
+            "send your name in the X-Actor-Display-Name header -- the calendar "
+            "only books a slot for a named person")}), 400
+    approve = str(body.get('approve', 'true')).strip().lower() not in ('0', 'false', 'no')
+    try:
+        result = lodge_post(
+            brand=str(body.get('brand') or body.get('brand_id') or '').strip(),
+            slug=str(body.get('slug') or '').strip(),
+            date=str(body.get('date') or '').strip(),
+            caption=str(body.get('caption') or ''),
+            image_bytes=image_bytes,
+            archetype=(str(body.get('archetype') or '').strip() or None),
+            fields=fields,
+            photo=(str(body.get('photo') or '').strip() or None),
+            channels=channels,
+            title=(str(body.get('title') or '').strip() or None),
+            created_by=str(body.get('created_by') or actor).strip(),
+            approve=approve,
+        )
+    except LodgeError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), exc.status
+    except Exception as exc:
+        _app_log.exception("posts lodge failed")
+        return jsonify({"ok": False, "error": f"{type(exc).__name__}: {exc}"}), 500
+    base = request.host_url.rstrip('/')
+    result["links"] = {k: base + v for k, v in (result.get("links") or {}).items()}
+    result["images"] = {k: base + v for k, v in (result.get("images") or {}).items()}
+    return jsonify(result), 200
 
 
 @app.route('/api/publish/release', methods=['POST'])
@@ -44758,6 +44975,34 @@ def important_key_dates(items):
     return out
 
 
+def _operator_record_as_timeline_event(record):
+    """Shape a marketing_calendar operator record like a spine event.
+
+    Operator records carry `title`, `event_key`, `event_start` and a list of
+    pillar ids; the timeline UI reads `name`, `id`, `start` and a
+    {pillar: text} dict. Without this the entry draws as an unnamed bar that
+    cannot be opened.
+    """
+    entry = dict(record)
+    entry.setdefault("id", record.get("event_key"))
+    if not entry.get("name"):
+        entry["name"] = record.get("title") or record.get("event_key")
+    if not entry.get("start"):
+        entry["start"] = record.get("event_start") or ""
+    if not entry.get("end"):
+        entry["end"] = record.get("event_end") or record.get("public_peak") or entry["start"]
+    purpose = str(record.get("purpose") or "").strip()
+    if purpose and not entry.get("commercial_push"):
+        entry["commercial_push"] = purpose
+    pillars = record.get("pillars")
+    if isinstance(pillars, list):
+        entry["pillars"] = {
+            str(p).split("-")[-1].lower(): purpose or "Operator campaign"
+            for p in pillars if p
+        }
+    return entry
+
+
 def _enrich_event(event):
     """Convert phase weeks_before_peak into absolute sequential date ranges.
 
@@ -45010,7 +45255,7 @@ def planning_timeline(brand_id):
                 except Exception:
                     continue
                 if r_end >= start_d and r_start <= end_d:
-                    combined_events[ek] = record
+                    combined_events[ek] = _operator_record_as_timeline_event(record)
             try:
                 sources.append(f"marketing_calendar[{brand_id}].jsonl")
             except Exception:
@@ -45040,6 +45285,11 @@ def planning_timeline(brand_id):
                     enriched["end"] = enriched.get("event_end") or enriched.get("public_peak") or ""
                 ordered.append(enriched)
             ordered.sort(key=lambda e: e.get("start") or "")
+            # The Plan list shows each row's next step (Create brief /
+            # Open brief) without one lookup per row.
+            brief_ids = _brief_ids_by_event(brand_id)
+            for e in ordered:
+                e["brief_id"] = brief_ids.get(e.get("event_key") or e.get("id")) or ""
 
             counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
             for e in ordered:
@@ -45343,6 +45593,108 @@ def planning_candidates(brand_id):
 # research_lead (no date = raise 400). 401 if not authed.
 # ──────────────────────────────────────────────────────────────────────
 
+def _operator_pending_suggestions(brand_id):
+    """Operator-store records still waiting for a decision.
+
+    The store is append-only: an approved suggestion keeps its old
+    status=candidate row. Only the last row per id is current, and a
+    suggestion that an approved record was made from is done.
+    """
+    from _lib import marketing_calendar as _mc_pending
+    records = _mc_pending.list_records(brand_id) or []
+    current_status: Dict[str, Any] = {}
+    approved_from = set()
+    for r in records:
+        rid = r.get("calendar_id") or r.get("event_key")
+        if rid:
+            current_status[rid] = r.get("status")
+        if r.get("status") == "approved":
+            src = (r.get("candidate_metadata") or {}).get("candidate_id")
+            if src:
+                approved_from.add(src)
+    pending: List[Dict[str, Any]] = []
+    seen = set()
+    for r in records:
+        if r.get("status") != "candidate":
+            continue
+        cid = r.get("calendar_id") or r.get("event_key")
+        if not cid or cid in seen or cid in approved_from:
+            continue
+        if current_status.get(cid) != "candidate":
+            continue
+        seen.add(cid)
+        pending.append(r)
+    return pending
+
+
+def _typed_by_operator(record):
+    """True for a suggestion a person filed through the Suggest Date form.
+
+    Automation (cos-reactive, desk-foreman) also leaves status=candidate
+    rows in the operator store; those are research, not the operator's own
+    suggestions.
+    """
+    return (
+        record.get("created_by") == "operator"
+        or record.get("source") == "OPERATOR_PROVIDED"
+        or record.get("source_kind") == "operator"
+        or record.get("is_suggested") is True
+    )
+
+
+def _brief_ids_by_event(brand_id):
+    """{event_key: brief_id} for every brief of the brand that is not superseded."""
+    out: Dict[str, str] = {}
+    try:
+        cb = _cb_import()
+        for row in cb.list_briefs(brand_id):
+            full = cb._read_brief(brand_id, row.get("brief_id"))
+            if not full or full.get("status") == cb.STATUS_SUPERSEDED:
+                continue
+            ek = (full.get("source_opportunity") or {}).get("event_key")
+            if ek and full.get("brief_id"):
+                out.setdefault(ek, full["brief_id"])
+    except Exception:
+        _app_log.exception("_brief_ids_by_event failed for %s", brand_id)
+    return out
+
+
+@app.route("/api/planning/<brand_id>/waiting", methods=["GET"])
+def planning_waiting(brand_id):
+    """GET /api/planning/<brand>/waiting
+
+    What the operator suggested and has not yet added to the Main Calendar,
+    soonest first. Read-only; the Plan page lists these at the top so a new
+    suggestion does not have to be found through Search Dates. Candidates
+    written by automation stay in Search Dates and are not listed here.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+    suggestions = []
+    for r in _operator_pending_suggestions(brand_id):
+        if not _typed_by_operator(r):
+            continue
+        suggestions.append({
+            "candidate_id": r.get("calendar_id") or r.get("event_key"),
+            "title": r.get("title") or r.get("name") or "(untitled)",
+            "date": r.get("public_peak") or r.get("event_start") or r.get("start"),
+            "end_date": r.get("event_end") or r.get("end"),
+            "type": r.get("type") or "moment",
+            "pillars": r.get("pillars") if isinstance(r.get("pillars"), list) else [],
+            "why_it_matters": r.get("why_it_matters") or r.get("summary") or r.get("relevance_reason"),
+            "created_at": r.get("created_at"),
+        })
+    suggestions.sort(key=lambda x: (x.get("date") or "9999-99-99", x.get("title") or ""))
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "count": len(suggestions),
+        "suggestions": suggestions,
+    }), 200
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Calendar V2.9 §3+§4+§6+§7+§9 — Search Dates endpoint.
 # GET /api/planning/<brand>/search?q=<query>
@@ -45424,6 +45776,9 @@ def planning_search(brand_id):
                 "recommended_lead_time_weeks": r.get("recommended_lead_time_weeks"),
                 "brand_id": brand_id,
                 "event_key": ek,
+                # Lets OPEN PLANNING resolve the entry (planning-context
+                # accepts the suggestion id or the event_key).
+                "candidate_id": (r.get("candidate_metadata") or {}).get("candidate_id") or ek,
                 "category": r.get("category"),
                 "origin": "operator-store",
             })
@@ -45545,14 +45900,8 @@ def planning_search(brand_id):
     # and have no "Add to Main Calendar" button. The approved rows
     # are already covered by Layer 1; this is only for status=candidate.
     try:
-        from _lib import marketing_calendar as _mc_search_25
-        mc_records_25 = _mc_search_25.list_records(brand_id) or []
-        for _r in mc_records_25:
-            if _r.get("status") != "candidate":
-                continue
+        for _r in _operator_pending_suggestions(brand_id):
             _cid = _r.get("calendar_id") or _r.get("event_key")
-            if not _cid:
-                continue
             if not matches(
                 _r.get("title"), _r.get("name"), _r.get("summary"),
                 _r.get("venue"), _r.get("location"), _r.get("category"),
@@ -45824,11 +46173,18 @@ def planning_approve_candidate(brand_id, candidate_id):
                         "source": r.get("source_origin") or r.get("source"),
                         "source_url": r.get("source_url"),
                         "confidence": r.get("confidence"),
-                        "suggested_tier": r.get("tier"),
+                        # The Suggest Date form sends the operator's pick as
+                        # `importance`; "ASSESS" means no pick.
+                        "suggested_tier": r.get("tier") or (
+                            r.get("importance")
+                            if r.get("importance") in ("A-PIN", "B-PIN", "C-PIN") else None),
                         "recommended_lead_time_weeks": r.get("recommended_lead_time_weeks"),
                         "relevance_to_swing_shack": r.get("summary") or r.get("relevance_reason"),
                         "opportunity": r.get("summary"),
-                        "why_it_matters": r.get("summary") or r.get("relevance_reason"),
+                        "why_it_matters": (r.get("why_it_matters") or r.get("summary")
+                                           or r.get("relevance_reason")),
+                        "type": r.get("type"),
+                        "pillars": r.get("pillars") or [],
                     }
                     source_file = "operator-store"
                     break
@@ -46052,6 +46408,64 @@ def planning_candidate_approval_status(brand_id, candidate_id):
 # already attached to the candidate's event_key.
 # ──────────────────────────────────────────────────────────────────────
 
+def _operator_store_candidate(brand_id, candidate_id):
+    """Find an operator-store entry and shape it like a planning candidate.
+
+    `candidate_id` may be the suggestion's calendar_id or the event_key of the
+    approved record made from it. The returned candidate always carries the
+    ORIGINAL suggestion id, so build_approval_record() derives the same
+    event_key the approval wrote. Returns None when nothing matches.
+    """
+    from _lib import marketing_calendar as _mc_lookup
+    try:
+        records = _mc_lookup.list_records(brand_id) or []
+    except Exception:
+        return None
+    base = None
+    original_id = candidate_id
+    for r in records:
+        if r.get("event_key") and r.get("event_key") == candidate_id:
+            base = r
+            original_id = (r.get("candidate_metadata") or {}).get("candidate_id") or r.get("calendar_id")
+    if base is None:
+        for r in records:
+            # The store is append-only; the last row for an id is its current state.
+            if r.get("calendar_id") == candidate_id:
+                base = r
+    if base is None:
+        for r in records:
+            if (r.get("candidate_metadata") or {}).get("candidate_id") == candidate_id:
+                base = r
+    if base is None:
+        return None
+    evidence = base.get("evidence") or {}
+    importance = base.get("importance")
+    return {
+        "id": original_id,
+        "calendar_id": original_id,
+        "name": base.get("title") or base.get("name"),
+        "title": base.get("title") or base.get("name"),
+        "category": base.get("category") or (base.get("candidate_metadata") or {}).get("category"),
+        "start": base.get("event_start") or base.get("start"),
+        "end": base.get("event_end") or base.get("end"),
+        "public_peak": base.get("public_peak") or base.get("event_start") or base.get("start"),
+        "geography": base.get("venue") or base.get("location") or evidence.get("geography"),
+        "source": base.get("source") or evidence.get("source") or base.get("source_origin"),
+        "source_url": base.get("source_url"),
+        "confidence": base.get("confidence") or (base.get("candidate_metadata") or {}).get("confidence"),
+        "suggested_tier": base.get("tier") or (
+            importance if importance in ("A-PIN", "B-PIN", "C-PIN") else None),
+        "recommended_lead_time_weeks": base.get("recommended_lead_time_weeks"),
+        "opportunity": base.get("summary") or evidence.get("opportunity"),
+        "why_it_matters": (base.get("purpose") or base.get("why_it_matters")
+                           or evidence.get("why_it_matters") or base.get("summary")
+                           or base.get("relevance_reason")),
+        "verification_status": base.get("verification_status"),
+        "type": base.get("type"),
+        "pillars": base.get("pillars") or [],
+    }
+
+
 @app.route("/api/planning/<brand_id>/candidates/<candidate_id>/planning-context", methods=["GET"])
 def planning_candidate_context(brand_id, candidate_id):
     """GET /api/planning/<brand>/candidates/<id>/planning-context
@@ -46097,6 +46511,10 @@ def planning_candidate_context(brand_id, candidate_id):
                 break
         except Exception:
             continue
+    if not candidate and not research_lead:
+        # Suggest Date entries (and what they become once approved) live in
+        # the operator store, not the candidates files.
+        candidate = _operator_store_candidate(brand_id, candidate_id)
     if not candidate and not research_lead:
         return jsonify({"ok": False, "error": "candidate not found"}), 404
     if research_lead:
@@ -47540,6 +47958,20 @@ def planning_event_detail(brand_id, event_id):
                     "always_on_pillars": spine.get("always_on_pillars") or [],
                     "source": source,
                 }), 200
+    # Operator-approved entries live in the marketing_calendar store, not the spine.
+    try:
+        from _lib import marketing_calendar as _mc_event_detail
+        for record in (_mc_event_detail.list_records(brand_id) or []):
+            if record.get("event_key") == event_id and record.get("status") == "approved":
+                return jsonify({
+                    "ok": True,
+                    "brand_id": brand_id,
+                    "event": _enrich_event(_operator_record_as_timeline_event(record)),
+                    "always_on_pillars": [],
+                    "source": f"marketing_calendar[{brand_id}]",
+                }), 200
+    except Exception:
+        _app_log.exception("planning_event_detail: operator-store lookup failed")
     return jsonify({"ok": False, "error": "event not found", "event_id": event_id}), 404
 
 
@@ -50288,6 +50720,9 @@ def meta_ads_ingest(brand_id):
                         "trace": _tb.format_exc()[:500]}), 500
 
 
+_PAID_MEDIA_CACHE_MAX_AGE_HOURS = 12  # the meta_refresh job's own cadence
+
+
 @app.route("/api/meta/ads/cache/<brand_id>", methods=["GET"])
 def meta_ads_cache(brand_id):
     """GET /api/meta/ads/cache/<brand_id>[?period_days=7|31]
@@ -50308,18 +50743,30 @@ def meta_ads_cache(brand_id):
         period_days = 31
     cache_path = os.path.join(DATA_DIR, "paid-media",
                                 f"{brand_id}__{period_days}d.json")
-    if not os.path.exists(cache_path):
-        # Trigger an on-demand ingest at the requested period.
-        out = _v23_ingest_paid_media(brand_id, period_days=period_days, ytd=False)
+    from _lib.ads_brain import is_stale as _cache_is_stale
+    had_cache = os.path.exists(cache_path)
+    # The period-scoped copy was written once and then served forever: on
+    # 2026-10-08 prod was still returning the 2026-09-22 ingest. Re-ingest
+    # when it ages out, and keep the old copy if the re-ingest fails.
+    if _cache_is_stale(cache_path, _PAID_MEDIA_CACHE_MAX_AGE_HOURS):
+        out = _v23_ingest_paid_media(brand_id, period_days=period_days,
+                                       ytd=(period_days >= 31))
+        fresh = bool((out.get("current_period") or {}).get("ok"))
         # _v23_ingest_paid_media writes its own canonical file at
         # <brand>.json (NOT period-scoped) — copy that to the
         # period-scoped path so subsequent lookups hit cache.
         canonical_path = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
-        if os.path.exists(canonical_path):
+        if fresh and os.path.exists(canonical_path):
             import shutil
             shutil.copy2(canonical_path, cache_path)
-        return jsonify({"ok": out.get("ok"), "cache": out,
-                        "note": f"no {period_days}d cache yet — ran ingest on first access"}), 200
+        if fresh or not had_cache:
+            return jsonify({"ok": out.get("ok"), "cache": out,
+                            "note": (f"{period_days}d cache was stale — re-ingested"
+                                     if had_cache else
+                                     f"no {period_days}d cache yet — ran ingest on first access")}), 200
+        with open(cache_path) as f:
+            return jsonify({"ok": True, "cache": json.load(f), "stale": True,
+                            "note": "re-ingest failed — serving the last good copy"}), 200
     with open(cache_path) as f:
         return jsonify({"ok": True, "cache": json.load(f)}), 200
 
@@ -51073,6 +51520,98 @@ def meta_paid_media_refresh():
                  "Cache file: DATA_DIR/paid-media/<brand>.json. "
                  "Synthetic data/meta-ads.json never read."),
     }), 200
+
+
+# ─── ADS BRAIN ────────────────────────────────────────────────────────
+# Sits on top of V2.4.1 and does not touch it. Reads each account at ad
+# level (rankings, placements, ad set goal, creative, destination) and
+# scores every ad with deterministic rules in _lib/ads_brain.py.
+# Read-only on Meta: it recommends, a person acts in Ads Manager.
+
+_ADS_BRAIN_MAX_AGE_HOURS = 6
+
+
+@app.route("/api/meta/ads/brain/<brand_id>", methods=["GET"])
+def meta_ads_brain(brand_id):
+    """GET /api/meta/ads/brain/<brand_id>[?days=7|14|28|31|90][&refresh=1]
+
+    Returns {ok, cached, brain: {summary, findings[], ads[], errors[]}}.
+    Served from DATA_DIR/ads-brain/<brand>__<days>d.json while that is
+    under 6h old; ?refresh=1 forces a new read from Meta.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    days = request.args.get("days", 31, type=int)
+    if days not in (7, 14, 28, 31, 90):
+        days = 31
+    from _lib import ads_brain as _ab
+    cache_path = os.path.join(DATA_DIR, "ads-brain", f"{brand_id}__{days}d.json")
+    if (request.args.get("refresh") != "1"
+            and not _ab.is_stale(cache_path, _ADS_BRAIN_MAX_AGE_HOURS)):
+        with open(cache_path, encoding="utf-8") as f:
+            return jsonify({"ok": True, "cached": True, "brain": json.load(f)}), 200
+    acc = _v23_resolve_ads_account(brand_id)
+    _label, token = _v23_resolve_ads_token(brand_id)
+    if not acc or not token:
+        return jsonify({"ok": False, "data_status": "NOT_CONNECTED",
+                        "error": "no canonical ad account or token for this brand"}), 200
+    try:
+        out = _ab.build(brand_id, acc, token, days=days, data_dir=DATA_DIR,
+                        api_version=_META_GRAPH_API_VERSION)
+    except Exception as e:
+        _app_log.exception("ads brain failed for %s", brand_id)
+        return jsonify({"ok": False, "error": type(e).__name__}), 500
+    return jsonify({"ok": bool(out.get("ads")), "cached": False, "brain": out}), 200
+
+
+# ─── ADS BRIEF ────────────────────────────────────────────────────────
+# What the ads brain found, as a page a person reads each morning. Written
+# by the ads_brief job (_lib/jobs/layer7/ads_brief.py); these routes only
+# read what it wrote.
+
+_ADS_BRIEF_BRANDS = ("stick", "swing-shack")
+
+
+def _ads_brief_load(brand_id, kind):
+    from _lib.jobs.layer1._io import data_dir as _job_data_dir
+    name = "weekly-latest.json" if kind == "weekly" else "latest.json"
+    try:
+        with open(_job_data_dir() / "brands" / brand_id / "ads-brief" / name,
+                  encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+@app.route("/api/meta/ads/brief/<brand_id>", methods=["GET"])
+def meta_ads_brief(brand_id):
+    """GET /api/meta/ads/brief/<brand_id>[?kind=daily|weekly] — latest brief as JSON."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    kind = "weekly" if request.args.get("kind") == "weekly" else "daily"
+    brief = _ads_brief_load(brand_id, kind)
+    if brief is None:
+        return jsonify({"ok": False, "error": "no brief yet — run the ads_brief job"}), 404
+    return jsonify({"ok": True, "brief": brief}), 200
+
+
+@app.route("/ads-brief", methods=["GET"])
+def ads_brief_page():
+    """GET /ads-brief[?kind=weekly] — both brands on one page."""
+    if not _is_authed():
+        return redirect(url_for("login_page", next=request.full_path.rstrip("?")))
+    from _lib import ads_brief as _brief
+    kind = "weekly" if request.args.get("kind") == "weekly" else "daily"
+    loaded = {b: _ads_brief_load(b, kind) for b in _ADS_BRIEF_BRANDS}
+    page = _brief.render_html([v for v in loaded.values() if v], kind,
+                              missing=[b for b, v in loaded.items() if not v])
+    return page, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 # ─── CREATE V1 ────────────────────────────────────────────────────────

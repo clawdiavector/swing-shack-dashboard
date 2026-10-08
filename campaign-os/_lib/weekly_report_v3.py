@@ -1170,7 +1170,8 @@ def _render_html(bid: str, v24: dict, organic: Dict[str, Any],
     sections.append(_render_executive_card(exec_text, primary, accent))
     sections.append(_render_website_traffic_table(v24))
     sections.append(_render_acquisition(v24, primary, accent))
-    sections.append(_render_advertising(v24, primary, accent))
+    sections.append(_render_advertising(v24, primary, accent,
+                                          ads_brief=_read_ads_brief(bid, as_of)))
     sections.append(_render_website_pages(v24))
     sections.append(_render_seo(seo, seo_kw, primary, bid))
     sections.append(_render_geo(bid, primary))
@@ -1956,7 +1957,94 @@ def _render_acquisition(v24: dict, primary: str, accent: str) -> str:
 """
 
 
-def _render_advertising(v24: dict, primary: str, accent: str) -> str:
+# ── ads brief (Scoring V1) ──────────────────────────────────────
+
+_ADS_BRIEF_MAX_AGE_DAYS = 8
+
+
+def _read_ads_brief(bid: str, as_of: Optional[str] = None) -> Optional[dict]:
+    """Latest brief written by the ads_brief job, for the Advertising section.
+
+    None for a historical report (the brief only knows "now"), or when the
+    brief is missing or more than 8 days old."""
+    if as_of:
+        return None
+    try:
+        from _lib.jobs.layer1._io import data_dir
+        path = data_dir() / "brands" / bid / "ads-brief" / "latest.json"
+        brief = json.loads(path.read_text(encoding="utf-8"))
+        age = (datetime.date.today() - datetime.date.fromisoformat(brief["date"])).days
+    except Exception:
+        return None
+    if age > _ADS_BRIEF_MAX_AGE_DAYS or brief.get("brand_id") != bid:
+        return None
+    return brief
+
+
+def _ads_brief_action_note(a: dict) -> str:
+    bits = []
+    if a.get("ads"):
+        bits.append(", ".join(a["ads"]))
+    if a.get("days_open"):
+        bits.append(f"open {a['days_open']} days")
+    return " · ".join(bits)
+
+
+def _render_ads_brief(brief: Optional[dict]) -> str:
+    """'What the ads need' block inside the Advertising section."""
+    if not brief:
+        return ""
+    actions = brief.get("top_actions") or []
+    count = (brief.get("headline") or {}).get("actions", 0)
+    intro = (f"From the ads brief of {_esc(brief.get('date'))}: "
+             f"{count} finding{'s' if count != 1 else ''} to act on. "
+             "Recommendations only; nothing here changes an ad. "
+             "<a href='/ads-brief'>Open the full brief</a>.")
+    if not actions:
+        return f"""
+  <div class="ad-group">
+    <h3>What the ads need</h3>
+    <p class="lead">{intro}</p>
+    <p>Nothing needs action this week.</p>
+  </div>"""
+    cards = ""
+    for i, a in enumerate(actions, 1):
+        note = _ads_brief_action_note(a)
+        watch = f'<div class="watch">{_esc(note)}</div>' if note else ""
+        cards += f"""
+        <div class="action-card">
+          <span class="num">{i:02d}</span>
+          <div class="what">{_esc(a.get('action'))}</div>
+          <div class="why">{_esc(a.get('why'))}</div>
+          {watch}
+        </div>"""
+    return f"""
+  <div class="ad-group">
+    <h3>What the ads need</h3>
+    <p class="lead">{intro}</p>
+    <div class="action-grid">{cards}</div>
+  </div>"""
+
+
+def _ads_brief_markdown(brief: Optional[dict]) -> List[str]:
+    if not brief:
+        return []
+    L = ["### What the ads need",
+         f"From the ads brief of {brief.get('date')}. Recommendations only; "
+         "nothing here changes an ad."]
+    actions = brief.get("top_actions") or []
+    if not actions:
+        L.append("- Nothing needs action this week.")
+    for i, a in enumerate(actions, 1):
+        note = _ads_brief_action_note(a)
+        L.append(f"{i}. **{a.get('action')}**" + (f" ({note})" if note else ""))
+        L.append(f"   - {a.get('why')}")
+    L.append("")
+    return L
+
+
+def _render_advertising(v24: dict, primary: str, accent: str,
+                          ads_brief: Optional[dict] = None) -> str:
     pm = v24.get("paid_media_v24") or {}
     if (pm.get("data_status") or "").upper() != "LIVE":
         return f"""
@@ -2053,6 +2141,7 @@ def _render_advertising(v24: dict, primary: str, accent: str) -> str:
   <p class="lead">This week on Facebook and Instagram advertising.</p>
   <div class="ad-summary">{summary_html}</div>
   {groups_html}
+  {_render_ads_brief(ads_brief)}
 </section>
 """
 
@@ -2920,6 +3009,8 @@ def _render_markdown(bid: str, v24: dict, organic: Dict[str, Any],
                 if cpr is not None:
                     L.append(f"  - Cost per result: {_fmt(cpr, 'money_per')}")
         L.append("")
+    if (pm.get("data_status") or "").upper() == "LIVE":
+        L.extend(_ads_brief_markdown(_read_ads_brief(bid, as_of)))
     L.append("## Website pages")
     L.append("")
     L.append("| Page | This week | Last week | Change | Engagement |")

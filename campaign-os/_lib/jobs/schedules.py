@@ -59,6 +59,7 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "winner_promotion": _LAYER2_7_DAILY,
     "proposal_outcome": _LAYER2_7_DAILY,
     "human_edit_signal": _LAYER2_7_DAILY,
+    "ads_brief": _LAYER2_7_DAILY,
 }
 
 

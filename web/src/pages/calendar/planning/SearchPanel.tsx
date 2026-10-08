@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Calendar, ExternalLink, Loader2, MapPin, Search as SearchIcon } from 'lucide-react'
 import { Tip } from '../../../components/ui'
 import { brandDisplayName } from '../../../lib/planning'
+import { BriefSection } from './PlanningContextModal'
 
 // V2.9 §3+§4+§6+§7+§9 — Operator Date Intelligence.
 //
@@ -283,6 +284,17 @@ function ResultRow({
           </span>
         ) : null}
       </div>
+
+      {r.state === 'ON_MAIN_CALENDAR' && r.event_key ? (
+        <div className="mt-2">
+          <BriefSection
+            brandId={r.brand_id || brand}
+            eventKey={r.event_key}
+            onSpine
+            knownBriefId=""
+          />
+        </div>
+      ) : null}
     </li>
   )
 }

@@ -1,126 +1,113 @@
 ---
 name: schedule-from-anywhere
 description: >-
-  Put a finished, template-rendered post on the live Campaign OS calendar and into
-  the Review queue from any machine, using only a COS_JOB_TOKEN — no Railway CLI,
-  no Mac, no push to main, no image credits. Load when asked to schedule, lodge,
-  book or publish a post, or when a local render needs to reach production.
+  Put a finished post on the live Campaign OS calendar, on This week and on the
+  shelf ready to release, from any machine with only a COS_JOB_TOKEN — no Railway
+  CLI, no Mac, no push to main, no image credits. Works for a finished image made
+  in Claude (Ideogram, Krea, a designer's file) or a measured template. Load when
+  asked to schedule, lodge, book, post or publish something, or when a local image
+  or render needs to reach production.
 ---
 
 # Schedule a post from anywhere
 
-Two bearer-authenticated calls. Works from Windows, Linux or a phone.
-
-```
-1. POST /api/calendar/v2/upsert        → lodge the record, with a render_spec
-2. POST /api/jobs/run/render_batch     → compose it on the volume, into Review
-```
-
-A human then approves in the Review queue. That step needs a session login and is
-deliberately not automatable.
-
-## Why this exists
-
-`compose_post_for_channels()` writes to `$DATA_DIR/draft-assets/`. In production
-that is the Railway volume, so **a post rendered on a laptop can never reach the
-live queue** — the bytes are on the wrong disk. Before `render_batch`, the only
-route was `railway ssh` from the single machine holding the Railway CLI, which
-made scheduling one post a two-person job.
-
-The calendar was already bearer-writable and `/api/jobs/run/*` was already
-bearer-triggerable. This joins them.
-
-## Step 1 — lodge the record
-
-`event_key` **must** start with `{brand}:` or the upsert returns 500.
+One command. Works from Windows, macOS, Linux.
 
 ```bash
-curl -sS -X POST "$BASE/api/calendar/v2/upsert" \
+python campaign-os/scripts/lodge_post.py \
+  --brand swing-shack --slug spoon-wrong-clubs --date 2026-10-09 \
+  --image path/to/spoon-wrong-clubs.jpg \
+  --caption-file caption.txt \
+  --by christelle
+```
+
+It prints the state and the links:
+
+```
+lodged   swing-shack:spoon-wrong-clubs  for 2026-10-09
+state    scheduled — On the shelf
+image    instagram  https://…/brand-images/swing-shack/composed-spoon-wrong-clubs-instagram.png
+image    facebook   https://…/brand-images/swing-shack/composed-spoon-wrong-clubs-facebook.png
+release  https://…/app/shelf  (click Release now)
+week     https://…/app/week
+```
+
+**Then a person opens the Shelf and clicks Release now.** That click is the only
+human gate and is deliberately not automated. Nothing goes out before it.
+
+Needs `COS_JOB_TOKEN` in the environment (ask Kyle). `COS_BASE_URL` overrides the
+production URL. Standard library only, nothing to install.
+
+## What the one call does
+
+`POST /api/posts/lodge` (`campaign-os/_lib/post_lodge.py`):
+
+1. writes the image to the Railway volume, `$DATA_DIR/operator-uploads/<brand>/`
+2. books a calendar moment for the date, carrying a `render_spec`
+3. runs `render_batch` for that one record. A finished image is sized per channel
+   and placed as-is; a template is composed. It writes the sidecar that puts it on
+   This week.
+4. approves the draft through the same path as Review's Approve button, which
+   queues one publish row per channel (Instagram + Facebook by default)
+
+The post then shows on This week and on the Shelf as **Scheduled — On the shelf**.
+
+## Before you lodge
+
+- **Caption:** read `brand-voice-truth` first. Swing Shack and Stick both forbid
+  invented prices or offers.
+- **Image:** JPEG, PNG or WebP, up to 20 MB. Square or 4:5 portrait is ideal.
+  Anything taller than 4:5 or wider than 1.91:1 is centre-cropped to fit
+  Instagram's feed, and the output says `note … cropped` — **look at the image
+  links when you see that**, because a crop can clip baked-in type.
+- **Date:** today or later, Johannesburg time. That is the go-live day.
+- **Slug:** lowercase-hyphenated. It names the post. **Lodging the same slug again
+  replaces the picture or caption in the same slot**, and an identical re-lodge
+  does nothing, so it is safe to retry. A post that has already been released is
+  refused; use a new slug.
+
+## Options
+
+| Flag | Use |
+|---|---|
+| `--image FILE` | a finished picture, placed with nothing drawn on top |
+| `--archetype ID --field k=v …` | compose from a measured template instead (`/render-post --list`) |
+| `--caption "…"` or `--caption-file F` | the post copy (required) |
+| `--channels instagram,facebook` | default is the brand's own publish channels |
+| `--title "…"` | calendar title; default is the caption's first line |
+| `--no-approve` | stop in Review instead of the shelf, for someone else to approve |
+| `--by NAME` | who lodged it; recorded on the post |
+
+## Calling the API directly
+
+```bash
+curl -sS -X POST "$BASE/api/posts/lodge" \
   -H "Authorization: Bearer $COS_JOB_TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "brand_id": "swing-shack",
-    "record": {
-      "event_key": "swing-shack:operator-2026-10-06-spoon-wrong-clubs",
-      "type": "moment",
-      "status": "approved",
-      "title": "You wouldn'\''t dig with a spoon",
-      "event_date": "2026-10-06",
-      "event_start": "2026-10-06",
-      "source_type": "operator",
-      "source_origin": "internal_strategy",
-      "created_by": "<your name>",
-      "primary_channel": "instagram",
-      "render_spec": {
-        "archetype": "ss-fitting-headline",
-        "slug": "spoon-wrong-clubs",
-        "channels": ["instagram"],
-        "fields": {
-          "caption_hook": "YOU WOULDN'\''T DIG WITH A SPOON.",
-          "service_lockup": "WHY PLAY THE WRONG CLUBS?"
-        },
-        "caption": "You wouldn'\''t dig with a spoon. So why play the wrong clubs?\n\nFit first. Hit second.",
-        "date": "2026-10-06"
-      }
-    }
-  }'
+  -H "X-Actor-Display-Name: christelle" \
+  -F brand=swing-shack -F slug=spoon-wrong-clubs -F date=2026-10-09 \
+  -F "caption=<caption.txt" -F image=@spoon-wrong-clubs.jpg
 ```
 
-`source_origin` is an enum — **`external`, `deterministic_calendar` or
-`internal_strategy`**. `operator` is not valid and returns a 400-level error with
-the valid list.
+JSON works too, with `image_base64` instead of the file. The `X-Actor-Display-Name`
+header is required: the calendar's V2.6 write gate only books an approved slot for
+a named person, and the route refuses without it.
 
-## Step 2 — render it
+## Why this replaced the two-call flow
 
-```bash
-curl -sS -X POST "$BASE/api/jobs/run/render_batch?brand=swing-shack" \
-  -H "Authorization: Bearer $COS_JOB_TOKEN"
-```
+The old recipe (`/api/calendar/v2/upsert` with a `render_spec`, then
+`/api/jobs/run/render_batch`) had four silent failures. All are fixed in the code
+above, and the old calls still work:
 
-Returns `rendered`, `skipped`, the asset ids and any `problems`. The post appears
-in Review as `review/planned`.
-
-Omit `?brand=` to sweep all three brands.
-
-## The render_spec contract
-
-| Key | Required | Notes |
-|---|---|---|
-| `archetype` | yes | Must be a measured template — `/render-post --list` |
-| `slug` | yes | Drives the filenames and the asset id |
-| `caption` | yes | No caption, no post. It is skipped with a reason |
-| `channels` | no | Defaults to the archetype's own |
-| `fields` | no | The archetype's text zones |
-| `photo` | no | Defaults to one from the template pack |
-| `date` | no | Falls back to the record's `event_date` |
-
-## Idempotency — and how to change a post
-
-The latch is `$DATA_DIR/render-batch-latch.json`, mapping `event_key` to a hash of
-the `render_spec` it was last composed from.
-
-- **Re-run with nothing changed** → renders 0. Free and safe; run it as often as
-  you like.
-- **Edit the `render_spec` and upsert again** → the hash moves, and it re-renders
-  with the new copy.
-
-That second behaviour needed `render_spec` added to the calendar's
-`MATERIAL_FIELDS`. Without it `upsert_event` treats a copy edit as a no-op and
-silently keeps the old caption — which is worth knowing if you ever add another
-field the renderer reads.
-
-## When this is the wrong tool
-
-- **No measured template for the look.** `render_batch` only composes archetypes.
-  Genuinely new art goes through Krea — see `krea-lab` — and the winner should then
-  be measured into a template with `campaign-os-template` so it graduates down.
-- **A one-shot image with the type baked in.** This path composes from a template;
-  it does not pass a finished image through.
-- **You want it approved too.** Approval is a human action behind a session login,
-  by design. This gets it to Review, not past it.
+- It only composed templates and could not carry a finished image.
+- The upsert sent `status: approved` without `X-Actor-Display-Name`, which the V2.6
+  write gate rejects in production.
+- `render_batch` wrote no draft sidecar, so the post sat in Review and This week
+  read "Nothing going out".
+- `render_batch` never registered the `<brand>-calendar` campaign in `brands.json`,
+  so brand-scoped Review views hid the post.
 
 ## Related
 
-`/render-post` to preview locally first · `brand-voice-truth` before writing the
-caption · `campaign-os` → `modules/operator-post.md` for the older lodge-and-let-
-agents-draft flow, which costs credits and does not use your template.
+`/render-post` to preview a template locally first · `brand-voice-truth` before
+writing the caption · `krea-lab` for genuinely new art. Measure a look that keeps
+winning into a template with `campaign-os-template` so it graduates down.

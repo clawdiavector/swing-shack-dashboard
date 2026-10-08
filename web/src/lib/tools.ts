@@ -275,9 +275,9 @@ export function toolEmbedSrc(tool: ToolDef, params: URLSearchParams) {
 export function parentLabel(from: string) {
   if (from.startsWith('/create')) return 'Studio'
   if (from.startsWith('/review')) return 'Inbox'
-  if (from.startsWith('/calendar')) return 'Calendar'
+  if (from.startsWith('/calendar')) return 'Plan'
   if (from.startsWith('/publish')) return 'Publish'
   if (from.startsWith('/results')) return 'Results'
-  if (from.startsWith('/daily')) return 'Daily'
+  if (from.startsWith('/daily')) return 'Today'
   return 'Desk'
 }

@@ -418,6 +418,11 @@ export function fetchPlanningCandidates(
   )
 }
 
+/** What the operator suggested and has not yet added to the Main Calendar. */
+export function fetchPlanningWaiting(brand: string) {
+  return getJson<Record<string, unknown>>(`/api/planning/${encodeURIComponent(brand)}/waiting`)
+}
+
 export function fetchPlanningEvent(brand: string, eventId: string) {
   return getJson<Record<string, unknown>>(
     `/api/planning/${encodeURIComponent(brand)}/event/${encodeURIComponent(eventId)}`,
@@ -1289,6 +1294,7 @@ export type CampaignAsset = {
   description?: string
   visualBrief?: string
   realPhotoBrief?: string
+  status?: string
   approvalStatus?: string
   publishStatus?: string
   captionStatus?: string
@@ -1348,6 +1354,77 @@ export type Campaign = {
 
 export function fetchCampaign(campaignId: string) {
   return getJson<Campaign>(`/api/campaigns/${encodeURIComponent(campaignId)}`)
+}
+
+export type CampaignListEntry = Campaign & { brand_id?: string }
+
+export type CampaignListPayload = {
+  campaigns?: Record<string, CampaignListEntry>
+  activeCampaignId?: string | null
+}
+
+/** Every stored campaign, across brands. */
+export function fetchAllCampaigns() {
+  return getJson<CampaignListPayload>('/api/campaigns?all_brands=1')
+}
+
+export type ArchiveCampaignResponse = {
+  ok?: boolean
+  campaignId?: string
+  archivedAs?: string
+  assetsRemoved?: number
+  activeCampaignId?: string | null
+  error?: string
+}
+
+/** Archive a campaign to disk, then remove it and its posts. */
+export async function archiveCampaign(campaignId: string) {
+  const path = `/api/campaigns/${encodeURIComponent(campaignId)}`
+  const res = await fetch(path, { method: 'DELETE', credentials: 'same-origin' })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json().catch(() => ({}))) as ArchiveCampaignResponse
+  if (!res.ok || !data.ok) throw new Error(data.error || `${path} ${res.status}`)
+  return data
+}
+
+export type ArchivedCampaign = {
+  file: string
+  campaignId?: string
+  name?: string
+  brand_id?: string | null
+  archivedAt?: string | null
+  assetCount?: number
+  restorable?: boolean
+}
+
+export function fetchArchivedCampaigns() {
+  return getJson<{ ok?: boolean; archived?: ArchivedCampaign[]; error?: string }>(
+    '/api/campaigns/archive',
+  )
+}
+
+export type RestoreCampaignResponse = {
+  ok?: boolean
+  campaignId?: string
+  assetsRestored?: number
+  activeCampaignId?: string | null
+  error?: string
+}
+
+/** Put an archived campaign and its posts back. */
+export async function restoreArchivedCampaign(file: string) {
+  const path = `/api/campaigns/archive/${encodeURIComponent(file)}/restore`
+  const res = await fetch(path, { method: 'POST', credentials: 'same-origin' })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json().catch(() => ({}))) as RestoreCampaignResponse
+  if (!res.ok || !data.ok) throw new Error(data.error || `${path} ${res.status}`)
+  return data
 }
 
 const MEDIA_ROOTS = [

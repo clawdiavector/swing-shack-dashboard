@@ -101,7 +101,7 @@ def _read_json(path) -> "Optional[Any]":
         ])
     for c in candidates:
         try:
-            with open(c) as f:
+            with open(c, encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             continue
@@ -150,7 +150,7 @@ def _write_brief(brief: dict) -> None:
     p = _brief_path(brief["brand_id"], brief["brief_id"])
     os.makedirs(os.path.dirname(p), exist_ok=True)
     tmp = p + ".tmp"
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(brief, f, indent=2, ensure_ascii=False)
     os.replace(tmp, p)
 
@@ -164,7 +164,7 @@ def _append_revision(brief: dict, snapshot: dict) -> None:
     rev = brief.get("revision", 0)
     p = _revision_path(brief["brand_id"], brief["brief_id"], rev)
     os.makedirs(os.path.dirname(p), exist_ok=True)
-    with open(p, "w") as f:
+    with open(p, "w", encoding="utf-8") as f:
         json.dump(snapshot, f, indent=2, ensure_ascii=False)
 
 
@@ -215,11 +215,12 @@ def _north_stars(brand_id: str) -> dict:
     except Exception:
         cfg = {}
     pillars = cfg.get("pillars") or []
+    pillar_keys = _pillar_keys(brand_id)
     if not pillars:
         # No strategy config — return operator_input_required for
         # each well-known pillar name so the brief engine doesn't
         # silently substitute stale constants.
-        for p in PILLAR_KEYS:
+        for p in pillar_keys:
             out[p] = {
                 "label": p.title(),
                 "target": "",
@@ -236,7 +237,7 @@ def _north_stars(brand_id: str) -> dict:
         canonical_id = p_cfg.get("pillar_id") or ""
         bare = (canonical_id.split("-")[-1] if "-" in canonical_id
                 else canonical_id).lower()
-        if bare not in PILLAR_KEYS:
+        if bare not in pillar_keys:
             continue
         nst = p_cfg.get("north_star_target") or {}
         nsm = p_cfg.get("north_star_metric") or ""
@@ -315,7 +316,7 @@ def _north_stars(brand_id: str) -> dict:
         }
     # Always include bare-name keys for the well-known pillars even
     # if they don't appear in the config — mark as unknown.
-    for p in PILLAR_KEYS:
+    for p in pillar_keys:
         if p not in out:
             out[p] = {
                 "label": p.title(),
@@ -333,6 +334,25 @@ def _north_stars(brand_id: str) -> dict:
 # ── Pillars ──────────────────────────────────────────────────────
 
 PILLAR_KEYS = ("retail", "fitting", "coaching")
+
+
+def _pillar_keys(brand_id: str) -> tuple:
+    """PILLAR_KEYS plus any other pillar the brand's calendar_config
+    declares, by bare name (e.g. Swing Shack's `ss-membership` ->
+    "membership"). A pillar the brand runs must be able to match an
+    opportunity, or its campaigns can never be briefed."""
+    keys = list(PILLAR_KEYS)
+    try:
+        cfg = _marketing_calendar_import().load_brand_config(brand_id) or {}
+    except Exception:
+        cfg = {}
+    for p_cfg in cfg.get("pillars") or []:
+        canonical_id = str(p_cfg.get("pillar_id") or "")
+        bare = (canonical_id.split("-")[-1] if "-" in canonical_id
+                else canonical_id).lower()
+        if bare and bare not in keys:
+            keys.append(bare)
+    return tuple(keys)
 
 
 def _pillar_mix(brand_id: str, days_back: int = 31) -> dict:
@@ -689,7 +709,7 @@ def _creative_genome_signals(brand_id: str) -> dict:
     ocr_counts = {"yes": 0, "no": 0}
     for fname in files:
         try:
-            d = json.load(open(os.path.join(base, fname)))
+            d = json.load(open(os.path.join(base, fname), encoding="utf-8"))
         except Exception:
             continue
         samples += 1
@@ -831,14 +851,24 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
         date_confidence = "HIGH"
     elif event_start and not event_end:
         date_confidence = "MEDIUM"
+    elif (event_start and r.get("type") == "campaign"
+            and r.get("source_origin") == "internal_strategy"
+            and r.get("trusted_for_planning") is True):
+        # A campaign the operator typed in and vouched for: they chose
+        # the date, so there is no external date left to verify. Other
+        # operator pins (content / moment / reminder) stay LOW.
+        date_confidence = "MEDIUM"
     else:
         date_confidence = "LOW"
+    # Records written by the Calendar add-event path before it set
+    # `pillars` carry only the singular `pillar`.
+    pillars = r.get("pillars") or ([r["pillar"]] if r.get("pillar") else {})
     return {
         "id": event_key,
         "event_key": event_key,
         "name": r.get("title") or r.get("name") or "",
         "year": (event_start or "")[:4] or "unknown",
-        "pillars": r.get("pillars") or {},
+        "pillars": pillars,
         "lanes": list((r.get("lanes") or {}).keys())
         + (["watchlist"] if source == "watchlist" else []),
         "duration_days": duration_days,
@@ -868,6 +898,12 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
                              or r.get("source_class")
                              or r.get("source_origin")
                              or "unknown"),
+        # What the operator said the entry is for: `purpose` from the
+        # add-event path, `why_it_matters` from an approved suggestion.
+        "purpose": str(r.get("purpose")
+                       or (r.get("evidence") or {}).get("why_it_matters")
+                       or r.get("why_it_matters")
+                       or "").strip(),
     }
 
 
@@ -1511,14 +1547,14 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
     pillars_supported = opportunity.get("pillars") or {}
     always_on_pillar_match = []
     if isinstance(pillars_supported, dict):
-        for p in PILLAR_KEYS:
+        for p in _pillar_keys(brand_id):
             if p in pillars_supported:
                 always_on_pillar_match.append(p)
             elif any(isinstance(v, str) and p in v.lower()
                      for v in pillars_supported.values()):
                 always_on_pillar_match.append(p)
     elif isinstance(pillars_supported, list):
-        for p in PILLAR_KEYS:
+        for p in _pillar_keys(brand_id):
             pl = p.lower()
             for v in pillars_supported:
                 vs = str(v).lower()
@@ -1584,8 +1620,7 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
 
     # 1d. actionable brand angle — campaign lane OR
     # explicit commercial relevance from calendar
-    commercial = (any(p in ("retail", "fitting", "coaching")
-                       for p in always_on_pillar_match)
+    commercial = (bool(always_on_pillar_match)
                    or "commercial" in lane_keys
                    or "apparel" in lane_keys
                    or "retail" in lane_keys
@@ -2163,7 +2198,7 @@ def create_brief(brand_id: str, opportunity_id: str,
     always_on_pillar_match = []
     opp_pillars = opp.get("pillars") or {}
     if isinstance(opp_pillars, dict):
-        for p in PILLAR_KEYS:
+        for p in _pillar_keys(brand_id):
             if p in opp_pillars:
                 always_on_pillar_match.append(p)
             elif any(isinstance(v, str) and p in v.lower()
@@ -2171,7 +2206,7 @@ def create_brief(brand_id: str, opportunity_id: str,
                 always_on_pillar_match.append(p)
     elif isinstance(opp_pillars, list):
         # Match against canonical pillar IDs (e.g. 'stick-retail')
-        for p in PILLAR_KEYS:
+        for p in _pillar_keys(brand_id):
             pl = p.lower()
             for v in opp_pillars:
                 vs = str(v).lower()
@@ -2296,7 +2331,11 @@ def create_brief(brand_id: str, opportunity_id: str,
         # Brief §8 sections
         "opportunity": {
             "what": opp.get("name"),
-            "why_it_may_matter": (f"Calendar/cultural event '{opp.get('name')}' "
+            "operator_purpose": opp.get("purpose") or "",
+            "why_it_may_matter": ((f"Operator's stated purpose: "
+                                   f"{opp['purpose'].rstrip('.')}. "
+                                   if opp.get("purpose") else "")
+                                  + f"Calendar/cultural event '{opp.get('name')}' "
                                   f"(event_key={event_key}) aligned with "
                                   f"active North Stars and existing "
                                   f"brand pillars."),
@@ -2655,7 +2694,7 @@ def list_briefs(brand_id: str = None, status: str = None) -> list:
             if not fname.endswith(".json"):
                 continue
             try:
-                b = json.load(open(os.path.join(d, fname)))
+                b = json.load(open(os.path.join(d, fname), encoding="utf-8"))
             except Exception:
                 continue
             if status and b.get("status") != status:

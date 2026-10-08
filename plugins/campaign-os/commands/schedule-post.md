@@ -1,8 +1,26 @@
 ---
-description: Turn rendered images into real posts — caption, date, state, Review queue
-allowed-tools: Bash(python3 campaign-os/scripts/render_post.py:*), Bash(python campaign-os/scripts/render_post.py:*), Bash(python3 campaign-os/scripts/schedule_posts.py:*), Bash(python campaign-os/scripts/schedule_posts.py:*), Read, Write, Edit, Grep
-argument-hint: "[batch file | brand + date]"
+description: Turn a finished image or template render into a live post — caption, date, This week, ready to release
+allowed-tools: Bash(python3 campaign-os/scripts/lodge_post.py:*), Bash(python campaign-os/scripts/lodge_post.py:*), Bash(python3 campaign-os/scripts/render_post.py:*), Bash(python campaign-os/scripts/render_post.py:*), Bash(python3 campaign-os/scripts/schedule_posts.py:*), Bash(python campaign-os/scripts/schedule_posts.py:*), Read, Write, Edit, Grep
+argument-hint: "[image + brand + date | batch file]"
 ---
+
+## One post onto the live calendar — start here
+
+For a single post from this machine, whether it's a finished image or a template,
+use `lodge_post.py`. It needs only `COS_JOB_TOKEN`; the `schedule-from-anywhere`
+skill has the details.
+
+```bash
+python campaign-os/scripts/lodge_post.py --brand swing-shack --slug <slug> \
+  --date YYYY-MM-DD --image <file> --caption-file <caption.txt> --by <your name>
+```
+
+It lands on This week and on the Shelf as Scheduled. A person clicks **Release
+now** on the Shelf to send it. Show the user the printed image links and the shelf
+link, and tell them that click is theirs.
+
+Everything below is the batch path, run on the Railway volume. Use it for many
+posts at once from a batch file.
 
 ## The two steps
 
