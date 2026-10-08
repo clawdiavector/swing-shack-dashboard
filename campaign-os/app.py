@@ -45627,6 +45627,21 @@ def _operator_pending_suggestions(brand_id):
     return pending
 
 
+def _typed_by_operator(record):
+    """True for a suggestion a person filed through the Suggest Date form.
+
+    Automation (cos-reactive, desk-foreman) also leaves status=candidate
+    rows in the operator store; those are research, not the operator's own
+    suggestions.
+    """
+    return (
+        record.get("created_by") == "operator"
+        or record.get("source") == "OPERATOR_PROVIDED"
+        or record.get("source_kind") == "operator"
+        or record.get("is_suggested") is True
+    )
+
+
 def _brief_ids_by_event(brand_id):
     """{event_key: brief_id} for every brief of the brand that is not superseded."""
     out: Dict[str, str] = {}
@@ -45650,7 +45665,8 @@ def planning_waiting(brand_id):
 
     What the operator suggested and has not yet added to the Main Calendar,
     soonest first. Read-only; the Plan page lists these at the top so a new
-    suggestion does not have to be found through Search Dates.
+    suggestion does not have to be found through Search Dates. Candidates
+    written by automation stay in Search Dates and are not listed here.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
@@ -45658,6 +45674,8 @@ def planning_waiting(brand_id):
         return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
     suggestions = []
     for r in _operator_pending_suggestions(brand_id):
+        if not _typed_by_operator(r):
+            continue
         suggestions.append({
             "candidate_id": r.get("calendar_id") or r.get("event_key"),
             "title": r.get("title") or r.get("name") or "(untitled)",
