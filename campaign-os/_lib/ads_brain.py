@@ -27,12 +27,15 @@ from pathlib import Path
 GRAPH_BASE = "https://graph.facebook.com"
 DEFAULT_API_VERSION = os.environ.get("INSTAGRAM_GRAPH_API_VERSION") or "v26.0"
 SCHEMA = "https://campaign-os/ads-brain/v1"
-SCORING_VERSION = "v1"
+# v1.1 (2026-10-08): all_video retired. It recommended testing a static image,
+# and ads for these brands run on real human video by rule (the exception is an
+# animated still for retail). Nothing else changed from the frozen v1.
+SCORING_VERSION = "v1.1"
 
 RULES = (
     "lead_ads_not_running", "click_goal_leak", "home_page_destination",
     "open_ended_non_lead", "single_ad_no_test", "fatigue", "cost_per_lead_rising",
-    "cpm_rising", "below_average_ranking", "best_lead_ad", "spend_mix", "all_video",
+    "cpm_rising", "below_average_ranking", "best_lead_ad", "spend_mix",
     "instagram_absent",
 )
 
@@ -815,27 +818,6 @@ def score_snapshot(snapshot: dict, *, now: _dt.datetime | None = None,
                  "acquisition_spend": acq_spend, "lead_spend": lead_spend},
                 status="NO_LEAD_AD_RUNNING" if no_lead_running else "REALLOCATE"))
 
-    # all_video — scoped to what this snapshot can see.
-    media = [m for m in ((a.get("creative") or {}).get("media_type") for a in delivered) if m]
-    if len(media) >= 3 and all(m == "video" for m in media):
-        prev_static = [a for a in ads if a not in delivered
-                       and ((a.get("previous") or {}).get("spend") or 0) > 0
-                       and (a.get("creative") or {}).get("media_type") == "image"]
-        days = (snapshot.get("period") or {}).get("days")
-        what = (f"All {len(media)} ads that ran in this {days}-day window are videos; "
-                "no static image ran in it.")
-        if prev_static:
-            what += (f" A static ('{prev_static[0].get('ad_name')}') did run in the previous "
-                     "window. Nothing older than that was checked.")
-        else:
-            what += " None ran in the previous window either. Nothing older was checked."
-        findings.append(_finding(
-            "all_video", "low", "account", what,
-            "Run a static alongside the best video so the two formats are compared in the "
-            "same window.",
-            {"ads_with_known_media": len(media), "window_days": days,
-             "static_in_previous_window": bool(prev_static)}))
-
     findings.sort(key=lambda f: (SEVERITY_ORDER.get(f["severity"], 9),
                                  -((f.get("evidence") or {}).get("spend") or 0)))
     fired = {f["rule"] for f in findings}
@@ -859,6 +841,7 @@ def score_snapshot(snapshot: dict, *, now: _dt.datetime | None = None,
         },
         "findings": findings,
         "counts": {s: sum(1 for f in findings if f["severity"] == s) for s in SEVERITY_ORDER},
+        "rules": list(RULES),
         "rules_not_fired": [r for r in RULES if r not in fired],
         "errors": snapshot.get("errors") or [],
         "note": "Recommendations only. Nothing here changes an ad.",

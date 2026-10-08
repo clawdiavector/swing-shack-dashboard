@@ -85,7 +85,7 @@ class FirstRun(_JobCase):
         self.assertTrue(out["ok"], out)
         brief = self.read("latest.json")
         self.assertEqual((brief["kind"], brief["date"], brief["scoring_version"]),
-                         ("daily", "2026-10-08", "v1"))
+                         ("daily", "2026-10-08", "v1.1"))
         self.assertTrue(brief["baseline"])
         # First run: nothing is "new", everything is the starting point.
         self.assertEqual(brief["new"], [])
@@ -145,6 +145,19 @@ class NextDay(_JobCase):
         self.assertEqual((still["first_seen"], still["days_open"]), ("2026-10-05", 3))
         events = self.read("events.json")
         self.assertEqual(sorted(e["event"] for e in events), ["resolved", "resolved"])
+
+    def test_a_retired_rule_is_not_reported_as_resolved(self):
+        self.run_job(fx.STICK, DAY)
+        state = self.read("state.json")
+        state["findings"]["all_video||account"] = {
+            "rule": "all_video", "status": None, "severity": "low", "ad_name": None,
+            "what": "All 6 ads are videos.", "action": "Run a static.", "first_seen": "2026-10-08"}
+        (self.lane / "state.json").write_text(json.dumps(state), encoding="utf-8")
+        self.run_job(fx.STICK, DAY)
+        brief = self.read("latest.json")
+        self.assertEqual(brief["resolved"], [])
+        self.assertNotIn("all_video||account", self.read("state.json")["findings"])
+        self.assertEqual(self.read("events.json"), [])
 
     def test_a_new_finding_is_listed_once(self):
         self.run_job(fx.STICK, DAY)

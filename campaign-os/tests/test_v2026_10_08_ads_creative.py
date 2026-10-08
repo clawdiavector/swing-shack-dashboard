@@ -115,8 +115,23 @@ class Plan(unittest.TestCase):
 
     def test_no_static_or_generated_creative_is_ever_named(self):
         blob = json.dumps(self.cards).lower()
-        for word in ("static", "template", "render", "krea", "image"):
+        for word in ("static", "template", "render", "krea", "image", "still"):
             self.assertNotIn(word, blob)
+
+    def test_retail_campaign_may_also_get_an_animated_still(self):
+        acct = _account()
+        acct = dict(acct, ads=[dict(s, creative=dict(
+            s["creative"], body="The Bunny has landed. Psycho Bunny pants, available at Swing Shack."))
+            if s["id"] == "david" else s for s in acct["ads"]])
+        cards, _ = _plan(account=acct, organic=[])
+        by = {c["control"]["ad_id"]: [x["kind"] for x in c["challengers"]] for c in cards}
+        self.assertEqual(by["david"], ["NEW_VIDEO", "ANIMATED_STILL"])
+        # Service campaigns never get one.
+        self.assertEqual(by["cat"], ["NEW_VIDEO"])
+        self.assertEqual(by["ff1"], ["NEW_VIDEO"])
+        still = next(x for c in cards for x in c["challengers"] if x["kind"] == "ANIMATED_STILL")
+        self.assertEqual((still["ready"], still["todo"]), (False, "needs animating"))
+        self.assertIn("bags", ads_creative.RETAIL_THEMES)
 
 
 def _test(**over):

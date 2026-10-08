@@ -144,9 +144,13 @@ def build_daily(brand_id: str, scored: dict, recent: dict, state: dict | None,
                                    ("rule", "status", "severity", "ad_name", "what", "action",
                                     "first_seen")}
     new = [] if baseline else [f for f in open_findings if f["key"] not in prev]
+    # A finding whose rule was retired did not get fixed; it just stops being
+    # reported, so it must not show up as resolved.
+    live_rules = set(scored.get("rules") or []) or None
     resolved = [dict(v, key=k, resolved_on=day,
                      days_open=(today - _dt.date.fromisoformat(v["first_seen"])).days)
-                for k, v in prev.items() if k not in current]
+                for k, v in prev.items()
+                if k not in current and (live_rules is None or v.get("rule") in live_rules)]
     # A failed read must not look like everything got fixed.
     read_failed = not (scored.get("summary") or {}).get("ads_delivered") and bool(scored.get("errors"))
     if read_failed:
@@ -369,7 +373,7 @@ def _creative_section(creative: dict | None) -> str:
                           f'<a href="{_e(c["permalink"])}" rel="noopener">see the reel</a>')
             else:
                 detail = f'Keep: {_e(c.get("keep"))}<br>Change: {_e(c.get("change"))}'
-            ready = "ready to launch" if c["ready"] else "needs filming"
+            ready = "ready to launch" if c["ready"] else c.get("todo", "needs filming")
             rows += (f'<p><b>{_e(c["title"])}</b> <span class="mute">({_e(c["format"])}, {ready})'
                      f'</span><br>{detail}<br><span class="mute">{_e(c["why"])}</span></p>')
         if d["estimated_days"] is None:

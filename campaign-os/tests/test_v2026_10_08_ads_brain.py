@@ -232,7 +232,7 @@ class StickVerdict(unittest.TestCase):
         self.assertAlmostEqual(s["spend"], 5020.39, places=2)
         self.assertEqual(s["leads"], 10)
         self.assertEqual(s["ads_running"], 3)
-        self.assertEqual(self.out["scoring_version"], "v1")
+        self.assertEqual(self.out["scoring_version"], "v1.1")
 
     def test_stopped_lead_ad_quotes_the_last_full_window(self):
         # Meta still says ACTIVE; the campaign's stop_time passed on 30 Sept.
@@ -293,11 +293,12 @@ class StickVerdict(unittest.TestCase):
         self.assertAlmostEqual(f["evidence"]["acquisition_spend"], 501.26, places=2)
         self.assertAlmostEqual(f["evidence"]["lead_spend"], 405.57, places=2)
 
-    def test_all_video_is_scoped_to_the_window(self):
-        f = _one(self.out, "all_video")
-        self.assertIn("31-day window", f["what"])
-        self.assertIn("Free Assessments Ad", f["what"])
-        self.assertTrue(f["evidence"]["static_in_previous_window"])
+    def test_no_rule_recommends_a_static(self):
+        # all_video was retired in v1.1: ads here run on real human video.
+        self.assertNotIn("all_video", _rules(self.out))
+        self.assertNotIn("all_video", self.out["rules"])
+        self.assertFalse(any("static" in (f["action"] + f["what"]).lower()
+                             for f in self.out["findings"]))
 
     def test_rules_not_fired_are_listed(self):
         self.assertEqual(self.out["rules_not_fired"],
