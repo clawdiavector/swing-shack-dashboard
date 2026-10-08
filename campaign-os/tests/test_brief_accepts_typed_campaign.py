@@ -95,5 +95,33 @@ class OpportunityGate(unittest.TestCase):
         self.assertIn("strategic_relevance", _failed(gate))
 
 
+class BrandPillars(unittest.TestCase):
+    """A pillar the brand declares in calendar_config must be briefable."""
+
+    def _gate(self, brand, pillar):
+        rec = pe.build_event_record(brand, "Membership drive", "2026-11-02",
+                                    type_="campaign", pillar=pillar)
+        opp = cb._map_canonical_to_opportunity(rec, "calendar")
+        with patch.object(cb, "_find_opp_cluster", return_value=None):
+            return cb._opportunity_gate(brand, opp, {}, {}, {})
+
+    def test_swing_shack_declares_membership(self):
+        self.assertIn("membership", cb._pillar_keys("swing-shack"))
+        self.assertIn("membership", cb._north_stars("swing-shack"))
+
+    def test_stick_keys_are_unchanged(self):
+        self.assertEqual(cb._pillar_keys("stick"), cb.PILLAR_KEYS)
+
+    def test_swing_shack_membership_campaign_passes_every_hard_gate(self):
+        gate = self._gate("swing-shack", "ss-membership")
+        self.assertEqual(_failed(gate), [])
+        self.assertNotEqual(gate["gate"], cb.GATE_IGNORE)
+
+    def test_membership_is_not_a_stick_pillar(self):
+        gate = self._gate("stick", "ss-membership")
+        self.assertEqual(gate["gate"], cb.GATE_IGNORE)
+        self.assertIn("strategic_relevance", _failed(gate))
+
+
 if __name__ == "__main__":
     unittest.main()

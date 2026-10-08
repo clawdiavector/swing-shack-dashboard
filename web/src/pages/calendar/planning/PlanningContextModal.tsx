@@ -58,8 +58,9 @@ type PlanningContextResponse = {
  *   - existing brief (V2.3 reuse)
  *
  * Does NOT create a second planning system — it surfaces the planning
- * context.OPEN EXISTING BRIEF is shown when one exists. CREATE BRIEF
- * is shown when approved but no brief yet exists. VERIFY BEFORE ADDING
+ * context. OPEN BRIEF is shown when one exists (it opens the Brief's review
+ * page). CREATE BRIEF is shown when approved but no brief yet exists, and
+ * creates it in place. VERIFY BEFORE ADDING
  * for research_leads. The actual write side stays on the existing
  * /api/brief/v1/* endpoints.
  */
@@ -310,65 +311,159 @@ function ContextBody({ data }: { data: PlanningContextResponse }) {
         </section>
       ) : null}
 
-      {/* Existing brief reuse — the V2.3 acceptance point. */}
-      <section
-        className="rounded-md bg-bg/40 border border-bd p-3"
-        data-testid="planning-brief-section"
-      >
-        <div className="flex flex-wrap items-baseline gap-2">
-          <p className="text-[9px] font-bold tracking-widest text-emerald-400 uppercase">
-            Existing brief
-          </p>
-          {c.existing_brief?.exists ? (
-            <>
-              <FileText className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wider text-emerald-400 uppercase">
-                Brief exists
-              </span>
-              <code className="font-mono text-[11px] text-tx2">{c.existing_brief.brief_id}</code>
-              <ChevronRight className="h-3.5 w-3.5 text-tx3" />
-              <button
-                type="button"
-                data-testid="open-existing-brief-btn"
-                onClick={() => {
-                  const bi = c.existing_brief?.brief_id || ''
-                  window.location.href = `/app/brief/${encodeURIComponent(c.brand || data.brand_id || '')}/${encodeURIComponent(bi)}`
-                }}
-                className="rounded border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-bold tracking-wider text-emerald-400 uppercase hover:bg-emerald-500/25"
-              >
-                OPEN EXISTING BRIEF
-              </button>
-            </>
-          ) : c.planning_state === 'on_spine' ? (
-            <>
-              <span className="rounded border border-bd bg-bg/40 px-2 py-0.5 text-[10px] text-tx2">
-                No brief yet
-              </span>
-              <ChevronRight className="h-3.5 w-3.5 text-tx3" />
-              <button
-                type="button"
-                data-testid="create-brief-btn"
-                onClick={() => {
-                  // V2.3 reuse rule: do NOT auto-create. Hand off to the
-                  // Brief screen which keeps a single planning system.
-                  window.location.href = `/app/brief/${encodeURIComponent(c.brand || data.brand_id || '')}/new?event_key=${encodeURIComponent(data.event_key || '')}`
-                }}
-                className="rounded border border-yel/40 bg-yel/15 px-2.5 py-1 text-[10px] font-bold tracking-wider text-yel uppercase hover:bg-yel/25"
-              >
-                CREATE BRIEF
-              </button>
-              <span className="ml-1 text-[10px] text-tx3">
-                (Loading existing /app/brief/{c.brand || data.brand_id || ''}/new workflow)
-              </span>
-            </>
-          ) : (
-            <span className="rounded border border-tx3/30 bg-tx3/10 px-2 py-0.5 text-[10px] text-tx3">
-              Approve the candidate first to enable brief creation.
-            </span>
-          )}
-        </div>
-      </section>
+      <BriefSection
+        brandId={c.brand || data.brand_id || ''}
+        eventKey={data.event_key || ''}
+        onSpine={c.planning_state === 'on_spine'}
+        knownBriefId={c.existing_brief?.exists ? c.existing_brief.brief_id || '' : ''}
+      />
     </div>
+  )
+}
+
+type BriefCreateResponse = {
+  ok?: boolean
+  decision?: string
+  error?: string
+  note?: string
+  brief?: { brief_id?: string }
+  existing_brief?: { brief_id?: string }
+  gate?: { note?: string; hard_gate_failures?: { gate?: string; reason?: string }[] }
+}
+
+/** Brief status for a calendar entry: open the Brief if one exists, otherwise create it. */
+export function BriefSection({
+  brandId,
+  eventKey,
+  onSpine,
+  knownBriefId,
+}: {
+  brandId: string
+  eventKey: string
+  onSpine: boolean
+  knownBriefId: string
+}) {
+  const [briefId, setBriefId] = useState(knownBriefId)
+  const [busy, setBusy] = useState(false)
+  const [refused, setRefused] = useState<{ title: string; reasons: string[] } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (knownBriefId || !brandId || !eventKey) return
+    let cancelled = false
+    fetch(
+      `/api/brief/v1/${encodeURIComponent(brandId)}/find-by-event/${encodeURIComponent(eventKey)}`,
+      { credentials: 'include' },
+    )
+      .then((r) => r.json())
+      .then((j: { exists?: boolean; brief?: { brief_id?: string } }) => {
+        if (!cancelled && j.exists && j.brief?.brief_id) setBriefId(j.brief.brief_id)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [brandId, eventKey, knownBriefId])
+
+  const briefUrl = (id: string) =>
+    `/api/brief/v1/${encodeURIComponent(brandId)}/${encodeURIComponent(id)}/review`
+
+  async function createBrief() {
+    setBusy(true)
+    setError(null)
+    setRefused(null)
+    try {
+      const r = await fetch('/api/brief/v1/create', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand_id: brandId, opportunity_id: eventKey }),
+      })
+      const j = (await r.json()) as BriefCreateResponse
+      const id = j.brief?.brief_id || j.existing_brief?.brief_id
+      if (id) {
+        setBriefId(id)
+      } else if (j.decision) {
+        setRefused({
+          title:
+            j.decision === 'WATCH'
+              ? 'Campaign OS wants to watch this one, not brief it yet.'
+              : 'Campaign OS will not brief this entry.',
+          reasons: (j.gate?.hard_gate_failures || []).map((f) => f.reason || f.gate || '').filter(Boolean),
+        })
+      } else {
+        setError(j.error || j.note || `Brief was not created (HTTP ${r.status}).`)
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'network')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="rounded-md bg-bg/40 border border-bd p-3" data-testid="planning-brief-section">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <p className="text-[9px] font-bold tracking-widest text-emerald-400 uppercase">Brief</p>
+        {briefId ? (
+          <>
+            <FileText className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wider text-emerald-400 uppercase">
+              Brief exists
+            </span>
+            <code className="font-mono text-[11px] text-tx2">{briefId}</code>
+            <ChevronRight className="h-3.5 w-3.5 text-tx3" />
+            <a
+              href={briefUrl(briefId)}
+              target="_blank"
+              rel="noreferrer"
+              data-testid="open-existing-brief-btn"
+              className="rounded border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-bold tracking-wider text-emerald-400 uppercase hover:bg-emerald-500/25"
+            >
+              OPEN BRIEF
+            </a>
+          </>
+        ) : onSpine ? (
+          <>
+            <span className="rounded border border-bd bg-bg/40 px-2 py-0.5 text-[10px] text-tx2">
+              No brief yet
+            </span>
+            <ChevronRight className="h-3.5 w-3.5 text-tx3" />
+            <button
+              type="button"
+              data-testid="create-brief-btn"
+              disabled={busy || !eventKey}
+              onClick={() => void createBrief()}
+              className="inline-flex items-center gap-1 rounded border border-yel/40 bg-yel/15 px-2.5 py-1 text-[10px] font-bold tracking-wider text-yel uppercase hover:bg-yel/25 disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              {busy ? 'CREATING…' : 'CREATE BRIEF'}
+            </button>
+          </>
+        ) : (
+          <span className="rounded border border-tx3/30 bg-tx3/10 px-2 py-0.5 text-[10px] text-tx3">
+            Approve the candidate first to enable brief creation.
+          </span>
+        )}
+      </div>
+      {refused ? (
+        <div className="mt-2 text-[11px] text-tx2" data-testid="brief-refused">
+          <p className="font-semibold text-yel">{refused.title}</p>
+          {refused.reasons.length ? (
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-tx3">
+              {refused.reasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+      {error ? (
+        <p className="mt-2 text-[11px] text-red" data-testid="brief-error">
+          {error}
+        </p>
+      ) : null}
+    </section>
   )
 }
 
