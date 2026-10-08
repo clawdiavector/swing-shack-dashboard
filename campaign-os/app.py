@@ -50508,6 +50508,9 @@ def meta_ads_ingest(brand_id):
                         "trace": _tb.format_exc()[:500]}), 500
 
 
+_PAID_MEDIA_CACHE_MAX_AGE_HOURS = 12  # the meta_refresh job's own cadence
+
+
 @app.route("/api/meta/ads/cache/<brand_id>", methods=["GET"])
 def meta_ads_cache(brand_id):
     """GET /api/meta/ads/cache/<brand_id>[?period_days=7|31]
@@ -50528,18 +50531,30 @@ def meta_ads_cache(brand_id):
         period_days = 31
     cache_path = os.path.join(DATA_DIR, "paid-media",
                                 f"{brand_id}__{period_days}d.json")
-    if not os.path.exists(cache_path):
-        # Trigger an on-demand ingest at the requested period.
-        out = _v23_ingest_paid_media(brand_id, period_days=period_days, ytd=False)
+    from _lib.ads_brain import is_stale as _cache_is_stale
+    had_cache = os.path.exists(cache_path)
+    # The period-scoped copy was written once and then served forever: on
+    # 2026-10-08 prod was still returning the 2026-09-22 ingest. Re-ingest
+    # when it ages out, and keep the old copy if the re-ingest fails.
+    if _cache_is_stale(cache_path, _PAID_MEDIA_CACHE_MAX_AGE_HOURS):
+        out = _v23_ingest_paid_media(brand_id, period_days=period_days,
+                                       ytd=(period_days >= 31))
+        fresh = bool((out.get("current_period") or {}).get("ok"))
         # _v23_ingest_paid_media writes its own canonical file at
         # <brand>.json (NOT period-scoped) — copy that to the
         # period-scoped path so subsequent lookups hit cache.
         canonical_path = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
-        if os.path.exists(canonical_path):
+        if fresh and os.path.exists(canonical_path):
             import shutil
             shutil.copy2(canonical_path, cache_path)
-        return jsonify({"ok": out.get("ok"), "cache": out,
-                        "note": f"no {period_days}d cache yet — ran ingest on first access"}), 200
+        if fresh or not had_cache:
+            return jsonify({"ok": out.get("ok"), "cache": out,
+                            "note": (f"{period_days}d cache was stale — re-ingested"
+                                     if had_cache else
+                                     f"no {period_days}d cache yet — ran ingest on first access")}), 200
+        with open(cache_path) as f:
+            return jsonify({"ok": True, "cache": json.load(f), "stale": True,
+                            "note": "re-ingest failed — serving the last good copy"}), 200
     with open(cache_path) as f:
         return jsonify({"ok": True, "cache": json.load(f)}), 200
 
@@ -51293,6 +51308,51 @@ def meta_paid_media_refresh():
                  "Cache file: DATA_DIR/paid-media/<brand>.json. "
                  "Synthetic data/meta-ads.json never read."),
     }), 200
+
+
+# ─── ADS BRAIN ────────────────────────────────────────────────────────
+# Sits on top of V2.4.1 and does not touch it. Reads each account at ad
+# level (rankings, placements, ad set goal, creative, destination) and
+# scores every ad with deterministic rules in _lib/ads_brain.py.
+# Read-only on Meta: it recommends, a person acts in Ads Manager.
+
+_ADS_BRAIN_MAX_AGE_HOURS = 6
+
+
+@app.route("/api/meta/ads/brain/<brand_id>", methods=["GET"])
+def meta_ads_brain(brand_id):
+    """GET /api/meta/ads/brain/<brand_id>[?days=7|14|28|31|90][&refresh=1]
+
+    Returns {ok, cached, brain: {summary, findings[], ads[], errors[]}}.
+    Served from DATA_DIR/ads-brain/<brand>__<days>d.json while that is
+    under 6h old; ?refresh=1 forces a new read from Meta.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    days = request.args.get("days", 31, type=int)
+    if days not in (7, 14, 28, 31, 90):
+        days = 31
+    from _lib import ads_brain as _ab
+    cache_path = os.path.join(DATA_DIR, "ads-brain", f"{brand_id}__{days}d.json")
+    if (request.args.get("refresh") != "1"
+            and not _ab.is_stale(cache_path, _ADS_BRAIN_MAX_AGE_HOURS)):
+        with open(cache_path, encoding="utf-8") as f:
+            return jsonify({"ok": True, "cached": True, "brain": json.load(f)}), 200
+    acc = _v23_resolve_ads_account(brand_id)
+    _label, token = _v23_resolve_ads_token(brand_id)
+    if not acc or not token:
+        return jsonify({"ok": False, "data_status": "NOT_CONNECTED",
+                        "error": "no canonical ad account or token for this brand"}), 200
+    try:
+        out = _ab.build(brand_id, acc, token, days=days, data_dir=DATA_DIR,
+                        api_version=_META_GRAPH_API_VERSION)
+    except Exception as e:
+        _app_log.exception("ads brain failed for %s", brand_id)
+        return jsonify({"ok": False, "error": type(e).__name__}), 500
+    return jsonify({"ok": bool(out.get("ads")), "cached": False, "brain": out}), 200
 
 
 # ─── CREATE V1 ────────────────────────────────────────────────────────
