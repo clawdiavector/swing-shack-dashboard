@@ -178,6 +178,16 @@ jobs:
             -o /tmp/human_edit_signal.json
           python3 scripts/cos_job_summary.py print /tmp/human_edit_signal.json
 
+      - name: L7 — ads_brief
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/ads_brief?all=1" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/ads_brief.json
+          python3 scripts/cos_job_summary.py print /tmp/ads_brief.json
+
       - name: Summary — L2–L7 job verdicts
         run: |
           set -euo pipefail
@@ -189,7 +199,7 @@ jobs:
           names = [
               'slot_planner','agent_queue_writer','review_sla','holiday_inject','data_archive',
               'retry_failed_images','draft_assets','krea_poll_draft_images','asset_qc','auto_release','publish_dispatch',
-              'post_outcomes','winner_promotion','proposal_outcome','human_edit_signal',
+              'post_outcomes','winner_promotion','proposal_outcome','human_edit_signal','ads_brief',
           ]
           d = json.load(open('/tmp/digest.json'))
           by_name = {j.get('name'): j for j in d.get('jobs', [])}
