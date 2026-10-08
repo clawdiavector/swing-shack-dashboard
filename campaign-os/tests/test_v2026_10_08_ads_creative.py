@@ -241,8 +241,8 @@ class InTheJob(bfx._JobCase):
         out = self.run_ss(_account())
         self.assertTrue(out["ok"], out)
         self.assertEqual(out["creative_tests"], {"proposed": 3, "running": 0})
-        self.assertEqual(out["organic"], {"posts_on_file": 5, "reels": 1,
-                                          "reels_with_a_theme": 1, "with_a_link": 5})
+        self.assertEqual(out["organic"], {"posts_on_file": 5, "reels": 1, "reels_with_a_theme": 1,
+                                          "reels_with_reach": 1, "with_a_link": 5})
         brief = self.read("latest.json")
         self.assertEqual(len(brief["creative"]["proposed"]), 3)
         tests_path = self.lane.parent / "ads-creative" / "tests.json"

@@ -66,6 +66,9 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
         "reels": sum(1 for o in organic if o.get("format_type") == "reel"),
         "reels_with_a_theme": sum(1 for o in organic if o.get("format_type") == "reel"
                                   and ads_creative.themes_of(o.get("caption_preview"))),
+        # A reel Meta returned no reach for scores zero and can never be picked.
+        "reels_with_reach": sum(1 for o in organic if o.get("format_type") == "reel"
+                                and (o.get("reach") or 0) > 0),
         "with_a_link": sum(1 for o in organic if o.get("permalink")),
     }
     events = ads_brief.merge_events(as_list(io.read(EVENTS, allow_flat_fallback=False)), new_events)
