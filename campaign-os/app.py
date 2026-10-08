@@ -45285,6 +45285,11 @@ def planning_timeline(brand_id):
                     enriched["end"] = enriched.get("event_end") or enriched.get("public_peak") or ""
                 ordered.append(enriched)
             ordered.sort(key=lambda e: e.get("start") or "")
+            # The Plan list shows each row's next step (Create brief /
+            # Open brief) without one lookup per row.
+            brief_ids = _brief_ids_by_event(brand_id)
+            for e in ordered:
+                e["brief_id"] = brief_ids.get(e.get("event_key") or e.get("id")) or ""
 
             counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
             for e in ordered:
@@ -45588,6 +45593,90 @@ def planning_candidates(brand_id):
 # research_lead (no date = raise 400). 401 if not authed.
 # ──────────────────────────────────────────────────────────────────────
 
+def _operator_pending_suggestions(brand_id):
+    """Operator-store records still waiting for a decision.
+
+    The store is append-only: an approved suggestion keeps its old
+    status=candidate row. Only the last row per id is current, and a
+    suggestion that an approved record was made from is done.
+    """
+    from _lib import marketing_calendar as _mc_pending
+    records = _mc_pending.list_records(brand_id) or []
+    current_status: Dict[str, Any] = {}
+    approved_from = set()
+    for r in records:
+        rid = r.get("calendar_id") or r.get("event_key")
+        if rid:
+            current_status[rid] = r.get("status")
+        if r.get("status") == "approved":
+            src = (r.get("candidate_metadata") or {}).get("candidate_id")
+            if src:
+                approved_from.add(src)
+    pending: List[Dict[str, Any]] = []
+    seen = set()
+    for r in records:
+        if r.get("status") != "candidate":
+            continue
+        cid = r.get("calendar_id") or r.get("event_key")
+        if not cid or cid in seen or cid in approved_from:
+            continue
+        if current_status.get(cid) != "candidate":
+            continue
+        seen.add(cid)
+        pending.append(r)
+    return pending
+
+
+def _brief_ids_by_event(brand_id):
+    """{event_key: brief_id} for every brief of the brand that is not superseded."""
+    out: Dict[str, str] = {}
+    try:
+        cb = _cb_import()
+        for row in cb.list_briefs(brand_id):
+            full = cb._read_brief(brand_id, row.get("brief_id"))
+            if not full or full.get("status") == cb.STATUS_SUPERSEDED:
+                continue
+            ek = (full.get("source_opportunity") or {}).get("event_key")
+            if ek and full.get("brief_id"):
+                out.setdefault(ek, full["brief_id"])
+    except Exception:
+        _app_log.exception("_brief_ids_by_event failed for %s", brand_id)
+    return out
+
+
+@app.route("/api/planning/<brand_id>/waiting", methods=["GET"])
+def planning_waiting(brand_id):
+    """GET /api/planning/<brand>/waiting
+
+    What the operator suggested and has not yet added to the Main Calendar,
+    soonest first. Read-only; the Plan page lists these at the top so a new
+    suggestion does not have to be found through Search Dates.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+    suggestions = []
+    for r in _operator_pending_suggestions(brand_id):
+        suggestions.append({
+            "candidate_id": r.get("calendar_id") or r.get("event_key"),
+            "title": r.get("title") or r.get("name") or "(untitled)",
+            "date": r.get("public_peak") or r.get("event_start") or r.get("start"),
+            "end_date": r.get("event_end") or r.get("end"),
+            "type": r.get("type") or "moment",
+            "pillars": r.get("pillars") if isinstance(r.get("pillars"), list) else [],
+            "why_it_matters": r.get("why_it_matters") or r.get("summary") or r.get("relevance_reason"),
+            "created_at": r.get("created_at"),
+        })
+    suggestions.sort(key=lambda x: (x.get("date") or "9999-99-99", x.get("title") or ""))
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "count": len(suggestions),
+        "suggestions": suggestions,
+    }), 200
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Calendar V2.9 §3+§4+§6+§7+§9 — Search Dates endpoint.
 # GET /api/planning/<brand>/search?q=<query>
@@ -45793,32 +45882,8 @@ def planning_search(brand_id):
     # and have no "Add to Main Calendar" button. The approved rows
     # are already covered by Layer 1; this is only for status=candidate.
     try:
-        from _lib import marketing_calendar as _mc_search_25
-        mc_records_25 = _mc_search_25.list_records(brand_id) or []
-        # The store is append-only: an approved suggestion keeps its old
-        # status=candidate row. Only the last row per id is current, and a
-        # suggestion that an approved record was made from is done.
-        _current_status_25: Dict[str, Any] = {}
-        _approved_from_25 = set()
-        for _r in mc_records_25:
-            _rid = _r.get("calendar_id") or _r.get("event_key")
-            if _rid:
-                _current_status_25[_rid] = _r.get("status")
-            if _r.get("status") == "approved":
-                _src = (_r.get("candidate_metadata") or {}).get("candidate_id")
-                if _src:
-                    _approved_from_25.add(_src)
-        _seen_25 = set()
-        for _r in mc_records_25:
-            if _r.get("status") != "candidate":
-                continue
+        for _r in _operator_pending_suggestions(brand_id):
             _cid = _r.get("calendar_id") or _r.get("event_key")
-            if not _cid:
-                continue
-            if (_current_status_25.get(_cid) != "candidate" or _cid in _approved_from_25
-                    or _cid in _seen_25):
-                continue
-            _seen_25.add(_cid)
             if not matches(
                 _r.get("title"), _r.get("name"), _r.get("summary"),
                 _r.get("venue"), _r.get("location"), _r.get("category"),

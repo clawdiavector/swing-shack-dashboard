@@ -1,8 +1,8 @@
-import { Map } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
-import { FilterChips, PageIntro } from '../../components/chrome'
+import { PageIntro } from '../../components/chrome'
 import {
   fetchPlanningBigIdea,
   fetchPlanningCandidates,
@@ -24,24 +24,26 @@ import type {
   PlanningRightNow,
   PlanningTimeline,
 } from '../../lib/planningTypes'
-import { EventDetail } from './planning/EventDetail'
 import { EventTimelinePanel } from './planning/EventTimelinePanel'
 import { LaneMonthPanel } from './planning/LaneMonthPanel'
+import { PlanList } from './planning/PlanList'
 import { PlanningCandidatesPanel } from './planning/PlanningCandidatesPanel'
 import { PlanningContextModal } from './planning/PlanningContextModal'
 import { PlanningHero } from './planning/PlanningHero'
 import { RightNowStrip } from './planning/RightNowStrip'
 import { SearchPanel } from './planning/SearchPanel'
 import { SuggestDateModal } from './planning/SuggestDateModal'
+import { WaitingForYou } from './planning/WaitingForYou'
 
-type LanesTab = 'strategy' | 'month'
+type LanesTab = 'list' | 'timeline' | 'month'
 
-// V2.11 — collapsed to 2 in-page tabs. The Calendar lives under the
-// main Calendar nav entry in the Shell; adding more inner tabs here
-// creates places to get lost (operator directive 2026-09-29).
-const TAB_OPTIONS = [
-  { id: 'strategy', label: 'Strategy' },
-  { id: 'month', label: 'Month' },
+// One calendar, three ways to look at it. The switch sits at the top of
+// the page and List is the default; everything else on the page stays put
+// whichever view is showing. Old ?tab=strategy links land on List.
+const TAB_OPTIONS: { id: LanesTab; label: string; hint: string }[] = [
+  { id: 'list', label: 'List', hint: 'Everything coming up as rows, soonest first' },
+  { id: 'timeline', label: 'Timeline', hint: 'Events as bars across the year' },
+  { id: 'month', label: 'Month', hint: 'Day-by-day grid for one month' },
 ]
 
 const VALID_TABS = new Set<string>(TAB_OPTIONS.map((t) => t.id))
@@ -64,8 +66,8 @@ export function Lanes() {
   const { brandId } = useBrand()
   const scopeBrand = brandId ?? ''
   const [params, setParams] = useSearchParams()
-  const rawTab = params.get('tab') || 'strategy'
-  const tab: LanesTab = VALID_TABS.has(rawTab) ? (rawTab as LanesTab) : 'strategy'
+  const rawTab = params.get('tab') || 'list'
+  const tab: LanesTab = VALID_TABS.has(rawTab) ? (rawTab as LanesTab) : 'list'
 
   const monthParam =
     params.get('month') ||
@@ -239,58 +241,115 @@ export function Lanes() {
     </label>
   )
 
+  const openSuggestDate = (iso?: string) => {
+    setSuggestDateInitial(iso)
+    setShowSuggestDate(true)
+  }
+
   return (
     <div className="space-y-6">
-      <PageIntro icon={Map} badge="Planning" here="/calendar/lanes" title="Strategic Calendar">
-        Events and commercial pushes drive the calendar. Month grid below is for daily ops.
+      <PageIntro badge="Planning" here="/calendar/lanes" title="Plan">
+        Everything coming up, soonest first. What you have suggested sits at the top until you add
+        it to the calendar.
       </PageIntro>
 
-      <div className="flex flex-wrap items-center gap-3">
-        {yearControl}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-bg1 p-1"
+            role="tablist"
+            aria-label="Calendar view"
+          >
+            {TAB_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === opt.id}
+                title={opt.hint}
+                onClick={() => setTab(opt.id)}
+                data-testid={`plan-view-${opt.id}`}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  tab === opt.id ? 'bg-yel text-bg' : 'text-tx2 hover:text-tx'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </span>
+          {tab === 'timeline' ? yearControl : null}
+        </div>
+        {scopeBrand ? (
+          <button
+            type="button"
+            onClick={() => openSuggestDate()}
+            data-testid="plan-new"
+            className="inline-flex items-center gap-1.5 rounded-full bg-yel px-4 py-2 text-sm font-semibold text-bg hover:bg-yel/90"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            New date or campaign
+          </button>
+        ) : null}
       </div>
 
-      <FilterChips options={TAB_OPTIONS} value={tab} onChange={setTab} />
+      {!scopeBrand ? <p className="text-sm text-tx3">Pick a brand to load its plan.</p> : null}
+
+      {scopeBrand ? (
+        <WaitingForYou
+          brandId={scopeBrand}
+          refreshKey={refreshKey}
+          onApprove={approveCandidate}
+          onOpenDetails={openPlanningByCandidateId}
+        />
+      ) : null}
 
       {loading ? <p className="text-sm text-tx3">Loading planning…</p> : null}
 
-      {tab === 'strategy' ? (
+      {tab === 'list' && scopeBrand && timeline ? (
+        <PlanList
+          brandId={scopeBrand}
+          events={timeline.events || []}
+          eventDetail={eventDetail}
+          onOpenEvent={openEvent}
+          onCloseEvent={closeEvent}
+        />
+      ) : null}
+
+      {tab === 'timeline' ? (
+        <EventTimelinePanel
+          brand={brandLabel}
+          year={yearParam}
+          timeline={timeline}
+          eventDetail={eventDetail}
+          onOpenEvent={openEvent}
+          onCloseEvent={closeEvent}
+        />
+      ) : null}
+
+      {tab === 'month' ? (
+        <LaneMonthPanel
+          brand={brandLabel}
+          monthParam={monthParam}
+          monthView={monthView}
+          onMonthChange={setMonthParam}
+          onSuggestDate={openSuggestDate}
+        />
+      ) : null}
+
+      {/* Below the calendar, the same on every view: find a date, ideas
+          from research, then the strategy the calendar serves. */}
+      {scopeBrand ? (
         <div className="space-y-4">
-          {!scopeBrand ? (
-            <p className="text-sm text-tx3">Pick a brand to load the strategic calendar.</p>
-          ) : strategyEmpty ? (
-            <p className="text-sm text-tx3">
-              No strategic calendar data for {brandLabel}. Stick has the live event spine; other
-              brands show empty states until spine files land.
-            </p>
-          ) : null}
-          <PlanningHero brand={scopeBrand} bigIdea={bigIdea} />
-          <RightNowStrip brand={brandLabel} bigIdea={bigIdea} rightNow={rightNow} onOpenEvent={openEvent} />
-          {/* V2.11 — inline timeline + candidates inside Strategy so the
-              Calendar surface shows approved spine + rolling intelligence
-              candidates in one view. No inner-tab navigation. */}
-          {scopeBrand ? (
-            <SearchPanel
-              brand={brandLabel}
-              brandId={scopeBrand}
-              onAddToMainCalendar={approveCandidate}
-              onOpenPlanning={openPlanningByCandidateId}
-              onOpenIntelligence={openPlanningByCandidateId}
-              onOpenSuggestDateModal={() => {
-                setSuggestDateInitial(undefined)
-                setShowSuggestDate(true)
-              }}
-              refreshKey={searchRefreshKey}
-            />
-          ) : null}
-          <EventTimelinePanel
+          <SearchPanel
             brand={brandLabel}
-            year={yearParam}
-            timeline={timeline}
-            eventDetail={eventDetail}
-            onOpenEvent={openEvent}
-            onCloseEvent={closeEvent}
+            brandId={scopeBrand}
+            onAddToMainCalendar={approveCandidate}
+            onOpenPlanning={openPlanningByCandidateId}
+            onOpenIntelligence={openPlanningByCandidateId}
+            onOpenSuggestDateModal={() => openSuggestDate()}
+            refreshKey={searchRefreshKey}
           />
-          {scopeBrand && candidates ? (
+          {candidates ? (
             <PlanningCandidatesPanel
               brand={brandLabel}
               brandId={scopeBrand}
@@ -306,26 +365,17 @@ export function Lanes() {
               }}
             />
           ) : null}
-          {eventDetail ? (
-            <div className="glass rounded-2xl border border-white/10 p-2">
-              <EventDetail data={eventDetail} onClose={closeEvent} />
-            </div>
+          {strategyEmpty ? (
+            <p className="text-sm text-tx3">
+              No strategic calendar data for {brandLabel}. Stick has the live event spine; other
+              brands show empty states until spine files land.
+            </p>
           ) : null}
+          <PlanningHero brand={scopeBrand} bigIdea={bigIdea} />
+          <RightNowStrip brand={brandLabel} bigIdea={bigIdea} rightNow={rightNow} onOpenEvent={openEvent} />
         </div>
       ) : null}
 
-      {tab === 'month' ? (
-        <LaneMonthPanel
-          brand={brandLabel}
-          monthParam={monthParam}
-          monthView={monthView}
-          onMonthChange={setMonthParam}
-          onSuggestDate={(iso) => {
-            setSuggestDateInitial(iso)
-            setShowSuggestDate(true)
-          }}
-        />
-      ) : null}
       {/* V2.9 §5 — Operator date suggestion. Submits to /api/calendar/candidates
           (the existing intake endpoint). Never auto-approves. */}
       {showSuggestDate && scopeBrand ? (

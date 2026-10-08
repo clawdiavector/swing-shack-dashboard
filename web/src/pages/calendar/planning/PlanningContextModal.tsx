@@ -331,17 +331,20 @@ type BriefCreateResponse = {
   gate?: { note?: string; hard_gate_failures?: { gate?: string; reason?: string }[] }
 }
 
-/** Brief status for a calendar entry: open the Brief if one exists, otherwise create it. */
-export function BriefSection({
+/**
+ * Brief state for a calendar entry: which Brief exists for it, and creating one.
+ * Pass `lookup: false` when the caller already knows whether a Brief exists.
+ */
+export function useBrief({
   brandId,
   eventKey,
-  onSpine,
   knownBriefId,
+  lookup = true,
 }: {
   brandId: string
   eventKey: string
-  onSpine: boolean
   knownBriefId: string
+  lookup?: boolean
 }) {
   const [briefId, setBriefId] = useState(knownBriefId)
   const [busy, setBusy] = useState(false)
@@ -349,7 +352,11 @@ export function BriefSection({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (knownBriefId || !brandId || !eventKey) return
+    if (knownBriefId) setBriefId(knownBriefId)
+  }, [knownBriefId])
+
+  useEffect(() => {
+    if (!lookup || knownBriefId || !brandId || !eventKey) return
     let cancelled = false
     fetch(
       `/api/brief/v1/${encodeURIComponent(brandId)}/find-by-event/${encodeURIComponent(eventKey)}`,
@@ -363,7 +370,7 @@ export function BriefSection({
     return () => {
       cancelled = true
     }
-  }, [brandId, eventKey, knownBriefId])
+  }, [brandId, eventKey, knownBriefId, lookup])
 
   const briefUrl = (id: string) =>
     `/api/brief/v1/${encodeURIComponent(brandId)}/${encodeURIComponent(id)}/review`
@@ -400,6 +407,27 @@ export function BriefSection({
       setBusy(false)
     }
   }
+
+  return { briefId, busy, refused, error, createBrief, briefUrl }
+}
+
+/** Brief status for a calendar entry: open the Brief if one exists, otherwise create it. */
+export function BriefSection({
+  brandId,
+  eventKey,
+  onSpine,
+  knownBriefId,
+}: {
+  brandId: string
+  eventKey: string
+  onSpine: boolean
+  knownBriefId: string
+}) {
+  const { briefId, busy, refused, error, createBrief, briefUrl } = useBrief({
+    brandId,
+    eventKey,
+    knownBriefId,
+  })
 
   return (
     <section className="rounded-md bg-bg/40 border border-bd p-3" data-testid="planning-brief-section">
