@@ -60,11 +60,12 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
         today)
     tests += ads_creative.plan(lane_brand, scored, full, organic, tests, today)
     daily["creative"] = ads_creative.summarise(tests, today)
-    # Why a card has no organic challenger: nothing on file, or nothing on theme.
+    # Why a card has no organic reel: nothing on file, no reels, or none on theme.
     daily["creative"]["organic"] = {
         "posts_on_file": len(organic),
-        "with_a_theme": sum(1 for o in organic
-                            if ads_creative.themes_of(o.get("caption_preview"))),
+        "reels": sum(1 for o in organic if o.get("format_type") == "reel"),
+        "reels_with_a_theme": sum(1 for o in organic if o.get("format_type") == "reel"
+                                  and ads_creative.themes_of(o.get("caption_preview"))),
         "with_a_link": sum(1 for o in organic if o.get("permalink")),
     }
     events = ads_brief.merge_events(as_list(io.read(EVENTS, allow_flat_fallback=False)), new_events)

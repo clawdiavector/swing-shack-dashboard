@@ -342,12 +342,12 @@ def _creative_section(creative: dict | None) -> str:
         return ""
     parts = ['<h3>Creative to test</h3>']
     org = creative.get("organic")
-    if org and not org["with_a_theme"]:
-        parts.append('<p class="mute">No organic post is offered as a challenger: '
+    if org and not org["reels_with_a_theme"]:
+        parts.append('<p class="mute">No organic reel is offered as a challenger: '
                      + ("there are no recent organic posts on file."
                         if not org["posts_on_file"] else
-                        f'none of the {org["posts_on_file"]} recent organic posts matches a '
-                        'campaign theme.') + '</p>')
+                        f'of {org["posts_on_file"]} recent organic posts, {org["reels"]} are '
+                        'reels and none matches a campaign theme.') + '</p>')
     if not (creative["proposed"] or creative["running"] or creative["closed_recently"]):
         return "".join(parts) + '<p class="mute">No test to propose today.</p>'
     for t in creative["running"]:
@@ -364,12 +364,12 @@ def _creative_section(creative: dict | None) -> str:
         d = t["design"]
         rows = ""
         for c in t["challengers"]:
-            if c["kind"] == "ORGANIC_POST":
+            if c["kind"] == "ORGANIC_REEL":
                 detail = (f'&ldquo;{_e(c["caption"])}&rdquo; '
-                          f'<a href="{_e(c["permalink"])}" rel="noopener">see the post</a>')
+                          f'<a href="{_e(c["permalink"])}" rel="noopener">see the reel</a>')
             else:
-                detail = f'Template <b>{_e(c["archetype"])}</b>. {_e(c["next_step"])}'
-            ready = "ready to launch" if c["ready"] else "needs copy first"
+                detail = f'Keep: {_e(c.get("keep"))}<br>Change: {_e(c.get("change"))}'
+            ready = "ready to launch" if c["ready"] else "needs filming"
             rows += (f'<p><b>{_e(c["title"])}</b> <span class="mute">({_e(c["format"])}, {ready})'
                      f'</span><br>{detail}<br><span class="mute">{_e(c["why"])}</span></p>')
         if d["estimated_days"] is None:

@@ -10,8 +10,9 @@ Two pure steps over the ads brain's output, run by the ads_brief job:
               campaign), wait for enough evidence, decide by the card's rule and
               keep the result.
 
-Challengers come from what already exists: the brand's best recent organic
-posts, and the measured post templates for a format the campaign has not tried.
+Ads for these brands run on real human video only, so a challenger is always
+a video: an organic reel that already worked, or a brief for a new one to film.
+Static images, generated images and generated video are never proposed.
 Nothing here writes copy with a model, and nothing creates or changes an ad:
 a person launches the challenger in Ads Manager.
 """
@@ -60,15 +61,8 @@ THEMES = {
     "membership": ("member",),
 }
 
-# The measured template to reach for when a campaign has only run video.
-TEMPLATE_FOR_THEME = {
-    "swing-shack": {"fitting": "ss-fitting-headline", "putter": "ss-fitting-headline",
-                    "irons": "ss-fitting-headline", "driver": "ss-fitting-headline",
-                    "coaching": "ss-lesson-corner", "_default": "ss-service-promo"},
-    "stick": {"coaching": "stick-coaching-poster-v1", "_default": "stick-service-hero-v1"},
-}
-
 OPEN = ("PROPOSED", "RUNNING")
+_RETIRED_KINDS = ("TEMPLATE_STATIC", "ORGANIC_POST")
 
 
 def themes_of(*texts) -> set:
@@ -92,27 +86,24 @@ def _arm(m: dict, key: str) -> dict:
             "cost_per_result": round(spend / results, 2) if results else None}
 
 
-def _organic_challenger(control_themes: set, control_media: str, organic: list, used: set,
-                        taken: set):
-    """Best recent organic post on the same theme that is not already an ad or
-    in another test. Prefers the format the campaign has not tried."""
+def _reel_challenger(control_themes: set, organic: list, used: set, taken: set):
+    """Best recent organic reel on the same theme that is not already an ad or
+    in another test."""
     best = None
     for o in organic or []:
         caption = o.get("caption_preview") or ""
         shared = control_themes & themes_of(caption)
-        if (not shared or not o.get("permalink") or _norm(caption) in used
-                or o.get("post_id") in taken):
+        if (o.get("format_type") != "reel" or not shared or not o.get("permalink")
+                or _norm(caption) in used or o.get("post_id") in taken):
             continue
-        fmt = "video" if o.get("format_type") == "reel" else "image"
-        rank = (fmt != control_media, o.get("score") or 0)
-        if best is None or rank > best[0]:
-            best = (rank, o, fmt, shared)
+        if best is None or (o.get("score") or 0) > (best[0].get("score") or 0):
+            best = (o, shared)
     if not best:
         return None
-    _, o, fmt, shared = best
+    o, shared = best
     return {
-        "kind": "ORGANIC_POST", "format": fmt, "ready": True,
-        "title": "Promote an organic post that already worked",
+        "kind": "ORGANIC_REEL", "format": "video", "ready": True,
+        "title": "Run an organic reel that already worked",
         "caption": o.get("caption_preview"), "permalink": o.get("permalink"),
         "why": f"Scored {o.get('score')} on reach {o.get('reach'):,} in the last 30 days, "
                f"on the same theme ({', '.join(sorted(shared))}).",
@@ -120,24 +111,16 @@ def _organic_challenger(control_themes: set, control_media: str, organic: list, 
     }
 
 
-def _template_challenger(brand_id: str, control_themes: set, control_media: str):
-    """A static from a measured template, when the campaign has only run video.
-    The copy still has to be written, so this one is not ready to launch."""
-    if control_media != "video":
-        return None
-    table = TEMPLATE_FOR_THEME.get(brand_id) or {}
-    theme = next((t for t in sorted(control_themes) if t in table), None)
-    archetype = table.get(theme) or table.get("_default")
-    if not archetype:
-        return None
+def _new_video_challenger(control_themes: set):
+    """A brief for a new video to film. Always available; never ready until filmed."""
+    about = ", ".join(sorted(control_themes)) or "the same offer"
     return {
-        "kind": "TEMPLATE_STATIC", "format": "image", "ready": False,
-        "title": "A static image from a measured template",
-        "archetype": archetype,
-        "why": "This campaign has only run video. A static costs nothing to render "
-               "and tests the format.",
-        "next_step": f"Write the headline, then render with /render-post "
-                     f"--brand {brand_id} --archetype {archetype}.",
+        "kind": "NEW_VIDEO", "format": "video", "ready": False,
+        "title": "Film a new real-person video",
+        "why": f"Same subject ({about}), different opening. The first three seconds are "
+               "what the test compares.",
+        "keep": "The offer, the button and the destination of the original ad.",
+        "change": "The person, the setting or the first line, and only one of them.",
     }
 
 
@@ -174,10 +157,8 @@ def plan(brand_id: str, scored: dict, snapshot: dict, organic: list, tests: list
         themes = themes_of((ad.get("campaign") or {}).get("name"), ad.get("ad_name"),
                            creative.get("body"), creative.get("title"))
         challengers = [c for c in (
-            _organic_challenger(themes, media, organic, used, taken),
-            _template_challenger(brand_id, themes, media)) if c]
-        if not challengers:
-            continue
+            _reel_challenger(themes, organic, used, taken),
+            _new_video_challenger(themes)) if c]
         taken.update(c["post_id"] for c in challengers if c.get("post_id"))
         control = _arm(ad["current"], key)
         per_day = control["results"] / max((snapshot.get("period") or {}).get("days") or 31, 1)
@@ -237,6 +218,11 @@ def track(tests: list, snapshot: dict, window, today: _dt.date) -> list:
     out = []
     for t in tests:
         t = dict(t)
+        if t["status"] == "PROPOSED" and any(
+                c.get("kind") in _RETIRED_KINDS for c in t["challengers"]):
+            # Cards written before the real-human-video rule; plan() replaces them.
+            t.update(status="WITHDRAWN", closed_on=today.isoformat(),
+                     reason="Proposed a static image; ads use real human video only.")
         if t["status"] == "PROPOSED":
             new = sorted(a["ad_id"] for a in ads
                          if (a.get("campaign") or {}).get("id") == t["campaign_id"]
