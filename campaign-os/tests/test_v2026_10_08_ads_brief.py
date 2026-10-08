@@ -230,6 +230,7 @@ class Page(_JobCase):
 
     def test_unchanged_number_does_not_read_as_minus_zero(self):
         self.assertIn("no change", ads_brief._delta(-0.001))
+        self.assertIn("no change", ads_brief._delta(-0.005))  # prod showed "-0%" for this
         self.assertIn("no change", ads_brief._delta(0.0))
         self.assertIn("-16%", ads_brief._delta(-0.16))
         self.assertIn('class="good"', ads_brief._delta(-0.08, lower_is_better=True))

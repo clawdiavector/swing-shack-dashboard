@@ -240,7 +240,7 @@ def _delta(change, lower_is_better=False, neutral=False) -> str:
     """Green when the number moved the right way. Spend is neither good nor bad."""
     if change is None:
         return '<span>no comparison</span>'
-    if abs(change) < 0.005:
+    if round(change * 100) == 0:
         return '<span>no change vs the 7 days before</span>'
     cls = "good" if (not neutral and (change < 0) == lower_is_better) else ""
     return f'<span class="{cls}">{change:+.0%} vs the 7 days before</span>'
