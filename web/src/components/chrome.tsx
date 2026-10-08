@@ -1,32 +1,36 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { RAIL } from '../lib/nav'
+import { sectionFor, sectionPageFor } from '../lib/nav'
 import { Badge, Button, PressIcon, Tip } from './ui'
 
-export function RailStrip({ here }: { here: string }) {
+/** The pages inside the current section. Nothing shows for a one-page section. */
+export function SectionTabs({ here }: { here: string }) {
+  const section = sectionFor(here)
+  if (!section || section.pages.length < 2) return null
+  const current = sectionPageFor(section, here)
   return (
-    <div className="glass-pill hidden items-center gap-1 rounded-full border border-white/10 p-1 md:flex">
-      {RAIL.slice(0, 5).map((step) => {
-        const Icon = step.icon
-        const on = step.to === here
-        const tip = `Go to ${step.label}: ${step.hint}.`
+    <nav
+      aria-label={`${section.label} pages`}
+      data-testid="section-tabs"
+      className="glass-pill flex flex-wrap items-center gap-1 rounded-full border border-white/10 p-1"
+    >
+      {section.pages.map((page) => {
+        const on = page.to === current
         return (
-          <Tip key={step.to} text={tip}>
           <Link
-            to={step.to}
-            title={tip}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+            key={page.to}
+            to={page.to}
+            aria-current={on ? 'page' : undefined}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
               on ? 'bg-yel/15 text-yel' : 'text-tx3 hover:text-tx'
             }`}
           >
-            <PressIcon icon={Icon} className="h-4 w-4" tone={on ? 'on' : 'mute'} />
-            {step.label}
+            {page.label}
           </Link>
-          </Tip>
         )
       })}
-    </div>
+    </nav>
   )
 }
 
@@ -50,7 +54,7 @@ export function PageIntro({
         {children ? <p className="mt-2 max-w-4xl text-sm text-tx2 md:text-base">{children}</p> : null}
       </header>
       <div className="flex flex-col items-end gap-3">
-        <RailStrip here={here} />
+        <SectionTabs here={here} />
         {actions}
       </div>
     </div>

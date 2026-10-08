@@ -28,5 +28,5 @@ export function Desk() {
     )
   }
 
-  return <ToolFrame back="/other" backLabel="Other" title="Classic tool" src={src} />
+  return <ToolFrame back="/other" backLabel="Everything else" title="Classic tool" src={src} />
 }

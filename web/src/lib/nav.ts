@@ -4,18 +4,17 @@ import {
   Bot,
   Building2,
   CalendarDays,
-  CalendarRange,
   ClipboardCheck,
   FileStack,
   Flag,
   FolderKanban,
   Inbox,
-  Library,
   Layers,
   LayoutDashboard,
   MoreHorizontal,
   Palette,
   Rocket,
+  Settings,
   Sparkles,
   Sun,
 } from 'lucide-react'
@@ -25,21 +24,96 @@ export type RailItem = {
   label: string
   hint: string
   icon: LucideIcon
+  /** Route prefixes that belong to this section. */
+  match: string[]
+  /** The section's pages, shown as tabs at the top of each one. */
+  pages: { to: string; label: string }[]
 }
 
+// Five places in the order the work happens. Pages that used to have their
+// own rail item (Inbox, Review, This week, Shelf) are tabs inside the
+// section they belong to, so each is still one click from its section.
 export const RAIL: RailItem[] = [
-  { to: '/daily', label: 'Daily', hint: 'Today', icon: Sun },
-  { to: '/inbox', label: 'Inbox', hint: 'Candidates', icon: Inbox },
-  { to: '/week', label: 'This week', hint: 'Schedule', icon: CalendarRange },
-  { to: '/review', label: 'Review', hint: 'Drafts', icon: ClipboardCheck },
-  { to: '/shelf', label: 'Shelf', hint: 'Scheduled', icon: Library },
-  { to: '/create', label: 'Create', hint: 'Studio', icon: Sparkles },
-  { to: '/calendar/lanes', label: 'Plan', hint: 'Calendar', icon: CalendarDays },
-  { to: '/publish', label: 'Publish', hint: 'Go live', icon: Rocket },
-  { to: '/results', label: 'Results', hint: 'What worked', icon: Activity },
-  { to: '/ops', label: 'Ops', hint: 'Jobs · agents · accounts', icon: Bot },
-  { to: '/other', label: 'Other', hint: 'Leftovers', icon: MoreHorizontal },
+  {
+    to: '/daily',
+    label: 'Today',
+    hint: 'What needs you',
+    icon: Sun,
+    match: ['/daily', '/review', '/inbox'],
+    pages: [
+      { to: '/daily', label: 'Today' },
+      { to: '/review', label: 'Approve drafts' },
+      { to: '/inbox', label: 'Inbox' },
+    ],
+  },
+  {
+    to: '/calendar/lanes',
+    label: 'Plan',
+    hint: 'Calendar',
+    icon: CalendarDays,
+    match: ['/calendar', '/week'],
+    pages: [
+      { to: '/calendar/lanes', label: 'Plan' },
+      { to: '/week', label: 'This week' },
+    ],
+  },
+  {
+    to: '/create',
+    label: 'Create',
+    hint: 'Posts, captions, images',
+    icon: Sparkles,
+    match: ['/create'],
+    pages: [{ to: '/create', label: 'Create' }],
+  },
+  {
+    to: '/publish',
+    label: 'Publish',
+    hint: 'Scheduled and going live',
+    icon: Rocket,
+    match: ['/publish', '/shelf'],
+    pages: [
+      { to: '/publish', label: 'Publish' },
+      { to: '/shelf', label: 'Scheduled' },
+    ],
+  },
+  {
+    to: '/results',
+    label: 'Results',
+    hint: 'What worked',
+    icon: Activity,
+    match: ['/results'],
+    pages: [{ to: '/results', label: 'Results' }],
+  },
 ]
+
+/** Sits apart at the foot of the rail: everything that is not the daily work. */
+export const SETTINGS: RailItem = {
+  to: '/ops',
+  label: 'Settings',
+  hint: 'Ops, brand, accounts',
+  icon: Settings,
+  match: ['/ops', '/other', '/brand', '/library', '/geo', '/desk'],
+  pages: [
+    { to: '/ops', label: 'Ops' },
+    { to: '/other', label: 'Everything else' },
+  ],
+}
+
+function under(path: string, prefix: string): boolean {
+  return path === prefix || path.startsWith(`${prefix}/`)
+}
+
+/** The section a route belongs to. */
+export function sectionFor(path: string): RailItem | undefined {
+  return [...RAIL, SETTINGS].find((item) => item.match.some((prefix) => under(path, prefix)))
+}
+
+/** Which of a section's tabs a route is on (the longest matching one), if any. */
+export function sectionPageFor(section: RailItem, path: string): string | undefined {
+  return section.pages
+    .filter((page) => under(path, page.to))
+    .sort((a, b) => b.to.length - a.to.length)[0]?.to
+}
 
 export const OTHER_GROUPS = [
   {
