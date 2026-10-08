@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Loader2, X } from 'lucide-react'
 import { brandDisplayName } from '../../../lib/planning'
 
@@ -22,6 +22,8 @@ type Props = {
 
 type SourceKind = 'OPERATOR' | 'CLIENT' | 'GOLF_CLUB' | 'WEBSITE' | 'OTHER'
 type Importance = 'ASSESS' | 'A-PIN' | 'B-PIN' | 'C-PIN'
+type EntryType = 'moment' | 'campaign'
+type PillarOption = { pillar_id?: string; name?: string }
 
 export function SuggestDateModal({ brand, brandId, onClose, onSubmitted, initialDate }: Props) {
   const [title, setTitle] = useState('')
@@ -33,10 +35,30 @@ export function SuggestDateModal({ brand, brandId, onClose, onSubmitted, initial
   const [sourceKind, setSourceKind] = useState<SourceKind>('OPERATOR')
   const [importance, setImportance] = useState<Importance>('ASSESS')
   const [notes, setNotes] = useState('')
+  const [entryType, setEntryType] = useState<EntryType>('moment')
+  const [pillar, setPillar] = useState('')
+  const [pillarOptions, setPillarOptions] = useState<PillarOption[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const canSubmit = title.trim() && startDate && !submitting
+  useEffect(() => {
+    let live = true
+    fetch(`/api/calendar/context/${encodeURIComponent(brandId)}`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((j: { pillars?: PillarOption[] }) => {
+        if (live) setPillarOptions((j.pillars || []).filter((p) => p.pillar_id))
+      })
+      .catch(() => {
+        if (live) setPillarOptions([])
+      })
+    return () => {
+      live = false
+    }
+  }, [brandId])
+
+  // A campaign needs a pillar: without one it can never get a Brief.
+  const canSubmit =
+    title.trim() && startDate && !submitting && (entryType !== 'campaign' || Boolean(pillar))
 
   const submit = async () => {
     if (!canSubmit) return
@@ -45,7 +67,7 @@ export function SuggestDateModal({ brand, brandId, onClose, onSubmitted, initial
     try {
       const body: Record<string, unknown> = {
         brand_id: brandId,
-        type: 'moment',
+        type: entryType,
         status: 'candidate',
         title: title.trim(),
         start: startDate,
@@ -65,6 +87,7 @@ export function SuggestDateModal({ brand, brandId, onClose, onSubmitted, initial
       if (location.trim()) body.location = location.trim()
       if (sourceUrl.trim()) body.source_url = sourceUrl.trim()
       if (why.trim()) body.why_it_matters = why.trim()
+      if (pillar) body.pillars = [pillar]
 
       const r = await fetch('/api/calendar/candidates', {
         method: 'POST',
@@ -138,6 +161,40 @@ export function SuggestDateModal({ brand, brandId, onClose, onSubmitted, initial
               placeholder="e.g. Ladies clinic at the Shack"
             />
           </label>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-[10px] font-bold tracking-wider text-tx3 uppercase">Type</span>
+              <select
+                value={entryType}
+                onChange={(e) => setEntryType(e.target.value as EntryType)}
+                data-testid="suggest-type"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-bg px-3 py-2 text-sm text-tx focus:border-yel/60 focus:outline-none"
+              >
+                <option value="moment">Moment (a date to note)</option>
+                <option value="campaign">Campaign (can get a Brief)</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-[10px] font-bold tracking-wider text-tx3 uppercase">
+                Pillar {entryType === 'campaign' ? '*' : <span className="text-tx3/60">(optional)</span>}
+              </span>
+              <select
+                value={pillar}
+                onChange={(e) => setPillar(e.target.value)}
+                required={entryType === 'campaign'}
+                data-testid="suggest-pillar"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-bg px-3 py-2 text-sm text-tx focus:border-yel/60 focus:outline-none"
+              >
+                <option value="">{pillarOptions.length ? 'Choose a pillar' : 'No pillars set up'}</option>
+                {pillarOptions.map((p) => (
+                  <option key={p.pillar_id} value={p.pillar_id}>
+                    {p.name || p.pillar_id}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">

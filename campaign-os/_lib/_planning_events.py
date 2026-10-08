@@ -125,6 +125,9 @@ def build_event_record(
     }
     if pillar:
         record["pillar"] = pillar
+        # `pillars` (a list) is the canonical field: the calendar view and
+        # the Brief engine read it. `pillar` alone is invisible to both.
+        record["pillars"] = [pillar]
     if channel:
         record["channel"] = channel
     if purpose:
@@ -587,7 +590,9 @@ def build_approval_record(
         # calendar" — the exact V2.10 §5 regression.
         "status": "approved",
         "title": title,
-        "type": "moment",
+        # A suggestion the operator filed as a campaign stays a campaign;
+        # everything else is a moment, as before.
+        "type": "campaign" if candidate.get("type") == "campaign" else "moment",
         "event_start": (start_d or _date.today()).isoformat(),
         "event_end": (end_d or start_d or _date.today()).isoformat(),
         "calendar_year": (start_d or _date.today()).year,
@@ -621,6 +626,12 @@ def build_approval_record(
     }
     if peak_d is not None:
         record["public_peak"] = peak_d.isoformat()
+    pillars = [p for p in (candidate.get("pillars") or []) if isinstance(p, str) and p]
+    if pillars:
+        record["pillars"] = pillars
+    purpose = str(candidate.get("why_it_matters") or "").strip()
+    if purpose:
+        record["purpose"] = purpose
     if confidence == "high":
         record["verification_status"] = "verified_primary"
     elif confidence == "medium":

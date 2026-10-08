@@ -46045,7 +46045,10 @@ def planning_approve_candidate(brand_id, candidate_id):
                         "recommended_lead_time_weeks": r.get("recommended_lead_time_weeks"),
                         "relevance_to_swing_shack": r.get("summary") or r.get("relevance_reason"),
                         "opportunity": r.get("summary"),
-                        "why_it_matters": r.get("summary") or r.get("relevance_reason"),
+                        "why_it_matters": (r.get("why_it_matters") or r.get("summary")
+                                           or r.get("relevance_reason")),
+                        "type": r.get("type"),
+                        "pillars": r.get("pillars") or [],
                     }
                     source_file = "operator-store"
                     break

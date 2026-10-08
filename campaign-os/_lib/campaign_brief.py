@@ -101,7 +101,7 @@ def _read_json(path) -> "Optional[Any]":
         ])
     for c in candidates:
         try:
-            with open(c) as f:
+            with open(c, encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             continue
@@ -150,7 +150,7 @@ def _write_brief(brief: dict) -> None:
     p = _brief_path(brief["brand_id"], brief["brief_id"])
     os.makedirs(os.path.dirname(p), exist_ok=True)
     tmp = p + ".tmp"
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(brief, f, indent=2, ensure_ascii=False)
     os.replace(tmp, p)
 
@@ -164,7 +164,7 @@ def _append_revision(brief: dict, snapshot: dict) -> None:
     rev = brief.get("revision", 0)
     p = _revision_path(brief["brand_id"], brief["brief_id"], rev)
     os.makedirs(os.path.dirname(p), exist_ok=True)
-    with open(p, "w") as f:
+    with open(p, "w", encoding="utf-8") as f:
         json.dump(snapshot, f, indent=2, ensure_ascii=False)
 
 
@@ -689,7 +689,7 @@ def _creative_genome_signals(brand_id: str) -> dict:
     ocr_counts = {"yes": 0, "no": 0}
     for fname in files:
         try:
-            d = json.load(open(os.path.join(base, fname)))
+            d = json.load(open(os.path.join(base, fname), encoding="utf-8"))
         except Exception:
             continue
         samples += 1
@@ -831,14 +831,24 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
         date_confidence = "HIGH"
     elif event_start and not event_end:
         date_confidence = "MEDIUM"
+    elif (event_start and r.get("type") == "campaign"
+            and r.get("source_origin") == "internal_strategy"
+            and r.get("trusted_for_planning") is True):
+        # A campaign the operator typed in and vouched for: they chose
+        # the date, so there is no external date left to verify. Other
+        # operator pins (content / moment / reminder) stay LOW.
+        date_confidence = "MEDIUM"
     else:
         date_confidence = "LOW"
+    # Records written by the Calendar add-event path before it set
+    # `pillars` carry only the singular `pillar`.
+    pillars = r.get("pillars") or ([r["pillar"]] if r.get("pillar") else {})
     return {
         "id": event_key,
         "event_key": event_key,
         "name": r.get("title") or r.get("name") or "",
         "year": (event_start or "")[:4] or "unknown",
-        "pillars": r.get("pillars") or {},
+        "pillars": pillars,
         "lanes": list((r.get("lanes") or {}).keys())
         + (["watchlist"] if source == "watchlist" else []),
         "duration_days": duration_days,
@@ -868,6 +878,12 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
                              or r.get("source_class")
                              or r.get("source_origin")
                              or "unknown"),
+        # What the operator said the entry is for: `purpose` from the
+        # add-event path, `why_it_matters` from an approved suggestion.
+        "purpose": str(r.get("purpose")
+                       or (r.get("evidence") or {}).get("why_it_matters")
+                       or r.get("why_it_matters")
+                       or "").strip(),
     }
 
 
@@ -2296,7 +2312,11 @@ def create_brief(brand_id: str, opportunity_id: str,
         # Brief §8 sections
         "opportunity": {
             "what": opp.get("name"),
-            "why_it_may_matter": (f"Calendar/cultural event '{opp.get('name')}' "
+            "operator_purpose": opp.get("purpose") or "",
+            "why_it_may_matter": ((f"Operator's stated purpose: "
+                                   f"{opp['purpose'].rstrip('.')}. "
+                                   if opp.get("purpose") else "")
+                                  + f"Calendar/cultural event '{opp.get('name')}' "
                                   f"(event_key={event_key}) aligned with "
                                   f"active North Stars and existing "
                                   f"brand pillars."),
@@ -2655,7 +2675,7 @@ def list_briefs(brand_id: str = None, status: str = None) -> list:
             if not fname.endswith(".json"):
                 continue
             try:
-                b = json.load(open(os.path.join(d, fname)))
+                b = json.load(open(os.path.join(d, fname), encoding="utf-8"))
             except Exception:
                 continue
             if status and b.get("status") != status:
