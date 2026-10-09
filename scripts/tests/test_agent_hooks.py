@@ -302,7 +302,13 @@ def run_pytest(tmp_path: Path, known: str) -> subprocess.CompletedProcess:
     (proj / "test_demo.py").write_text(
         "def test_ok():\n    assert True\n\n"
         "def test_broken():\n    assert False\n\n"
-        "def test_healed():\n    assert True\n"
+        "def test_healed():\n    assert True\n\n"
+        "import unittest\n\n"
+        "class Subs(unittest.TestCase):\n"
+        "    def test_subs(self):\n"
+        "        for n in (1, 2):\n"
+        "            with self.subTest(n=n):\n"
+        "                self.assertEqual(n, 1)\n"
     )
     (proj / "known.txt").write_text(known)
     env = {**os.environ, "PYTHONPATH": str(HOOKS)}
@@ -313,23 +319,29 @@ def run_pytest(tmp_path: Path, known: str) -> subprocess.CompletedProcess:
     )
 
 
-def test_listed_failure_does_not_fail_the_run(tmp_path):
-    proc = run_pytest(tmp_path, "# header\ntest_demo.py::test_broken\n")
+BROKEN = "test_demo.py::test_broken\ntest_demo.py::Subs::test_subs  # fails in a subtest only\n"
+
+
+def test_listed_failures_do_not_fail_the_run(tmp_path):
+    proc = run_pytest(tmp_path, "# header\n" + BROKEN)
     assert proc.returncode == 0, proc.stdout
+    # A listed test whose subtests still fail must not be reported as fixed.
+    assert "now pass" not in proc.stdout
 
 
 def test_unlisted_failure_fails_the_run(tmp_path):
-    proc = run_pytest(tmp_path, "# nothing listed\n")
+    proc = run_pytest(tmp_path, "test_demo.py::Subs::test_subs\n")
     assert proc.returncode == 1 and "test_broken" in proc.stdout
 
 
 def test_listed_test_that_passes_again_is_reported(tmp_path):
-    proc = run_pytest(tmp_path, "test_demo.py::test_broken\ntest_demo.py::test_healed\ntest_demo.py::test_deleted\n")
+    proc = run_pytest(tmp_path, BROKEN + "test_demo.py::test_healed\ntest_demo.py::test_deleted\n")
     assert proc.returncode == 0
     assert "now pass" in proc.stdout and "test_demo.py::test_healed" in proc.stdout
+    assert "Subs::test_subs" not in proc.stdout.split("now pass")[1].split("no longer exist")[0]
     assert "no longer exist" in proc.stdout and "test_demo.py::test_deleted" in proc.stdout
 
 
 def test_platform_tag_limits_a_line(tmp_path):
-    proc = run_pytest(tmp_path, "[no-such-platform] test_demo.py::test_broken\n")
+    proc = run_pytest(tmp_path, "[no-such-platform] test_demo.py::test_broken\ntest_demo.py::Subs::test_subs\n")
     assert proc.returncode == 1

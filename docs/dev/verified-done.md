@@ -30,7 +30,7 @@ found it. CI's `pytest` job runs the same command. Last line: `CHECK: PASS` or
 
 ### Known failures
 
-When this landed, 389 allowlisted tests were already failing on `main` and CI had not
+When this landed, 391 allowlisted tests were already failing on `main` and CI had not
 been green since 2026-09-17, so "make the check pass" was not achievable by anyone.
 `tests/check-known-failures.txt` lists those tests; `known_failures_plugin.py` marks
 them `xfail`, so the run goes red only for a failure that is **not** on the list.

@@ -19,6 +19,7 @@ import pytest
 
 _KNOWN: set[str] = set()
 _SEEN: set[str] = set()
+_FILES: set[str] = set()
 
 
 def load_known(path: Path) -> set[str]:
@@ -49,6 +50,7 @@ def pytest_collection_modifyitems(config, items):
         return
     _KNOWN.update(load_known(Path(path)))
     for item in items:
+        _FILES.add(item.nodeid.split("::", 1)[0])
         if item.nodeid in _KNOWN:
             _SEEN.add(item.nodeid)
             item.add_marker(pytest.mark.xfail(reason="known failure on main", strict=False))
@@ -57,8 +59,18 @@ def pytest_collection_modifyitems(config, items):
 def pytest_terminal_summary(terminalreporter):
     if not _KNOWN:
         return
-    fixed = sorted({rep.nodeid for rep in terminalreporter.stats.get("xpassed", []) if rep.nodeid in _KNOWN})
-    gone = sorted(_KNOWN - _SEEN)
+    stats = terminalreporter.stats
+    # A test whose only failures are subtests reports the subtests as xfailed and
+    # the test itself as xpassed. That is still failing, so it is not "fixed".
+    still_failing = {rep.nodeid for rep in stats.get("xfailed", [])}
+    fixed = sorted({rep.nodeid for rep in stats.get("xpassed", []) if rep.nodeid in _KNOWN} - still_failing)
+    # Only judge files this run collected (or that are gone from disk), so running
+    # a subset of the suite does not report the rest of the list as missing.
+    root = terminalreporter.config.rootpath
+    gone = sorted(
+        nodeid for nodeid in _KNOWN - _SEEN
+        if nodeid.split("::", 1)[0] in _FILES or not (root / nodeid.split("::", 1)[0]).exists()
+    )
     tr = terminalreporter
     if fixed:
         tr.section("known failures that now pass here")
