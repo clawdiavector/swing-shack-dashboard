@@ -33,6 +33,7 @@ campaign-os/tests/test_v2026_08_07_insights_v2.py
 campaign-os/tests/test_v2026_08_07_socials_meme_visuals.py
 campaign-os/tests/test_v2026_08_08_competitor_row_age_pill.py
 campaign-os/tests/test_v2026_08_08_gbp_location_object.py
+campaign-os/tests/test_audit_wrong_facts.py
 campaign-os/tests/test_v2026_08_08_whats_new_freshness.py
 campaign-os/tests/test_v2026_08_09_agents_runs_json_to_cards.py
 campaign-os/tests/test_v2026_08_09_insights_lens_ctx.py

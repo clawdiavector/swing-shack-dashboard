@@ -380,6 +380,33 @@ def pick_cta(
     return rng.choice(hard or hard_general or soft or soft_general or [])
 
 
+# ── One partner brand per post ───────────────────────────────────────
+
+# Headline, CTA and hashtags used to be drawn independently, so a post could
+# talk about a Vessel bag, link to L.A.B Golf and carry #TakomoAtStick.
+_PARTNER_BRAND_RES = {
+    "takomo": re.compile(r"takomo", re.IGNORECASE),
+    "vessel": re.compile(r"\bvessel\b", re.IGNORECASE),
+    "lab": re.compile(r"l\.a\.b|l-a-b-golf|\blab golf\b", re.IGNORECASE),
+    "vice": re.compile(r"\bvice\b|vice-golf|#vice", re.IGNORECASE),
+    "psycho-bunny": re.compile(r"psycho[ -]?bunny", re.IGNORECASE),
+    "avoda": re.compile(r"\bavoda\b", re.IGNORECASE),
+    "la-golf": re.compile(r"\bla golf\b", re.IGNORECASE),
+    "miura": re.compile(r"\bmiura\b", re.IGNORECASE),
+}
+
+
+def partner_brands_in(*texts: Any) -> set[str]:
+    """Partner (product) brands named in any of the texts."""
+    blob = " ".join(str(t) for t in texts if t)
+    return {name for name, rx in _PARTNER_BRAND_RES.items() if rx.search(blob)}
+
+
+def _on_subject(items: list, subject: set[str], text_of) -> list:
+    """Items naming no partner brand outside `subject`. Empty if none qualify."""
+    return [i for i in items if partner_brands_in(text_of(i)) <= subject]
+
+
 # ── Voice rules + integrity gate ─────────────────────────────────────
 
 
@@ -444,7 +471,13 @@ def integrity_check(post: dict, brand_id: str) -> tuple[bool, list[str]]:
         if post.get("cta_url") and "stickgolf.co.za" in post["cta_url"]:
             violations.append("ss_cta_points_to_stick")
 
-    # 5. Length cap.
+    # 5. One partner brand per post: the CTA and hashtags may not name a
+    #    partner brand the keyword and headline do not.
+    subject = partner_brands_in(post.get("keyword"), post.get("headline_source") or title)
+    for stray in sorted(partner_brands_in(cta, post.get("cta_url"), *(post.get("hashtags") or [])) - subject):
+        violations.append(f"mixed_partner_brand:{stray}")
+
+    # 6. Length cap.
     if len(body) > 1500:
         violations.append("body_too_long")
 
@@ -483,7 +516,15 @@ def compose_post(
     intent, pillar_hints = classify_keyword_intent(keyword)
     pillar = pillar_override or (pillar_hints[0] if pillar_hints else "general")
 
-    headline_obj = pick_headline(bank, intent, pillar, brand_id, rng)
+    # The keyword sets the partner brand, if it names one; the headline may
+    # only add to it when the keyword names none.
+    subject = partner_brands_in(keyword)
+    all_headlines = bank.get("headlines") or []
+    fitting = (
+        _on_subject(all_headlines, subject, lambda h: h.get("text")) if subject
+        else all_headlines
+    ) or _on_subject(all_headlines, set(), lambda h: h.get("text")) or all_headlines
+    headline_obj = pick_headline({**bank, "headlines": fitting}, intent, pillar, brand_id, rng)
     if not headline_obj:
         return {
             "error": "gap_no_matching_headline",
@@ -516,8 +557,16 @@ def compose_post(
     body_lines = [keyword_frame, "", headline_text]
     body = "\n".join(body_lines)
 
+    subject = subject | partner_brands_in(headline_text)
+    cta_text_of = lambda c: f"{c.get('text')} {c.get('url')}"  # noqa: E731
+    bank_ctas = bank.get("ctas") or {}
+    on_subject_ctas = {
+        kind: _on_subject(list(bank_ctas.get(kind, [])), subject, cta_text_of)
+        for kind in ("hard", "soft")
+    }
+
     prefer_soft = intent in ("cheeky", "challenge") or pillar in ("culture", "local")
-    cta_obj = pick_cta(bank, pillar, rng, prefer_soft=prefer_soft)
+    cta_obj = pick_cta({**bank, "ctas": on_subject_ctas}, pillar, rng, prefer_soft=prefer_soft)
     cta_text = cta_obj["text"] if cta_obj else profile["tagline"]
     cta_url = cta_obj.get("url") if cta_obj else None
 
@@ -537,7 +586,9 @@ def compose_post(
         ]
     else:
         hashtag_palettes = [["#BagDrop"]]
-    hashtags = rng.choice(hashtag_palettes)
+    hashtags = rng.choice(
+        _on_subject(hashtag_palettes, subject, lambda tags: " ".join(tags)) or hashtag_palettes
+    )
 
     post = {
         "brand_id": brand_id,

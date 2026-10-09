@@ -59,7 +59,7 @@
     {
       "id": "on_course_coaching_monthly",
       "label": "On-course coaching",
-      "metric": "20 coaching sessions / month",
+      "metric": "20 on-course coaching sessions / month",
       "category": "operational_throughput",
       "outcome_measurement": "PENDING",
       "connector_status": "not_connected",
