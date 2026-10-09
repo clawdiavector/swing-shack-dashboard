@@ -73,7 +73,10 @@ export function Shelf() {
           </div>
         }
       >
-        Approved posts with a go-live date — release when ready. Sandbox only until Kyle enables live.
+        Approved posts with a go-live date — release when ready.{' '}
+        {publishMode?.mode === 'live'
+          ? 'Publishing is live: a released post goes to the real account.'
+          : 'Publishing is in sandbox: a released post reaches no real account.'}
       </PageIntro>
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />

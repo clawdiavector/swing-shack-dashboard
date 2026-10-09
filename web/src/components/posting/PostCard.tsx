@@ -137,6 +137,14 @@ export function PostCard({
     event.preventDefault()
     event.stopPropagation()
     if (!post.calendar_id) return
+    if (
+      !window.confirm(
+        `Release "${post.title || 'this post'}" now?
+
+It joins the publish queue and goes out when its time is due. If publishing is live, that is the real account.`,
+      )
+    )
+      return
     setReleasing(true)
     await waitForReads?.()
     await releaseMoment(rowBrandId, post.calendar_id)
@@ -349,7 +357,7 @@ export function PostCard({
               <button
                 type="button"
                 disabled={releasing}
-                title="Release now — sandbox writes a receipt immediately"
+                title="Release now — asks you to confirm first"
                 onClick={(e) => void handleRelease(e)}
                 className="rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
               >
