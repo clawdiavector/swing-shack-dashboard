@@ -129,6 +129,11 @@ Nothing in this repo can change an ad.
 | the rules and thresholds | `_lib/ads_brain.py` → `score_snapshot()`, `THRESHOLDS` |
 | the morning brief, both brands | `/ads-brief` (written by the `ads_brief` job, 07:15 SAST) |
 | creative tests proposed and tracked | `_lib/ads_creative.py`, shown on the brief |
+| what to film for a test | `data/brand-directory/<brand>/ads/video-ideas.json`, chosen by `_lib/ads_ideas.py` |
+| a year of weekly numbers per ad | `_lib/ads_history.py` → `brands/<brand>/ads-history/`, `GET /api/meta/ads/history/<brand>` |
+| trend charts | `/ads-brief?kind=trends` (inline SVG from `_lib/ads_charts.py`, no script) |
+| which of our own ads worked | `/ads-brief?kind=research`, from `ads_history.winners()` |
+| other advertisers' long-running ads | `_lib/ads_library.py`, `GET /api/meta/ads/library/<brand>?refresh=1` |
 
 **Ad creative is real human video.** Christelle's rule, from her own testing: real
 people on video outperform everything else, and static vs video has already been
@@ -141,6 +146,20 @@ Scoring's `all_video` rule was retired in v1.1 for contradicting this.
 `ads_brain.fetch_snapshot()` reads at ad level: quality rankings, placements, the
 ad set's performance goal, creative copy, media type and destination link.
 `score_snapshot()` is pure and deterministic — no model.
+
+**Video ideas are a file a person edits, not generated copy.** Each test card's
+"film a new video" line is filled from the brand's `ads/video-ideas.json`: the first
+three seconds, what to say, the shots, the ending. `ads_ideas` only chooses which idea
+fits the campaign. The first version of both files was drafted on 2026-10-09 from
+`knowledge.json` and is marked `"status": "draft"`. A test fails if an idea says a
+number that is not a verified fact.
+
+**The Ad Library is on demand, not in the morning job.** Meta's `ads_archive` returns
+ordinary ads only where they reached the UK or EU, and needs a token whose owner has
+confirmed their identity. Whether the ads token qualifies was unproven when this was
+written, so the read runs only when someone opens `?refresh=1`, records `NO_ACCESS`
+if refused, and always shows a link to the South African Ad Library website. Never
+request `ad_snapshot_url`: it embeds the access token.
 
 **`data/meta-ads.json` is synthetic** (built from Instagram posts in August). Never
 read it for ads work.

@@ -213,9 +213,11 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
         "detail": (
             "Reads each brand's ad account through the Graph API (read-only), scores the "
             "31-day window with Scoring V1 and compares with the previous brief to say what "
-            "is new, resolved and still open. Also proposes creative tests and tracks the "
-            "ones a person launches (brands/<brand>/ads-creative/tests.json). Writes "
-            "brands/<brand>/ads-brief/. Shown at /ads-brief. Never changes an ad."
+            "is new, resolved and still open. Also proposes creative tests, says what to film "
+            "for each from the brand's ads/video-ideas.json, and tracks the ones a person "
+            "launches (brands/<brand>/ads-creative/tests.json). Reads a year of weekly "
+            "numbers per ad for the Trends and What works tabs (brands/<brand>/ads-history/). "
+            "Writes brands/<brand>/ads-brief/. Shown at /ads-brief. Never changes an ad."
         ),
     },
     "retry_failed_images": {

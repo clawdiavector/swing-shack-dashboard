@@ -487,7 +487,7 @@ class Cache(unittest.TestCase):
     def test_build_writes_under_data_dir_only_when_there_is_data(self):
         with tempfile.TemporaryDirectory() as d:
             out = ads_brain.build("stick", "act_1", "tok", data_dir=d, get=_fake_get(STICK),
-                                  get_as=_fake_get_as(STICK))
+                                  get_as=_fake_get_as(STICK), today=TODAY)
             self.assertTrue((Path(d) / "ads-brain" / "stick__31d.json").exists())
             self.assertEqual(len(out["ads"]), 7)
         with tempfile.TemporaryDirectory() as d:

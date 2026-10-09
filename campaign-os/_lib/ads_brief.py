@@ -16,6 +16,8 @@ from __future__ import annotations
 import datetime as _dt
 import html
 
+from . import ads_charts
+
 SCHEMA = "https://campaign-os/ads-brief/v1"
 BRAND_NAMES = {"stick": "Stick", "swing-shack": "Swing Shack"}
 MAX_EVENTS = 400
@@ -212,9 +214,10 @@ def merge_events(existing: list, new: list) -> list:
 
 _CSS = """
 :root{--bg:#f6f5f1;--card:#fff;--ink:#1c1d1f;--mute:#6b6f76;--line:#e3e1da;--high:#b3261e;
---med:#9a5b00;--low:#5b6470;--good:#1f6f43}
+--med:#9a5b00;--low:#5b6470;--good:#1f6f43;--series:#2a78d6}
 @media (prefers-color-scheme:dark){:root{--bg:#141516;--card:#1d1f21;--ink:#ececec;
---mute:#9aa0a6;--line:#2e3134;--high:#ff8a80;--med:#f2b866;--low:#a9b1bb;--good:#7fd1a2}}
+--mute:#9aa0a6;--line:#2e3134;--high:#ff8a80;--med:#f2b866;--low:#a9b1bb;--good:#7fd1a2;
+--series:#3987e5}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);
 font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
 main{max-width:860px;margin:0 auto;padding:24px 16px 64px}
@@ -233,21 +236,26 @@ text-transform:uppercase;letter-spacing:.04em}.high{color:var(--high)}.medium{co
 th,td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
 th:first-child,td:first-child{text-align:left;white-space:normal}th{color:var(--mute);font-weight:600}
 .warn{border-color:var(--high)}
-"""
+.tabs a{margin-bottom:8px}main a{color:inherit}
+.film{border-left:3px solid var(--line);padding:2px 0 2px 12px;margin:10px 0}
+.film ul,.film ol{margin:2px 0 8px;padding-left:20px}.film li{margin:2px 0}
+.film .lab{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+color:var(--mute);margin:8px 0 0}details.alt{margin:6px 0}details.alt summary{cursor:pointer}
+""" + ads_charts.CSS
 
 
 def _e(x) -> str:
     return html.escape("" if x is None else str(x))
 
 
-def _delta(change, lower_is_better=False, neutral=False) -> str:
+def _delta(change, lower_is_better=False, neutral=False, versus="the 7 days before") -> str:
     """Green when the number moved the right way. Spend is neither good nor bad."""
     if change is None:
         return '<span>no comparison</span>'
     if round(change * 100) == 0:
-        return '<span>no change vs the 7 days before</span>'
+        return f'<span>no change vs {versus}</span>'
     cls = "good" if (not neutral and (change < 0) == lower_is_better) else ""
-    return f'<span class="{cls}">{change:+.0%} vs the 7 days before</span>'
+    return f'<span class="{cls}">{change:+.0%} vs {versus}</span>'
 
 
 def _section(brief: dict) -> str:
@@ -340,6 +348,49 @@ def _arm_text(arm: dict, label: str) -> str:
             f"({_money(arm['spend'])} spent)")
 
 
+_FILM_LABELS = {
+    "NEW_VIDEO": ("Film this", "Say", "Then say", "Shots to get"),
+    "ANIMATED_STILL": ("Animate this", "Sound", "Keep to", "Start from"),
+}
+
+
+def _film(idea: dict, kind: str, lead: bool = True) -> str:
+    """One idea as something a person can shoot: the first three seconds, what
+    follows, the shots and the ending."""
+    verb, say, then, shots = _FILM_LABELS.get(kind, _FILM_LABELS["NEW_VIDEO"])
+    hook = idea["hook"]
+    head = (f'<p><b>{verb}: {_e(idea["title"])}</b> <span class="mute">{_e(idea["length"])} · '
+            f'{_e(idea["who"])}</span></p>' if lead else
+            f'<p class="mute">{_e(idea["length"])} · {_e(idea["who"])}</p>')
+    end = " ".join(x for x in (idea.get("end"),
+                               f'Sign off: {idea["sign_off"]}' if idea.get("sign_off") else None)
+                   if x)
+    return (
+        f'<div class="film">{head}<p class="lab">First three seconds</p><ul>'
+        f'<li><b>{say}:</b> {_e(hook["say"])}</li><li><b>Show:</b> {_e(hook["show"])}</li>'
+        f'<li><b>On screen:</b> {_e(hook["text"])}</li></ul>'
+        f'<p class="lab">{then}</p><ol>' + "".join(f'<li>{_e(p)}</li>' for p in idea["points"])
+        + f'</ol><p class="lab">{shots}</p><ul>'
+        + "".join(f'<li>{_e(x)}</li>' for x in idea["shots"]) + '</ul>'
+        + (f'<p><b>End:</b> {_e(end)}</p>' if end else "")
+        + (f'<p class="mute">Watch out: {_e(idea["watch_out"])}</p>' if idea.get("watch_out") else "")
+        + f'<p class="mute">Why this one: {_e(idea["why"])}</p></div>')
+
+
+def _ideas(challenger: dict) -> str:
+    """The first idea in full; the second folded away, so a card shows one
+    strong option and not a list."""
+    ideas = challenger.get("ideas") or []
+    if not ideas:
+        return ""
+    out = _film(ideas[0], challenger["kind"])
+    for other in ideas[1:]:
+        out += (f'<details class="alt"><summary class="mute">Or this instead: '
+                f'{_e(other["title"])}</summary>{_film(other, challenger["kind"], lead=False)}'
+                f'</details>')
+    return out
+
+
 def _creative_section(creative: dict | None) -> str:
     """Creative tests: proposed, running and recently closed."""
     if not creative:
@@ -375,7 +426,8 @@ def _creative_section(creative: dict | None) -> str:
                 detail = f'Keep: {_e(c.get("keep"))}<br>Change: {_e(c.get("change"))}'
             ready = "ready to launch" if c["ready"] else c.get("todo", "needs filming")
             rows += (f'<p><b>{_e(c["title"])}</b> <span class="mute">({_e(c["format"])}, {ready})'
-                     f'</span><br>{detail}<br><span class="mute">{_e(c["why"])}</span></p>')
+                     f'</span><br>{detail}<br><span class="mute">{_e(c["why"])}</span></p>'
+                     + _ideas(c))
         if d["estimated_days"] is None:
             timing = f'The original has no {label}s yet, so there is no way to estimate how long a test needs.'
         elif d["budget_warning"]:
@@ -406,15 +458,231 @@ def render_html(briefs: list, kind: str, missing: list | None = None) -> str:
     """One page, every brand stacked. ``missing`` names brands with no brief yet."""
     date = max((b["date"] for b in briefs), default="")
     title = "Weekly ads brief" if kind == "weekly" else "Daily ads brief"
-    tabs = (f'<p class="tabs"><a href="/daily">&larr; Daily</a>'
-            f'<a href="/ads-brief" class="{"on" if kind != "weekly" else ""}">Daily</a>'
-            f'<a href="/ads-brief?kind=weekly" class="{"on" if kind == "weekly" else ""}">Weekly</a></p>')
     body = "".join(_section(b) for b in briefs)
     for brand in missing or []:
         body += (f'<h2>{_e(BRAND_NAMES.get(brand, brand))}</h2>'
                  '<p class="mute">No brief yet. It is written each morning at 07:15.</p>')
+    return _page(title, "weekly" if kind == "weekly" else "daily",
+                 f'{_e(date)} · Meta ads · recommendations only, nothing here changes an ad', body)
+
+
+_TABS = (("daily", "Daily", "/ads-brief"), ("weekly", "Weekly", "/ads-brief?kind=weekly"),
+         ("trends", "Trends", "/ads-brief?kind=trends"),
+         ("research", "What works", "/ads-brief?kind=research"))
+
+
+def _page(title: str, kind: str, sub: str, body: str) -> str:
+    tabs = '<p class="tabs"><a href="/daily">&larr; Daily</a>' + "".join(
+        f'<a href="{href}" class="{"on" if key == kind else ""}">{label}</a>'
+        for key, label, href in _TABS) + '</p>'
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
             f'<title>{title}</title><style>{_CSS}</style></head><body><main>'
-            f'<h1>{title}</h1><p class="sub">{_e(date)} · Meta ads · recommendations only, '
-            f'nothing here changes an ad</p>{tabs}{body}</main></body></html>')
+            f'<h1>{title}</h1><p class="sub">{sub}</p>{tabs}{body}</main></body></html>')
+
+
+# ── trends ───────────────────────────────────────────────────────────────
+
+def _day(iso) -> str:
+    d = _dt.date.fromisoformat(iso)
+    return f"{d.day} {d.strftime('%b %Y')}"
+
+
+def _whole(x) -> str:
+    return f"{x:,.0f}"
+
+
+def _rand(x) -> str:
+    return f"R{x:,.0f}"
+
+
+def _notes(doc: dict | None) -> str:
+    errors = (doc or {}).get("errors")
+    return ('<p class="mute">Meta read notes: ' + _e("; ".join(errors)[:400]) + '</p>'
+            if errors else "")
+
+
+def _figure(title: str, sub: str, svg: str) -> str:
+    return f'<figure><figcaption>{_e(title)}<span>{_e(sub)}</span></figcaption>{svg}</figure>'
+
+
+def _trends_section(hist: dict) -> str:
+    t = hist.get("trends") or {}
+    weeks = t.get("weeks") or []
+    parts = [f'<h2>{_e(BRAND_NAMES.get(hist.get("brand_id"), hist.get("brand_id")))}</h2>']
+    if not weeks:
+        return "".join(parts) + ('<p class="mute">Meta returned no weekly history for this '
+                                 'account.</p>') + _notes(hist)
+    until = _dt.date.fromisoformat(weeks[-1]["week"]) + _dt.timedelta(days=6)
+    parts.append(f'<p class="sub">{len(weeks)} whole weeks, Monday to Sunday, up to '
+                 f'{_e(_day(until.isoformat()))}. The week in progress is left out until it ends.</p>')
+    cur, ch = t.get("last_4"), t.get("change") or {}
+    if cur:
+        vs = "the 4 weeks before"
+        parts.append(
+            '<h3>Last 4 weeks</h3><div class="tiles">'
+            f'<div class="tile"><b>{_money(cur["spend"])}</b><div>spend</div>'
+            f'{_delta(ch.get("spend"), neutral=True, versus=vs)}</div>'
+            f'<div class="tile"><b>{cur["leads"]:,.0f}</b><div>leads</div>'
+            f'{_delta(ch.get("leads"), versus=vs)}</div>'
+            f'<div class="tile"><b>{_money(cur["cost_per_lead"])}</b><div>cost per lead</div>'
+            f'{_delta(ch.get("cost_per_lead"), lower_is_better=True, versus=vs)}</div>'
+            f'<div class="tile"><b>{cur["landing_page_views"]:,.0f}</b><div>page visits</div>'
+            f'{_delta(ch.get("landing_page_views"), versus=vs)}</div></div>')
+
+    def series(key):
+        return [(w["week"], w[key]) for w in weeks]
+
+    def latest(key, fmt, none="none"):
+        v = weeks[-1][key]
+        return f"Latest week: {fmt(v) if v is not None else none}"
+
+    parts.append('<h3>Week by week</h3><div class="charts">')
+    parts.append(_figure("Spend per week", latest("spend", _rand),
+                         ads_charts.columns("Spend per week", series("spend"), _rand,
+                                            noun="spend")))
+    parts.append(_figure("Leads per week", latest("leads", _whole),
+                         ads_charts.columns("Leads per week", series("leads"), _whole,
+                                            integer=True, noun="leads")))
+    parts.append(_figure("Cost per lead", latest("cost_per_lead", _money, "no leads"),
+                         ads_charts.line("Cost per lead per week", series("cost_per_lead"),
+                                         _rand, noun="leads")))
+    parts.append(_figure("Page visits per week", latest("landing_page_views", _whole),
+                         ads_charts.columns("Page visits per week",
+                                            series("landing_page_views"), _whole,
+                                            integer=True, noun="page visits")))
+    parts.append('</div><p class="mute">Cost per lead is the spend on lead campaigns divided '
+                 'by their leads. A gap in the line is a week with no leads.</p>')
+
+    parts.append('<details><summary class="mute">The numbers behind the charts</summary>'
+                 '<div class="scroll"><table><tr><th>Week of</th><th>Spend</th><th>Leads</th>'
+                 '<th>Cost per lead</th><th>Chats</th><th>Page visits</th><th>Ads running</th></tr>')
+    for w in reversed(weeks):
+        parts.append(f'<tr><td>{_e(ads_charts.week_label(w["week"]))}</td>'
+                     f'<td>{_money(w["spend"])}</td><td>{w["leads"]}</td>'
+                     f'<td>{_money(w["cost_per_lead"])}</td><td>{w["messages"]}</td>'
+                     f'<td>{w["landing_page_views"]:,}</td><td>{w["ads"]}</td></tr>')
+    parts.append('</table></div></details>')
+    return "".join(parts) + _notes(hist)
+
+
+def render_trends_html(histories: list, missing: list | None = None) -> str:
+    body = "".join(_trends_section(h) for h in histories)
+    for brand in missing or []:
+        body += (f'<h2>{_e(BRAND_NAMES.get(brand, brand))}</h2><p class="mute">No history yet. '
+                 'It is read from Meta each morning with the brief.</p>')
+    date = max((h.get("date") or "" for h in histories), default="")
+    return _page("Ads trends", "trends", f'{_e(date)} · Meta ads · week by week', body)
+
+
+# ── what works ───────────────────────────────────────────────────────────
+
+_RESULT_HEADS = {"leads": "Cheapest leads", "messages": "Cheapest chats",
+                 "landing_page_views": "Cheapest page visits"}
+_REFRESH = "/ads-brief?kind=research&amp;refresh=1"
+
+
+def _watched(a: dict) -> str:
+    bits = []
+    if a.get("hook_rate"):
+        bits.append(f'{a["hook_rate"]:.0%} of the times it was shown, it was watched for '
+                    'three seconds')
+    if a.get("hold_rate"):
+        bits.append(f'{a["hold_rate"]:.0%} of those watched it through')
+    if (a.get("watch") or {}).get("avg_seconds"):
+        bits.append(f'average watch {a["watch"]["avg_seconds"]:g} seconds')
+    return "; ".join(bits)
+
+
+def _winner(a: dict) -> str:
+    r = a["result"]
+    tag = ('<span class="tag good">proven</span>' if r["proven"]
+           else '<span class="tag low">too few to judge</span>')
+    ran = (f'ran {a["weeks_active"]} week{"s" if a["weeks_active"] != 1 else ""}, '
+           f'{ads_charts.week_label(a["first_week"])} to {ads_charts.week_label(a["last_week"])}'
+           + (", still running" if a["still_running"] else ""))
+    watched = _watched(a)
+    return (f'<div class="item">{tag} <span class="mute">{_e(a["campaign_name"])}</span>'
+            f'<p><b>{_e(a["ad_name"])}</b>: {r["count"]:,} {r["label"]}s at '
+            f'{_money(r["cost"])} each, {_money(a["spend"])} spent, {ran}.</p>'
+            + (f'<p>Opened with: &ldquo;{_e(a["opening"])}&rdquo;</p>' if a.get("opening") else "")
+            + (f'<p class="mute">{_e(watched[0].upper() + watched[1:])}.</p>' if watched else "")
+            + '</div>')
+
+
+def _library_section(lib: dict | None) -> str:
+    parts = ['<h3>Other advertisers</h3>']
+    if not lib:
+        return "".join(parts) + ("<p class=\"mute\">Meta's Ad Library has not been checked yet. "
+                                 f'<a href="{_REFRESH}">Check it now</a></p>')
+    if lib.get("status") == "NO_ACCESS":
+        parts.append("<p class=\"mute\">Meta refused the Ad Library read with this account's "
+                     "token, so there is no list here yet. The links still open the Ad Library "
+                     "itself, where anyone can look.</p>")
+    else:
+        parts.append('<p class="mute">The Ad Library shows no results, only how long an ad has '
+                     'run. These are the longest-running video ads on each subject, on the '
+                     'reasoning that nobody keeps paying for one that does not work. Meta only '
+                     'lists ordinary ads through this route where they reached the UK or EU; '
+                     'South African ads are behind the link on each subject.</p>')
+    for t in lib.get("themes") or []:
+        parts.append(f'<div class="item"><span class="tag low">{_e(t["theme"])}</span> '
+                     f'<span class="mute">searched &ldquo;{_e(t["terms"])}&rdquo;</span>')
+        for a in t.get("ads") or []:
+            parts.append(f'<p><b>{_e(a["page_name"])}</b>, running {a["days_running"]:,} days: '
+                         f'&ldquo;{_e(a["opening"])}&rdquo; '
+                         f'<a href="{_e(a["link"])}" rel="noopener">see the ad</a></p>')
+        if not t.get("ads") and lib.get("status") == "OK":
+            parts.append('<p class="mute">Nothing long-running found.</p>')
+        parts.append(f'<p><a href="{_e(t["home_link"])}" rel="noopener">See South African video '
+                     f'ads on this subject</a></p></div>')
+    parts.append(f'<p class="mute">Checked {_e(lib.get("date"))}. '
+                 f'<a href="{_REFRESH}">Check again</a></p>')
+    return "".join(parts) + _notes(lib)
+
+
+def _research_section(hist: dict | None, lib: dict | None, brand_id: str) -> str:
+    parts = [f'<h2>{_e(BRAND_NAMES.get(brand_id, brand_id))}</h2>']
+    win = (hist or {}).get("winners") or {}
+    period = win.get("period") or {}
+    if not win.get("ranked"):
+        parts.append('<p class="mute">No ad has produced a result in the weeks on file yet.</p>'
+                     if hist else
+                     '<p class="mute">No history yet. It is read from Meta each morning with '
+                     'the brief.</p>')
+    else:
+        parts.append(f'<p class="sub">Your own ads, {period.get("weeks")} weeks to '
+                     f'{_e(_day(period["until"]))}. {win.get("ads_with_delivery")} ads ran. Ads '
+                     'are only compared with ads bought for the same result.</p>')
+        for key in ("leads", "messages", "landing_page_views"):
+            group = win["ranked"].get(key)
+            if not group:
+                continue
+            parts.append(f'<h3>{_RESULT_HEADS[key]}</h3>')
+            parts.extend(_winner(a) for a in group["ads"])
+        if len(win.get("lead_themes") or []) > 1:
+            parts.append('<h3>Leads by subject</h3><div class="scroll"><table><tr><th>Subject</th>'
+                         '<th>Ads</th><th>Spend</th><th>Leads</th><th>Cost per lead</th></tr>')
+            for t in win["lead_themes"]:
+                parts.append(f'<tr><td>{_e(t["theme"])}</td><td>{t["ads"]}</td>'
+                             f'<td>{_money(t["spend"])}</td><td>{t["leads"]}</td>'
+                             f'<td>{_money(t["cost_per_lead"])}</td></tr>')
+            parts.append('</table></div><p class="mute">An ad about two subjects is counted '
+                         'under both.</p>')
+        if win.get("best_openings"):
+            parts.append('<h3>Openings that held attention</h3>')
+            for a in win["best_openings"]:
+                parts.append(
+                    f'<div class="item"><p><b>{_e(a["ad_name"])}</b>: watched for three seconds '
+                    f'{a["hook_rate"]:.0%} of the times it was shown.</p>'
+                    + (f'<p>Opened with: &ldquo;{_e(a["opening"])}&rdquo;</p>'
+                       if a.get("opening") else "") + '</div>')
+    return "".join(parts) + _notes(hist) + _library_section(lib)
+
+
+def render_research_html(brands: list, histories: dict, libraries: dict) -> str:
+    body = "".join(_research_section(histories.get(b), libraries.get(b), b) for b in brands)
+    date = max(((h or {}).get("date") or "" for h in histories.values()), default="")
+    return _page("What works", "research",
+                 f'{_e(date)} · Meta ads · what has worked for you, and what others keep running',
+                 body)

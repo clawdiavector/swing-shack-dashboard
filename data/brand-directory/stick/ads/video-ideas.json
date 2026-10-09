@@ -1,0 +1,240 @@
+{
+  "schema": "https://campaign-os/ads-video-ideas/v1",
+  "brand_id": "stick",
+  "status": "draft",
+  "written": "2026-10-09",
+  "note": "First draft, written from knowledge.json and the real feed (feedback/instagram-audit.json). Edit freely: the ads brief shows whatever is here. Every line must be something a real person can say or film. A number is only allowed if it is in knowledge.json or read off the screen during the shoot. Lines in [square brackets] are prompts for the person on camera, not a script.",
+  "sign_off": "Better begins here.",
+  "ideas": [
+    {
+      "id": "stick-same-swing-two-clubs",
+      "kind": "video",
+      "themes": ["fitting", "driver", "irons"],
+      "angle": "numbers",
+      "title": "Same swing, two clubs",
+      "who": "One real customer hitting, a fitter talking",
+      "length": "20 to 30 seconds",
+      "hook": {
+        "say": "Same golfer. Same swing. Two different clubs.",
+        "show": "Two swings back to back: the club they walked in with, then the fitted one. The TrackMan screen after each.",
+        "text": "Same swing. Different club."
+      },
+      "points": [
+        "This is the club they walked in with.",
+        "This is the same swing with a shaft that suits it.",
+        "Read the numbers off the screen yourself. That is what a fitting is."
+      ],
+      "shots": [
+        "Side-on swing with their own club, then the TrackMan screen",
+        "The fitter changing the shaft",
+        "Side-on swing with the fitted club, then the screen again",
+        "The golfer's face when they see the second set of numbers"
+      ],
+      "watch_out": "Use the real numbers from the session. If the difference is small, say so. Never a made-up number."
+    },
+    {
+      "id": "stick-when-last-checked",
+      "kind": "video",
+      "themes": ["fitting", "driver", "irons"],
+      "angle": "question",
+      "title": "When last did anyone check?",
+      "who": "A fitter to camera, a customer's own clubs",
+      "length": "15 to 25 seconds",
+      "hook": {
+        "say": "When last did anyone check if your clubs fit you?",
+        "show": "A golfer's own clubs laid out on the fitting bench. The fitter picks one up and looks down the shaft.",
+        "text": "Do your clubs fit you?"
+      },
+      "points": [
+        "Most golfers buy first and hope it fits. We do it the other way round. Fit first. Buy second.",
+        "We measure your swing on TrackMan and change one thing at a time.",
+        "You see every number yourself. Nothing is a mystery."
+      ],
+      "shots": [
+        "Their own clubs on the bench",
+        "A swing on TrackMan, side on",
+        "The screen with the real numbers",
+        "The shaft wall, hand reaching for one"
+      ],
+      "watch_out": "Never make the golfer feel stupid for the clubs they have. Curious, not critical."
+    },
+    {
+      "id": "stick-what-happens-in-a-fitting",
+      "kind": "video",
+      "themes": ["fitting"],
+      "angle": "walkthrough",
+      "title": "What happens in a fitting",
+      "who": "A fitter walking the viewer through the studio",
+      "length": "25 to 35 seconds",
+      "hook": {
+        "say": "Here is what actually happens in a fitting at Stick.",
+        "show": "The camera walks in through the studio door in Paarl and the fitter turns to greet it.",
+        "text": "What happens in a fitting"
+      },
+      "points": [
+        "You bring your own clubs and hit a few, so we can see where you are today.",
+        "Then we change one thing at a time and watch what the ball does.",
+        "The workshop builds what the numbers pointed to."
+      ],
+      "shots": [
+        "Walking in through the door",
+        "Warm-up swings with their own club",
+        "The shaft wall",
+        "The TrackMan screen",
+        "Hands at the workshop bench"
+      ],
+      "watch_out": "One continuous walk if you can. It should feel like being shown around, not a list."
+    },
+    {
+      "id": "stick-not-good-enough",
+      "kind": "video",
+      "themes": ["fitting", "coaching"],
+      "angle": "myth",
+      "title": "Not good enough to get fitted?",
+      "who": "A fitter straight to camera, club in hand",
+      "length": "15 to 25 seconds",
+      "hook": {
+        "say": "\"I'm not good enough to get fitted.\" Let's talk about that.",
+        "show": "The fitter close to camera in the studio, holding a club across both hands.",
+        "text": "Not good enough to get fitted?"
+      },
+      "points": [
+        "A fitting is not a test. Nobody is marking your swing.",
+        "We fit the swing you have today, not the one you wish you had.",
+        "You will understand every number before you leave."
+      ],
+      "shots": [
+        "Fitter to camera, eye level",
+        "A relaxed customer mid-session, laughing or nodding",
+        "A hand pointing at one number on the screen"
+      ],
+      "watch_out": "Warm, not preachy. The joke is shared with the golfer, never on them."
+    },
+    {
+      "id": "stick-roll-a-few",
+      "kind": "video",
+      "themes": ["putter"],
+      "angle": "product",
+      "title": "Roll a few",
+      "who": "A fitter handing a putter to a real customer",
+      "length": "15 to 25 seconds",
+      "hook": {
+        "say": "Roll three putts with this and tell me what you feel.",
+        "show": "A putter passed from one hand to another. Close on the face, then the ball rolling.",
+        "text": "Roll a few."
+      },
+      "points": [
+        "[Fitter: the first thing you check when you fit a putter, in your own words.]",
+        "[Customer: what felt different, straight after the third putt.]",
+        "Come roll a few and feel the difference for yourself."
+      ],
+      "shots": [
+        "The hand-over",
+        "Low behind the ball as it rolls",
+        "Close on the putter face at address",
+        "The customer's reaction"
+      ],
+      "watch_out": "Let the customer answer honestly. Keep whatever they say."
+    },
+    {
+      "id": "stick-why-its-here",
+      "kind": "video",
+      "themes": ["retail", "bags", "putter", "irons", "driver"],
+      "angle": "product",
+      "title": "Why it's here",
+      "who": "Whoever chose to stock it, product in hand",
+      "length": "15 to 20 seconds",
+      "hook": {
+        "say": "Why it's here.",
+        "show": "The product held up on the shop floor. Title frame over it.",
+        "text": "WHY IT'S HERE."
+      },
+      "points": [
+        "[One sentence: what it is.]",
+        "[The one reason Stick made space for it. Not the catalogue description.]",
+        "[Who it suits, and who it doesn't.]"
+      ],
+      "shots": [
+        "Product in hand on the shop floor",
+        "One close detail: the stitching, the face, the logo",
+        "Someone using or wearing it",
+        "Where it sits on the shelf"
+      ],
+      "watch_out": "One product per video. If the reason is not honest, pick another product."
+    },
+    {
+      "id": "stick-the-workshop",
+      "kind": "video",
+      "themes": ["grip", "irons", "fitting"],
+      "angle": "walkthrough",
+      "title": "Where the numbers get built",
+      "who": "The club builder at the bench",
+      "length": "15 to 25 seconds",
+      "hook": {
+        "say": "This is where the numbers get built.",
+        "show": "Hands working on a club at the workshop bench, close.",
+        "text": "The workshop"
+      },
+      "points": [
+        "After the fitting, the spec goes to the bench.",
+        "[Builder: the job on the bench right now, and why it matters.]",
+        "Every club is built to the spec you were fitted for."
+      ],
+      "shots": [
+        "Close on hands and tools",
+        "The spec sheet or the screen it came from",
+        "The finished club held up to the light"
+      ],
+      "watch_out": "Real work on a real club. No staged tapping."
+    },
+    {
+      "id": "stick-in-their-words",
+      "kind": "video",
+      "themes": ["any"],
+      "angle": "customer",
+      "title": "In their words",
+      "who": "A real customer, filmed straight after their session",
+      "length": "15 to 25 seconds",
+      "hook": {
+        "say": "[Customer, to camera:] I thought my clubs were fine.",
+        "show": "The customer in the studio holding the club they came in with.",
+        "text": "Their first name only"
+      },
+      "points": [
+        "[What did you walk in with, and what did you expect?]",
+        "[What surprised you?]",
+        "[What would you tell a friend who is thinking about it?]"
+      ],
+      "shots": [
+        "Customer to camera, chest up, studio behind them",
+        "A cutaway to one of their swings",
+        "A cutaway to the screen"
+      ],
+      "watch_out": "Their words, not a script. If they say a number it must be the one that was on the screen."
+    },
+    {
+      "id": "stick-still-arrives-by-itself",
+      "kind": "animated_still",
+      "themes": ["retail", "bags"],
+      "angle": "product",
+      "title": "The product arrives by itself",
+      "who": "Nobody. The product is the character",
+      "length": "6 to 10 seconds",
+      "hook": {
+        "say": "No voice. Music or shop sound only.",
+        "show": "A still of the product that moves as if someone is wearing or carrying it: the pants walk in and stop at the counter, the bag unzips itself, the cap tips.",
+        "text": "The product name, then: Available now at Stick."
+      },
+      "points": [
+        "One movement, start to finish. Not three.",
+        "The product stays sharp and true to colour the whole time.",
+        "End on the still product and the line: Available now at Stick."
+      ],
+      "shots": [
+        "One clean product photo on a plain or in-store background",
+        "The same photo with room around it for the movement"
+      ],
+      "watch_out": "Retail only. It has to move; a flat photo is not an ad."
+    }
+  ]
+}
