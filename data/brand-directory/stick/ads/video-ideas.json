@@ -3,7 +3,7 @@
   "brand_id": "stick",
   "status": "draft",
   "written": "2026-10-09",
-  "note": "First draft, written from knowledge.json and the real feed (feedback/instagram-audit.json). Edit freely: the ads brief shows whatever is here. Every line must be something a real person can say or film. A number is only allowed if it is in knowledge.json or read off the screen during the shoot. Lines in [square brackets] are prompts for the person on camera, not a script.",
+  "note": "First draft, written from knowledge.json, the real feed (feedback/instagram-audit.json) and the text of the ads that were live on 2026-10-09. Edit freely: the ads brief shows whatever is here. Every line must be something a real person can say or film. A number is only allowed if it is in knowledge.json or read off the screen during the shoot. Lines in [square brackets] are prompts for the person on camera, not a script.",
   "sign_off": "Better begins here.",
   "ideas": [
     {
@@ -84,6 +84,58 @@
         "Hands at the workshop bench"
       ],
       "watch_out": "One continuous walk if you can. It should feel like being shown around, not a list."
+    },
+    {
+      "id": "stick-your-normal-swing",
+      "kind": "video",
+      "themes": ["coaching"],
+      "angle": "coach",
+      "title": "Hit one the way you normally do",
+      "who": "The coach with a real golfer, mid-lesson",
+      "length": "20 to 30 seconds",
+      "hook": {
+        "say": "Hit one the way you normally do. Don't fix anything.",
+        "show": "The coach standing behind a golfer at address in the studio. The golfer swings.",
+        "text": "Your normal swing."
+      },
+      "points": [
+        "[Coach: watch one swing, then name the one change that matters most.]",
+        "[Golfer hits again. Show what the ball does on the screen, whatever it is.]",
+        "One change to take to the course. Not twelve."
+      ],
+      "shots": [
+        "Wide: coach and golfer in the studio",
+        "The first swing, side on",
+        "The coach's hands showing the one change",
+        "The second swing and the screen"
+      ],
+      "watch_out": "A real lesson moment, not acted. If the second swing is not better, film another golfer."
+    },
+    {
+      "id": "stick-how-many-swing-thoughts",
+      "kind": "video",
+      "themes": ["coaching"],
+      "angle": "question",
+      "title": "How many swing thoughts?",
+      "who": "The coach to camera, a golfer frozen at address behind them",
+      "length": "15 to 25 seconds",
+      "hook": {
+        "say": "How many swing thoughts do you take to the first tee?",
+        "show": "A golfer stuck at address, not moving. The coach walks into frame and looks at the camera.",
+        "text": "How many swing thoughts?"
+      },
+      "points": [
+        "Most of us carry far too many. It shows.",
+        "[Coach: the one thought you would keep, and why.]",
+        "A lesson should leave you knowing what to do next."
+      ],
+      "shots": [
+        "Golfer frozen at address, wide",
+        "Coach to camera, eye level",
+        "The golfer finally swinging, relaxed",
+        "The two of them looking at the screen"
+      ],
+      "watch_out": "The joke is shared with the golfer, never on them."
     },
     {
       "id": "stick-not-good-enough",

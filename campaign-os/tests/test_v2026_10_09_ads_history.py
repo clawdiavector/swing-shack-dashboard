@@ -69,8 +69,9 @@ WATCH = [{"ad_id": "ff1", "video_play_actions": [{"action_type": "video_view", "
           "video_thruplay_watched_actions": [{"action_type": "video_view", "value": "900"}],
           "video_avg_time_watched_actions": [{"action_type": "video_view", "value": "4"}]},
          {"ad_id": "old"}]
-SETTINGS = [fx._setting(i, "ACTIVE", "LEAD_GENERATION", "2026-05-20T09:00:00+0200")
-            for i in ("ff1", "cat", "putter", "old")]
+SETTINGS = [fx._setting(i, "ACTIVE", goal, "2026-05-20T09:00:00+0200")
+            for i, goal in (("ff1", "LEAD_GENERATION"), ("cat", "QUALITY_LEAD"),
+                            ("putter", "LANDING_PAGE_VIEWS"), ("old", "LEAD_GENERATION"))]
 for _s in SETTINGS:
     _s["creative"]["body"] = BODIES[_s["id"]]
 
@@ -243,8 +244,8 @@ class Winners(unittest.TestCase):
                          "Get your clubs checked, see the numbers, and find what suits your swing.")
         self.assertEqual(old["opening"], "Driver fitting day.")
         self.assertEqual(ff1["themes"], ["fitting"])
-        # "Get the specs right to drop more putts" is about fitting a putter.
-        self.assertEqual(self.w["by_ad"]["putter"]["themes"], ["fitting", "putter"])
+        # Named a putter ad; "specs" further down the text does not add a subject.
+        self.assertEqual(self.w["by_ad"]["putter"]["themes"], ["putter"])
 
     def test_attention_is_three_second_views_over_impressions(self):
         ff1 = self.w["by_ad"]["ff1"]
@@ -258,8 +259,8 @@ class Winners(unittest.TestCase):
 
     def test_leads_by_subject(self):
         by = {t["theme"]: t for t in self.w["lead_themes"]}
-        # FItFacts and the old driver day; the dry ad names no subject.
-        self.assertEqual((by["fitting"]["ads"], by["fitting"]["leads"]), (2, 27))
+        # FItFacts, the old driver day, and the dry ad in the FitFacts campaign.
+        self.assertEqual((by["fitting"]["ads"], by["fitting"]["leads"]), (3, 27))
         self.assertEqual(by["coaching"]["cost_per_lead"], 65.0)
         self.assertEqual(self.w["lead_themes"][0]["theme"], "fitting")
 
@@ -270,7 +271,39 @@ class Winners(unittest.TestCase):
         self.assertIsNone(ads_history.proven_for(self.w, ["fitting"], "messages"))
         self.assertIsNone(ads_history.proven_for(None, ["fitting"], "leads"))
 
+    def test_what_it_was_bought_for_comes_from_the_ad_set_goal_first(self):
+        chat = {"leads": 1, "messages": 21, "landing_page_views": 300}
+        # Stick's "Free Asses messages" campaign: one stray lead, 21 chats.
+        self.assertEqual(ads_history._result("CONVERSATIONS", "OUTCOME_ENGAGEMENT", chat)[0],
+                         "messages")
+        self.assertEqual(ads_history._result(None, "OUTCOME_ENGAGEMENT", chat)[0], "messages")
+        self.assertEqual(ads_history._result(None, None, {"leads": 3, "messages": 1})[0], "leads")
+        self.assertEqual(ads_history._result("LINK_CLICKS", "OUTCOME_LEADS", chat)[0],
+                         "landing_page_views")
+        self.assertIsNone(ads_history._result("REACH", "OUTCOME_AWARENESS", chat))
+        self.assertIsNone(ads_history._result(None, None, {}))
+
+    def test_an_image_ad_is_not_ranked_for_its_opening(self):
+        h = json.loads(json.dumps(self.h))
+        h["creatives"]["ff1"]["media_type"] = "image"
+        ids = [a["ad_id"] for a in ads_history.winners(h)["best_openings"]]
+        self.assertNotIn("ff1", ids)
+        self.assertIn("cat", ids)
+
+    def test_proven_for_looks_past_the_five_shown(self):
+        rows = weekly_rows()
+        for n in range(6):  # six cheaper proven lead ads with nothing to say about fitting
+            rows += [_wrow(w, f"x{n}", f"Ad {n}", "Other", "OUTCOME_LEADS", 10.0, 500, leads=4)
+                     for w in range(3)]
+        w = ads_history.winners(history(rows=rows)[0])
+        self.assertNotIn("ff1", [a["ad_id"] for a in w["ranked"]["leads"]["ads"]])
+        self.assertEqual(ads_history.proven_for(w, ["fitting"], "leads")["ad_id"], "ff1")
+
     def test_opening_is_the_first_sentence_of_the_first_line(self):
+        long = "If you have played golf you know how annoying it is " + "to miss " * 20 + "again"
+        cut = ads_history.opening(long)
+        self.assertTrue(cut.endswith("\u2026") and len(cut) <= 141 and not cut[:-1].endswith(" "))
+        self.assertTrue(long.startswith(cut[:-1]))
         self.assertEqual(ads_history.opening("One. Two."), "One.")
         self.assertEqual(ads_history.opening("No full stop\nsecond line"), "No full stop")
         self.assertEqual(ads_history.opening("  Why?   Because."), "Why?")

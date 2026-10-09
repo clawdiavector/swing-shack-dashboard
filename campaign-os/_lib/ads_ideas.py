@@ -167,8 +167,14 @@ def attach(tests: list, bank: dict, win: dict | None) -> list:
            if t.get("status") == "PROPOSED" else t for t in tests]
     slots = [(t, c, KINDS[c["kind"]]) for t in out if t.get("status") == "PROPOSED"
              for c in t["challengers"] if c.get("kind") in KINDS]
-    picks = {id(c): [by_id[i["id"]] for i in c.get("ideas") or [] if i.get("id") in by_id]
-             for _, c, _ in slots}
+    # What each card is about, read from its ad's text as it is today.
+    about = {t["id"]: sorted(_subject(t, win)) for t, _, _ in slots}
+    # A card keeps its ideas unless it turns out to be about something else.
+    picks = {id(c): [by_id[i["id"]] for i in c.get("ideas") or []
+                     if i.get("id") in by_id and c.get("ideas_for") == about[t["id"]]]
+             for t, c, _ in slots}
+    used -= {i["id"] for _, c, _ in slots for i in c.get("ideas") or []
+             if i["id"] not in {p["id"] for p in picks[id(c)]}}
     # Every card gets its best idea before any card gets a second, so the first
     # card cannot take both ideas on a subject two campaigns share.
     for want in range(1, PER_CARD + 1):
@@ -178,15 +184,27 @@ def attach(tests: list, bank: dict, win: dict | None) -> list:
                 continue
             body = (t.get("control") or {}).get("body")
             angles = {i["angle"] for i in have}
-            more = choose(bank, kind, t.get("themes"), body, used, n=1, skip_angles=angles)
+            more = choose(bank, kind, about[t["id"]], body, used, n=1, skip_angles=angles)
             if not more and not have:
                 # The file has run out of unused ideas: repeat one rather than
                 # leave the card with nothing to film.
-                more = choose(bank, kind, t.get("themes"), body, set(), n=1)
+                more = choose(bank, kind, about[t["id"]], body, set(), n=1)
             have.extend(more)
             used.update(i["id"] for i in more)
     for t, c, _ in slots:
+        c.pop("ideas", None)
         if picks[id(c)]:
-            proven = ads_history.proven_for(win, t.get("themes"), t["metric"]["key"])
+            proven = ads_history.proven_for(win, about[t["id"]], t["metric"]["key"])
             c["ideas"] = [brief(i, t, bank, proven) for i in picks[id(c)]]
+            c["ideas_for"] = about[t["id"]]
     return out
+
+
+def _subject(card: dict, win: dict | None) -> set:
+    """The history has every ad's full text; the card only its first lines."""
+    control = card.get("control") or {}
+    known = ((win or {}).get("by_ad") or {}).get(control.get("ad_id"))
+    if known:
+        return set(known["themes"])
+    return ads_creative.subject(card.get("campaign_name"), control.get("ad_name"), None,
+                                control.get("body"))

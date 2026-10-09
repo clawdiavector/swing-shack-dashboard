@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
-import re
 
 from . import ads_brain, ads_creative
 
@@ -42,8 +41,17 @@ _CREATIVE_FIELDS = (
     "thumbnail_url,object_story_spec}"
 )
 
-# What an ad was bought for, by campaign objective: (key, label, results needed
-# before its cost means anything). The same floors the creative tests use.
+# What an ad was bought for: (key, label, results needed before its cost means
+# anything). The same floors the creative tests use. The ad set's goal says it
+# best; the campaign objective is the fallback for ads whose settings are gone.
+_RESULT_FOR_GOAL = {
+    "LEAD_GENERATION": ("leads", "lead", 10),
+    "QUALITY_LEAD": ("leads", "lead", 10),
+    "CONVERSATIONS": ("messages", "chat", 10),
+    "LANDING_PAGE_VIEWS": ("landing_page_views", "page visit", 100),
+    "LINK_CLICKS": ("landing_page_views", "page visit", 100),
+}
+_NO_RESULT_GOALS = ("REACH", "IMPRESSIONS", "AD_RECALL_LIFT", "THRUPLAY")
 _RESULT_FOR_OBJECTIVE = {
     "OUTCOME_LEADS": ("leads", "lead", 10),
     "LEAD_GENERATION": ("leads", "lead", 10),
@@ -211,26 +219,27 @@ def trends(history: dict, chart_weeks: int = CHART_WEEKS) -> dict:
 
 # ── winners ──────────────────────────────────────────────────────────────
 
-def opening(body) -> str | None:
-    """The first sentence of an ad's text: what a viewer reads before 'more'."""
-    text = re.sub(r"\s+", " ", (body or "").split("\n")[0]).strip()
-    if not text:
-        return None
-    first = re.split(r"(?<=[.!?])\s", text, maxsplit=1)[0]
-    return first[:140]
+opening = ads_creative.opening
 
 
-def _result(objective, totals: dict):
-    kind = _RESULT_FOR_OBJECTIVE.get((objective or "").upper())
-    if kind:
-        return kind
-    if (objective or "").upper() in _NO_RESULT_OBJECTIVES:
+def _result(goal, objective, totals: dict):
+    goal, objective = (goal or "").upper(), (objective or "").upper()
+    if goal in _RESULT_FOR_GOAL:
+        return _RESULT_FOR_GOAL[goal]
+    if goal in _NO_RESULT_GOALS:
         return None
-    # Objective unknown or a kind with no single result: go by what it produced.
-    for key, label, floor in (("leads", "lead", 10), ("messages", "chat", 10),
-                              ("landing_page_views", "page visit", 100)):
-        if totals.get(key):
-            return key, label, floor
+    if objective in _RESULT_FOR_OBJECTIVE:
+        return _RESULT_FOR_OBJECTIVE[objective]
+    if objective in _NO_RESULT_OBJECTIVES:
+        return None
+    # Nothing says what it was bought for: go by what it mostly produced. A
+    # chat campaign that picked up one stray lead is still a chat campaign.
+    if totals.get("leads") or totals.get("messages"):
+        if totals.get("messages", 0) > totals.get("leads", 0):
+            return "messages", "chat", 10
+        return "leads", "lead", 10
+    if totals.get("landing_page_views"):
+        return "landing_page_views", "page visit", 100
     return None
 
 
@@ -256,7 +265,7 @@ def winners(history: dict, top: int = 5) -> dict:
         t = {k: sum(r.get(k) or 0 for r in rows) for k in _KEYS}
         t["spend"] = round(t["spend"], 2)
         c = creatives.get(ad_id) or {}
-        res = _result(latest.get("objective"), t)
+        res = _result(c.get("optimization_goal"), latest.get("objective"), t)
         count = t[res[0]] if res else 0
         w = watch.get(ad_id)
         ads.append({
@@ -267,8 +276,8 @@ def winners(history: dict, top: int = 5) -> dict:
             "still_running": latest["week"] == last_week,
             "format": c.get("media_type"), "opening": opening(c.get("body")),
             "title": c.get("title"),
-            "themes": sorted(ads_creative.themes_of(
-                latest.get("campaign_name"), latest.get("ad_name"), c.get("body"), c.get("title"))),
+            "themes": sorted(ads_creative.subject(
+                latest.get("campaign_name"), latest.get("ad_name"), c.get("title"), c.get("body"))),
             **t,
             "result": ({"key": res[0], "label": res[1], "count": count,
                         "cost": round(t["spend"] / count, 2) if count else None,
@@ -306,7 +315,10 @@ def winners(history: dict, top: int = 5) -> dict:
          if t["leads"]),
         key=lambda t: t["cost_per_lead"])
 
-    hooks = sorted((a for a in ads if a["hook_rate"] and a["impressions"] >= 3000),
+    # Meta counts three-second views on an image ad it has animated by itself.
+    # That says nothing about an opening anyone filmed.
+    hooks = sorted((a for a in ads if a["hook_rate"] and a["impressions"] >= 3000
+                    and a["format"] != "image"),
                    key=lambda a: -a["hook_rate"])[:top]
     return {
         "schema": SCHEMA, "period": period, "ads_with_delivery": len(ads),
@@ -318,9 +330,8 @@ def winners(history: dict, top: int = 5) -> dict:
 def proven_for(win: dict, themes, metric_key: str):
     """The cheapest proven ad for this result that shares a theme, if any.
     What the video ideas point at as 'this already worked'."""
-    group = ((win or {}).get("ranked") or {}).get(metric_key) or {}
     themes = set(themes or ())
-    for a in group.get("ads") or []:
-        if a["result"]["proven"] and a.get("opening") and themes & set(a["themes"]):
-            return a
-    return None
+    proven = [a for a in ((win or {}).get("by_ad") or {}).values()
+              if a.get("result") and a["result"]["key"] == metric_key and a["result"]["proven"]
+              and a.get("opening") and themes & set(a["themes"])]
+    return min(proven, key=lambda a: a["result"]["cost"], default=None)
