@@ -51575,15 +51575,48 @@ def meta_ads_brain(brand_id):
 _ADS_BRIEF_BRANDS = ("stick", "swing-shack")
 
 
-def _ads_brief_load(brand_id, kind):
+def _ads_lane_load(brand_id, rel):
     from _lib.jobs.layer1._io import data_dir as _job_data_dir
-    name = "weekly-latest.json" if kind == "weekly" else "latest.json"
     try:
-        with open(_job_data_dir() / "brands" / brand_id / "ads-brief" / name,
-                  encoding="utf-8") as f:
+        with open(_job_data_dir() / "brands" / brand_id / rel, encoding="utf-8") as f:
             return json.load(f)
     except (OSError, ValueError):
         return None
+
+
+def _ads_brief_load(brand_id, kind):
+    return _ads_lane_load(
+        brand_id, "ads-brief/" + ("weekly-latest.json" if kind == "weekly" else "latest.json"))
+
+
+def _ads_library(brand_id, refresh=False):
+    """What other advertisers keep running, from Meta's Ad Library. Read on
+    demand and kept for a week, not part of the morning job: whether this
+    account's token may read the Ad Library at all is still unproven."""
+    from _lib import ads_library as _lib_ads
+    from _lib.ads_brief import sast_today
+    from _lib.jobs.layer1._io import atomic_write
+    rel = "ads-library/latest.json"
+    saved = _ads_lane_load(brand_id, rel)
+    if not refresh:
+        return saved
+    history = _ads_lane_load(brand_id, "ads-history/latest.json") or {}
+    themes = {t for a in ((history.get("winners") or {}).get("by_ad") or {}).values()
+              for t in a.get("themes") or []} or set(_lib_ads.SEARCH_TERMS)
+    _label, token = _v23_resolve_ads_token(brand_id)
+    if not token:
+        return saved
+    try:
+        fresh = _lib_ads.fetch(themes, token, api_version=_META_GRAPH_API_VERSION,
+                               today=sast_today())
+    except Exception:
+        _app_log.exception("ad library read failed for %s", brand_id)
+        return saved
+    # A refused or empty read must not wipe a list that was read successfully.
+    if fresh["status"] != "OK" and saved and saved.get("status") == "OK":
+        return dict(saved, errors=fresh["errors"][:3])
+    atomic_write(f"brands/{brand_id}/{rel}", dict(fresh, brand_id=brand_id))
+    return fresh
 
 
 @app.route("/api/meta/ads/brief/<brand_id>", methods=["GET"])
@@ -51601,17 +51634,60 @@ def meta_ads_brief(brand_id):
     return jsonify({"ok": True, "brief": brief}), 200
 
 
+@app.route("/api/meta/ads/history/<brand_id>", methods=["GET"])
+def meta_ads_history(brand_id):
+    """GET /api/meta/ads/history/<brand_id> — weekly trends and the ads that worked."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    history = _ads_lane_load(brand_id, "ads-history/latest.json")
+    if history is None:
+        return jsonify({"ok": False, "error": "no history yet — run the ads_brief job"}), 404
+    return jsonify({"ok": True, "history": history}), 200
+
+
+@app.route("/api/meta/ads/library/<brand_id>", methods=["GET"])
+def meta_ads_library(brand_id):
+    """GET /api/meta/ads/library/<brand_id>[?refresh=1] — other advertisers' ads."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    library = _ads_library(brand_id, refresh=request.args.get("refresh") == "1")
+    if library is None:
+        return jsonify({"ok": False, "error": "not checked yet — add ?refresh=1"}), 404
+    return jsonify({"ok": True, "library": library}), 200
+
+
 @app.route("/ads-brief", methods=["GET"])
 def ads_brief_page():
-    """GET /ads-brief[?kind=weekly] — both brands on one page."""
+    """GET /ads-brief[?kind=weekly|trends|research] — both brands on one page."""
     if not _is_authed():
         return redirect(url_for("login_page", next=request.full_path.rstrip("?")))
     from _lib import ads_brief as _brief
-    kind = "weekly" if request.args.get("kind") == "weekly" else "daily"
+    kind = request.args.get("kind")
+    headers = {"Content-Type": "text/html; charset=utf-8"}
+    if kind in ("trends", "research"):
+        histories = {b: _ads_lane_load(b, "ads-history/latest.json") for b in _ADS_BRIEF_BRANDS}
+        if kind == "trends":
+            return _brief.render_trends_html(
+                [h for h in histories.values() if h],
+                missing=[b for b, h in histories.items() if not h]), 200, headers
+        if request.args.get("refresh") == "1":
+            for b in _ADS_BRIEF_BRANDS:
+                _ads_library(b, refresh=True)
+            # Back to the plain address, so reloading the page does not ask Meta again.
+            return redirect("/ads-brief?kind=research")
+        libraries = {b: _ads_library(b) for b in _ADS_BRIEF_BRANDS}
+        return _brief.render_research_html(_ADS_BRIEF_BRANDS, histories, libraries), 200, headers
+    kind = "weekly" if kind == "weekly" else "daily"
     loaded = {b: _ads_brief_load(b, kind) for b in _ADS_BRIEF_BRANDS}
     page = _brief.render_html([v for v in loaded.values() if v], kind,
                               missing=[b for b, v in loaded.items() if not v])
-    return page, 200, {"Content-Type": "text/html; charset=utf-8"}
+    return page, 200, headers
 
 
 # ─── CREATE V1 ────────────────────────────────────────────────────────

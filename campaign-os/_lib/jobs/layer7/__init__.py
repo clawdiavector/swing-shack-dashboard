@@ -95,7 +95,7 @@ def layer7_specs() -> list[JobSpec]:
             credentials=("META_SYSTEM_USER_TOKEN",),
             reads=(ads_brief.ORGANIC,),
             writes=(ads_brief.LATEST, ads_brief.WEEKLY, ads_brief.STATE, ads_brief.EVENTS,
-                    ads_brief.TESTS),
+                    ads_brief.TESTS, ads_brief.HISTORY, ads_brief.HISTORY_LATEST),
             upstream=(),
             brand_mode="per_brand",
             # The two brands with a Meta ad account.

@@ -2,13 +2,17 @@
 
 Reads Meta (read-only) through _lib.ads_brain, scores the 31-day window with
 the frozen Scoring V1, and writes under brands/<brand>/ads-brief/.
+
+Beside the brief it keeps the longer view under brands/<brand>/ads-history/:
+a year of weekly numbers per ad, the trends and the ads that earned their
+keep. That part is an add-on and can never cost the day's brief.
 """
 
 from __future__ import annotations
 
 import datetime as _dt
 
-from _lib import ads_brain, ads_brief, ads_creative
+from _lib import ads_brain, ads_brief, ads_creative, ads_history, ads_ideas
 from _lib.brand_validate import validate_brand_id
 
 from ..layer1._io import as_dict, as_list, io_for_job
@@ -20,6 +24,8 @@ STATE = "ads-brief/state.json"
 EVENTS = "ads-brief/events.json"
 TESTS = "ads-creative/tests.json"
 ORGANIC = "post-outcomes.json"
+HISTORY = "ads-history/weekly.json"
+HISTORY_LATEST = "ads-history/latest.json"
 
 
 def run(*, brand: str | None = None, today: _dt.date | None = None,
@@ -50,6 +56,15 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
     state = as_dict(prev_state) if prev_state else None
     daily, new_state, new_events = ads_brief.build_daily(lane_brand, scored, recent, state, today)
 
+    history = win = history_error = None
+    try:
+        history = ads_history.fetch_weekly(
+            lane_brand, account, token, get=get, today=today,
+            previous=as_dict(io.read(HISTORY, allow_flat_fallback=False)))
+        win = ads_history.winners(history)
+    except Exception as exc:  # the brief below is still written
+        history, history_error = None, type(exc).__name__
+
     # Creative loop: move open tests on, then propose new ones.
     tests = as_list(io.read(TESTS, allow_flat_fallback=False))
     organic = as_list(as_dict(io.read(ORGANIC, allow_flat_fallback=False)).get("outcomes"))
@@ -59,6 +74,8 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
                                               insights_only=True, **kw),
         today)
     tests += ads_creative.plan(lane_brand, scored, full, organic, tests, today)
+    # What to film for each proposed card, from the brand's own idea file.
+    tests = ads_ideas.attach(tests, ads_ideas.load_bank(lane_brand), win)
     daily["creative"] = ads_creative.summarise(tests, today)
     # Why a card has no organic reel: nothing on file, no reels, or none on theme.
     daily["creative"]["organic"] = {
@@ -78,6 +95,12 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
     io.write(STATE, new_state)
     io.write(EVENTS, events)
     io.write(TESTS, tests)
+    if history is not None:
+        io.write(HISTORY, history)
+        io.write(HISTORY_LATEST, {
+            "schema": ads_history.SCHEMA, "brand_id": lane_brand, "date": daily["date"],
+            "period": history["period"], "trends": ads_history.trends(history),
+            "winners": win, "errors": history["errors"]})
 
     wrote_weekly = False
     if today.weekday() == 0 or not io.read(WEEKLY, allow_flat_fallback=False):
@@ -92,5 +115,8 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
         "scoring_version": daily["scoring_version"],
         "creative_tests": {k: len(daily["creative"][k]) for k in ("proposed", "running")},
         "organic": daily["creative"]["organic"],
+        "history": ({"weeks_with_delivery": len({r["week"] for r in history["rows"]}),
+                     "ads": win["ads_with_delivery"], "errors": history["errors"][:3]}
+                    if history is not None else {"error": history_error}),
         "errors": daily["errors"][:3],
     }
