@@ -27,6 +27,7 @@ is why this exists: **the plugin is now the canonical home** for these skills.
 | `campaign-os-template` | Turning a batch of real brand posts into a pixel-accurate compose template. |
 | `krea-lab` | Any Krea/Ideogram/Recraft/Flux work — look up model ids, schemas and resolutions *before* generating. |
 | `brand-voice-truth` | **Before writing any caption or headline.** What the feed actually says, measured over all 261 Stick posts — the bibles drift and prompts read the bibles. |
+| `the-algorithm` | **Before building, adding or automating anything.** Question the requirement → delete → simplify → accelerate → automate. `/the-algorithm` switches on two light hooks for that session only — a one-line reminder per prompt and a one-time challenge on new files in `_lib/`, `scripts/` or the plugin. `/the-algorithm off` mutes them. Or `/the-algorithm <job or script>` to run it on something that already exists. |
 | `schedule-from-anywhere` | Putting a finished post (an image made in Claude, or a template render) on the live calendar, This week and the Shelf, ready for Release now, from any machine with a bearer token alone. One command: `lodge_post.py`. |
 
 ## The two rules that cost the most when broken

@@ -99,6 +99,16 @@ curl -H "Authorization: Bearer $COS_JOB_TOKEN" <prod>/api/jobs/status
 - No automation commits to `data/` — not a test fixture, not "just this once".
 - Never print a secret value. Presence checks only (`[ -n "$X" ]`).
 
+## 8b. The algorithm — before you build
+
+Five steps, in order: **question the requirement** (it carries Kyle's or Christelle's
+name, not a department's) → **delete** (aim to cut enough that ~10% comes back) →
+**simplify** → **accelerate** → **automate last**. Step 5 is the
+lab → script → job → Hermes agent ladder; steps 1–4 come first so we never automate
+something that should not exist. The `the-algorithm` skill in the plugin carries the
+detail; `/the-algorithm` turns on its hooks for one session. Commits that add
+capability carry `Requirement-Owner: <name>`.
+
 ## 9. Stale docs — do not follow
 
 | Path | Why |

@@ -1,7 +1,7 @@
 {
   "name": "campaign-os",
   "description": "Campaign OS marketing operations for Swing Shack, Stick and Bag Drop — deterministic post rendering, Instagram voice audits, template measuring, Krea lookups, spec verification and the jobs/ops API.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "Five Friday",
     "email": "kylem@fivefriday.com"
