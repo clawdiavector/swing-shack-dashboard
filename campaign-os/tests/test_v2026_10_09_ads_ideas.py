@@ -122,6 +122,13 @@ class Choose(unittest.TestCase):
         picked = ads_ideas.choose(_bank("stick"), "video", set(), None, set())
         self.assertEqual([i["id"] for i in picked], ["stick-in-their-words"])
 
+    def test_stick_coaching_ads_get_a_coaching_idea(self):
+        """Stick sells lessons in its live ads; knowledge.json does not say so."""
+        states = "A lesson should leave you knowing what to do next."
+        picked = ads_ideas.choose(_bank("stick"), "video", {"coaching"}, states, set())
+        self.assertEqual([i["id"] for i in picked],
+                         ["stick-your-normal-swing", "stick-how-many-swing-thoughts"])
+
     def test_stills_and_videos_do_not_mix(self):
         still = ads_ideas.choose(_bank(), "animated_still", {"retail"}, None, set())
         self.assertEqual([i["kind"] for i in still], ["animated_still"])
@@ -177,6 +184,26 @@ class Attach(unittest.TestCase):
         again = ads_ideas.attach(self.cards, edited, self.win)
         cat = next(c for c in again if c["control"]["ad_id"] == "cat")
         self.assertEqual(_new_video(cat)["ideas"][0]["title"], "Just three")
+
+    def test_a_card_about_something_else_gets_new_ideas_once(self):
+        """Cards written before the subject matching was tightened carry ideas
+        chosen for the wrong subject."""
+        stale = json.loads(json.dumps(self.by["david"]))
+        ch = _new_video(stale)
+        ch["ideas"] = [dict(ch["ideas"][0], id="ss-ball-tells-the-truth")]
+        ch["ideas_for"] = ["coaching", "fitting"]  # what the hashtags used to say
+        fixed = ads_ideas.attach([stale], _bank(), self.win)[0]
+        self.assertEqual(_new_video(fixed)["ideas_for"], ["coaching"])
+        self.assertEqual(_new_video(fixed)["ideas"][0]["id"], "ss-three-feels")
+        again = ads_ideas.attach([fixed], _bank(), self.win)[0]
+        self.assertEqual(_new_video(again)["ideas"], _new_video(fixed)["ideas"])
+
+    def test_the_history_knows_the_ads_full_text(self):
+        card = dict(self.by["cat"], themes=["fitting"])  # whatever the card was stamped with
+        win = {"by_ad": {"cat": {"themes": ["putter"]}}, "ranked": {}}
+        got = _new_video(ads_ideas.attach([card], _bank(), win)[0])
+        self.assertEqual((got["ideas_for"], got["ideas"][0]["id"]),
+                         (["putter"], "ss-where-does-it-start"))
 
     def test_only_proposed_cards_are_touched(self):
         running = dict(_cards()[0], status="RUNNING")

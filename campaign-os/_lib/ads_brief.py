@@ -601,9 +601,11 @@ def _winner(a: dict) -> str:
     ran = (f'ran {a["weeks_active"]} week{"s" if a["weeks_active"] != 1 else ""}, '
            f'{ads_charts.week_label(a["first_week"])} to {ads_charts.week_label(a["last_week"])}'
            + (", still running" if a["still_running"] else ""))
-    watched = _watched(a)
+    # Meta reports three-second views on images it animates; that is not a hook.
+    watched = _watched(a) if a.get("format") == "video" else ""
+    kind = f' ({_e(a["format"])})' if a.get("format") in ("video", "image") else ""
     return (f'<div class="item">{tag} <span class="mute">{_e(a["campaign_name"])}</span>'
-            f'<p><b>{_e(a["ad_name"])}</b>: {r["count"]:,} {r["label"]}s at '
+            f'<p><b>{_e(a["ad_name"])}</b>{kind}: {r["count"]:,} {r["label"]}s at '
             f'{_money(r["cost"])} each, {_money(a["spend"])} spent, {ran}.</p>'
             + (f'<p>Opened with: &ldquo;{_e(a["opening"])}&rdquo;</p>' if a.get("opening") else "")
             + (f'<p class="mute">{_e(watched[0].upper() + watched[1:])}.</p>' if watched else "")

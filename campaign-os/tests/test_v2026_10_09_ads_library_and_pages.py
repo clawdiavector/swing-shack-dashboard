@@ -193,7 +193,7 @@ class ResearchPage(unittest.TestCase):
     def test_own_winners_with_cost_run_and_opening(self):
         for needle in (
                 "<h1>What works</h1>", "Cheapest leads", "Cheapest page visits",
-                "<b>FItFacts</b>: 24 leads at R30.00 each, R720 spent, ran 12 weeks, "
+                "<b>FItFacts</b> (video): 24 leads at R30.00 each, R720 spent, ran 12 weeks, "
                 "13 Jul to 28 Sep, still running.",
                 "Opened with: &ldquo;Get your clubs checked, see the numbers, and find what "
                 "suits your swing.&rdquo;",
@@ -224,6 +224,14 @@ class ResearchPage(unittest.TestCase):
         self.assertIn("Meta refused the Ad Library read", refused)
         self.assertIn("See South African video ads on this subject", refused)
         self.assertIn("(#10) no permission", refused)
+
+    def test_an_image_ad_says_so_and_claims_no_watch_time(self):
+        doc = _history_doc()
+        ad = doc["winners"]["ranked"]["leads"]["ads"][0]
+        ad["format"] = "image"
+        page = ads_brief.render_research_html(["swing-shack"], {"swing-shack": doc}, {})
+        self.assertIn("<b>FItFacts</b> (image): 24 leads", page)
+        self.assertNotIn("25% of those watched it through", page)
 
     def test_names_from_meta_are_escaped(self):
         doc = _history_doc()

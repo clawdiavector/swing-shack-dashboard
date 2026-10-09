@@ -154,12 +154,24 @@ fits the campaign. The first version of both files was drafted on 2026-10-09 fro
 `knowledge.json` and is marked `"status": "draft"`. A test fails if an idea says a
 number that is not a verified fact.
 
-**The Ad Library is on demand, not in the morning job.** Meta's `ads_archive` returns
-ordinary ads only where they reached the UK or EU, and needs a token whose owner has
-confirmed their identity. Whether the ads token qualifies was unproven when this was
-written, so the read runs only when someone opens `?refresh=1`, records `NO_ACCESS`
-if refused, and always shows a link to the South African Ad Library website. Never
-request `ad_snapshot_url`: it embeds the access token.
+**The Ad Library is on demand, not in the morning job, and Meta refuses it today.**
+`ads_archive` returns ordinary ads only where they reached the UK or EU, and needs a
+token whose owner has confirmed their identity. On 2026-10-09 both brands' ads tokens
+got `Application does not have permission for this action`, so the page shows
+`NO_ACCESS` and a link per subject to the South African Ad Library website. It stays
+that way until a person confirms their identity with Meta and the app is granted Ad
+Library access; then `?refresh=1` starts working with no code change. Never request
+`ad_snapshot_url`: it embeds the access token.
+
+**Proven on prod 2026-10-09:** `time_increment=7` at ad level over 52 weeks, the video
+watch fields and ad text all read cleanly for both accounts, about 19 seconds a brand
+for the whole `ads_brief` job. Both accounts only have delivery from May 2026.
+
+**What an ad is about is `ads_creative.subject()`, not the whole text.** Names,
+headline and opening line first; the rest of the text only when those name nothing.
+Hashtags never count. The first live run tagged almost every Swing Shack ad as
+coaching because each one ends `#golf #coach`. `tests/test_v2026_10_09_ads_subject.py`
+pins the subject of every ad that was live that day.
 
 **`data/meta-ads.json` is synthetic** (built from Instagram posts in August). Never
 read it for ads work.
