@@ -849,10 +849,11 @@ def score_snapshot(snapshot: dict, *, now: _dt.datetime | None = None,
 
 
 def build(brand_id: str, account_id: str, token: str, *, days: int = 31,
-          data_dir=None, get=None, get_as=None, api_version: str | None = None) -> dict:
+          data_dir=None, get=None, get_as=None, api_version: str | None = None,
+          today: _dt.date | None = None) -> dict:
     """Fetch, score and (when data_dir is given) cache one brand's verdict."""
     snap = fetch_snapshot(brand_id, account_id, token, days=days, get=get,
-                          get_as=get_as, api_version=api_version)
+                          get_as=get_as, api_version=api_version, today=today)
     out = score_snapshot(snap)
     out["ads"] = snap["ads"]
     if data_dir and snap["ads"]:
