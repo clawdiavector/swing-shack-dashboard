@@ -34,7 +34,9 @@ export function Publish() {
   const [publishingKey, setPublishingKey] = useState('')
   const [publishNote, setPublishNote] = useState('')
 
-  function publishNowButton(idem: string) {
+  const isLive = publishMode?.mode === 'live'
+
+  function publishNowButton(idem: string, row: SandboxQueueItem) {
     if (!idem) return undefined
     return (
       <button
@@ -44,6 +46,13 @@ export function Publish() {
         onClick={(event) => {
           event.preventDefault()
           event.stopPropagation()
+          const where = [row.platform, row.brand_id].filter(Boolean).join(' for ')
+          const consequence = isLive
+            ? 'Publishing is LIVE: this sends it to the real account straight away.'
+            : 'Publishing is in sandbox: this writes a receipt only and reaches no real account.'
+          if (!window.confirm(`Publish "${sandboxTitle(row)}"${where ? ` to ${where}` : ''} now?
+
+${consequence}`)) return
           setPublishingKey(idem)
           setPublishNote('')
           void publishDispatchNow(idem)
@@ -158,7 +167,10 @@ export function Publish() {
           </div>
         }
       >
-        Sandbox publish queue — image, caption, platform. Approve on Review does not publish live.
+        {isLive
+          ? 'Publishing is live. Nothing goes out until it is released, or you press Publish now and confirm.'
+          : 'Publishing is in sandbox. Nothing here reaches a real account.'}{' '}
+        Approving a draft does not publish it.
       </PageIntro>
 
       <PartialBrandLoadStrip failures={failures} onRetry={loadPanelAndQueue} />
@@ -250,7 +262,7 @@ export function Publish() {
                       dateOnly={Boolean(goesOut)}
                       thumb={thumb || undefined}
                       thumbAlt={caption.slice(0, 80) || id}
-                      action={publishNowButton(idem)}
+                      action={publishNowButton(idem, row)}
                     />
                   )
                 })}
@@ -275,7 +287,7 @@ export function Publish() {
                       key={`nr-${id || sandboxTitle(row)}`}
                       to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
                       tip="Not released. Publish now approves it and sends it immediately."
-                      badge="sandbox"
+                      badge="not released"
                       tone="gold"
                       channelBadge={platform}
                       title={sandboxTitle(row)}
@@ -286,7 +298,7 @@ export function Publish() {
                       dateOnly={Boolean(goesOut)}
                       thumb={thumb || undefined}
                       thumbAlt={caption.slice(0, 80) || id}
-                      action={publishNowButton(idem)}
+                      action={publishNowButton(idem, row)}
                     />
                   )
                 })}
