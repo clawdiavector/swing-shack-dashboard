@@ -33,15 +33,26 @@ SEGMENT_SPLIT = re.compile(r"\|\||&&|[;|\n]")
 HARMLESS_REDIRECT = re.compile(r"[0-9]?>&[0-9]|[0-9*]?>>?\s*(/dev/null|\$null|NUL)\b", re.I)
 WORD_SPLIT = re.compile(r"[\s\"'=(),]+")
 REDIRECT_TARGET = re.compile(r">>?\s*(\"[^\"]+\"|'[^']+'|[^\s;&|<>()]+)")
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1([^\n]*)\n.*?\n[ \t]*\2[ \t]*(?=\n|$)", re.S)
+QUOTED = re.compile(r"\"(?:\\.|[^\"\\])*\"|'[^']*'")
+EMBEDDED_WRITE = re.compile(r"write_text|write_bytes|WriteAllText|WriteAllLines|open\([^)]*[\"'][wax+]")
+_CMDLETS = "Set-Content|Add-Content|Clear-Content|Out-File|Remove-Item|Move-Item|Copy-Item|Rename-Item|New-Item"
+# A cheap first look: could this command write anywhere at all?
 WRITE_VERB = re.compile(
+    r"\b(sed|perl|tee|mv|cp|rm|truncate|dd|install|ln|del|erase|move|copy|ren|checkout|restore|apply)\b"
+    r"|(?i:" + _CMDLETS + r")|" + EMBEDDED_WRITE.pattern
+)
+# The real test, per command: a write verb where a command goes, not in prose.
+COMMAND_VERB = re.compile(
     r"""
-      \b(sed|perl)\b[^|;&]*\s-[a-zA-Z]*i
-    | (?<![\w./-])(tee|mv|cp|rm|truncate|dd|install|ln|del|erase|move|copy|ren)(?=\s)
-    | \bgit\s+(checkout|restore|rm|mv|apply)\b
-    | \b(Set-Content|Add-Content|Clear-Content|Out-File|Remove-Item|Move-Item|Copy-Item|Rename-Item|New-Item)\b
-    | write_text|write_bytes|WriteAllText|WriteAllLines|open\([^)]*["'][wax+]
+    (?: ^\s* (?:\w+=\S*\s+)* (?:(?:sudo|command|env|time|xargs)\s+(?:-\S+\s+)*)* | \s-exec(?:dir)?\s+ )
+    (?: (?:sed|perl)\b.*\s-[a-zA-Z]*i\b
+      | (?:tee|mv|cp|rm|truncate|dd|install|ln|del|erase|move|copy|ren)\s
+      | git\s+(?:checkout|restore|rm|mv|apply)\b
+      | (?i:""" + _CMDLETS + r""")\b
+    )
     """,
-    re.X | re.I,
+    re.X,
 )
 
 
@@ -73,34 +84,57 @@ def block(tool: str, data: dict, why: str) -> None:
     respond(tool, "deny", msg)
 
 
-def names_locked(token: str, locked: dict[str, tuple[str, str]]) -> str:
+def names_locked(token: str, locked: dict[str, tuple[str, str]], dirs: bool = True) -> str:
     """The reason a path-like word from a command refers to a locked file, or "".
 
-    "tests/test_x.py", "./tests/test_x.py", an absolute path ending in it, a bare
-    "test_x.py" and the directory "tests" all name tests/test_x.py;
-    "other/test_x.py" does not.
+    "tests/test_x.py", "./tests/test_x.py", an absolute path ending in it and a
+    bare "test_x.py" all name tests/test_x.py; "other/test_x.py" does not. With
+    dirs, so does the directory "tests" (rm -rf tests).
     """
     t = c._norm(token.strip("\"'").replace("\\", "/"))
     while t.startswith("./"):
         t = t[2:]
+    t = t.rstrip("/")
     if not t:
         return ""
     for rel_n, (_, why) in locked.items():
-        if rel_n == t or rel_n.endswith("/" + t) or t.endswith("/" + rel_n) or rel_n.startswith(t.rstrip("/") + "/"):
+        if rel_n == t or rel_n.endswith("/" + t) or t.endswith("/" + rel_n):
+            return why
+        if dirs and rel_n.startswith(t + "/"):
             return why
     return ""
 
 
+def shell_text(cmd: str) -> str:
+    """The command as the shell sees it: no heredoc bodies, no quoted prose.
+
+    A commit message or PR body that says "move tests -> check" is not a write.
+    Quoted words without spaces are kept, because those are paths.
+    """
+    cmd = HEREDOC.sub(lambda m: m.group(3), cmd)
+    return QUOTED.sub(lambda m: m.group(0)[1:-1] if not re.search(r"\s", m.group(0)) else '""', cmd)
+
+
 def shell_hit(cmd: str, locked: dict[str, tuple[str, str]]) -> str:
     """The reason a shell command would modify a locked file, or ""."""
-    for seg in SEGMENT_SPLIT.split(HARMLESS_REDIRECT.sub(" ", cmd)):
-        words = [m.group(1) for m in REDIRECT_TARGET.finditer(seg)]
-        if WRITE_VERB.search(seg):
-            words += WORD_SPLIT.split(seg)
-        for word in words:
-            why = names_locked(word, locked)
+    for seg in SEGMENT_SPLIT.split(HARMLESS_REDIRECT.sub(" ", shell_text(cmd))):
+        for m in REDIRECT_TARGET.finditer(seg):
+            why = names_locked(m.group(1), locked, dirs=False)
             if why:
                 return why
+        if COMMAND_VERB.search(seg):
+            for word in WORD_SPLIT.split(seg):
+                why = names_locked(word, locked)
+                if why:
+                    return why
+    # Code handed to an interpreter (python -c "...", a heredoc script) that opens
+    # a file for writing: look at the words on the same line.
+    for line in cmd.splitlines():
+        if EMBEDDED_WRITE.search(line):
+            for word in WORD_SPLIT.split(line):
+                why = names_locked(word, locked, dirs=False)
+                if why:
+                    return why
     return ""
 
 

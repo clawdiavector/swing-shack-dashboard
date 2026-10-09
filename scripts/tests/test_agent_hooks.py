@@ -143,6 +143,11 @@ def test_deny_message_tells_the_agent_what_to_do(repo):
     "python3 -c \"open('tests/test_new.py','w').write('')\"",
     "cd tests && mv test_new.py test_gone.py",
     "pytest -q; cp /tmp/x snap/orders.verified.json",
+    "echo x > \"tests/test_new.py\"",
+    "cat <<'EOF' > tests/test_new.py\ndef test_new():\n    pass\nEOF",
+    "find tests -name 'test_new.py' -exec rm {} +",
+    "FORCE=1 rm -f check",
+    "python3 - <<'PY'\nfrom pathlib import Path\nPath('tests/test_new.py').write_text('')\nPY",
 ])
 def test_shell_writes_to_a_locked_file_are_blocked(repo, command):
     assert protect(repo, "Bash", command=command) == "deny"
@@ -158,6 +163,10 @@ def test_shell_writes_to_a_locked_file_are_blocked(repo, command):
     "./check",
     "git checkout -b another-branch",
     "sed -i 's/1/2/' app.py",
+    # Prose that merely mentions a locked file is not a write to it.
+    "git commit -m \"move check into scripts and copy tests -> check\"",
+    "git commit -F - <<'EOF'\nmove tests -> check\n\n> check passes\nrm tests/test_new.py once it is obsolete\nEOF",
+    "gh pr create --title x --body \"run ./check > see tests/test_new.py\"",
 ])
 def test_ordinary_shell_use_is_not_blocked(repo, command):
     assert protect(repo, "Bash", command=command) == "allow"
