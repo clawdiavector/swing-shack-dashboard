@@ -1738,7 +1738,6 @@ def generate_captions(
         pool_raw = [
             {"hook": "Your clubs might be costing you shots."},
             {"hook": "Book a TrackMan session and find out."},
-            {"hook": "Indoor golf in JHB beats the range."},
             {"hook": "Custom fitting changes the game."},
             {"hook": "Get the data, then make the call."},
             {"hook": "Why guess when you can measure?"},
@@ -1919,7 +1918,6 @@ def generate_headlines(n: int = 5) -> Dict[str, Any]:
         "The {n}-minute test that fixes your {problem}",
         "{audience}: stop doing {mistake}",
         "What your pro wishes you'd do at the range",
-        "Indoor golf in JHB: the real difference",
     ]
     angles = pool["golf_news"][:5] + pool["reddit_pain_points"][:5]
     for i, ang in enumerate(angles):
@@ -1928,7 +1926,8 @@ def generate_headlines(n: int = 5) -> Dict[str, Any]:
         seed = ang.get("title") or ang.get("angle") or ang.get("pain_point", "your swing")
         if isinstance(seed, str) and seed:
             tmpl = templates[i % len(templates)]
-            headline = tmpl.format(audience="Johannesburg golfers", service="TrackMan fitting", n="30", problem="slice", mistake="this at the range")
+            headline = tmpl.format(audience="golfers", service="TrackMan fitting", n="30", problem="slice", mistake="this at the range")
+            headline = headline[:1].upper() + headline[1:]
             out.append({"headline": headline, "seed": seed[:80], "source": ang.get("source") or "pool"})
         if len(out) >= n:
             break
