@@ -1,0 +1,2 @@
+# ./check has a shebang; a CRLF checkout on Windows would break it.
+/check text eol=lf

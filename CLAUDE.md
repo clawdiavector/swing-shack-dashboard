@@ -8,6 +8,14 @@ Read [`AGENTS.md`](AGENTS.md) for the standing rules — branch policy, what not
 touch, data safety. This file is the orientation that stops the mistakes we
 actually keep making.
 
+## Done means `./check` passes
+
+Write the test first and commit it, then make `./check` (or `python3 check`) pass.
+Paste its last lines when you say you're done. Never edit a committed test, or add to
+`tests/check-known-failures.txt`, to get there — if a check is wrong, stop and say so.
+Hooks enforce both; the rules are `AGENTS.md` §12a and the detail is
+[`docs/dev/verified-done.md`](docs/dev/verified-done.md).
+
 ## Search before you build
 
 This repo looks sparse and is not. 109 lib modules, a 2,700-line retrieval
