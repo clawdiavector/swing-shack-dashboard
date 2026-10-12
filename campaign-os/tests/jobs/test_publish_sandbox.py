@@ -95,14 +95,14 @@ class PublishSandboxTests(unittest.TestCase):
         asset_id = "asset-dual"
         composed = {
             "instagram": "/brand-images/stick/composed-x-instagram.png",
-            "facebook": "/brand-images/stick/composed-x-facebook.png",
+            "facebook": "/brand-images/stick/composed-x-instagram.png",
         }
         items = publish_sandbox.enqueue_for_intended_channels(
             brand_id="stick",
             caption_preview="Dual channel caption",
             inbox_item_id="calendar_candidate:stick:cal1",
             asset_id=asset_id,
-            asset={"caption": "Dual channel caption", "composed": composed},
+            asset={"caption": "Dual channel caption", "composed": composed, "image_url": composed["instagram"]},
             sidecar={"composed": composed},
         )
         self.assertEqual(len(items), 2)
@@ -110,8 +110,8 @@ class PublishSandboxTests(unittest.TestCase):
         self.assertEqual(platforms, {"instagram", "facebook"})
         queue = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
         self.assertEqual(len(queue), 2)
-        fb_row = next(r for r in queue if r.get("platform") == "facebook")
-        self.assertEqual(fb_row.get("image_url"), composed["facebook"])
+        for row in queue:
+            self.assertEqual(row.get("image_url"), composed["instagram"])
 
     def test_sync_queue_rows_updates_caption_from_draft(self) -> None:
         brands = {

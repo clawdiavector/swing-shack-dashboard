@@ -1164,6 +1164,8 @@ def _derive_post_state(
     from _lib.jobs.layer5.retry_failed_images import MAX_IMAGE_RETRIES  # noqa: PLC0415
 
     cal_status = str(record.get("status") or "")
+    cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
+    moment_inbox_id = _inbox_ref_for_cal(brand_id=index.brand_id, cal_id=cal_id)
     has_image = _draft_has_image(draft)
     caption_ok = bool((draft or {}).get("caption", "").strip())
     retry_count = _retry_count_for_inbox(index, inbox_item_id)
@@ -1196,8 +1198,9 @@ def _derive_post_state(
         return "scheduled", None
     from _lib.visual_gate import decide  # noqa: PLC0415
 
-    if decide(index.brand_id, inbox_item_id).is_gap():
-        return "gap", None
+    if draft is not None and decide(index.brand_id, moment_inbox_id).is_gap():
+        if str(record.get("source_type") or "") != "operator":
+            return "gap", None
     if draft and caption_ok and has_image:
         return "draft_ready", None
     if _image_job_failed(index, inbox_item_id):
@@ -1295,10 +1298,11 @@ def post_state(
     queue_rows = index.queue.get(cal_id, [])
     receipts = index.receipts.get(cal_id, [])
     work_rows = index.work_orders.get(cal_id, [])
+    moment_inbox_id = _inbox_ref_for_cal(brand_id=index.brand_id, cal_id=cal_id)
     inbox_item_id = (
         str(draft.get("inbox_item_id") or "")
         if draft
-        else _inbox_ref_for_cal(brand_id=index.brand_id, cal_id=cal_id)
+        else moment_inbox_id
     )
     state, needs_fix_reason = _derive_post_state(
         record,
@@ -1311,7 +1315,7 @@ def post_state(
     )
     from _lib.visual_gate import decide  # noqa: PLC0415
 
-    visual_decision = decide(index.brand_id, inbox_item_id)
+    visual_decision = decide(index.brand_id, moment_inbox_id)
     flags = _compute_flags(record, state=state, now=now)
     if visual_decision.is_gap() and state in ("scheduled", "released", "posted"):
         if "untrusted_visual" not in flags:
@@ -2399,6 +2403,8 @@ def edit_item(
             editable["event_date"] = day
         if editable:
             before = _calendar_record_for_key(brand_id, cal_id) or {}
+            if "render_mode" in editable and str(before.get("status") or "").lower() == "approved":
+                return {"ok": False, "error": "calendar record not found"}
             updated = set_fields(brand_id, cal_id, editable, reason="inbox edit")
             if not updated:
                 return {"ok": False, "error": "calendar record not found"}

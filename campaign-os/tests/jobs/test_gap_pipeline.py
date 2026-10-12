@@ -146,14 +146,16 @@ def test_gap_caption_not_reaped(gap_env):
     assert side.get("visual_gap")
 
 
-def test_no_photo_generation_paths():
+def test_generation_paths_gated_not_deleted():
     from _lib.jobs.layer5 import create_photo_compose
     from _lib.jobs.layer5 import draft_assets
 
     src = Path(create_photo_compose.__file__).read_text(encoding="utf-8")
-    assert "generate_image_with_persistence" not in src
-    assert "edit_image" not in src
-    assert not hasattr(draft_assets, "_process_image_row")
+    assert "generate_image_with_persistence" in src
+    assert "edit_image" in src
+    assert hasattr(draft_assets, "_process_image_row")
+    assert "visual_gate" in src
+    assert "row_allow_generate" in src
 
 
 def test_gap_clears_when_layout_added(gap_env):

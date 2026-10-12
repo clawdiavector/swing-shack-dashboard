@@ -352,7 +352,11 @@ def regenerate_photo(draft_id: str, *, note: str) -> dict[str, Any]:
 
     gap_decision = decide(brand_id, moment_id)
     if gap_decision.is_gap():
-        return {"ok": False, "gap": decision_for_api(gap_decision)}
+        sidecar = ctx["sidecar"]
+        qc = sidecar.get("qc") if isinstance(sidecar.get("qc"), dict) else {}
+        candidates = sidecar.get("photo_candidates") if isinstance(sidecar.get("photo_candidates"), list) else []
+        if not (qc.get("verdict") == "pass" and candidates):
+            return {"ok": False, "gap": decision_for_api(gap_decision)}
 
     cap_info = ops_layers.brand_images_today(brand_id)
     from _lib.marketing_calendar import render_mode_for_record  # noqa: PLC0415
@@ -423,6 +427,7 @@ def regenerate_photo(draft_id: str, *, note: str) -> dict[str, Any]:
                 "action": action,
                 "payload_ref": f"inbox/{moment_id}",
                 "dedupe_key": f"{action}-review-{item_hash}-{hashlib.sha1(note_s.encode()).hexdigest()[:8]}",
+                "allow_generate": True,
             }
         )
         ops_agents.append_enqueue_row(data_dir, row)

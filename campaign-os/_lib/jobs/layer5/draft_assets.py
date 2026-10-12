@@ -1213,6 +1213,247 @@ def _write_image_brief(
     atomic_write(f"draft-assets/{asset_id}.brief.json", payload)
 
 
+def _process_image_row(
+    row: dict[str, Any],
+    *,
+    item_id: str,
+    brand_id: str,
+    draft_ctx: ImageDraftContext | None = None,
+    allow_generate: bool | None = None,
+) -> tuple[Optional[str], Optional[str]]:
+    from _lib import llm_spend  # noqa: PLC0415
+    from _lib.image_gen_router import ImageGenAuthError, generate_image_with_persistence  # noqa: PLC0415
+    from _lib.visual_gate import decide  # noqa: PLC0415
+
+    explicit = allow_generate if allow_generate is not None else bool(row.get("allow_generate"))
+    gap = decide(brand_id, item_id)
+    if gap.is_gap() and not explicit:
+        return None, f"gap:{gap.reason}"
+
+    ctx = draft_ctx or build_image_draft_context(brand_id, item_id)
+    size = ctx.aspect
+    est = llm_spend.modelled_image_cost(size)
+    allowed, reason = llm_spend.check("image", est)
+    if not allowed:
+        return None, "daily LLM spend cap reached" if "cap" in reason.lower() else reason
+
+    from _lib.image_submit_quota import check_brand_image_submit, record_brand_image_submit  # noqa: PLC0415
+
+    img_ok, img_reason = check_brand_image_submit(brand_id)
+    if not img_ok:
+        if "cap" in img_reason.lower():
+            return None, "cap_reached"
+        return None, img_reason
+
+    from _lib.creative_director import pick_model  # noqa: PLC0415
+
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    record_type = str(calendar.get("type") or "").lower()
+    routing = pick_model(
+        {
+            "needs_reference": bool(ctx.reference_bytes),
+            "photoreal": record_type == "moment",
+            "typography": False,
+            "edit": False,
+        }
+    )
+
+    output_base = str(_data_dir() / "draft-assets" / "images")
+    event_key = _event_key_from_calendar(calendar)
+    pending_asset_id = f"draft-{uuid.uuid4().hex[:12]}"
+    gen_kwargs: dict[str, Any] = {
+        "brand_id": brand_id,
+        "prompt": ctx.job,
+        "size": size,
+        "output_base": output_base,
+        "provider": routing.get("provider"),
+        "model": routing.get("model"),
+        "inbox_item_id": item_id,
+        "event_key": event_key,
+        "draft_asset_id": pending_asset_id,
+        "cost_action": "draft_image",
+    }
+    if ctx.refs:
+        gen_kwargs["reference_dnas"] = ctx.refs
+    if ctx.reference_bytes:
+        gen_kwargs["reference_bytes"] = ctx.reference_bytes
+    if ctx.products:
+        gen_kwargs["product_service_items"] = ctx.products
+
+    llm_spend.write_approval_receipt(
+        route="job:draft_assets",
+        estimate_usd=est,
+        brand_id=brand_id,
+    )
+    record_brand_image_submit(brand_id)
+
+    try:
+        result = generate_image_with_persistence(**gen_kwargs)
+    except ImageGenAuthError:
+        return None, "missing OPENAI_API_KEY"
+    except Exception as exc:  # noqa: BLE001
+        return None, _record_error(
+            exc,
+            context={"brand": brand_id, "item": item_id, "step": "generate_image_with_persistence"},
+        )
+
+    image_path = getattr(result, "saved_path", None) or getattr(result, "path", None)
+    title = str(calendar.get("title") or "")
+    angle = str(calendar.get("angle") or "")
+    caption_asset_id, caption_text = _find_caption_draft_for_item(item_id)
+    if caption_text:
+        caption = caption_text
+    elif title and angle:
+        caption = f"{title} — {angle}"
+    elif title:
+        caption = title
+    else:
+        caption = f"Image draft for {item_id}"
+
+    cd = ctx.lineage.get("creative_director") if isinstance(ctx.lineage.get("creative_director"), dict) else {}
+    model_routing = dict(cd.get("model_routing") or {})
+    model_routing["pick_model"] = routing
+    if cd.get("requirements"):
+        model_routing["requirements"] = cd["requirements"]
+
+    image_path_str = str(image_path) if image_path else None
+    raw_bytes = getattr(result, "bytes", b"")
+    if not isinstance(raw_bytes, (bytes, bytearray)):
+        raw_bytes = b""
+    has_bytes = len(raw_bytes) > 0
+    if image_path_str:
+        try:
+            has_bytes = Path(image_path_str).is_file() and Path(image_path_str).stat().st_size > 0
+        except OSError:
+            has_bytes = False
+    image_url = image_url_for(brand_id, image_path_str) if has_bytes else None
+
+    def _result_str(attr: str) -> str | None:
+        val = getattr(result, attr, None)
+        return val if isinstance(val, str) else None
+
+    primary_platform = primary_channel_for_item(brand_id, item_id, fallback="instagram")
+    pj_raw = getattr(result, "provider_job_id", None)
+    provider_job_id = pj_raw.strip() if isinstance(pj_raw, str) and pj_raw.strip() else None
+    if provider_job_id and not has_bytes:
+        from . import image_jobs_state  # noqa: PLC0415
+
+        row_fallback = row.get("image_retry_count")
+        try:
+            rc = max(0, int(row_fallback or 0))
+        except (TypeError, ValueError):
+            rc = 0
+        image_jobs_state.upsert_submit(
+            item_id,
+            job_id=provider_job_id,
+            brand=brand_id,
+            size=size,
+            est_usd=est,
+            retry_count=rc,
+        )
+        row["status"] = "waiting"
+        return None, None
+
+    if not has_bytes:
+        return None, None
+
+    def _numeric_cost(val: object) -> float | None:
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            return float(val)
+        return None
+
+    billed = _numeric_cost(getattr(result, "cost_usd", None))
+    if billed is None:
+        billed = _numeric_cost(getattr(result, "cost_estimate_usd", None))
+    if billed is None:
+        billed = est
+    cost_source = str(getattr(result, "cost_source", "") or "estimate")
+    provider_name = str(getattr(result, "provider", "") or "")
+    if provider_name not in _ROUTER_SELF_RECORDING_PROVIDERS:
+        from _lib import post_cost  # noqa: PLC0415
+
+        post_cost.record_spend_and_line(
+            billed,
+            route="job:draft_assets/image",
+            model=getattr(result, "model", None),
+            kind="image",
+            brand_id=brand_id,
+            inbox_item_id=item_id,
+            draft_asset_id=pending_asset_id,
+            event_key=event_key,
+            action="draft_image",
+            cost_source=cost_source,
+            queue_row_id=str(row.get("id") or "") or None,
+            provider_job_id=provider_job_id,
+        )
+
+    asset_id = _write_draft(
+        brand_id=brand_id,
+        caption=caption,
+        platform=primary_platform,
+        source_item_id=item_id,
+        image_path=image_path_str if has_bytes else None,
+        image_url=image_url,
+        asset_id=pending_asset_id,
+        sidecar={
+            "action": "draft_image",
+            "route": "job:draft_assets/image",
+            "model": _result_str("model"),
+            "provider": _result_str("provider"),
+            "image_path": image_path_str if has_bytes else None,
+            "image_url": image_url,
+            "provider_job_id": provider_job_id,
+            "image_size": size,
+            "cost_estimate_usd": billed,
+            "cost_usd": billed,
+            "source": cost_source,
+            "queue_row_id": row.get("id"),
+            "event_key": event_key,
+            "title": _draft_name(
+                brand_id=brand_id,
+                item_id=item_id,
+                caption=caption,
+                calendar_title=title,
+            )
+            or None,
+            "prompt": ctx.job,
+            "prompt_used": _result_str("prompt_used"),
+            "sections": cd.get("sections") or [],
+            "negative_prompt": cd.get("negative_prompt") or "",
+            "model_routing": model_routing,
+            "reference_dnas": ctx.lineage.get("reference_meta") or [],
+            "product_service_items": ctx.lineage.get("product_meta") or [],
+            "brand_bible": ctx.lineage.get("brand_bible") or {},
+            "calendar": calendar,
+            "router_sidecar_path": _result_str("saved_sidecar_path"),
+            "caption_asset_id": caption_asset_id,
+            "context_degraded": ctx.lineage.get("degraded") or [],
+            "photo_source": "generated",
+            "generated_image": True,
+        },
+    )
+    if asset_id:
+        ref_selected = ctx.lineage.get("reference") if isinstance(ctx.lineage.get("reference"), dict) else {}
+        reference_id = None
+        if ctx.refs and isinstance(ctx.refs[0], dict):
+            reference_id = ctx.refs[0].get("ref_id")
+        if reference_id is None and ref_selected:
+            reference_id = ref_selected.get("selected")
+        product_id = None
+        if ctx.products and isinstance(ctx.products[0], dict):
+            product_id = ctx.products[0].get("id")
+        from _lib.campaigns import read_create_payload  # noqa: PLC0415
+
+        _write_image_brief(
+            asset_id,
+            sections=list(cd.get("sections") or []),
+            platform_spec=dict(ctx.platform_spec or {}),
+            reference_id=reference_id if reference_id else None,
+            product_id=product_id if product_id else None,
+            provenance=read_create_payload(item_id),
+        )
+    return asset_id, None
+
 
 def _process_gbp_row(
     row: dict[str, Any],
@@ -1359,22 +1600,32 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 record_gap_for_moment,
             )
 
+            from .create_photo_compose import row_allow_generate  # noqa: PLC0415
+
             gap_decision = decide(brand_id, item_id)
+            explicit_gen = any(row_allow_generate(row, action) for row, action in rows_for_moment)
             if gap_decision.is_gap():
                 record_gap_for_moment(brand_id, item_id, gap_decision, rows=rows)
-                parked = park_image_queue_rows(rows, item_id=item_id, decision=gap_decision)
-                for row, action in rows_for_moment:
-                    if action in ("draft_photo", "draft_image", "draft_gen_slots", "draft_oneshot", "compose_post"):
-                        if str(row.get("status") or "").lower() == "pending":
-                            row["status"] = "gap"
-                            row["note"] = gap_decision.label[:240]
-                pending_caption = any(
-                    str(row.get("status") or "").lower() == "pending" and action in _CAPTION_QUEUE_ACTIONS
-                    for row, action in rows_for_moment
-                )
-                if not pending_caption:
-                    skipped += max(parked, 1)
-                    continue
+                if not explicit_gen:
+                    parked = park_image_queue_rows(rows, item_id=item_id, decision=gap_decision)
+                    for row, action in rows_for_moment:
+                        if action in ("draft_photo", "draft_image", "draft_gen_slots", "draft_oneshot", "compose_post"):
+                            if str(row.get("status") or "").lower() == "pending":
+                                row["status"] = "gap"
+                                row["note"] = gap_decision.label[:240]
+                    pending_caption = any(
+                        str(row.get("status") or "").lower() == "pending" and action in _CAPTION_QUEUE_ACTIONS
+                        for row, action in rows_for_moment
+                    )
+                    if not pending_caption:
+                        skipped += max(parked, 1)
+                        continue
+                else:
+                    for row, action in rows_for_moment:
+                        if action in ("draft_photo", "draft_image", "draft_gen_slots", "draft_oneshot", "compose_post"):
+                            if str(row.get("status") or "").lower() == "gap":
+                                row["status"] = "pending"
+                                row.pop("note", None)
             clear_gap_if_trusted(brand_id, item_id, gap_decision)
 
             draft_ctx = build_image_draft_context(brand_id, item_id)

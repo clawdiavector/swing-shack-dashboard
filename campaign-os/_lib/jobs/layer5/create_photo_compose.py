@@ -67,6 +67,18 @@ def _sidecar_for_item(item_id: str) -> tuple[str | None, dict[str, Any] | None]:
     return None, None
 
 
+def row_allow_generate(row: dict[str, Any], action: str = "") -> bool:
+    flag = row.get("allow_generate")
+    if flag is True or str(flag).lower() in ("1", "true", "yes"):
+        return True
+    act = str(row.get("action") or action or "")
+    if act == "draft_oneshot":
+        return True
+    if str(row.get("reason") or "") == "review-regenerate":
+        return True
+    return False
+
+
 def process_draft_photo_row(
     row: dict[str, Any],
     *,
@@ -75,16 +87,68 @@ def process_draft_photo_row(
     draft_ctx: ImageDraftContext | None = None,
     action_label: str = "draft_photo",
 ) -> tuple[Optional[str], Optional[str]]:
+    from _lib import llm_spend  # noqa: PLC0415
     from _lib.archetypes_v2 import select_archetype  # noqa: PLC0415
-    from _lib.visual_gate import decide, list_trusted_library_photos  # noqa: PLC0415
-
-    decision = decide(brand_id, item_id)
-    if decision.is_gap():
-        return None, f"gap:{decision.reason}"
+    from _lib.image_gen_router import ImageGenAuthError, edit_image, generate_image_with_persistence  # noqa: PLC0415
+    from _lib.image_submit_quota import check_brand_image_submit, record_brand_image_submit  # noqa: PLC0415
 
     ctx = draft_ctx or build_image_draft_context(brand_id, item_id)
     calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
     event_key = _event_key_from_calendar(calendar)
+    regen_asset_id, regen_sidecar = _sidecar_for_item(item_id)
+    regen_note = str((regen_sidecar or {}).get("review_regenerate_note") or "").strip()
+    if regen_note and regen_sidecar and regen_sidecar.get("photo_candidates"):
+        candidates = regen_sidecar.get("photo_candidates") if isinstance(regen_sidecar.get("photo_candidates"), list) else []
+        qc = regen_sidecar.get("qc") if isinstance(regen_sidecar.get("qc"), dict) else {}
+        sel = qc.get("selected")
+        idx = int(sel if sel is not None else 0)
+        if candidates and 0 <= idx < len(candidates):
+            src_path = Path(str(candidates[idx].get("path") or ""))
+            if not src_path.is_file():
+                alt = _data_dir() / str(candidates[idx].get("path") or "").lstrip("/")
+                src_path = alt if alt.is_file() else src_path
+            if src_path.is_file():
+                instruction = f"{regen_note.strip()}. Do not add text, logos, or watermarks."
+                try:
+                    edited = edit_image(
+                        src_path.read_bytes(),
+                        instruction,
+                        brand_id=brand_id,
+                        inbox_item_id=item_id,
+                        draft_asset_id=str(regen_asset_id or "") or None,
+                        event_key=event_key,
+                        cost_action="draft_photo",
+                        cost_source="openrouter",
+                        queue_row_id=str(row.get("id") or "") or None,
+                    )
+                except Exception:
+                    edited = None
+                if edited and getattr(edited, "bytes", None):
+                    edit_path = src_path.with_name(src_path.stem + "-review-edit.png")
+                    edit_path.write_bytes(edited.bytes)
+                    regen_sidecar = dict(regen_sidecar)
+                    regen_sidecar.pop("review_regenerate_note", None)
+                    regen_sidecar.pop("composed", None)
+                    regen_sidecar["photo_candidates"] = [
+                        {
+                            **dict(candidates[idx]),
+                            "index": 0,
+                            "path": str(edit_path),
+                            "url": image_url_for(brand_id, str(edit_path)),
+                        }
+                    ]
+                    regen_sidecar["qc"] = {
+                        "verdict": "pass",
+                        "checked_at": _utc_now_iso(),
+                        "candidates": [{"index": 0, "path": str(edit_path), "verdict": "pass", "reasons": []}],
+                        "selected": 0,
+                        "edit_attempted": True,
+                        "human_reason": None,
+                    }
+                    aid = str(regen_asset_id or regen_sidecar.get("asset_id") or "")
+                    if aid:
+                        atomic_write(f"draft-assets/{aid}.json", regen_sidecar)
+                        return aid, None
 
     archetype = select_archetype(brand_id, item_id)
     archetype_id = str(archetype.get("id") or "")
@@ -142,31 +206,273 @@ def process_draft_photo_row(
             brand_id=brand_id,
         )
 
-    caption_asset_id, _caption_text = _find_caption_draft_for_item(item_id)
+    from _lib.visual_gate import decide, list_trusted_library_photos  # noqa: PLC0415
+
+    decision = decide(brand_id, item_id)
+    allow_gen = row_allow_generate(row, action_label)
+    if not allow_gen and not decision.is_gap() and decision.photo is not None:
+        caption_asset_id, _caption_text = _find_caption_draft_for_item(item_id)
+        if not caption_asset_id:
+            return None, "compose-only archetype requires caption draft first"
+
+        photo_src = decision.photo
+        photo_path = Path(photo_src.path)
+        if not photo_path.is_file():
+            return None, "gap:no_real_photo"
+
+        regen_note = str((regen_sidecar or {}).get("review_regenerate_note") or "").strip()
+        if regen_note and photo_src.kind == "library":
+            bg = archetype.get("background") if isinstance(archetype.get("background"), dict) else {}
+            library = str(bg.get("library") or "")
+            trusted = list_trusted_library_photos(brand_id, library)
+            if len(trusted) > 1:
+                import zlib
+
+                photo_path = trusted[zlib.crc32(f"{item_id}:{regen_note}".encode("utf-8")) % len(trusted)]
+
+        sidecar_path = _data_dir() / "draft-assets" / f"{caption_asset_id}.json"
+        merged: dict[str, Any] = {}
+        if sidecar_path.is_file():
+            try:
+                loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    merged = loaded
+            except (OSError, json.JSONDecodeError):
+                merged = {}
+
+        photo_source = "operator" if photo_src.kind in ("sidecar", "render_spec") else "library"
+        merged.update(
+            {
+                "action": action_label,
+                "asset_id": caption_asset_id,
+                "brand_id": brand_id,
+                "source_inbox_item_id": item_id,
+                "venue_photo": str(photo_path),
+                "photo_source": photo_source,
+                "archetype": {
+                    "id": archetype_id,
+                    "canvas": archetype.get("canvas"),
+                    "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
+                },
+                "qc": {
+                    "verdict": "pass",
+                    "checked_at": _utc_now_iso(),
+                    "candidates": [{"index": 0, "path": str(photo_path), "verdict": "pass", "reasons": []}],
+                    "selected": 0,
+                },
+                "photo_candidates": [
+                    {
+                        "index": 0,
+                        "path": str(photo_path),
+                        "url": image_url_for(brand_id, str(photo_path)),
+                    }
+                ],
+            }
+        )
+        merged.pop("review_regenerate_note", None)
+        merged.pop("composed", None)
+        atomic_write(f"draft-assets/{caption_asset_id}.json", merged)
+        from _lib import post_cost  # noqa: PLC0415
+
+        post_cost.record_line(
+            usd=0.0,
+            brand_id=brand_id,
+            kind="image",
+            route="job:draft_assets/photo",
+            inbox_item_id=item_id,
+            action="compose_post",
+            cost_source="estimate",
+            draft_asset_id=caption_asset_id,
+            event_key=event_key,
+            queue_row_id=str(row.get("id") or "") or None,
+        )
+        return caption_asset_id, None
+
+    if decision.is_gap() and not allow_gen:
+        return None, f"gap:{decision.reason}"
+
+    size = ctx.aspect
+    est = llm_spend.modelled_image_cost(size)
+    allowed, reason = llm_spend.check("image", est)
+    if not allowed:
+        return None, "daily LLM spend cap reached" if "cap" in reason.lower() else reason
+
+    img_ok, img_reason = check_brand_image_submit(brand_id)
+    if not img_ok:
+        return None, "cap_reached" if "cap" in img_reason.lower() else img_reason
+
+    from _lib.creative_director import pick_model  # noqa: PLC0415
+
+    record_type = str(calendar.get("type") or "").lower()
+    routing = pick_model(
+        {
+            "needs_reference": False,
+            "photoreal": record_type == "moment",
+            "typography": False,
+            "edit": False,
+        }
+    )
+    output_base = str(_data_dir() / "draft-assets" / "images")
+    pending_asset_id = f"draft-{uuid.uuid4().hex[:12]}"
+    gen_kwargs: dict[str, Any] = {
+        "brand_id": brand_id,
+        "prompt": ctx.job,
+        "size": size,
+        "output_base": output_base,
+        "provider": routing.get("provider"),
+        "model": routing.get("model"),
+        "inbox_item_id": item_id,
+        "event_key": event_key,
+        "draft_asset_id": pending_asset_id,
+        "cost_action": action_label,
+    }
+    if ctx.refs:
+        gen_kwargs["reference_dnas"] = ctx.refs
+    # Photo layer: Flux photoreal only — never img2img from content-bank layout JPGs.
+    if ctx.products:
+        gen_kwargs["product_service_items"] = ctx.products
+
+    candidates: list[dict[str, Any]] = []
+    paths: list[Path] = []
+    for _ in range(1):
+        img_ok, _ = check_brand_image_submit(brand_id)
+        if not img_ok:
+            break
+        record_brand_image_submit(brand_id)
+        llm_spend.write_approval_receipt(route="job:draft_assets/photo", estimate_usd=est, brand_id=brand_id)
+        try:
+            result = generate_image_with_persistence(**gen_kwargs)
+        except ImageGenAuthError:
+            return None, "missing OPENAI_API_KEY"
+        except Exception as exc:  # noqa: BLE001
+            return None, str(exc)
+        pj = getattr(result, "provider_job_id", None)
+        raw_bytes = getattr(result, "bytes", b"")
+        if pj and not raw_bytes:
+            from . import image_jobs_state  # noqa: PLC0415
+
+            row_fallback = row.get("image_retry_count")
+            try:
+                rc = max(0, int(row_fallback or 0))
+            except (TypeError, ValueError):
+                rc = 0
+            image_jobs_state.upsert_submit(
+                item_id,
+                job_id=str(pj),
+                brand=brand_id,
+                size=size,
+                est_usd=est,
+                retry_count=rc,
+            )
+            row["status"] = "waiting"
+            return None, None
+        path = getattr(result, "saved_path", None) or getattr(result, "path", None)
+        if path:
+            paths.append(Path(path))
+        provider = str(getattr(result, "provider", "") or "")
+        if provider not in _ROUTER_SELF_RECORDING_PROVIDERS:
+            from _lib import post_cost  # noqa: PLC0415
+
+            post_cost.record_spend_and_line(
+                est,
+                route="job:draft_assets/photo",
+                kind="image",
+                brand_id=brand_id,
+                inbox_item_id=item_id,
+                draft_asset_id=pending_asset_id,
+                event_key=event_key,
+                action=action_label,
+                cost_source=str(getattr(result, "cost_source", "") or "estimate"),
+                queue_row_id=str(row.get("id") or "") or None,
+                provider_job_id=str(pj) if pj else None,
+            )
+
+    if not paths:
+        return None, None
+
+    qc_entries: list[dict[str, Any]] = []
+    for idx, p in enumerate(paths):
+        qc = visual_check(p, brand_id=brand_id, archetype_id=archetype_id)
+        qc_entries.append({"index": idx, "path": str(p), "verdict": qc["verdict"], "reasons": qc.get("reasons") or [], "scores": qc.get("scores") or {}})
+
+    edit_attempted = False
+    if all(e["verdict"] != "pass" for e in qc_entries):
+        best = min(qc_entries, key=lambda e: len(e.get("reasons") or []))
+        if best["verdict"] in ("fail", "soft_fail"):
+            edit_attempted = True
+            instruction = build_edit_instruction(failed=best.get("reasons") or [], brand_id=brand_id)
+            src = Path(best["path"])
+            try:
+                edited = edit_image(
+                    src.read_bytes(),
+                    instruction,
+                    brand_id=brand_id,
+                    inbox_item_id=item_id,
+                    draft_asset_id=pending_asset_id,
+                    event_key=event_key,
+                    cost_action=action_label,
+                    cost_source="openrouter",
+                    queue_row_id=str(row.get("id") or "") or None,
+                )
+            except Exception:
+                edited = None
+            if edited and getattr(edited, "bytes", None):
+                edit_path = src.with_name(src.stem + "-edit.png")
+                edit_path.write_bytes(edited.bytes)
+                qc2 = visual_check(edit_path, brand_id=brand_id, archetype_id=archetype_id)
+                best["edit_attempted"] = True
+                best["edit_instruction"] = instruction
+                if qc2["verdict"] != "pass":
+                    for e in qc_entries:
+                        e["verdict"] = "needs_human"
+
+    selected = next((e["index"] for e in qc_entries if e["verdict"] == "pass"), None)
+    caption_asset_id, caption_text = _find_caption_draft_for_item(item_id)
+    caption = caption_text or ctx.job
+    primary_platform = primary_channel_for_item(brand_id, item_id, fallback="instagram")
+    photo_candidates = []
+    for idx, p in enumerate(paths):
+        photo_candidates.append(
+            {
+                "index": idx,
+                "path": str(p),
+                "url": image_url_for(brand_id, str(p)),
+                "provider": routing.get("provider"),
+                "model": routing.get("model"),
+                "cost_usd": est,
+                "size": size,
+            }
+        )
+
+    cd = ctx.lineage.get("creative_director") if isinstance(ctx.lineage.get("creative_director"), dict) else {}
+    qc_payload = {
+        "verdict": "pass" if selected is not None else "needs_human",
+        "checked_at": _utc_now_iso(),
+        "ocr_available": any(
+            visual_check(paths[0], brand_id=brand_id, archetype_id=archetype_id).get("ocr_available") for _ in [0]
+        ),
+        "candidates": qc_entries,
+        "selected": selected,
+        "edit_attempted": edit_attempted,
+        "human_reason": None if selected is not None else "QC did not pass after edit",
+    }
+
+    asset_id = caption_asset_id or pending_asset_id
     if not caption_asset_id:
-        return None, "compose-only archetype requires caption draft first"
+        asset_id = _write_draft(
+            brand_id=brand_id,
+            caption=caption,
+            platform=primary_platform,
+            source_item_id=item_id,
+            asset_id=pending_asset_id,
+            sidecar={
+                "action": action_label,
+                "queue_row_id": row.get("id"),
+                "event_key": event_key,
+            },
+        )
 
-    photo_src = decision.photo
-    if photo_src is None:
-        return None, "gap:no_real_photo"
-
-    photo_path = Path(photo_src.path)
-    if not photo_path.is_file():
-        return None, "gap:no_real_photo"
-
-    regen_sidecar = _sidecar_for_item(item_id)[1] or {}
-    regen_note = str(regen_sidecar.get("review_regenerate_note") or "").strip()
-    if regen_note and photo_src.kind == "library":
-        bg = archetype.get("background") if isinstance(archetype.get("background"), dict) else {}
-        library = str(bg.get("library") or "")
-        trusted = list_trusted_library_photos(brand_id, library)
-        if len(trusted) > 1:
-            seed = f"{item_id}:{regen_note}"
-            import zlib
-
-            photo_path = trusted[zlib.crc32(seed.encode("utf-8")) % len(trusted)]
-
-    sidecar_path = _data_dir() / "draft-assets" / f"{caption_asset_id}.json"
+    sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
     merged: dict[str, Any] = {}
     if sidecar_path.is_file():
         try:
@@ -175,54 +481,50 @@ def process_draft_photo_row(
                 merged = loaded
         except (OSError, json.JSONDecodeError):
             merged = {}
-
-    photo_source = "operator" if photo_src.kind in ("sidecar", "render_spec") else "library"
+    model_routing = dict(cd.get("model_routing") or {})
+    model_routing["pick_model"] = routing
     merged.update(
         {
             "action": action_label,
-            "asset_id": caption_asset_id,
-            "brand_id": brand_id,
-            "source_inbox_item_id": item_id,
-            "venue_photo": str(photo_path),
-            "photo_source": photo_source,
+            "photo_candidates": photo_candidates,
+            "qc": qc_payload,
             "archetype": {
                 "id": archetype_id,
                 "canvas": archetype.get("canvas"),
                 "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
             },
-            "qc": {
-                "verdict": "pass",
-                "checked_at": _utc_now_iso(),
-                "candidates": [{"index": 0, "path": str(photo_path), "verdict": "pass", "reasons": []}],
-                "selected": 0,
-            },
-            "photo_candidates": [
-                {
-                    "index": 0,
-                    "path": str(photo_path),
-                    "url": image_url_for(brand_id, str(photo_path)),
-                }
-            ],
+            "asset_id": asset_id,
+            "brand_id": brand_id,
+            "source_inbox_item_id": item_id,
+            "caption_asset_id": caption_asset_id,
+            "sections": cd.get("sections") or [],
+            "negative_prompt": cd.get("negative_prompt") or "",
+            "model_routing": model_routing,
+            "reference_dnas": ctx.lineage.get("reference_meta") or [],
+            "product_service_items": ctx.lineage.get("product_meta") or [],
+            "brand_bible": ctx.lineage.get("brand_bible") or {},
+            "calendar": calendar,
+            "event_key": event_key,
+            "context_degraded": ctx.lineage.get("degraded") or [],
+            "image_size": size,
+            "prompt": ctx.job,
+            "photo_source": "generated",
+            "generated_image": True,
         }
     )
-    merged.pop("review_regenerate_note", None)
-    merged.pop("composed", None)
-    atomic_write(f"draft-assets/{caption_asset_id}.json", merged)
-    from _lib import post_cost  # noqa: PLC0415
+    atomic_write(f"draft-assets/{asset_id}.json", merged)
+    atomic_write(f"draft-assets/{asset_id}.qc.json", qc_payload)
+    from _lib.campaigns import read_create_payload  # noqa: PLC0415
 
-    post_cost.record_line(
-        usd=0.0,
-        brand_id=brand_id,
-        kind="image",
-        route="job:draft_assets/photo",
-        inbox_item_id=item_id,
-        action="compose_post",
-        cost_source="estimate",
-        draft_asset_id=caption_asset_id,
-        event_key=event_key,
-        queue_row_id=str(row.get("id") or "") or None,
+    _write_image_brief(
+        asset_id,
+        sections=list(cd.get("sections") or []),
+        platform_spec=dict(ctx.platform_spec or {}),
+        reference_id=None,
+        product_id=None,
+        provenance=read_create_payload(item_id),
     )
-    return caption_asset_id, None
+    return asset_id, None
 
 
 def process_compose_post_row(
@@ -236,10 +538,6 @@ def process_compose_post_row(
     from _lib.publish_sandbox import intended_publish_channels  # noqa: PLC0415
     from _lib.visual_gate import decide  # noqa: PLC0415
 
-    gate = decide(brand_id, item_id)
-    if gate.is_gap():
-        return None, f"gap:{gate.reason}"
-
     asset_id, sidecar = _sidecar_for_item(item_id)
     if not sidecar:
         return None, None
@@ -248,6 +546,15 @@ def process_compose_post_row(
     needs_photo = archetype.get("applies_to", {}).get("needs_photo", True)
     qc = sidecar.get("qc") if isinstance(sidecar.get("qc"), dict) else {}
     candidates = sidecar.get("photo_candidates") if isinstance(sidecar.get("photo_candidates"), list) else []
+
+    gate = decide(brand_id, item_id)
+    if gate.is_gap():
+        explicit = str(sidecar.get("photo_source") or "") == "generated" or sidecar.get("generated_image")
+        explicit = explicit or str(sidecar.get("action") or "") == "draft_oneshot"
+        explicit = explicit or row_allow_generate(row)
+        qc_ok = qc.get("verdict") == "pass" and candidates
+        if not explicit and not qc_ok:
+            return None, f"gap:{gate.reason}"
     photo_bytes: bytes | None = None
     if needs_photo:
         gen_slots = sidecar.get("gen_slots") if isinstance(sidecar.get("gen_slots"), dict) else {}
@@ -272,6 +579,10 @@ def process_compose_post_row(
                     photo_bytes = path.read_bytes()
                 else:
                     return None, None
+    if photo_bytes is None:
+        from _lib.draft_review_actions import resolve_compose_photo_bytes  # noqa: PLC0415
+
+        photo_bytes = resolve_compose_photo_bytes(brand_id, archetype_id, sidecar)
     if photo_bytes is None and gate.photo is not None:
         path = Path(gate.photo.path)
         if path.is_file():
@@ -307,10 +618,6 @@ def process_compose_post_row(
             content=content,
             photo_bytes=photo_bytes,
         )
-    except ComposeError as exc:
-        if "missing background photo" in str(exc).lower():
-            return None, "gap:no_real_photo"
-        return None, str(exc)
     except Exception as exc:  # noqa: BLE001
         return None, str(exc)
 

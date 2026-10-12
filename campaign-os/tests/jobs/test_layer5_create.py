@@ -106,7 +106,7 @@ def _seed_approved_proposal(tmp_path: Path, brand: str = "stick", pid: str = "pr
     return f"proposal:{brand}:{pid}"
 
 
-def _seed_queue_row(tmp_path: Path, *, action: str, item_id: str, brand: str = "stick") -> None:
+def _seed_queue_row(tmp_path: Path, *, action: str, item_id: str, brand: str = "stick", **extra: object) -> None:
     row = {
         "id": f"manual-{brand}-cos-caption-{action}",
         "layer": "L3",
@@ -116,6 +116,9 @@ def _seed_queue_row(tmp_path: Path, *, action: str, item_id: str, brand: str = "
         "payload_ref": f"inbox/{item_id}",
         "status": "pending",
     }
+    if action in ("draft_image", "draft_photo", "draft_gen_slots", "draft_oneshot") and "allow_generate" not in extra:
+        row["allow_generate"] = True
+    row.update(extra)
     doc = {"schema": "campaign-os/agent-queue/v1", "generated_at": "2026-09-17T10:00:00Z", "rows": [row]}
     (tmp_path / "agent-queue.json").write_text(json.dumps(doc), encoding="utf-8")
 

@@ -286,9 +286,10 @@ def _complete_row(
             return
     else:
         from _lib.visual_gate import decide, record_gap_for_moment  # noqa: PLC0415
+        from .create_photo_compose import row_allow_generate  # noqa: PLC0415
 
         poll_decision = decide(brand_id, item_id)
-        if poll_decision.is_gap():
+        if poll_decision.is_gap() and not row_allow_generate(row, action):
             record_gap_for_moment(brand_id, item_id, poll_decision)
             row["status"] = "gap"
             row["note"] = poll_decision.label[:240]

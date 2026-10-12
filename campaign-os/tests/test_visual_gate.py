@@ -16,8 +16,13 @@ if str(CAMPAIGN_OS) not in sys.path:
 
 @pytest.fixture()
 def gate_env(monkeypatch, tmp_path):
+    import importlib
     import shutil
 
+    for mod in list(sys.modules):
+        if mod == "_lib" or mod.startswith("_lib."):
+            del sys.modules[mod]
+    importlib.import_module("_lib.visual_gate")
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     bundled = REPO / "data"
     monkeypatch.setenv("BUNDLED_DATA_DIR", str(bundled))
