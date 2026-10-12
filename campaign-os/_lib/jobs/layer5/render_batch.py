@@ -269,6 +269,11 @@ def _repair_sidecar(brand: str, slug: str, cal_id: str, campaigns: dict) -> bool
         cid, aid, cal_id, composed=composed,
         created_by="campaign-os/render_batch",
     )
+    # Queued publish rows name the moment too; re-point them (and a moved date)
+    # or Release finds nothing for the new revision.
+    from _lib.publish_sandbox import sync_queue_rows_for_asset  # noqa: PLC0415
+
+    sync_queue_rows_for_asset(brand_id=brand, asset_id=aid, asset=asset)
     return True
 
 

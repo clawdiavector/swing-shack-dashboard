@@ -132,7 +132,7 @@ class PostLodgeTests(unittest.TestCase):
             self.assertTrue((out_dir / f"composed-spoon-wrong-clubs-{ch}-publish.jpg").is_file())
             with Image.open(png) as im:
                 self.assertEqual(im.size, (1080, 1080), "a square stays square")
-        uploads = list((self.tmpdir / "operator-uploads" / BRAND).iterdir())
+        uploads = list((self.tmpdir / "operator-uploads" / BRAND).glob("spoon-wrong-clubs-*"))
         self.assertEqual(len(uploads), 1)
 
         from _lib import unified_inbox
@@ -157,6 +157,14 @@ class PostLodgeTests(unittest.TestCase):
         again = self._lodge(caption="Changed after release")
         self.assertEqual(again.status_code, 409, "a released post must not be silently edited")
 
+    def test_links_are_https_behind_the_proxy(self):
+        r = self.client.post(
+            "/api/posts/lodge", headers={**self.auth, "X-Forwarded-Proto": "https"},
+            json={"brand": BRAND, "slug": "proxy-links", "date": _day(), "caption": "x",
+                  "image_base64": base64.b64encode(_image()).decode()}).get_json()
+        self.assertTrue(r["links"]["shelf"].startswith("https://"), r["links"])
+        self.assertTrue(all(u.startswith("https://") for u in r["images"].values()))
+
     def test_relodge_is_idempotent_and_edits_rerender(self):
         first = self._lodge().get_json()
         same = self._lodge()
@@ -178,6 +186,34 @@ class PostLodgeTests(unittest.TestCase):
                 if "swing-shack-spoon-wrong-clubs" in str(r.get("idempotency_key"))]
         self.assertEqual(len(rows), 2, "re-approving must not duplicate queue rows")
         self.assertEqual(first["calendar_id"] != "", True)
+
+    def test_release_still_works_after_an_edit(self):
+        # An edit is a new calendar revision with a new calendar_id; the queue
+        # rows from the first approval must follow it or Release finds none.
+        self._lodge()
+        edited = self._lodge(caption="Edited before release").get_json()
+        from _lib.publish_sandbox import queue_rows_for_brand, release_moment
+
+        rows = [r for r in queue_rows_for_brand(BRAND)
+                if "swing-shack-spoon-wrong-clubs" in str(r.get("idempotency_key"))]
+        self.assertEqual({r["inbox_item_id"] for r in rows},
+                         {f"calendar_candidate:{BRAND}:{edited['calendar_id']}"})
+        rel = release_moment(brand_id=BRAND, calendar_id=edited["calendar_id"],
+                             editor="christelle", dispatch=False)
+        self.assertTrue(rel.get("ok"), rel)
+
+    def test_moving_the_date_moves_the_queue_rows(self):
+        self._lodge(date=_day(2))
+        moved = self._lodge(date=_day(4)).get_json()
+        self.assertEqual(moved["go_live_date"], _day(4))
+        from _lib.publish_sandbox import queue_rows_for_brand
+
+        rows = [r for r in queue_rows_for_brand(BRAND)
+                if "swing-shack-spoon-wrong-clubs" in str(r.get("idempotency_key"))]
+        self.assertEqual(len(rows), 2)
+        for r in rows:
+            self.assertEqual(r["event_date"], _day(4))
+            self.assertTrue(str(r["would_publish_at"]).startswith(_day(4)), r["would_publish_at"])
 
     def test_approve_false_stops_in_review(self):
         doc = self._lodge(approve=False).get_json()
@@ -288,6 +324,15 @@ class PostLodgeTests(unittest.TestCase):
         self.assertEqual(out["rejoined"], [doc["event_key"]])
         self.assertEqual(unified_inbox.post_state_for(BRAND, new_cal)["asset_id"],
                          "swing-shack-spoon-wrong-clubs")
+        from _lib.publish_sandbox import queue_rows_for_brand, release_moment
+
+        rows = [r for r in queue_rows_for_brand(BRAND)
+                if "swing-shack-spoon-wrong-clubs" in str(r.get("idempotency_key"))]
+        self.assertTrue(rows and all(r["inbox_item_id"].endswith(new_cal) for r in rows))
+        self.assertTrue(all(r["event_date"] == _day(4) for r in rows),
+                        "a date moved on the calendar must move the go-out date")
+        rel = release_moment(brand_id=BRAND, calendar_id=new_cal, editor="t", dispatch=False)
+        self.assertTrue(rel.get("ok"), rel)
 
 
 if __name__ == "__main__":
