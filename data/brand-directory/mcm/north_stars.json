@@ -1,0 +1,14 @@
+{
+  "schema": "https://campaign-os/brand-directory/north-stars/v1",
+  "brand_id": "mcm",
+  "updated": "2026-10-12",
+  "source": "TODO: QUESTION 2 — operator or client directive citation",
+  "language_rules": {},
+  "north_stars": [],
+  "_north_stars_todo": "TODO: QUESTION 2 — Add north star objects (see stick/north_stars.json): id, label, metric, category, connector_status, marketing_support_signal, do_not_fabricate_progress",
+  "rules": {
+    "exact_only": "Always show the metric verbatim — do not derive progress percentages without real connector data",
+    "no_fabrication": "Until a connector is live, progress against each North Star is NOT YET MEASURABLE",
+    "signal_substitute": "Show the marketing support signal instead (traffic, content, paid evidence) so the report is still useful"
+  }
+}
