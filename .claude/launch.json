@@ -14,7 +14,8 @@
       "name": "campaign-os-win",
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", ".claude\\campaign-os-win.cmd"],
-      "port": 8010
+      "port": 8010,
+      "autoPort": true
     }
   ]
 }
