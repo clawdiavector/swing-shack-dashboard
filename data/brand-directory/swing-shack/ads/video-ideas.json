@@ -1,0 +1,240 @@
+{
+  "schema": "https://campaign-os/ads-video-ideas/v1",
+  "brand_id": "swing-shack",
+  "status": "draft",
+  "written": "2026-10-09",
+  "note": "First draft, written from knowledge.json. Edit freely: the ads brief shows whatever is here. Every line must be something a real person can say or film. A number is only allowed if it is in knowledge.json or read off the screen during the shoot. Lines in [square brackets] are prompts for the person on camera, not a script.",
+  "sign_off": "Real Golf, Indoors.",
+  "ideas": [
+    {
+      "id": "ss-ball-tells-the-truth",
+      "kind": "video",
+      "themes": ["fitting", "driver", "irons"],
+      "angle": "numbers",
+      "title": "The ball tells the truth",
+      "who": "One real customer hitting, a fitter talking",
+      "length": "20 to 30 seconds",
+      "hook": {
+        "say": "The swing may lie, but the ball tells the truth.",
+        "show": "A ball leaving the club face in a TrackMan bay, then the numbers coming up on the screen.",
+        "text": "The ball tells the truth."
+      },
+      "points": [
+        "This is their own club. These are the numbers.",
+        "One change: a shaft that suits the swing. Same golfer, same day.",
+        "The ball speaks. Data confirms. Feel seals the deal."
+      ],
+      "shots": [
+        "Side-on swing with their own club, then the screen",
+        "The fitter swapping the shaft",
+        "The same swing again, then the screen",
+        "The golfer's face on the second set of numbers"
+      ],
+      "watch_out": "Use the real numbers from the session. If the difference is small, say so. Never a made-up number."
+    },
+    {
+      "id": "ss-when-last-measured",
+      "kind": "video",
+      "themes": ["fitting"],
+      "angle": "question",
+      "title": "When last did anyone measure your swing?",
+      "who": "A fitter to camera, a golfer on the bay behind them",
+      "length": "15 to 25 seconds",
+      "hook": {
+        "say": "When last did anyone measure your swing?",
+        "show": "A golfer mid-swing on the bay. The numbers appear on the screen behind the fitter.",
+        "text": "Know your numbers?"
+      },
+      "points": [
+        "You hit your own clubs on TrackMan first, so we see where you are.",
+        "Then we change one thing at a time and watch what the ball does.",
+        "ClubLab builds the result: loft, lie, length, swing weight, shaft and grip, matched to your spec."
+      ],
+      "shots": [
+        "The golfer's swing, side on",
+        "The TrackMan screen with the real numbers",
+        "The fitter handing over a different club",
+        "A finished club on the ClubLab bench"
+      ],
+      "watch_out": "Never talk down. The golfer in the shot should look like they are enjoying it."
+    },
+    {
+      "id": "ss-three-feels",
+      "kind": "video",
+      "themes": ["coaching"],
+      "angle": "coach",
+      "title": "Three feels, not thirty",
+      "who": "The coach to camera, on the bay",
+      "length": "15 to 25 seconds",
+      "hook": {
+        "say": "You will leave your lesson with three things to feel. Not thirty.",
+        "show": "The coach close to camera on the bay, holding up three fingers.",
+        "text": "Three feels. That's it."
+      },
+      "points": [
+        "Every session is limited to three key feels, so you remember them on the course.",
+        "You see your swing on video and your numbers on TrackMan.",
+        "You get both after the lesson, to practise with."
+      ],
+      "shots": [
+        "Coach to camera, eye level",
+        "Coach and student looking at the swing video together",
+        "The student hitting one more, coach nodding"
+      ],
+      "watch_out": "The coach says it their own way. The three feels are the promise, keep that line."
+    },
+    {
+      "id": "ss-your-normal-swing",
+      "kind": "video",
+      "themes": ["coaching"],
+      "angle": "walkthrough",
+      "title": "Show me your normal swing",
+      "who": "The coach with a real student",
+      "length": "25 to 35 seconds",
+      "hook": {
+        "say": "Show me your normal swing. Don't fix anything.",
+        "show": "The coach standing beside a student at address. The student swings.",
+        "text": "Your normal swing."
+      },
+      "points": [
+        "[Coach: watch one swing, then name the one thing that matters most.]",
+        "[Student hits again. Show what the ball does on the screen, whatever it is.]",
+        "[Coach to camera: who you are and when you coach at Swing Shack.]"
+      ],
+      "shots": [
+        "Wide: coach and student on the bay",
+        "The first swing, side on",
+        "Coach's hands showing the one change",
+        "The second swing and the screen"
+      ],
+      "watch_out": "A real lesson moment, not acted. If the second swing is not better, film another student."
+    },
+    {
+      "id": "ss-where-does-it-start",
+      "kind": "video",
+      "themes": ["putter"],
+      "angle": "numbers",
+      "title": "Where does the putt start?",
+      "who": "A fitter and a real customer with their own putter",
+      "length": "15 to 25 seconds",
+      "hook": {
+        "say": "Watch where this putt starts.",
+        "show": "Low camera behind the ball. A customer strokes a putt with their own putter.",
+        "text": "Where does it start?"
+      },
+      "points": [
+        "[Fitter: the first thing you check when you fit a putter, in your own words.]",
+        "[The same putt with a putter that suits them. Show what changed.]",
+        "[Customer: what felt different.]"
+      ],
+      "shots": [
+        "Low behind the ball, their own putter",
+        "Close on the putter face at address",
+        "The same angle with the fitted putter",
+        "The customer's reaction"
+      ],
+      "watch_out": "Show what really happened. No claims about how many putts it saves."
+    },
+    {
+      "id": "ss-your-first-visit",
+      "kind": "video",
+      "themes": ["any"],
+      "angle": "walkthrough",
+      "title": "Your first visit",
+      "who": "A host walking the viewer in",
+      "length": "20 to 30 seconds",
+      "hook": {
+        "say": "Never been to an indoor golf club? Here is what your first visit looks like.",
+        "show": "The camera walks in at Old Parktonian Sports Club and a host turns to greet it.",
+        "text": "Your first visit"
+      },
+      "points": [
+        "Four TrackMan bays, including TrackMan iO.",
+        "Play any of more than 400 courses, or just practise.",
+        "Someone sets you up and stays close if you want help."
+      ],
+      "shots": [
+        "Walking in through the door",
+        "The bays, wide",
+        "A course loading on the screen",
+        "A host setting up a bay for a new visitor"
+      ],
+      "watch_out": "It should feel like being welcomed, not like a tour of equipment."
+    },
+    {
+      "id": "ss-what-members-get",
+      "kind": "video",
+      "themes": ["membership"],
+      "angle": "numbers",
+      "title": "What members get",
+      "who": "A real member, or a host beside one",
+      "length": "15 to 20 seconds",
+      "hook": {
+        "say": "Here is what a Swing Shack membership actually gets you.",
+        "show": "A member walking to their bay with their bag over a shoulder.",
+        "text": "What members get"
+      },
+      "points": [
+        "Four free practice sessions every month.",
+        "25% off fittings.",
+        "15% off lessons."
+      ],
+      "shots": [
+        "Member arriving, bag on shoulder",
+        "Member mid-practice on the bay",
+        "Each benefit as on-screen text while they hit",
+        "Member and host talking after the session"
+      ],
+      "watch_out": "Only these three benefits, exactly as written. End on: Join the club."
+    },
+    {
+      "id": "ss-in-their-words",
+      "kind": "video",
+      "themes": ["any"],
+      "angle": "customer",
+      "title": "In their words",
+      "who": "A real customer, filmed straight after their session",
+      "length": "15 to 25 seconds",
+      "hook": {
+        "say": "[Customer, to camera:] I did not expect that.",
+        "show": "The customer on the bay, club still in hand, the screen behind them.",
+        "text": "Their first name only"
+      },
+      "points": [
+        "[What did you come in for, and what did you expect?]",
+        "[What surprised you?]",
+        "[What would you tell a friend who is thinking about it?]"
+      ],
+      "shots": [
+        "Customer to camera, chest up, bay behind them",
+        "A cutaway to one of their swings",
+        "A cutaway to the screen"
+      ],
+      "watch_out": "Their words, not a script. If they say a number it must be the one that was on the screen."
+    },
+    {
+      "id": "ss-still-product-moves",
+      "kind": "animated_still",
+      "themes": ["retail", "bags"],
+      "angle": "product",
+      "title": "The product moves by itself",
+      "who": "Nobody. The product is the character",
+      "length": "6 to 10 seconds",
+      "hook": {
+        "say": "No voice. Music or bay sound only.",
+        "show": "A still of the product that moves as if someone is using it: the bag stands itself up, the glove flexes, the ball rolls out of the sleeve.",
+        "text": "The product name, then where to get it."
+      },
+      "points": [
+        "One movement, start to finish. Not three.",
+        "The product stays sharp and true to colour the whole time.",
+        "End on the still product and the brand name."
+      ],
+      "shots": [
+        "One clean product photo on a plain or in-store background",
+        "The same photo with room around it for the movement"
+      ],
+      "watch_out": "Retail only. It has to move; a flat photo is not an ad."
+    }
+  ]
+}
