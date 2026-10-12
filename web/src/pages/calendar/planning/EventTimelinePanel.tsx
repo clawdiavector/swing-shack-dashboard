@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   PIN_COLORS,
+  tierLabel,
   PLANNING_TIMELINE_YEAR_MAX,
   PLANNING_TIMELINE_YEAR_MIN,
   clampPlanningTimelineYear,
@@ -391,7 +392,7 @@ export function EventTimelinePanel({
                         className="text-[10px] font-bold tracking-wide uppercase"
                         style={{ color: c.fg }}
                       >
-                        {tier}
+                        {tierLabel(tier)}
                       </span>
                       <span className="text-[10px] text-tx3">
                         · {tierEvents.length}{' '}
@@ -493,15 +494,15 @@ export function EventTimelinePanel({
       <div className="flex flex-wrap gap-4 text-[10px] text-tx3">
         <span>
           <span className="mr-1 inline-block h-2 w-3.5 rounded-sm bg-[#f0a030] align-middle" />
-          A-PIN major commercial push (6–8wk runway)
+          Major commercial push (6–8wk runway)
         </span>
         <span>
           <span className="mr-1 inline-block h-2 w-3.5 rounded-sm bg-[#14b8a6] align-middle" />
-          B-PIN content week (3–4wk)
+          Medium content week (3–4wk)
         </span>
         <span>
           <span className="mr-1 inline-block h-2 w-3.5 rounded border border-[#94a3b8] align-middle" />
-          C-PIN light hook (&lt;2wk)
+          Light hook (&lt;2wk)
         </span>
       </div>
 

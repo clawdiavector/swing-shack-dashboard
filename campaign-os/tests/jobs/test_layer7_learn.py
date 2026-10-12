@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -44,6 +45,9 @@ def learn_env(monkeypatch, tmp_path):
 
 
 LEARN_BRAND = "stick"
+# The fixture posts run 2026-09-04..2026-09-17 and post_outcomes keeps a 30-day window,
+# so the window is anchored to the day the fixtures were written, not the wall clock.
+NOW = datetime(2026, 9, 17, 18, 0, tzinfo=timezone.utc)
 
 
 def _brand_data_dir(tmp_path: Path, brand: str = LEARN_BRAND) -> Path:
@@ -73,7 +77,7 @@ def _post_outcomes_path(tmp_path: Path, brand: str = LEARN_BRAND) -> Path:
 def _run_post_outcomes(brand: str = LEARN_BRAND):
     from _lib.jobs.layer7 import post_outcomes
 
-    return post_outcomes.run(brand=brand)
+    return post_outcomes.run(brand=brand, now=NOW)
 
 
 def _mirror_post_outcomes_for_winner(tmp_path: Path, brand: str = LEARN_BRAND) -> None:

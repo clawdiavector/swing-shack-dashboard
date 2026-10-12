@@ -41,6 +41,7 @@ import {
   type LearnSummary,
   type TodayPanel,
 } from '../lib/api'
+import { isCandidateItem } from '../lib/inboxCandidates'
 import { reviewType } from '../lib/reviewType'
 import type { BriefAction } from '../lib/api'
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
@@ -93,12 +94,11 @@ function morningTitle(opts: {
   layers: LayersPayload | null
   learn: LearnSummary | null
   best?: InsightPost
-  waiting: number
+  stale: number
+  pending: number
 }): string {
-  const l4 = layerOf(opts.layers, 'L4')
   const l7 = layerOf(opts.layers, 'L7')
-  const stale = l4.stale ?? 0
-  const pending = l4.pending ?? opts.waiting
+  const { stale, pending } = opts
   const winners = opts.learn?.headline?.winners ?? l7.winners ?? 0
   if (stale > 0) {
     return stale === 1
@@ -150,9 +150,13 @@ export function Daily() {
   const [inboxItems, setInboxItems] = useState<InboxItem[] | null>(null)
   const [error, setError] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
+  // The counts below come from the inbox rows. If that fetch fails, show '—' and say so,
+  // never a 0 that reads as an empty desk.
+  const [inboxFailed, setInboxFailed] = useState(false)
 
   function load() {
     setInboxItems(null)
+    setInboxFailed(false)
     const runAll = async () => {
       setFailures([])
       // Sequential fan-outs (plan §3.5) — at most one 3-brand wave at a time.
@@ -184,7 +188,9 @@ export function Daily() {
         })),
       )
       inboxMerged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
-      setInboxItems(inboxMerged)
+      // A brand whose inbox failed would be counted as empty, so withhold the counts.
+      if (inboxFan.failures.length > 0) setInboxFailed(true)
+      else setInboxItems(inboxMerged)
     }
 
     if (isAll) {
@@ -206,7 +212,10 @@ export function Daily() {
         })
       fetchInbox('pending', brand)
         .then((payload) => setInboxItems(payload.items || []))
-        .catch(() => setInboxItems([]))
+        .catch((err: Error) => {
+          setInboxFailed(true)
+          setError(err.message || 'The inbox did not load.')
+        })
     }
     fetchLearn()
       .then(setLearn)
@@ -237,8 +246,22 @@ export function Daily() {
   }, [isAll, brandIds, scope, focusBrandId])
 
   const counts = data?.counts
-  const waiting = counts?.review ?? 0
-  const drafts = counts?.draft ?? 0
+  // Counted from the same rows Inbox and Approve drafts list, so the numbers
+  // here match the pages they open. The ops layer counts are not per brand
+  // and were summed once per brand on "All brands".
+  const candidatesWaiting = inboxItems ? inboxItems.filter(isCandidateItem).length : null
+  const draftRows = (inboxItems || []).filter((i) => (i.type || '').toLowerCase() === 'draft_asset')
+  const draftsWaiting = inboxItems ? draftRows.length : null
+  const staleCandidates = (inboxItems || []).filter(
+    (i) => isCandidateItem(i) && i.sla_state === 'stale',
+  ).length
+  const staleDrafts = draftRows.filter((i) => i.sla_state === 'stale').length
+  const approvedReady = counts?.approved ?? 0
+  // Built from the same inbox rows as the cards above, so the line never disagrees with them.
+  const summary =
+    data && inboxItems
+      ? `${draftsWaiting} draft${draftsWaiting === 1 ? '' : 's'} to approve. ${candidatesWaiting} date${candidatesWaiting === 1 ? '' : 's'} to decide in Inbox. ${approvedReady} ready to publish.`
+      : data?.summary || ''
   const tickerItems = (inboxItems || []).slice(0, 7)
   const igWorkedPosts = posts.slice(0, 3)
   const igWithImmediateThumb = igWorkedPosts.filter((p) => Boolean(insightPostThumbSrc(p)))
@@ -256,7 +279,6 @@ export function Daily() {
   const asOf = data?.ts
   const best = posts[0]
   const l3 = layerOf(layers, 'L3')
-  const l4 = layerOf(layers, 'L4')
   const l6 = layerOf(layers, 'L6')
   const briefActions = (data?.brief_actions?.actions || []).slice(0, 4)
   const socialRows = useMemo(() => {
@@ -272,20 +294,25 @@ export function Daily() {
   }, [brandRows, brandIds])
   const calls = useMemo(() => {
     const rows: { label: string; value: string; to: string }[] = []
-    const stale = l4.stale ?? 0
-    const pending = l4.pending ?? waiting
-    if (stale > 0) {
+    if (staleDrafts > 0) {
       rows.push({
         label: 'Going stale',
-        value: `${stale} review${stale === 1 ? '' : 's'} sat past the SLA.`,
+        value: `${staleDrafts} draft${staleDrafts === 1 ? ' has' : 's have'} waited too long for a yes or no.`,
         to: '/review',
       })
     }
-    if (pending > 0) {
+    if (staleCandidates > 0) {
+      rows.push({
+        label: 'Going stale',
+        value: `${staleCandidates} date${staleCandidates === 1 ? '' : 's'} in Inbox ${staleCandidates === 1 ? 'has' : 'have'} waited too long.`,
+        to: '/inbox',
+      })
+    }
+    if (!staleDrafts && !staleCandidates && (draftsWaiting || candidatesWaiting)) {
       rows.push({
         label: 'Waiting on a call',
-        value: `${pending} piece${pending === 1 ? '' : 's'} still need a yes or no.`,
-        to: '/review',
+        value: `${draftsWaiting || 0} draft${draftsWaiting === 1 ? '' : 's'} to approve, ${candidatesWaiting || 0} date${candidatesWaiting === 1 ? '' : 's'} to decide.`,
+        to: draftsWaiting ? '/review' : '/inbox',
       })
     }
     const queued = l6.queue_approved_ready
@@ -306,11 +333,11 @@ export function Daily() {
       rows.push({
         label: 'Interpret',
         value: 'Scout / interpret hasn’t checked in. No fresh opportunities this morning.',
-        to: '/calendar',
+        to: '/calendar/lanes',
       })
     }
     return rows.slice(0, 4)
-  }, [layers, l3, l4, l6, waiting, counts])
+  }, [layers, l3, l6, counts, staleDrafts, staleCandidates, draftsWaiting, candidatesWaiting])
 
   return (
     <div className="space-y-6">
@@ -336,7 +363,7 @@ export function Daily() {
           </a>
         }
       >
-        {data?.summary || 'Loading your decisions for today…'}
+        {summary || 'Loading your decisions for today…'}
       </PageIntro>
 
       <StoryReposts brandIds={isAll ? undefined : brandIds} />
@@ -356,7 +383,7 @@ export function Daily() {
           to="/inbox"
           icon={Inbox}
           label="Candidates"
-          value={data ? waiting : '—'}
+          value={candidatesWaiting ?? '—'}
           hint="Lodge or book moments"
           tone="gold"
           stamp={asOf}
@@ -366,14 +393,14 @@ export function Daily() {
           to="/review"
           icon={Inbox}
           label="Drafts waiting"
-          value={data ? drafts : '—'}
+          value={draftsWaiting ?? '—'}
           hint="Approve draft-ready posts"
           tone="mute"
           stamp={asOf}
           stampKind="as_of"
         />
         <StatCard
-          to="/calendar"
+          to="/shelf"
           icon={CalendarDays}
           label="Today"
           value={data ? (counts?.scheduled ?? 0) : '—'}
@@ -409,9 +436,17 @@ export function Daily() {
           icon={Rocket}
           kicker="Do this right now"
           title={
-            data
-              ? morningTitle({ layers, learn, best, waiting })
-              : 'Loading today’s desk…'
+            data && inboxItems
+              ? morningTitle({
+                  layers,
+                  learn,
+                  best,
+                  stale: staleDrafts + staleCandidates,
+                  pending: (draftsWaiting || 0) + (candidatesWaiting || 0),
+                })
+              : inboxFailed
+                ? 'Today’s counts did not load.'
+                : 'Loading today’s desk…'
           }
           meta={asOf ? `As of ${formatStamp(asOf)}` : undefined}
           extra={

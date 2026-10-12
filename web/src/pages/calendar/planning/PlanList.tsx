@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react'
-import { PIN_COLORS } from '../../../lib/planning'
+import { PIN_COLORS, tierLabel } from '../../../lib/planning'
 import type { PlanningEventDetail, PlanningTimelineEvent } from '../../../lib/planningTypes'
 import { EventDetail } from './EventDetail'
 import { useBrief } from './PlanningContextModal'
@@ -54,7 +54,11 @@ function NextStep({ brandId, ev }: { brandId: string; ev: PlanningTimelineEvent 
     lookup: false,
   })
   // A scheduled post is already made; it is not something to brief.
-  const noBrief = ev.post_type ? 'Scheduled post' : NO_BRIEF_TYPES[ev.type || '']
+  const noBrief = ev.note_only
+    ? 'Date to note'
+    : ev.post_type
+      ? 'Scheduled post'
+      : NO_BRIEF_TYPES[ev.type || '']
 
   if (briefId) {
     return (
@@ -74,7 +78,9 @@ function NextStep({ brandId, ev }: { brandId: string; ev: PlanningTimelineEvent 
       <span
         className="shrink-0 px-3 py-1.5 text-xs text-tx3"
         title={
-          ev.post_type
+          ev.note_only
+            ? 'From your list of important dates. Use New date or campaign to plan something for it.'
+            : ev.post_type
             ? 'A post that is already scheduled for this day.'
             : 'Briefs are written for campaigns. To brief this, suggest it again as a Campaign.'
         }
@@ -158,9 +164,10 @@ export function PlanList({
             >
               <button
                 type="button"
+                disabled={ev.note_only}
                 onClick={() => (open ? onCloseEvent() : onOpenEvent(ev.id))}
-                aria-expanded={open}
-                className="grid min-w-0 flex-1 grid-cols-[6.5rem_4rem_1fr] items-baseline gap-3 text-left hover:text-yel sm:grid-cols-[11.5rem_4rem_1fr]"
+                aria-expanded={ev.note_only ? undefined : open}
+                className="grid min-w-0 flex-1 grid-cols-[6.5rem_4rem_1fr] items-baseline gap-3 text-left enabled:hover:text-yel sm:grid-cols-[11.5rem_4rem_1fr]"
               >
                 <span className="text-xs font-semibold text-tx2">
                   {start ? formatPlanDate(start) : 'No date yet'}
@@ -170,13 +177,18 @@ export function PlanList({
                   className="justify-self-start rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider"
                   style={{ background: c.bg, color: c.fg }}
                 >
-                  {tier}
+                  {tierLabel(tier)}
                 </span>
                 <span className="min-w-0">
                   <span className="text-sm font-bold text-tx">
                     {ev.name || '(untitled)'}
                     {ev.shopping_moment ? ' 🛍' : ''}
                   </span>
+                  {ev.local ? (
+                    <span className="ml-2 rounded bg-ac/15 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-ac uppercase">
+                      Local
+                    </span>
+                  ) : null}
                   {ev.category ? <span className="ml-2 text-[11px] text-tx3">{ev.category}</span> : null}
                   {ev.commercial_push ? (
                     <span className="mt-0.5 block truncate text-xs text-tx3">{ev.commercial_push}</span>
