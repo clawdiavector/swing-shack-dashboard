@@ -1,10 +1,10 @@
 {
-  "_readme": "Who can be emailed and who is who. 'email' is where mail goes. Fill in your own blank entry (or run: cos_mail.py set-email <id> <address>), commit, push. Never put API keys here.",
+  "_readme": "Agent-to-agent mail. 'email' is the contact's AGENT inbox (an @agentmail.to address that their Claude reads), not a human address. Fill your own blank entry (or run: cos_mail.py set-email <id> <address>), commit, push. Never put API keys here.",
   "contacts": {
     "kyle": {
       "name": "Kyle M",
       "role": "Developer. Builds and maintains the plugin, skills, templates and the app. Reviews PRs.",
-      "email": "KyleM@fivefriday.com",
+      "email": "kyleomarchydeveloper@agentmail.to",
       "tell_them": "PR review requests, questions about how something works, 'it broke'."
     },
     "christelle": {
