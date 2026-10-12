@@ -121,7 +121,6 @@ DUAL_AUTH_PREFIXES = (
     '/api/ops/images-today/',
     '/api/ops/moments/',
     '/api/drafts/',
-    '/api/inbox/',
     '/api/stories/',
 )
 
@@ -348,6 +347,8 @@ def _is_job_authed():
 def _is_inbox_dual_auth_path(path: str) -> bool:
     """L4 unified inbox: list + lookup + per-item approve/reject/edit."""
     if path == '/api/inbox/unified':
+        return True
+    if path.startswith('/api/inbox/') and path.endswith('/recheck-visual'):
         return True
     if path.startswith('/api/inbox/unified/'):
         if path.endswith(_INBOX_DUAL_AUTH_SUFFIXES):
