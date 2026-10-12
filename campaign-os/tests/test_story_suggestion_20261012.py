@@ -19,39 +19,57 @@ def _days(n=60):
 
 
 class SuggestionTests(unittest.TestCase):
+    def test_each_day_has_a_service_and_a_different_retail_brand(self):
+        for brand in ("stick", "swing-shack"):
+            for d in _days():
+                got = {s["kind"]: s for s in story_suggestion.suggest(brand, d)}
+                self.assertEqual(set(got), {"service", "retail"})
+                self.assertNotEqual(got["service"]["repost_from"]["id"], got["retail"]["repost_from"]["id"])
+
     def test_swing_shack_never_suggests_psycho_bunny(self):
         for d in _days():
-            s = story_suggestion.suggest("swing-shack", d)
-            self.assertNotEqual(s["repost_from"]["id"], "psycho-bunny")
+            for s in story_suggestion.suggest("swing-shack", d):
+                self.assertNotEqual(s["repost_from"]["id"], "psycho-bunny")
 
     def test_brand_without_a_page_is_never_suggested(self):
         for brand in ("stick", "swing-shack"):
             for d in _days():
-                s = story_suggestion.suggest(brand, d)
-                self.assertNotEqual(s["repost_from"]["id"], "ripit")
-                self.assertTrue(s["repost_from"]["instagram"] or s["repost_from"]["facebook"])
+                for s in story_suggestion.suggest(brand, d):
+                    self.assertNotEqual(s["repost_from"]["id"], "ripit")
+                    self.assertTrue(s["repost_from"]["instagram"] or s["repost_from"]["facebook"])
 
-    def test_days_alternate_and_every_stocked_brand_comes_up(self):
+    def test_every_stocked_brand_comes_up(self):
         for brand, expect in (("stick", {"takomo", "vice", "lab", "psycho-bunny", "avoda", "vessel"}),
                               ("swing-shack", {"takomo", "vice", "lab", "avoda", "vessel"})):
-            got = [story_suggestion.suggest(brand, d) for d in _days()]
-            self.assertEqual({s["kind"] for s in got}, {"retail", "service"})
-            self.assertTrue(expect <= {s["repost_from"]["id"] for s in got})
-            for a, b in zip(got, got[1:]):
-                self.assertNotEqual(a["kind"], b["kind"])
+            seen = {s["repost_from"]["id"] for d in _days() for s in story_suggestion.suggest(brand, d)}
+            self.assertTrue(expect <= seen)
 
-    def test_service_day_pairs_with_a_fitting_brand(self):
+    def test_service_pairs_with_a_fitting_brand(self):
         seen = {}
         for d in _days():
-            s = story_suggestion.suggest("swing-shack", d)
-            if s["kind"] == "service":
-                seen[s["feature"]] = s["repost_from"]["id"]
+            for s in story_suggestion.suggest("swing-shack", d):
+                if s["kind"] == "service":
+                    seen[s["feature"]] = s["repost_from"]["id"]
         self.assertEqual(seen["Putter fitting"], "lab")
+
+    def test_golf_moment_appears_once_pages_are_listed(self):
+        real = story_suggestion._load
+        fake = dict(real("swing-shack"), moments=[
+            {"id": "gsa", "name": "Golf South Africa", "instagram": "https://www.instagram.com/x/", "facebook": None},
+            {"id": "nopage", "name": "No page", "instagram": None, "facebook": None}])
+        story_suggestion._load = lambda brand: fake
+        try:
+            got = story_suggestion.suggest("swing-shack", date(2026, 10, 12))
+        finally:
+            story_suggestion._load = real
+        moment = [s for s in got if s["kind"] == "moment"]
+        self.assertEqual([m["feature"] for m in moment], ["Golf South Africa"])
+        self.assertEqual({s["kind"] for s in got}, {"service", "retail", "moment"})
 
     def test_same_day_same_answer_and_unknown_brand(self):
         d = date(2026, 10, 12)
         self.assertEqual(story_suggestion.suggest("stick", d), story_suggestion.suggest("stick", d))
-        self.assertIsNone(story_suggestion.suggest("nope", d))
+        self.assertEqual(story_suggestion.suggest("nope", d), [])
 
 
 class SuggestionRouteTests(unittest.TestCase):
@@ -64,8 +82,9 @@ class SuggestionRouteTests(unittest.TestCase):
         self.assertEqual(c.get("/api/stories/suggestion").status_code, 401)
         r = c.get("/api/stories/suggestion", headers={"Authorization": "Bearer t"}).get_json()
         self.assertEqual({s["brand"] for s in r["suggestions"]}, {"swing-shack", "stick"})
+        self.assertEqual(len(r["suggestions"]), 4)
         one = c.get("/api/stories/suggestion?brand=stick", headers={"Authorization": "Bearer t"}).get_json()
-        self.assertEqual(len(one["suggestions"]), 1)
+        self.assertEqual(len(one["suggestions"]), 2)
 
 
 if __name__ == "__main__":

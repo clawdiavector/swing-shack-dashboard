@@ -14711,7 +14711,7 @@ def stories_suggestion_route():
 
     brands = [request.args['brand']] if request.args.get('brand') else ['swing-shack', 'stick']
     day = datetime.now(ZoneInfo('Africa/Johannesburg')).date()
-    out = [s for s in (story_suggestion.suggest(b, day) for b in brands) if s]
+    out = [s for b in brands for s in story_suggestion.suggest(b, day)]
     return jsonify({"ok": True, "suggestions": out})
 
 
