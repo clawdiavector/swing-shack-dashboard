@@ -265,6 +265,7 @@ def write_draft_sidecar(spec: dict, campaign_id: str, asset_id: str, cal_id: str
         "campaign_id": campaign_id,
         "brand_id": brand,
         "source_inbox_item_id": f"calendar_candidate:{brand}:{cal_id}",
+        "channels": list(spec.get("channels") or [channel]),
         "composed": composed,
         "image_url": composed.get(channel) or visual_url,
         "created_at": _now(),
