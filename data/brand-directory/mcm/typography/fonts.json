@@ -1,0 +1,24 @@
+{
+  "schema": "https://campaign-os/brand-directory/typography/v1",
+  "brand_id": "mcm",
+  "version": "0.0-skeleton",
+  "updated": "2026-10-12T00:00:00Z",
+  "primary": {
+    "family": "TODO: QUESTION 5 — primary typeface family",
+    "source": "TODO: QUESTION 5 — license source (OFL, client kit, Adobe)",
+    "weights_available": [],
+    "use_for": []
+  },
+  "secondary": {
+    "family": "TODO: QUESTION 5 — secondary typeface family",
+    "source": "TODO",
+    "weights_available": [],
+    "use_for": []
+  },
+  "fallbacks": ["DejaVu Sans", "Helvetica Neue", "Arial"],
+  "files": {},
+  "roles": {},
+  "scale": [],
+  "pairing_rules": {},
+  "source": "TODO: QUESTION 5 — Measured from reference creative or brand guidelines; vendored files under typography/fonts/."
+}

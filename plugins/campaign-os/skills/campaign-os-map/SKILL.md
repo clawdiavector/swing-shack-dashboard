@@ -129,6 +129,11 @@ Nothing in this repo can change an ad.
 | the rules and thresholds | `_lib/ads_brain.py` → `score_snapshot()`, `THRESHOLDS` |
 | the morning brief, both brands | `/ads-brief` (written by the `ads_brief` job, 07:15 SAST) |
 | creative tests proposed and tracked | `_lib/ads_creative.py`, shown on the brief |
+| what to film for a test | `data/brand-directory/<brand>/ads/video-ideas.json`, chosen by `_lib/ads_ideas.py` |
+| a year of weekly numbers per ad | `_lib/ads_history.py` → `brands/<brand>/ads-history/`, `GET /api/meta/ads/history/<brand>` |
+| trend charts | `/ads-brief?kind=trends` (inline SVG from `_lib/ads_charts.py`, no script) |
+| which of our own ads worked | `/ads-brief?kind=research`, from `ads_history.winners()` |
+| other advertisers' long-running ads | `_lib/ads_library.py`, `GET /api/meta/ads/library/<brand>?refresh=1` |
 
 **Ad creative is real human video.** Christelle's rule, from her own testing: real
 people on video outperform everything else, and static vs video has already been
@@ -141,6 +146,32 @@ Scoring's `all_video` rule was retired in v1.1 for contradicting this.
 `ads_brain.fetch_snapshot()` reads at ad level: quality rankings, placements, the
 ad set's performance goal, creative copy, media type and destination link.
 `score_snapshot()` is pure and deterministic — no model.
+
+**Video ideas are a file a person edits, not generated copy.** Each test card's
+"film a new video" line is filled from the brand's `ads/video-ideas.json`: the first
+three seconds, what to say, the shots, the ending. `ads_ideas` only chooses which idea
+fits the campaign. The first version of both files was drafted on 2026-10-09 from
+`knowledge.json` and is marked `"status": "draft"`. A test fails if an idea says a
+number that is not a verified fact.
+
+**The Ad Library is on demand, not in the morning job, and Meta refuses it today.**
+`ads_archive` returns ordinary ads only where they reached the UK or EU, and needs a
+token whose owner has confirmed their identity. On 2026-10-09 both brands' ads tokens
+got `Application does not have permission for this action`, so the page shows
+`NO_ACCESS` and a link per subject to the South African Ad Library website. It stays
+that way until a person confirms their identity with Meta and the app is granted Ad
+Library access; then `?refresh=1` starts working with no code change. Never request
+`ad_snapshot_url`: it embeds the access token.
+
+**Proven on prod 2026-10-09:** `time_increment=7` at ad level over 52 weeks, the video
+watch fields and ad text all read cleanly for both accounts, about 19 seconds a brand
+for the whole `ads_brief` job. Both accounts only have delivery from May 2026.
+
+**What an ad is about is `ads_creative.subject()`, not the whole text.** Names,
+headline and opening line first; the rest of the text only when those name nothing.
+Hashtags never count. The first live run tagged almost every Swing Shack ad as
+coaching because each one ends `#golf #coach`. `tests/test_v2026_10_09_ads_subject.py`
+pins the subject of every ad that was live that day.
 
 **`data/meta-ads.json` is synthetic** (built from Instagram posts in August). Never
 read it for ads work.

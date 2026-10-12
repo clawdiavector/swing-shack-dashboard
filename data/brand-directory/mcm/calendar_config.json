@@ -1,0 +1,44 @@
+{
+  "brand_id": "mcm",
+  "timezone": "TODO: QUESTION 1 — IANA timezone for calendar (e.g. Africa/Johannesburg?)",
+  "pillars": [],
+  "_pillars_todo": "TODO: QUESTION 2 — Add pillar objects (see stick/calendar_config.json shape): pillar_id, name, colour, objective, north_star_metric, north_star_target, cadence, priority",
+  "scouting_profile": {
+    "interest_areas": {},
+    "_interest_areas_todo": "TODO: QUESTION 1 — Topics to watch for reactive content (automotive, finance, SA market, etc.)",
+    "weighted_preferences": {}
+  },
+  "lead_time_rules": {
+    "default": {
+      "research_start": 30,
+      "planning_start": 14,
+      "production_deadline": 7,
+      "campaign_live_start": 3
+    },
+    "major_retail": {
+      "research_start": 90,
+      "planning_start": 60,
+      "production_deadline": 21,
+      "campaign_live_start": 14
+    },
+    "major_sporting_event": {
+      "research_start": 60,
+      "planning_start": 30,
+      "production_deadline": 14,
+      "campaign_live_start": 7
+    },
+    "reactive_opportunity": {
+      "research_start": 7,
+      "planning_start": 3,
+      "production_deadline": 1,
+      "campaign_live_start": 0
+    }
+  },
+  "calendar_preferences": {
+    "month_view": true,
+    "default_horizon_days": 120,
+    "show_north_star_top_of_calendar": true,
+    "watchlist_visible_by_default": true,
+    "release_time_sast": "TODO: QUESTION 2 — Preferred default publish time (SAST HH:MM)?"
+  }
+}

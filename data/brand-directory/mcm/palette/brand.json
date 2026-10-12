@@ -1,0 +1,13 @@
+{
+  "schema": "https://campaign-os/brand-directory/palette/v1",
+  "brand_id": "mcm",
+  "version": "0.0-skeleton",
+  "updated": "2026-10-12T00:00:00Z",
+  "source": "TODO: QUESTION 5 — measured from official brand assets (not invented). See MCM-QUESTIONS.md §5.",
+  "tokens": {},
+  "palette": {
+    "_todo_primary": "TODO: QUESTION 5 — primary brand colour hex + name + usage",
+    "_todo_accent": "TODO: QUESTION 5 — accent colour hex + name + usage",
+    "_todo_neutral_light": "TODO: QUESTION 5 — text-on-field neutral"
+  }
+}

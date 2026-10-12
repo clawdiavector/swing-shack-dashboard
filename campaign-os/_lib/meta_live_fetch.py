@@ -166,6 +166,56 @@ def _http(url, timeout=15):
         return None, str(e)
 
 
+def _normalise_ig_post(post: dict) -> dict:
+    """One Graph API media object -> the row both analytics files store.
+
+    Keeps ``permalink``, ``media_type``, ``caption_preview`` and a ``metrics``
+    dict because layer7/post_outcomes reads exactly those. Without them every
+    organic post ranked as a captionless image with no link and no likes.
+    """
+    cap = post.get("caption") or ""
+    ins = {}
+    for m in (post.get("insights") or {}).get("data", []):
+        _m_name = m.get("name")
+        if not _m_name:
+            continue
+        for v in m.get("values", []):
+            val = v.get("value", 0)
+            if isinstance(val, dict):
+                val = sum(val.values())
+            ins[_m_name] = val
+    likes = ins.get("likes", 0)
+    comments = ins.get("comments", 0)
+    saves = ins.get("saved", 0)
+    shares = ins.get("shares", 0)
+    reach = ins.get("reach", 0) or 0
+    er = (likes + comments + saves) / reach * 100 if reach else 0
+    fmt = {"VIDEO": "reel", "CAROUSEL_ALBUM": "carousel"}.get(post.get("media_type"), "static")
+    hook = cap.split("\n", 1)[0] if cap else ""
+    pillar = "unknown"
+    cap_low = cap.lower()
+    if any(t in cap_low for t in ["sub 70", "fitting", "club", "avoda", "shaft", "t150", "titleist"]):
+        pillar = "equipment"
+    elif any(t in cap_low for t in ["lesson", "coach"]):
+        pillar = "coaching"
+    return {
+        "id": post["id"], "postId": post["id"], "timestamp": post.get("timestamp", ""),
+        "captionPreview": cap[:200], "caption_preview": cap[:200],
+        "hook_text": hook[:120], "hook_id": post["id"],
+        "permalink": post.get("permalink") or "",
+        "media_type": post.get("media_type") or "",
+        "format_type": fmt, "topic_cluster": pillar, "reach": reach,
+        "likes": likes, "comments": comments, "saves": saves, "shares": shares,
+        "metrics": {"reach": reach, "likes": likes, "comments": comments,
+                    "saved": saves, "shares": shares},
+        "profile_visits": ins.get("profile_visits", 0), "follows_gained": 0,
+        "engagementRate": f"{er:.2f}",
+        "saveRate": f"{saves / reach * 100:.2f}" if reach else "0.00",
+        "shareRate": f"{shares / reach * 100:.2f}" if reach else "0.00",
+        "followConversion": "0.000",
+    }
+
+
 def fetch_all(*, brand: str | None = None) -> dict:
     """Pull IG + FB live data + write all 4 JSONs. Returns a summary dict."""
     creds = _load_token(brand)
@@ -205,42 +255,7 @@ def fetch_all(*, brand: str | None = None) -> dict:
 
     # 4. Normalize IG posts
     now_iso = _dt.datetime.now(_dt.timezone.utc).isoformat().replace("+00:00", "Z")
-    ig_posts = []
-    for post in posts:
-        cap = post.get("caption") or ""
-        ts = post.get("timestamp", "")
-        ins = {}
-        for m in post.get("insights", {}).get("data", []):
-            _m_name = m.get("name")
-            if not _m_name:
-                continue
-            for v in m.get("values", []):
-                val = v.get("value", 0)
-                if isinstance(val, dict): val = sum(val.values())
-                ins[_m_name] = val
-        likes = ins.get("likes", 0)
-        comments = ins.get("comments", 0)
-        saves = ins.get("saved", 0)
-        shares = ins.get("shares", 0)
-        reach = ins.get("reach", 0) or 0
-        er = (likes + comments + saves) / reach * 100 if reach else 0
-        fmt = {"VIDEO": "reel", "CAROUSEL_ALBUM": "carousel"}.get(post.get("media_type"), "static")
-        hook = cap.split("\n", 1)[0] if cap else ""
-        pillar = "unknown"
-        cap_low = cap.lower()
-        if any(t in cap_low for t in ["sub 70", "fitting", "club", "avoda", "shaft", "t150", "titleist"]): pillar = "equipment"
-        elif any(t in cap_low for t in ["lesson", "coach"]): pillar = "coaching"
-        ig_posts.append({
-            "id": post["id"], "postId": post["id"], "timestamp": ts,
-            "captionPreview": cap[:200], "hook_text": hook[:120], "hook_id": post["id"],
-            "format_type": fmt, "topic_cluster": pillar, "reach": reach,
-            "likes": likes, "comments": comments, "saves": saves, "shares": shares,
-            "profile_visits": ins.get("profile_visits", 0), "follows_gained": 0,
-            "engagementRate": f"{er:.2f}",
-            "saveRate": f"{saves / reach * 100:.2f}" if reach else "0.00",
-            "shareRate": f"{shares / reach * 100:.2f}" if reach else "0.00",
-            "followConversion": "0.000",
-        })
+    ig_posts = [_normalise_ig_post(post) for post in posts]
 
     _write_meta_output("ig-analytics.json", {
         "schema": "https://clawdia.io/agents/instagram-analytics/v1",
@@ -260,7 +275,9 @@ def fetch_all(*, brand: str | None = None) -> dict:
                    "followers_count": ig_followers, "follows_count": ig_follows,
                    "media_count": ig_media, "profile_picture_url": body.get("profile_picture_url")},
         "daily_reach": [{"date": now_iso[:10], "value": int(avg_reach)}],
-        "media": ig_posts[:5],
+        # Every fetched post, not the newest five: post_outcomes ranks a 30-day
+        # window from this list, and five posts is not a window.
+        "media": ig_posts,
         "top_post": {"permalink": (ig_posts[0] if ig_posts else {}).get("id")},
         "window_totals": {
             "accounts_engaged": sum(1 for p in ig_posts if p["likes"] + p["comments"] > 0),

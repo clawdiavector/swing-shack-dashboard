@@ -1,0 +1,11 @@
+{
+  "schema": "campaign-os/instagram-audit/v1",
+  "brand_id": "mcm",
+  "ig_account_id": "TODO: QUESTION 3 — Instagram business account id",
+  "generated_at": null,
+  "post_count": 0,
+  "by_media_type": {},
+  "images_downloaded": 0,
+  "posts": [],
+  "_todo": "TODO: QUESTION 3 — Run scripts/audit_social.py mcm after data/integrations/mcm/instagram.json exists (later engineering slice)."
+}

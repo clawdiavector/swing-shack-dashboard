@@ -52,14 +52,17 @@ _METRICS = {
 }
 
 THEMES = {
-    "fitting": ("fitting", "fitted", "get measured", "measured", "trackman", "specs"),
+    "fitting": ("fitting", "fitted", "get measured", "measured", "trackman", "specs",
+                "fit fact", "fitfact", "club assessment"),
     "coaching": ("coach", "lesson", "feedback on your swing", "practice"),
     "putter": ("putt",),
     "irons": ("iron",),
     "driver": ("driver", "off the tee"),
-    "grip": ("grip",),
+    # The regripping service. "Grip" alone is also a coaching tip and a line in
+    # every build spec, and "member" is also a new member of staff.
+    "grip": ("regrip", "re-grip", "grips"),
     "bags": ("bag",),
-    "membership": ("member",),
+    "membership": ("membership", "members", "a member", "join the club"),
     "retail": ("available at", "new in", "arrivals", "pre-order", "preorder", "in store",
                "apparel", "psycho bunny", "bunny", "pants", "polo", "vessel", "vice ",
                "takomo"),
@@ -72,8 +75,29 @@ _RETIRED_KINDS = ("TEMPLATE_STATIC", "ORGANIC_POST")
 
 
 def themes_of(*texts) -> set:
-    blob = " ".join(t for t in texts if t).lower()
+    """Subjects named in the text. Hashtags are left out: they are there for
+    reach, and "#coach #golffitting" under every post says nothing about it."""
+    blob = re.sub(r"#\w+", " ", " ".join(t for t in texts if t).lower())
     return {theme for theme, words in THEMES.items() if any(w in blob for w in words)}
+
+
+def opening(body) -> str | None:
+    """The first sentence of an ad's text: what a viewer reads before 'more'."""
+    text = re.sub(r"\s+", " ", (body or "").split("\n")[0]).strip()
+    if not text:
+        return None
+    first = re.split(r"(?<=[.!?])\s", text, maxsplit=1)[0]
+    if len(first) <= 140:
+        return first
+    return first[:140].rsplit(" ", 1)[0].rstrip(",;:") + "\u2026"
+
+
+def subject(campaign_name, ad_name, title, body) -> set:
+    """What an ad is about: the subjects in its names, headline and opening
+    line. Only when those name none does the rest of the text count, so a grip
+    listed in a build spec does not make an iron-fitting ad about grips."""
+    return (themes_of(campaign_name, ad_name, title, opening(body))
+            or themes_of(body))
 
 
 def _norm(text) -> str:
@@ -176,8 +200,8 @@ def plan(brand_id: str, scored: dict, snapshot: dict, organic: list, tests: list
             continue
         creative = ad.get("creative") or {}
         media = creative.get("media_type") or "video"
-        themes = themes_of((ad.get("campaign") or {}).get("name"), ad.get("ad_name"),
-                           creative.get("body"), creative.get("title"))
+        themes = subject((ad.get("campaign") or {}).get("name"), ad.get("ad_name"),
+                         creative.get("title"), creative.get("body"))
         challengers = [c for c in (
             _reel_challenger(themes, organic, used, taken),
             _new_video_challenger(themes),
