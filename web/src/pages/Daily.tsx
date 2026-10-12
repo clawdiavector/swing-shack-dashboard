@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom'
 import { BrandChip } from '../components/BrandChip'
 import { BrandSwitch, useBrand, useBrandScope } from '../components/BrandSwitch'
 import { DailyBrandSocials } from '../components/DailyBrandSocials'
+import { StoryReposts } from '../components/StoryReposts'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { InsightPostThumb, insightPostThumbSrc } from '../components/InsightPostThumb'
@@ -337,6 +338,8 @@ export function Daily() {
       >
         {data?.summary || 'Loading your decisions for today…'}
       </PageIntro>
+
+      <StoryReposts brandIds={isAll ? undefined : brandIds} />
 
       <DailyBrandSocials rows={socialRows} />
 

@@ -2247,3 +2247,36 @@ export async function runSocialIngest(brandId: string) {
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
   return { ok: res.ok, status: res.status, data }
 }
+
+export type StoryRepost = {
+  id: string
+  brand: string
+  url: string
+  note: string
+  added_by: string
+  added_at: string
+  status: 'open' | 'done'
+  done_at: string | null
+}
+
+export type StoryRepostList = { ok: boolean; open: StoryRepost[]; done_today: StoryRepost[] }
+
+export function fetchStoryReposts() {
+  return getJson<StoryRepostList>('/api/stories')
+}
+
+export function setStoryRepostStatus(id: string, status: 'open' | 'done') {
+  return postJson<{ ok: boolean }>(`/api/stories/${encodeURIComponent(id)}/${status}`, {})
+}
+
+export type StorySuggestion = {
+  brand: string
+  date: string
+  kind: 'retail' | 'service'
+  feature: string
+  repost_from: { id: string; name: string; instagram: string | null; facebook: string | null; look_for: string }
+}
+
+export function fetchStorySuggestions() {
+  return getJson<{ ok: boolean; suggestions: StorySuggestion[] }>('/api/stories/suggestion')
+}
