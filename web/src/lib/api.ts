@@ -1,4 +1,10 @@
-import type { PostingWeekPayload, PostingWeekPost, ShelfPayload } from './postingWeek'
+import type {
+  DeliverySummary,
+  PostDelivery,
+  PostingWeekPayload,
+  PostingWeekPost,
+  ShelfPayload,
+} from './postingWeek'
 import { renderModeEditable } from './postingWeek'
 
 export type TodayCounts = {
@@ -64,6 +70,12 @@ export type InboxItem = {
     primary_channel?: string
     /** IG + FB targets for this draft (display + publish queue). */
     publish_targets?: string[]
+    channels_available?: string[]
+    channels_coming?: string[]
+    channels_picked?: string[]
+    channels_locked?: boolean
+    deliveries?: PostDelivery[]
+    delivery_summary?: DeliverySummary
     event_date?: string
     goes_out_at?: string
     approval_status?: string
@@ -509,17 +521,33 @@ export function fetchShelf(brand?: string) {
   return getJson<ShelfPayload>(`/api/inbox/shelf?${q}`)
 }
 
-export function publishDispatchNow(idempotencyKey: string) {
+export function publishDispatchNow(idempotencyKeyOrKeys: string | string[]) {
+  const keys = Array.isArray(idempotencyKeyOrKeys)
+    ? idempotencyKeyOrKeys.filter(Boolean)
+    : [idempotencyKeyOrKeys].filter(Boolean)
+  const body =
+    keys.length === 1 ? { idempotency_key: keys[0] } : { idempotency_keys: keys }
   return postJsonWithStatus<{
     ok?: boolean
     error?: string
     dispatched?: number
     errors?: string[]
     mode?: string
-  }>('/api/publish/dispatch-now', { idempotency_key: idempotencyKey })
+  }>('/api/publish/dispatch-now', body)
 }
 
-export function releaseMoment(brandId: string, calendarId: string, editor = 'christelle') {
+export function releaseMoment(
+  brandId: string,
+  calendarId: string,
+  editor = 'christelle',
+  channels?: string[],
+) {
+  const body: Record<string, unknown> = {
+    brand_id: brandId,
+    calendar_id: calendarId,
+    editor,
+  }
+  if (channels?.length) body.channels = channels
   return postJsonWithStatus<{
     ok?: boolean
     error?: string
@@ -528,7 +556,21 @@ export function releaseMoment(brandId: string, calendarId: string, editor = 'chr
     released?: string[]
     dispatched?: string[]
     would_publish_at?: string
-  }>('/api/publish/release', { brand_id: brandId, calendar_id: calendarId, editor })
+  }>('/api/publish/release', body)
+}
+
+export function setPostChannels(brandId: string, calendarId: string, channels: string[]) {
+  return postJsonWithStatus<{ ok?: boolean; error?: string; code?: string }>(
+    '/api/posts/channels',
+    { brand_id: brandId, calendar_id: calendarId, channels },
+  )
+}
+
+export function retryDelivery(brandId: string, calendarId: string, channel: string) {
+  return postJsonWithStatus<{ ok?: boolean; error?: string; code?: string }>(
+    '/api/publish/retry',
+    { brand_id: brandId, calendar_id: calendarId, channel },
+  )
 }
 
 export function matchInboxItem(item: InboxItem, id: string) {
@@ -1713,6 +1755,7 @@ export function fetchPublishSandboxSummary() {
 export type SandboxQueueItem = {
   queue_id?: string
   idempotency_key?: string
+  post_id?: string
   brand_id?: string
   platform?: string
   channel?: string

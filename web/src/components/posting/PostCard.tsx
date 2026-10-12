@@ -1,16 +1,24 @@
 import { ImageIcon } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { inboxAction, recheckVisual, releaseMoment, resolveAssetUrl, saveMomentFields } from '../../lib/api'
+import {
+  inboxAction,
+  recheckVisual,
+  releaseMoment,
+  resolveAssetUrl,
+  retryDelivery,
+  saveMomentFields,
+  setPostChannels,
+} from '../../lib/api'
 import { BrandChip } from '../BrandChip'
 import { useBrand, useBrandScope } from '../BrandSwitch'
 import {
-  formatGoesOut,
-  formatSastClock,
+  defaultChannelsForBrand,
+  isAttentionPostState,
   linkForPostState,
   nextActionFromStages,
+  postFactLine,
   postFlagLabel,
-  postingChannelLabel,
   postingWeekThumbUrl,
   postStateLabel,
   postStateTone,
@@ -25,6 +33,9 @@ import { TemplateReferenceTag } from '../TemplateReferenceTag'
 import { templateMetaFromPost } from '../../lib/templateMeta'
 import { StageStepper } from './StageStepper'
 import { GapTile } from './GapTile'
+import { ChannelPicker } from './ChannelPicker'
+import { DeliveryChips } from './DeliveryChips'
+import { releaseConfirmMessage } from './ApproveReleaseConfirm'
 
 function PostCardThumb({ imageUrl, title }: { imageUrl?: string | null; title: string }) {
   const [broken, setBroken] = useState(false)
@@ -101,6 +112,15 @@ export function PostCard({
   const [modeVal, setModeVal] = useState<RenderMode>(renderModeOf(post))
   const [captionVal, setCaptionVal] = useState('')
   const [recheckBusy, setRecheckBusy] = useState(false)
+  const [pickedChannels, setPickedChannels] = useState<string[]>(
+    () => post.channels_picked ?? defaultChannelsForBrand(rowBrandId),
+  )
+  const [channelBusy, setChannelBusy] = useState(false)
+  const [deliveryBusy, setDeliveryBusy] = useState('')
+
+  useEffect(() => {
+    setPickedChannels(post.channels_picked ?? defaultChannelsForBrand(rowBrandId))
+  }, [post.channels_picked, rowBrandId])
 
   useEffect(() => {
     setTitleVal(post.title ?? '')
@@ -113,6 +133,10 @@ export function PostCard({
   const isCandidate = post.state === 'candidate'
   const isScheduled = post.state === 'scheduled'
   const isReleased = post.state === 'released'
+  const needsAttention = isAttentionPostState(post.state)
+  const channelsLocked = Boolean(post.channels_locked) || isReleased || needsAttention || post.state === 'posted'
+  const available = post.channels_available ?? ['instagram', 'facebook', 'gbp']
+  const coming = post.channels_coming ?? ['youtube', 'tiktok']
   const isHoliday = post.flags?.includes('holiday')
   const noDate = post.flags?.includes('no_date')
   const to = isScheduled || isReleased ? undefined : linkForPostState(post)
@@ -139,10 +163,12 @@ export function PostCard({
   async function handleRelease(event: MouseEvent) {
     event.preventDefault()
     event.stopPropagation()
-    if (!post.calendar_id) return
+    if (!post.calendar_id || pickedChannels.length === 0) return
+    const ok = window.confirm(releaseConfirmMessage(pickedChannels))
+    if (!ok) return
     setReleasing(true)
     await waitForReads?.()
-    await releaseMoment(rowBrandId, post.calendar_id)
+    await releaseMoment(rowBrandId, post.calendar_id, 'christelle', pickedChannels)
     setReleasing(false)
     onRefresh?.()
   }
@@ -156,6 +182,34 @@ export function PostCard({
     } finally {
       setRecheckBusy(false)
     }
+  }
+
+  async function persistChannels(next: string[]) {
+    setPickedChannels(next)
+    if (!post.calendar_id || channelsLocked) return
+    setChannelBusy(true)
+    await waitForReads?.()
+    await setPostChannels(rowBrandId, post.calendar_id, next)
+    setChannelBusy(false)
+    onRefresh?.()
+  }
+
+  async function handleRetry(channel: string) {
+    if (!post.calendar_id) return
+    setDeliveryBusy(channel)
+    await waitForReads?.()
+    await retryDelivery(rowBrandId, post.calendar_id, channel)
+    setDeliveryBusy('')
+    onRefresh?.()
+  }
+
+  async function handleDrop(channel: string) {
+    if (!post.calendar_id) return
+    const next = pickedChannels.filter((c) => c.toLowerCase() !== channel.toLowerCase())
+    if (next.length === 0) return
+    setDeliveryBusy(channel)
+    await persistChannels(next)
+    setDeliveryBusy('')
   }
 
   async function saveFields() {
@@ -178,15 +232,18 @@ export function PostCard({
     if ((result.changed ?? []).length) onRefresh?.()
   }
 
-  const channel = postingChannelLabel(post.primary_channel)
   const nextAction = post.next_action || nextActionFromStages(post.stages)
   const fixReason =
     post.state === 'needs_fix'
       ? post.needs_fix_reason || (nextAction !== 'Needs fix' ? nextAction : null) || 'Image or draft failed — open in Review'
       : null
   const goesOutAt = (post.sandbox ?? []).map((row) => row.would_publish_at).find((value) => value)
-  const sastClock = formatSastClock(goesOutAt)
-  const factLine = [formatGoesOut(dayDate, weekday), sastClock, nextAction].filter(Boolean).join(' · ')
+  const factLine = postFactLine(
+    { state: post.state, next_action: nextAction, deliveries: post.deliveries, delivery_summary: post.delivery_summary },
+    dayDate,
+    weekday,
+    goesOutAt,
+  )
   const tone = postStateTone(post.state)
   const templateMeta = templateMetaFromPost(post)
   const toneClass =
@@ -241,8 +298,30 @@ export function PostCard({
               {fixReason}
             </p>
           ) : null}
-          <p className="text-xs text-tx3">{factLine}</p>
-          {channel ? <p className="text-xs font-medium text-tx2">{channel}</p> : null}
+          <p className="text-xs text-tx3" data-testid="post-fact-line">
+            {factLine}
+          </p>
+          {(isScheduled || needsAttention || isReleased || post.deliveries?.length) && (
+            <div className="space-y-2 pt-1">
+              {!channelsLocked && (isScheduled || canEditFields) ? (
+                <ChannelPicker
+                  available={available}
+                  coming={coming}
+                  picked={pickedChannels}
+                  locked={channelsLocked || channelBusy}
+                  onChange={(next) => void persistChannels(next)}
+                />
+              ) : null}
+              <DeliveryChips
+                deliveries={post.deliveries}
+                brandId={rowBrandId}
+                calendarId={post.calendar_id}
+                onRetry={needsAttention ? handleRetry : undefined}
+                onDrop={needsAttention ? handleDrop : undefined}
+                busyChannel={deliveryBusy}
+              />
+            </div>
+          )}
           {canEditFields && to ? (
             <Link to={to} className="text-xs font-semibold text-ac">
               Open →
@@ -373,8 +452,8 @@ export function PostCard({
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <button
                 type="button"
-                disabled={releasing}
-                title="Release now — sandbox writes a receipt immediately"
+                disabled={releasing || pickedChannels.length === 0}
+                title="Release now — approves picked platforms only"
                 onClick={(e) => void handleRelease(e)}
                 className="rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
               >
@@ -391,9 +470,11 @@ export function PostCard({
               ) : null}
             </div>
           ) : null}
-          {isReleased ? (
+          {isReleased || needsAttention ? (
             <p className="pt-1 text-xs font-medium text-tx2">
-              Waiting to go out — the hourly job sends it at the scheduled time. Publish now is on the Publish page.
+              {needsAttention
+                ? 'Some platforms need attention — retry or drop a channel below.'
+                : 'Waiting to go out — the hourly job sends it at the scheduled time. Publish now is on the Publish page.'}
             </p>
           ) : null}
         </div>
