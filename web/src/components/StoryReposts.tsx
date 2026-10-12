@@ -1,0 +1,87 @@
+import { CheckCircle2, ExternalLink, Undo2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { fetchStoryReposts, setStoryRepostStatus, type StoryRepost } from '../lib/api'
+import { BrandChip } from './BrandChip'
+
+/** Links people sent Foreman to share to Stories. Tap, use the app's own "Share to story", tick off. */
+export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
+  const [open, setOpen] = useState<StoryRepost[]>([])
+  const [done, setDone] = useState<StoryRepost[]>([])
+  const [failed, setFailed] = useState(false)
+
+  const load = useCallback(() => {
+    fetchStoryReposts()
+      .then((r) => {
+        setOpen(r.open)
+        setDone(r.done_today)
+        setFailed(false)
+      })
+      .catch(() => setFailed(true))
+  }, [])
+  useEffect(load, [load])
+
+  const keep = (r: StoryRepost) => !brandIds?.length || brandIds.includes(r.brand)
+  const openRows = open.filter(keep)
+  const doneRows = done.filter(keep)
+
+  async function mark(id: string, status: 'open' | 'done') {
+    try {
+      await setStoryRepostStatus(id, status)
+    } finally {
+      load()
+    }
+  }
+
+  if (!failed && !openRows.length && !doneRows.length) return null
+
+  return (
+    <section
+      className="space-y-3 rounded-2xl border border-bd bg-surface/40 px-4 py-3"
+      aria-label="Stories to share"
+      data-testid="story-reposts"
+    >
+      <p className="text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">Stories to share</p>
+      {failed ? <p className="text-sm text-tx2">Couldn’t load the story list. Try again in a minute.</p> : null}
+      <ul className="space-y-2">
+        {openRows.map((r) => (
+          <li key={r.id} className="flex flex-wrap items-center gap-2">
+            <BrandChip brandId={r.brand} />
+            <a
+              href={r.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-display inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-sm font-semibold text-tx hover:border-ac/50"
+            >
+              {r.note || 'Open post'}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            {r.added_by ? <span className="text-xs text-tx3">from {r.added_by}</span> : null}
+            <button
+              type="button"
+              onClick={() => mark(r.id, 'done')}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-sm font-semibold text-tx2 hover:border-ac hover:text-ac"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Shared
+            </button>
+          </li>
+        ))}
+        {doneRows.map((r) => (
+          <li key={r.id} className="flex flex-wrap items-center gap-2 text-tx3 line-through">
+            <BrandChip brandId={r.brand} />
+            <span className="text-sm">{r.note || r.url}</span>
+            <button
+              type="button"
+              onClick={() => mark(r.id, 'open')}
+              aria-label="Undo"
+              className="ml-auto inline-flex items-center gap-1 text-xs no-underline hover:text-tx"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              Undo
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}

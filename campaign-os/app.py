@@ -109,6 +109,8 @@ DUAL_AUTH_PATHS = frozenset({
     # Lodge a finished post from Claude Code on any machine (post_lodge.py).
     # Lands it on the shelf; Release stays a session click.
     '/api/posts/lodge',
+    # Story reposts: Foreman adds links from Telegram with bearer only.
+    '/api/stories',
 })
 
 # Dynamic-segment dual-auth prefixes. Each MUST end in '/' — see _gate comment.
@@ -118,6 +120,7 @@ DUAL_AUTH_PREFIXES = (
     '/api/ops/images-today/',
     '/api/ops/moments/',
     '/api/drafts/',
+    '/api/stories/',
 )
 
 # L4 inbox item actions — approve/reject/edit only (not stub siblings).
@@ -14680,6 +14683,37 @@ def publish_sandbox_enqueue_route():
     except Exception as exc:
         _app_log.exception("publish sandbox enqueue failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/stories', methods=['GET', 'POST'])
+def stories_route():
+    """GET lists open story reposts; POST {brand, url, note?, added_by?} adds one (session or job bearer)."""
+    from _lib import story_queue
+
+    if request.method == 'GET':
+        return jsonify({"ok": True, **story_queue.list_items(request.args.get('brand') or None)})
+    body = request.get_json(silent=True) or {}
+    try:
+        item, created = story_queue.add(
+            str(body.get('brand') or ''), str(body.get('url') or ''),
+            str(body.get('note') or ''), str(body.get('added_by') or ''))
+    except story_queue.StoryError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    return jsonify({"ok": True, "created": created, "item": item}), 201 if created else 200
+
+
+@app.route('/api/stories/<item_id>/<status>', methods=['POST'])
+def stories_status_route(item_id, status):
+    """POST /api/stories/<id>/done (or /open to undo)."""
+    from _lib import story_queue
+
+    try:
+        item = story_queue.set_status(item_id, status)
+    except story_queue.StoryError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except KeyError:
+        return jsonify({"ok": False, "error": "no such story"}), 404
+    return jsonify({"ok": True, "item": item})
 
 
 @app.route('/api/posts/lodge', methods=['POST'])
