@@ -17,6 +17,7 @@ is why this exists: **the plugin is now the canonical home** for these skills.
 | `/render-post` | Renders a post from a measured template. Deterministic, ~200ms, correct text, free. **Run `--list` first, every time.** |
 | `/schedule-post` | Turns rendered images into real posts — caption, date, state, Review queue. A PNG on disk appears nowhere in the UI. |
 | `/verify-specs` | Probes the specs this repo silently drifts on and reports what is actually true. Free — no credits, no posts. |
+| `/campaign-os:mail <who> <what>` · `mail setup` | Email a teammate from your own agent inbox: PR to review, new skill/template/framework, plugin update. Contact list in `skills/campaign-os-mail/contacts.json`. |
 | `/campaign-os:wiki-read` · `wiki-write` · `wiki-test` | Read from, file to, and self-test the shared Campaign OS wiki (see "The wiki" below). |
 
 ### Skills
@@ -30,6 +31,7 @@ is why this exists: **the plugin is now the canonical home** for these skills.
 | `brand-voice-truth` | **Before writing any caption or headline.** What the feed actually says, measured over all 261 Stick posts — the bibles drift and prompts read the bibles. |
 | `the-algorithm` | **Before building, adding or automating anything.** Question the requirement → delete → simplify → accelerate → automate. `/the-algorithm` switches on two light hooks for that session only — a one-line reminder per prompt and a one-time challenge on new files in `_lib/`, `scripts/` or the plugin. `/the-algorithm off` mutes them. Or `/the-algorithm <job or script>` to run it on something that already exists. |
 | `campaign-os-wiki` | **Before research, and after it.** The shared Campaign OS wiki (private repo `clawdiavector/campaign-os-wiki`): what is already known, and where findings get filed so Kyle's and Christelle's Claude both see them. |
+| `campaign-os-mail` | **When you tell or ask a teammate something.** Your own AgentMail inbox + a shared contact list (who is who, when to send). First-time setup in `SETUP.md`; hand `PROMPT-FOR-CHRISTELLE.md` to a teammate's Claude. |
 | `schedule-from-anywhere` | Putting a finished post (an image made in Claude, or a template render) on the live calendar, This week and the Shelf, ready for Release now, from any machine with a bearer token alone. One command: `lodge_post.py`. |
 
 ## The wiki (research that survives the session)
