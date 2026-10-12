@@ -17,6 +17,7 @@ import { BrandChip } from './BrandChip'
 import { TemplateReferenceCompare } from './TemplateReferenceCompare'
 import { TemplateReferenceTag } from './TemplateReferenceTag'
 import { Badge, PressIcon, Tip } from './ui'
+import { GapTile } from './posting/GapTile'
 
 export type ReviewDraftDetailProps = {
   item: InboxItem
@@ -68,6 +69,8 @@ export function ReviewDraftDetail({
   const refUsed = item.meta?.reference_used
   const templateMeta = templateMetaFromInbox(item)
   const oneshot = oneshotMetaFromInbox(item)
+  const visualGap = item.meta?.visual_gap
+  const isVisualGap = Boolean(visualGap?.label || visualGap?.reason)
 
   const [regenOpen, setRegenOpen] = useState(false)
   const [regenNote, setRegenNote] = useState('')
@@ -199,7 +202,9 @@ export function ReviewDraftDetail({
         ) : null}
 
         <div className="overflow-hidden rounded-2xl border border-bd bg-bg2/30">
-          {composedUrl ? (
+          {isVisualGap ? (
+            <GapTile gap={visualGap} />
+          ) : composedUrl ? (
             <img
               src={composedUrl}
               alt={`Composed ${activeChannel}`}
@@ -223,7 +228,7 @@ export function ReviewDraftDetail({
           )}
         </div>
 
-        {candidates.length ? (
+        {!isVisualGap && candidates.length ? (
           <div>
             <h3 className="font-display text-sm font-semibold text-tx">Photo candidates</h3>
             <ul className="mt-2 flex flex-wrap gap-3">
@@ -313,7 +318,7 @@ export function ReviewDraftDetail({
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-bd bg-bg2/30 p-2">
-          {composedUrl ? (
+          {isVisualGap ? null : composedUrl ? (
             <TemplateReferenceCompare
               draftUrl={composedUrl}
               draftAlt={`Composed ${activeChannel}`}
@@ -344,19 +349,21 @@ export function ReviewDraftDetail({
           </button>
         </Tip>
 
-        <Tip text={regenerateTip} block>
-          <button
-            type="button"
-            data-testid="draft-regenerate-btn"
-            title={regenerateTip}
-            disabled={busy || atImageCap}
-            onClick={() => setRegenOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Regenerate photo
-          </button>
-        </Tip>
+        {!isVisualGap ? (
+          <Tip text={regenerateTip} block>
+            <button
+              type="button"
+              data-testid="draft-regenerate-btn"
+              title={regenerateTip}
+              disabled={busy || atImageCap}
+              onClick={() => setRegenOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Regenerate photo
+            </button>
+          </Tip>
+        ) : null}
 
         {!editingHeadline ? (
           <button

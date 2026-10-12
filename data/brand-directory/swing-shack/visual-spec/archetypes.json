@@ -502,7 +502,8 @@
         "x1": 0.95,
         "y1": 0.96
       },
-      "max_total_chars": 56
+      "max_total_chars": 56,
+      "vetted": true
     },
     {
       "id": "ss-price-package",
@@ -769,7 +770,8 @@
         "x1": 0.95,
         "y1": 0.96
       },
-      "max_total_chars": 64
+      "max_total_chars": 64,
+      "vetted": true
     },
     {
       "id": "ss-price-list",
@@ -995,7 +997,8 @@
         "x1": 0.95,
         "y1": 0.96
       },
-      "max_total_chars": 120
+      "max_total_chars": 120,
+      "vetted": true
     },
     {
       "id": "ss-sale-offer",
@@ -1250,7 +1253,8 @@
         "x1": 0.95,
         "y1": 0.87
       },
-      "max_total_chars": 120
+      "max_total_chars": 120,
+      "vetted": true
     },
     {
       "id": "ss-discount-code",
@@ -1678,7 +1682,8 @@
       "reference_size": {
         "w": 1081,
         "h": 1301
-      }
+      },
+      "vetted": true
     },
     {
       "id": "ss-fitting-headline",
@@ -1864,7 +1869,8 @@
       "reference_size": {
         "w": 1080,
         "h": 1200
-      }
+      },
+      "vetted": true
     },
     {
       "id": "ss-service-promo",
@@ -2228,7 +2234,8 @@
         "variant": "mono_light",
         "fit": "height",
         "align": "center"
-      }
+      },
+      "vetted": true
     },
     {
       "id": "ss-lesson-corner",
@@ -2465,7 +2472,8 @@
         "x1": 0.99,
         "y1": 0.98
       },
-      "max_total_chars": 120
+      "max_total_chars": 120,
+      "vetted": true
     },
     {
       "id": "ss-zen-venue-promo",
@@ -2694,7 +2702,8 @@
       "reference_size": {
         "w": 1081,
         "h": 1201
-      }
+      },
+      "vetted": true
     }
   ],
   "selection": {

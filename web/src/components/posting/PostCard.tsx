@@ -1,7 +1,7 @@
 import { ImageIcon } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { inboxAction, releaseMoment, resolveAssetUrl, saveMomentFields } from '../../lib/api'
+import { inboxAction, recheckVisual, releaseMoment, resolveAssetUrl, saveMomentFields } from '../../lib/api'
 import { BrandChip } from '../BrandChip'
 import { useBrand, useBrandScope } from '../BrandSwitch'
 import {
@@ -24,6 +24,7 @@ import {
 import { TemplateReferenceTag } from '../TemplateReferenceTag'
 import { templateMetaFromPost } from '../../lib/templateMeta'
 import { StageStepper } from './StageStepper'
+import { GapTile } from './GapTile'
 
 function PostCardThumb({ imageUrl, title }: { imageUrl?: string | null; title: string }) {
   const [broken, setBroken] = useState(false)
@@ -99,6 +100,7 @@ export function PostCard({
   const [postTypeVal, setPostTypeVal] = useState(post.post_type ?? '')
   const [modeVal, setModeVal] = useState<RenderMode>(renderModeOf(post))
   const [captionVal, setCaptionVal] = useState('')
+  const [recheckBusy, setRecheckBusy] = useState(false)
 
   useEffect(() => {
     setTitleVal(post.title ?? '')
@@ -107,6 +109,7 @@ export function PostCard({
     setModeVal(renderModeOf(post))
   }, [post.title, post.angle, post.post_type, post.render_mode])
 
+  const isGap = post.state === 'gap'
   const isCandidate = post.state === 'candidate'
   const isScheduled = post.state === 'scheduled'
   const isReleased = post.state === 'released'
@@ -142,6 +145,17 @@ export function PostCard({
     await releaseMoment(rowBrandId, post.calendar_id)
     setReleasing(false)
     onRefresh?.()
+  }
+
+  async function runRecheckVisual() {
+    if (!post.inbox_item_id || recheckBusy) return
+    setRecheckBusy(true)
+    try {
+      await recheckVisual(post.inbox_item_id)
+      onRefresh?.()
+    } finally {
+      setRecheckBusy(false)
+    }
   }
 
   async function saveFields() {
@@ -190,7 +204,18 @@ export function PostCard({
   const inner = (
     <div className="flex flex-col gap-3">
       <div className="flex gap-3 md:gap-4">
-        <PostCardThumb imageUrl={post.image_url} title={post.title} />
+        {isGap ? (
+          <div className="relative flex w-[7.25rem] shrink-0 flex-col sm:w-[8rem]">
+            <GapTile
+              gap={post.gap}
+              compact
+              recheckBusy={recheckBusy}
+              onRecheck={post.inbox_item_id ? () => void runRecheckVisual() : undefined}
+            />
+          </div>
+        ) : (
+          <PostCardThumb imageUrl={post.image_url} title={post.title} />
+        )}
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <BrandChip brandId={rowBrandId} show={isAll} />

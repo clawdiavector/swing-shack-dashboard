@@ -100,19 +100,11 @@ def _load_brand_rel_photo(brand_id: str, rel: str) -> bytes | None:
 
 
 def _first_library_photo_bytes(brand_id: str, library_rel: str) -> bytes | None:
-    from _lib.brand_overlay import _candidate_brand_dirs
+    from _lib.visual_gate import list_trusted_library_photos
 
-    rel_dir = library_rel.strip().strip("/")
-    if not rel_dir:
-        return None
-    suffixes = (".jpg", ".jpeg", ".png", ".webp")
-    for root in _candidate_brand_dirs(brand_id):
-        base = root / rel_dir
-        if not base.is_dir():
-            continue
-        files = sorted(p for p in base.iterdir() if p.is_file() and p.suffix.lower() in suffixes)
-        if files:
-            return files[0].read_bytes()
+    files = list_trusted_library_photos(brand_id, library_rel)
+    if files:
+        return files[0].read_bytes()
     return None
 
 
@@ -138,10 +130,6 @@ def resolve_compose_photo_bytes(
     explicit = _photo_bytes_for_sidecar(sidecar)
     if explicit:
         return explicit
-    if brand_id == "swing-shack" and archetype_id == "ss-service-promo":
-        legacy = _data_dir() / "draft-assets" / "images" / "swing-shack" / "ss-venue-draft-5f71e71f280b.png"
-        if legacy.is_file():
-            return legacy.read_bytes()
     return _default_template_venue_bytes(brand_id, archetype_id)
 
 
@@ -359,6 +347,12 @@ def regenerate_photo(draft_id: str, *, note: str) -> dict[str, Any]:
     moment_id = ctx["moment_id"]
     if not moment_id:
         return {"ok": False, "error": "draft has no source moment"}
+
+    from _lib.visual_gate import decide, decision_for_api  # noqa: PLC0415
+
+    gap_decision = decide(brand_id, moment_id)
+    if gap_decision.is_gap():
+        return {"ok": False, "gap": decision_for_api(gap_decision)}
 
     cap_info = ops_layers.brand_images_today(brand_id)
     from _lib.marketing_calendar import render_mode_for_record  # noqa: PLC0415

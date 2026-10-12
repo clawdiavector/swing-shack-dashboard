@@ -14,11 +14,26 @@ export type PostState =
   | 'drafting'
   | 'needs_fix'
   | 'draft_ready'
+  | 'gap'
   | 'scheduled'
   | 'released'
   | 'posted'
 
-export type PostFlag = 'no_date' | 'no_channel' | 'stale' | 'holiday' | 'operator'
+export type PostFlag = 'no_date' | 'no_channel' | 'stale' | 'holiday' | 'operator' | 'untrusted_visual'
+
+export type VisualGapInfo = {
+  reason?: string
+  label?: string
+  post_type?: string
+  archetype_id?: string | null
+}
+
+export type PostingWeekGapSummary = {
+  post_type?: string
+  label?: string
+  count?: number
+  calendar_ids?: string[]
+}
 
 export const POSTING_STAGE_ORDER: PostingStageKey[] = [
   'booked',
@@ -48,6 +63,7 @@ export const POST_STATE_LABELS: Record<PostState, string> = {
   drafting: 'Drafting',
   needs_fix: 'Needs fix',
   draft_ready: 'Draft ready',
+  gap: 'Gap',
   scheduled: 'Scheduled',
   released: 'Released',
   posted: 'Posted',
@@ -59,6 +75,7 @@ export const POST_FLAG_LABELS: Record<PostFlag, string> = {
   stale: 'Stale',
   holiday: 'Holiday',
   operator: 'Operator',
+  untrusted_visual: 'Untrusted visual',
 }
 
 export type RenderMode = 'template' | 'oneshot'
@@ -85,6 +102,7 @@ export type PostingWeekPost = {
   inbox_item_id?: string | null
   asset_id?: string | null
   image_url?: string | null
+  gap?: VisualGapInfo
   next_action?: string
   needs_fix_reason?: string
   template_id?: string
@@ -165,8 +183,10 @@ export type PostingWeekPayload = {
     posted?: number
     candidates?: number
     needs_fix?: number
+    gaps?: number
     stale?: number
   }
+  gaps?: PostingWeekGapSummary[]
   error?: string
 }
 
@@ -279,6 +299,8 @@ export function postStateTone(state?: PostState | string | null): 'mute' | 'warn
   switch (state) {
     case 'needs_fix':
       return 'bad'
+    case 'gap':
+      return 'warn'
     case 'candidate':
     case 'drafting':
       return 'warn'

@@ -24,7 +24,7 @@ def tmp_data(monkeypatch, tmp_path):
     src = bundled / "brand-directory" / "stick"
     dst = tmp_path / "brand-directory" / "stick"
     if src.is_dir():
-        shutil.copytree(src, dst, dirs_exist_ok=True)
+        shutil.copytree(src, dst, dirs_exist_ok=True, ignore_dangling_symlinks=True)
     from _lib import marketing_calendar as mc
 
     cal_dir = tmp_path / "intelligence" / "marketing-calendar"
@@ -61,6 +61,36 @@ def test_background_scene_excludes_marketing_title(tmp_data):
     assert "coaching bay" in prompt.lower() or "trackman" in prompt.lower()
 
 
+def test_gen_slots_allowed_when_record_opt_in(tmp_data):
+    from _lib.l5_create_enqueue import create_actions_for_moment
+
+    arch_path = tmp_data / "brand-directory" / "stick" / "visual-spec" / "archetypes.json"
+    doc = json.loads(arch_path.read_text(encoding="utf-8"))
+    for row in doc.get("archetypes") or []:
+        if row.get("id") == "stick-coaching-poster-v1":
+            row["vetted"] = True
+    arch_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+
+    item_id = "calendar_candidate:stick:bg-allow-1"
+    (tmp_data / "intelligence" / "marketing-calendar" / "stick.jsonl").write_text(
+        json.dumps(
+            {
+                "calendar_id": "bg-allow-1",
+                "status": "approved",
+                "title": "Coaching hero",
+                "pillars": ["stick-coaching"],
+                "post_type": "coaching_promo",
+                "template_id": "stick-coaching-poster-v1",
+                "allow_generated_background": True,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    actions = create_actions_for_moment("stick", item_id, phase="image")
+    assert actions == ["draft_gen_slots", "compose_post"]
+
+
 def test_recipe_image_phase_uses_gen_slots(tmp_data):
     from _lib.l5_create_enqueue import create_actions_for_moment
 
@@ -80,7 +110,7 @@ def test_recipe_image_phase_uses_gen_slots(tmp_data):
         encoding="utf-8",
     )
     actions = create_actions_for_moment("stick", item_id, phase="image")
-    assert actions == ["draft_gen_slots", "compose_post"]
+    assert actions == []
 
 
 def test_krea_image_generate_strips_negative_prompt_extra(monkeypatch):

@@ -284,7 +284,9 @@
       "reference_size": {
         "w": 1081,
         "h": 1201
-      }
+      },
+      "template_pack": "templates/brand-statement",
+      "vetted": true
     },
     {
       "id": "stick-coach-profile",
@@ -620,7 +622,8 @@
       "reference_size": {
         "w": 1080,
         "h": 1350
-      }
+      },
+      "vetted": true
     },
     {
       "id": "stick-coaching-poster-v1",
@@ -1027,7 +1030,8 @@
       "reference_size": {
         "w": 1080,
         "h": 1351
-      }
+      },
+      "vetted": true
     },
     {
       "id": "stick-photo-band-post",
@@ -1517,7 +1521,8 @@
       "reference_size": {
         "w": 1081,
         "h": 1920
-      }
+      },
+      "vetted": true
     },
     {
       "id": "stick-service-frame",
@@ -2065,7 +2070,8 @@
       "reference_size": {
         "w": 1081,
         "h": 1300
-      }
+      },
+      "vetted": true
     },
     {
       "id": "stick-shop-corner",
@@ -2182,7 +2188,8 @@
       "reference_size": {
         "w": 1081,
         "h": 1351
-      }
+      },
+      "vetted": true
     },
     {
       "id": "stick-venue-post",

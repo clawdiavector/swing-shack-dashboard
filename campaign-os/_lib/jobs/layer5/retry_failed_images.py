@@ -174,18 +174,13 @@ def _enqueue_actions_for_item(
 
 
 def _actions_for_moment(brand_id: str, item_id: str) -> list[str]:
-    from _lib.archetypes_v2 import select_archetype  # noqa: PLC0415
     from _lib.jobs.layer5.image_draft_context import primary_channel_for_item  # noqa: PLC0415
+    from _lib.l5_create_enqueue import create_actions_for_moment  # noqa: PLC0415
 
     primary = primary_channel_for_item(brand_id, item_id, fallback="instagram")
     if primary == "gbp":
         return ["draft_caption"]
-    archetype = select_archetype(brand_id, item_id)
-    actions = ["draft_caption"]
-    if archetype.get("applies_to", {}).get("needs_photo", True):
-        actions.append("draft_photo")
-    actions.append("compose_post")
-    return actions
+    return create_actions_for_moment(brand_id, item_id, phase="all")
 
 
 def _reset_bad_image_rows(
@@ -291,6 +286,33 @@ def run(brand: str | None = None) -> dict[str, Any]:
     rows = _read_queue()
     if not rows and not read_json("agent-queue.json"):
         rows = []
+
+    from _lib.visual_gate import clear_gap_if_trusted, decide  # noqa: PLC0415
+    from _lib.jobs.layer5.draft_assets import _parse_inbox_ref  # noqa: PLC0415
+
+    for row in rows:
+        if str(row.get("status") or "").lower() != "gap":
+            continue
+        item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
+        if not item_id:
+            continue
+        try:
+            brand_id = validate_brand_id(row.get("brand"))
+        except ValueError:
+            continue
+        cal_record: dict[str, Any] | None = None
+        if item_id.startswith("calendar_candidate:"):
+            parts = item_id.split(":", 2)
+            if len(parts) >= 3:
+                from _lib.unified_inbox import _calendar_record_for_key  # noqa: PLC0415
+
+                cal_record = _calendar_record_for_key(brand_id, parts[2])
+        decision = decide(brand_id, item_id, record=cal_record)
+        if decision.is_gap():
+            continue
+        row["status"] = "pending"
+        row.pop("note", None)
+        clear_gap_if_trusted(brand_id, item_id, decision)
 
     horizon = _horizon_dates()
     reset = _reset_bad_image_rows(rows, brand=brand)

@@ -15,6 +15,13 @@ if str(CAMPAIGN_OS) not in sys.path:
     sys.path.insert(0, str(CAMPAIGN_OS))
 
 
+@pytest.fixture(autouse=True)
+def _layer5_module_isolation():
+    from tests.jobs.test_layer5_create import _purge_modules
+
+    _purge_modules()
+
+
 @pytest.fixture()
 def tmp_data(monkeypatch, tmp_path):
     import shutil
@@ -25,11 +32,11 @@ def tmp_data(monkeypatch, tmp_path):
     src = bundled / "brand-directory" / "stick"
     dst = tmp_path / "brand-directory" / "stick"
     if src.is_dir():
-        shutil.copytree(src, dst, dirs_exist_ok=True)
+        shutil.copytree(src, dst, dirs_exist_ok=True, ignore_dangling_symlinks=True)
     return tmp_path
 
 
-def _seed_approved_calendar(tmp_path: Path, item_id: str) -> None:
+def _seed_approved_calendar(tmp_path: Path, item_id: str, *, extra: dict | None = None) -> None:
     from _lib import marketing_calendar as mc
 
     _, brand, cal_id = item_id.split(":", 2)
@@ -37,19 +44,16 @@ def _seed_approved_calendar(tmp_path: Path, item_id: str) -> None:
     cal_dir.mkdir(parents=True, exist_ok=True)
     mc._CALENDAR_DIR = cal_dir
     mc._CALENDAR_DIR_READY = True
-    (cal_dir / f"{brand}.jsonl").write_text(
-        json.dumps(
-            {
-                "calendar_id": cal_id,
-                "status": "approved",
-                "title": "Test",
-                "pillar_id": "stick-coaching",
-                "post_type": "coaching_promo",
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    row = {
+        "calendar_id": cal_id,
+        "status": "approved",
+        "title": "Test",
+        "pillar_id": "stick-coaching",
+        "post_type": "coaching_promo",
+    }
+    if extra:
+        row.update(extra)
+    (cal_dir / f"{brand}.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
 
 
 def test_compose_deferred_until_photo_waiting(tmp_data, monkeypatch):
@@ -112,9 +116,17 @@ def test_compose_deferred_until_photo_waiting(tmp_data, monkeypatch):
 
 
 def test_krea_finalize_enqueues_compose(tmp_data, monkeypatch):
+    from _lib import marketing_calendar as mc
     from _lib.jobs.layer5 import krea_poll_draft_images as poll
 
     item_id = "calendar_candidate:stick:evt-2"
+    _seed_approved_calendar(
+        tmp_data,
+        item_id,
+        extra={"template_id": "stick-brand-statement", "post_type": "brand_statement"},
+    )
+    mc._CALENDAR_DIR = tmp_data / "intelligence" / "marketing-calendar"
+    mc._CALENDAR_DIR_READY = True
     rows = [
         {
             "id": "w1",
@@ -141,12 +153,7 @@ def test_krea_finalize_enqueues_compose(tmp_data, monkeypatch):
     monkeypatch.setattr(poll.image_jobs_state, "is_settled", lambda _i: False)
     monkeypatch.setattr(poll.image_jobs_state, "mark_settled", lambda _i: None)
     monkeypatch.setattr(poll.image_jobs_state, "drop_entry", lambda _i: None)
-    monkeypatch.setattr(poll, "_moment_has_image", lambda *a: False)
-    monkeypatch.setattr(poll, "_moment_has_composed", lambda *a: False)
-    monkeypatch.setattr(poll, "_finalize_draft_from_poll", lambda **k: "draft-abc")
-
     enqueued = {"n": 0}
-    from _lib import l5_create_enqueue
 
     def fake_enqueue(**kwargs):
         enqueued["n"] += 1
@@ -154,18 +161,35 @@ def test_krea_finalize_enqueues_compose(tmp_data, monkeypatch):
             kwargs["rows"].append({"action": "compose_post", "status": "pending"})
         return True
 
-    monkeypatch.setattr(l5_create_enqueue, "enqueue_compose_post_for_moment", fake_enqueue)
+    from _lib.visual_gate import VisualDecision
+
+    trusted = VisualDecision(
+        status="trusted",
+        post_type="brand_statement",
+        archetype_id="stick-brand-statement",
+        photo=None,
+        background="none",
+        reason="ok",
+        label="",
+    )
 
     row = rows[0]
-    poll._complete_row(
-        row,
-        brand_id="stick",
-        item_id=item_id,
-        job_entry={"job_id": "job1", "size": "1024x1024", "est_usd": 0.04},
-        png_path=png,
-    )
-    assert enqueued["n"] == 1
-    assert row["status"] == "done"
+    with patch.object(poll, "_moment_has_image", return_value=False), patch.object(
+        poll, "_moment_has_composed", return_value=False
+    ), patch.object(poll, "_finalize_draft_from_poll", return_value="draft-abc"), patch(
+        "_lib.visual_gate.decide", return_value=trusted
+    ), patch(
+        "_lib.l5_create_enqueue.enqueue_compose_post_for_moment", side_effect=fake_enqueue
+    ):
+        poll._complete_row(
+            row,
+            brand_id="stick",
+            item_id=item_id,
+            job_entry={"job_id": "job1", "size": "1024x1024", "est_usd": 0.04},
+            png_path=png,
+        )
+    assert row["status"] == "done", row
+    assert enqueued["n"] == 1, row
 
 
 def test_create_actions_lodge_then_image_gen_recipe(tmp_data):
@@ -194,8 +218,7 @@ def test_create_actions_lodge_then_image_gen_recipe(tmp_data):
     lodge = create_actions_for_moment("stick", item_id, phase="lodge")
     assert lodge == ["draft_caption"]
     image = create_actions_for_moment("stick", item_id, phase="image")
-    assert "draft_gen_slots" in image
-    assert "compose_post" in image
+    assert image == []
 
 
 def test_recipe_cache_hit(tmp_data, monkeypatch):
