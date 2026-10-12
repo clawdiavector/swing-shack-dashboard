@@ -1368,8 +1368,13 @@ def run(brand: str | None = None) -> dict[str, Any]:
                         if str(row.get("status") or "").lower() == "pending":
                             row["status"] = "gap"
                             row["note"] = gap_decision.label[:240]
-                skipped += max(parked, 1)
-                continue
+                pending_caption = any(
+                    str(row.get("status") or "").lower() == "pending" and action in _CAPTION_QUEUE_ACTIONS
+                    for row, action in rows_for_moment
+                )
+                if not pending_caption:
+                    skipped += max(parked, 1)
+                    continue
             clear_gap_if_trusted(brand_id, item_id, gap_decision)
 
             draft_ctx = build_image_draft_context(brand_id, item_id)

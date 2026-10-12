@@ -251,6 +251,17 @@ def decide(brand_id: str, item_id: str, *, record: dict[str, Any] | None = None)
     ctx = _moment_context(brand_id, item_id)
     post_type = _post_type_for_label(cal, ctx)
 
+    if not item_id.startswith("calendar_candidate:"):
+        return VisualDecision(
+            status="trusted",
+            post_type=post_type,
+            archetype_id=None,
+            photo=None,
+            background="none",
+            reason="non_calendar",
+            label="",
+        )
+
     archetype, how = select_archetype_explained(brand_id, item_id, record=cal)
     archetype_id = str(archetype.get("id") or "") if isinstance(archetype, dict) else None
 
@@ -269,6 +280,21 @@ def decide(brand_id: str, item_id: str, *, record: dict[str, Any] | None = None)
             reason="layout_not_vetted",
             label=f"No vetted layout for {post_type} ({archetype_id})",
         )
+
+    sidecar_composed = _sidecar_for_item(item_id) or {}
+    composed = sidecar_composed.get("composed")
+    if isinstance(composed, dict):
+        for val in composed.values():
+            if isinstance(val, str) and val.strip():
+                return VisualDecision(
+                    status="trusted",
+                    post_type=post_type,
+                    archetype_id=archetype_id,
+                    photo=None,
+                    background="none",
+                    reason="composed_present",
+                    label="",
+                )
 
     from _lib.marketing_calendar import render_mode_for_record  # noqa: PLC0415
 
