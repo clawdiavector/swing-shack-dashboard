@@ -72,3 +72,26 @@ mention would not be useful or welcome, and the aim is account history and trust
   `forums.golfwrx.com/search/?q=<terms>&type=forums_topic&sortby=newest`
 - Reddit needs a different route (official API credentials or a person doing the search).
 - Next to add: MyGolfSpy, Golf Monthly forum, TalkGolf and SA Facebook groups.
+
+---
+
+# Second GolfWRX scan (same day, afternoon)
+
+Searched "fitting worth it", "lost distance launch monitor fitting", "home simulator worth it budget". Mostly noise (sales, tour threads). Opened 3 candidates.
+
+## 3. High Spin Due to Delivery? (PASS)
+
+- Brand: Swing Shack (launch data); Stick (driver setup)
+- Link: https://forums.golfwrx.com/topic/2112053-high-spin-due-to-delivery/
+- Forum / age / replies: Avg Joe Swings Stiff and Below, posted about 6 hours before the scan, no replies seen yet
+- Why: 13 months into golf, was consistent, now balloons with 3,000-3,500 rpm spin and 12-15 degree launch on a G440 LST at 7.5 degrees with a Tensei 50X. Asks what is happening "behind the scenes". A launch-data question, the kind Swing Shack answers.
+- Rules: open thread, instruction forum. Mode: value-only. The poster also attached a video I could not view, so the draft does not claim to diagnose the swing.
+- Draft:
+
+  > Without seeing numbers it's hard to say, but spin that jumped from stable to 3,000+ with the same head usually comes from one of three things, and you can check each. First, strike location: low on the face adds spin and high toward the top lowers it, so if your contact has crept lower, that alone can add several hundred rpm. Foot powder or face spray for a bucket of balls will show it. Second, attack angle: if you've gone from hitting up to hitting level or down on the driver, spin goes up and launch gets a bit lower, not higher, so the high launch plus high spin points more at dynamic loft being bigger than before. Third, check the loft setting didn't move: your signature shows 7.5 to 8.5, and a click on the hosel changes real loft and lie. If you can get attack angle and dynamic loft from a session on a launch monitor, those two numbers will tell you more than the ball flight.
+
+## Skipped this run
+
+- Driver Shaft Advice (https://forums.golfwrx.com/topic/2111998-driver-shaft-advice-with-some-launch-monitor-data/): poster is well informed, has had fittings, and already has advice in the thread.
+- Swing Feel on the Down Swing: philosophical discussion, no question we can add to.
+- Ping MOI heads, PXG hybrid recommendations, wedge shafting: equipment-brand questions, no angle for us.
