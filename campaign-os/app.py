@@ -109,6 +109,7 @@ DUAL_AUTH_PATHS = frozenset({
     # Lodge a finished post from Claude Code on any machine (post_lodge.py).
     # Lands it on the shelf; Release stays a session click.
     '/api/posts/lodge',
+    '/api/posts/channels',
 })
 
 # Dynamic-segment dual-auth prefixes. Each MUST end in '/' — see _gate comment.
@@ -14775,11 +14776,15 @@ def publish_release_route():
         from _lib.publish_sandbox import release_moment
 
         brand_id = validate_brand_id(brand_id)
+        channels = body.get("channels")
+        if channels is not None and not isinstance(channels, list):
+            return jsonify({"ok": False, "error": "channels must be a list", "code": "bad_request"}), 400
         result = release_moment(
             brand_id=brand_id,
             calendar_id=calendar_id,
             editor=editor,
             dispatch=is_sandbox_mode(),
+            channels=channels,
         )
     except ValueError as exc:
         return jsonify({"ok": False, "error": str(exc), "code": "bad_request"}), 400
@@ -14795,6 +14800,66 @@ def publish_release_route():
         else:
             status = 400
         return jsonify(result), status
+    return jsonify(result), 200
+
+
+@app.route('/api/posts/channels', methods=['POST'])
+def posts_channels_route():
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or body.get("brand") or "").strip()
+    calendar_id = (body.get("calendar_id") or "").strip()
+    channels = body.get("channels")
+    if not brand_id or not calendar_id or not isinstance(channels, list):
+        return jsonify({"ok": False, "error": "brand_id, calendar_id and channels required", "code": "bad_request"}), 400
+    try:
+        from _lib.brand_validate import validate_brand_id
+        from _lib.publish_sandbox import set_post_channels
+
+        result = set_post_channels(
+            brand_id=validate_brand_id(brand_id),
+            calendar_id=calendar_id,
+            channels=[str(c) for c in channels],
+        )
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc), "code": "bad_request"}), 400
+    if not result.get("ok"):
+        code = str(result.get("code") or "failed")
+        status = 409 if code == "channels_locked" else 400
+        return jsonify(result), status
+    return jsonify(result), 200
+
+
+@app.route('/api/publish/retry', methods=['POST'])
+def publish_retry_route():
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or body.get("brand") or "").strip()
+    calendar_id = (body.get("calendar_id") or "").strip()
+    channel = (body.get("channel") or "").strip()
+    if not brand_id or not calendar_id or not channel:
+        return jsonify({"ok": False, "error": "brand_id, calendar_id and channel required", "code": "bad_request"}), 400
+    try:
+        from _lib.brand_validate import validate_brand_id
+        from _lib.publish_mode import is_sandbox_mode
+        from _lib.publish_sandbox import retry_delivery
+
+        brand_id = validate_brand_id(brand_id)
+        result = retry_delivery(brand_id=brand_id, calendar_id=calendar_id, channel=channel)
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc), "code": "bad_request"}), 400
+    if not result.get("ok"):
+        code = str(result.get("code") or "failed")
+        status = 404 if code == "not_found" else 409
+        return jsonify(result), status
+    if not is_sandbox_mode():
+        from _lib.publish_live import dispatch_now
+
+        key = str(result.get("idempotency_key") or "")
+        if key:
+            dispatch_now([key])
     return jsonify(result), 200
 
 
@@ -18333,10 +18398,10 @@ try:
         from _lib.jobs.publish_dispatch import run as _publish_dispatch_run
         return _publish_dispatch_run(brand=brand)
 
-    def _run_backfill_dual_channel_queue(brand=None):
-        from _lib.jobs.backfill_dual_channel_queue import run as _backfill_run
+    def _run_onepost_backfill(brand=None, apply=False):
+        from _lib.jobs.onepost_backfill import run as _onepost_backfill_run
 
-        return _backfill_run(brand=brand)
+        return _onepost_backfill_run(brand=brand, apply=bool(apply))
 
     def _run_auto_release_job(brand=None):
         from _lib.jobs.auto_release import run as _auto_release_run
@@ -18367,13 +18432,13 @@ try:
         requires_integrations=("postiz",),
     ))
     _register_job(_JobSpec(
-        name="backfill_dual_channel_queue",
-        fn=_run_backfill_dual_channel_queue,
+        name="onepost_backfill",
+        fn=_run_onepost_backfill,
         every_seconds=86400,
         timeout_seconds=180,
         criticality="LOW",
         best_effort=True,
-        writes=("publish-sandbox/",),
+        writes=("publish-sandbox/", "campaign-data.json"),
         brand_mode="global",
     ))
     _JOBS_AVAILABLE = True

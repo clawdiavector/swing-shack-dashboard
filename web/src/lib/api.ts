@@ -502,17 +502,37 @@ export function fetchShelf(brand?: string) {
   return getJson<ShelfPayload>(`/api/inbox/shelf?${q}`)
 }
 
-export function publishDispatchNow(idempotencyKey: string) {
+export function publishDispatchNow(idempotencyKeys: string | string[]) {
+  const keys = Array.isArray(idempotencyKeys) ? idempotencyKeys : [idempotencyKeys]
   return postJsonWithStatus<{
     ok?: boolean
     error?: string
     dispatched?: number
     errors?: string[]
     mode?: string
-  }>('/api/publish/dispatch-now', { idempotency_key: idempotencyKey })
+  }>('/api/publish/dispatch-now', { idempotency_keys: keys })
 }
 
-export function releaseMoment(brandId: string, calendarId: string, editor = 'christelle') {
+export function setPostChannels(brandId: string, calendarId: string, channels: string[]) {
+  return postJsonWithStatus<{ ok?: boolean; error?: string; code?: string }>(
+    '/api/posts/channels',
+    { brand_id: brandId, calendar_id: calendarId, channels },
+  )
+}
+
+export function retryDelivery(brandId: string, calendarId: string, channel: string) {
+  return postJsonWithStatus<{ ok?: boolean; error?: string; code?: string }>(
+    '/api/publish/retry',
+    { brand_id: brandId, calendar_id: calendarId, channel },
+  )
+}
+
+export function releaseMoment(
+  brandId: string,
+  calendarId: string,
+  editor = 'christelle',
+  channels?: string[],
+) {
   return postJsonWithStatus<{
     ok?: boolean
     error?: string
@@ -521,7 +541,12 @@ export function releaseMoment(brandId: string, calendarId: string, editor = 'chr
     released?: string[]
     dispatched?: string[]
     would_publish_at?: string
-  }>('/api/publish/release', { brand_id: brandId, calendar_id: calendarId, editor })
+  }>('/api/publish/release', {
+    brand_id: brandId,
+    calendar_id: calendarId,
+    editor,
+    ...(channels ? { channels } : {}),
+  })
 }
 
 export function matchInboxItem(item: InboxItem, id: string) {

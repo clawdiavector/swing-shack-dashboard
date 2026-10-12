@@ -12,6 +12,8 @@ import {
   oneshotEligible,
   renderModeEditable,
   renderModeOf,
+  postStateLabel,
+  deliveryChipLabel,
   sastTodayIso,
   sastTomorrowIso,
 } from './postingWeek'
@@ -227,5 +229,12 @@ describe('mergePostingWeekPayloads single day', () => {
     )
     expect(merged.days_list).toHaveLength(1)
     expect(merged.days_list?.[0]?.posts).toHaveLength(1)
+  })
+})
+
+describe('onepost delivery labels', () => {
+  it('labels partly posted and failed delivery chips', () => {
+    expect(postStateLabel('partly_posted')).toBe('Partly posted')
+    expect(deliveryChipLabel('failed')).toBe('Failed')
   })
 })

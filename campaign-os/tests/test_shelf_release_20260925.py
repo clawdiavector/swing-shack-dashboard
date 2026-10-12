@@ -245,7 +245,7 @@ class ShelfReleaseTests(unittest.TestCase):
             dispatch=False,
         )
         self.assertFalse(result["ok"])
-        self.assertEqual(result["code"], "no_channel")
+        self.assertIn(result["code"], ("no_channel", "no_channels"))
 
     def test_auto_release_gated_by_default(self):
         from _lib.jobs import auto_release

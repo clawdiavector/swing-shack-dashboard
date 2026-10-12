@@ -143,10 +143,10 @@ def resolve_upload(rel: str) -> Path:
 
 
 def default_channels(brand: str) -> list[str]:
-    """Where a pass-through post goes when the spec does not say."""
-    from _lib.publish_sandbox import compose_publish_channels  # noqa: PLC0415
+    """Picked channels when the spec does not say."""
+    from _lib.publish_sandbox import default_channels as _picked  # noqa: PLC0415
 
-    return compose_publish_channels(brand) or ["instagram"]
+    return _picked(brand) or ["instagram"]
 
 
 def fit_for_channel(src, channel: str):
@@ -186,15 +186,21 @@ def _passthrough_one(brand: str, spec: dict[str, Any]) -> tuple[dict[str, str], 
     render_post = _scripts_module("render_post")
     src = resolve_upload(spec["image"])
     channels = spec.get("channels") or default_channels(brand)
+    from _lib.publish_sandbox import render_channels  # noqa: PLC0415
+
     placed: dict[str, str] = {}
     notes: list[str] = []
     with Image.open(src) as im:
-        for channel in channels:
+        for channel in render_channels(brand):
             png, note = fit_for_channel(im, channel)
             out = render_post.publish_into_campaign_os(brand, spec["slug"], channel, png)
             placed[channel] = out["url"]
             if note:
                 notes.append(note)
+    ig_url = placed.get("instagram")
+    for channel in channels:
+        if channel not in placed and ig_url:
+            placed[channel] = ig_url
     return placed, notes
 
 
@@ -355,10 +361,12 @@ def run(brand: str | None = None, event_key: str | None = None) -> dict[str, Any
 
             # build_asset takes its primary channel from the spec; for a
             # pass-through that is whatever default_channels() resolved.
-            spec["channels"] = list(placed)
+            picked = list(rs.get("channels") or spec.get("channels") or default_channels(b))
+            spec["channels"] = picked
             cid, aid, asset = schedule_posts.build_asset(
                 spec, _CAMPAIGN_BATCH, approval="review", publish="planned")
             asset["composed"] = dict(placed)
+            asset["channels"] = list(picked)
             if spec["image"]:
                 asset["renderMode"] = "operator-image"
                 asset["history"][0]["note"] = (

@@ -126,12 +126,13 @@ class PostLodgeTests(unittest.TestCase):
         from PIL import Image
 
         out_dir = self.tmpdir / "draft-assets" / "images" / BRAND
-        for ch in ("instagram", "facebook"):
-            png = out_dir / f"composed-spoon-wrong-clubs-{ch}.png"
-            self.assertTrue(png.is_file())
-            self.assertTrue((out_dir / f"composed-spoon-wrong-clubs-{ch}-publish.jpg").is_file())
-            with Image.open(png) as im:
-                self.assertEqual(im.size, (1080, 1080), "a square stays square")
+        ig_png = out_dir / "composed-spoon-wrong-clubs-instagram.png"
+        self.assertTrue(ig_png.is_file())
+        self.assertTrue((out_dir / "composed-spoon-wrong-clubs-instagram-publish.jpg").is_file())
+        with Image.open(ig_png) as im:
+            self.assertEqual(im.size, (1080, 1080), "a square stays square")
+        self.assertIn("facebook", doc["images"])
+        self.assertEqual(doc["images"]["facebook"], doc["images"]["instagram"])
         uploads = list((self.tmpdir / "operator-uploads" / BRAND).glob("spoon-wrong-clubs-*"))
         self.assertEqual(len(uploads), 1)
 

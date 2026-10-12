@@ -17,6 +17,8 @@ export type PostState =
   | 'scheduled'
   | 'released'
   | 'posted'
+  | 'partly_posted'
+  | 'send_failed'
 
 export type PostFlag = 'no_date' | 'no_channel' | 'stale' | 'holiday' | 'operator'
 
@@ -51,6 +53,8 @@ export const POST_STATE_LABELS: Record<PostState, string> = {
   scheduled: 'Scheduled',
   released: 'Released',
   posted: 'Posted',
+  partly_posted: 'Partly posted',
+  send_failed: 'Send failed',
 }
 
 export const POST_FLAG_LABELS: Record<PostFlag, string> = {
@@ -92,6 +96,18 @@ export type PostingWeekPost = {
   template_label?: string
   template_reference_urls?: string[]
   sandbox?: { would_publish_at?: string | null; platform?: string | null }[]
+  post_id?: string | null
+  channels_available?: string[]
+  channels_coming?: string[]
+  channels_picked?: string[]
+  channels_locked?: boolean
+  deliveries?: {
+    channel: string
+    status: string
+    last_error?: string | null
+    idempotency_key?: string | null
+  }[]
+  delivery_summary?: Record<string, number>
 }
 
 export type PostingWeekDay = {
@@ -287,6 +303,42 @@ export function postStateTone(state?: PostState | string | null): 'mute' | 'warn
     case 'scheduled':
     case 'draft_ready':
       return 'ok'
+    case 'partly_posted':
+      return 'warn'
+    case 'send_failed':
+      return 'bad'
+    default:
+      return 'mute'
+  }
+}
+
+export function deliveryChipLabel(status?: string | null): string {
+  switch (status) {
+    case 'posted':
+      return 'Posted'
+    case 'failed':
+      return 'Failed'
+    case 'queued':
+      return 'Queued'
+    case 'awaiting_approval':
+      return 'Awaiting approval'
+    case 'skipped':
+      return 'Skipped'
+    default:
+      return String(status ?? '—')
+  }
+}
+
+export function deliveryChipTone(status?: string | null): 'mute' | 'warn' | 'ok' | 'bad' {
+  switch (status) {
+    case 'posted':
+      return 'ok'
+    case 'failed':
+    case 'send_failed':
+      return 'bad'
+    case 'queued':
+    case 'sending':
+      return 'warn'
     default:
       return 'mute'
   }

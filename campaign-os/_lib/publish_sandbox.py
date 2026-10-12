@@ -25,6 +25,7 @@ INTENDED_CHANNELS_FALLBACK: dict[str, list[str]] = {
 
 # Match L5 compose_post_for_channels — social feed channels only (GBP is separate).
 COMPOSE_PUBLISH_CHANNEL_EXCLUDE = frozenset({"gbp"})
+MAX_SEND_ATTEMPTS = 3
 
 
 def _utc_now_iso() -> str:
@@ -124,6 +125,35 @@ def compose_publish_channels(brand_id: str) -> list[str]:
     return out
 
 
+def brand_channels(brand_id: str) -> list[str]:
+    from _lib import onepost  # noqa: PLC0415
+
+    return onepost.brand_channels(brand_id)
+
+
+def default_channels(brand_id: str) -> list[str]:
+    from _lib import onepost  # noqa: PLC0415
+
+    return onepost.default_channels(brand_id)
+
+
+def render_channels(brand_id: str) -> list[str]:
+    from _lib import onepost  # noqa: PLC0415
+
+    return onepost.render_channels(brand_id)
+
+
+def picked_channels(
+    asset: dict[str, Any] | None,
+    *,
+    brand_id: str,
+    queue_rows: list[dict[str, Any]] | None = None,
+) -> list[str]:
+    from _lib import onepost  # noqa: PLC0415
+
+    return onepost.picked_channels(asset, brand_id=brand_id, queue_rows=queue_rows)
+
+
 def _load_draft_sidecar(asset_id: str) -> dict[str, Any]:
     path = _data_dir() / "draft-assets" / f"{asset_id}.json"
     if not path.is_file():
@@ -149,6 +179,13 @@ def _composed_url_for_platform(
         block = src.get("composed")
         if isinstance(block, dict):
             composed.update(block)
+    from _lib.onepost import _FEED_IMAGE_PLATFORMS  # noqa: PLC0415
+
+    if plat in _FEED_IMAGE_PLATFORMS or plat not in composed:
+        for key in ("instagram",):
+            raw = composed.get(key)
+            if raw:
+                return str(raw).strip() or None
     for key in (plat, platform):
         raw = composed.get(key)
         if raw:
@@ -258,6 +295,11 @@ def enqueue_for_intended_channels(
     camp_asset = asset
     if camp_asset is None and asset_id:
         _cid, camp_asset = _campaign_asset_for_id(_load_campaign_data(), asset_id)
+    if isinstance(side.get("channels"), list) and side.get("channels"):
+        if camp_asset is None:
+            camp_asset = {}
+        if not camp_asset.get("channels"):
+            camp_asset["channels"] = list(side["channels"])
 
     title = lodged_title_for_item(
         brand_id,
@@ -271,8 +313,34 @@ def enqueue_for_intended_channels(
     would_publish_at = _would_publish_at_from_event_date(event_date)
     provenance = _provenance_from_draft_asset(asset_id)
 
+    existing_rows = [
+        r
+        for r in _read_jsonl(_queue_path())
+        if str(r.get("idempotency_key") or "").startswith(f"qc-{asset_id}-")
+    ]
+    targets = picked_channels(camp_asset, brand_id=brand_id, queue_rows=existing_rows)
+    if camp_asset is not None and not camp_asset.get("channels"):
+        camp_asset["channels"] = list(targets)
+        data = _load_campaign_data()
+        _cid, stored = _campaign_asset_for_id(data, asset_id)
+        if stored is not None and _cid:
+            stored["channels"] = list(targets)
+            from _lib.unified_inbox import _write_campaign_data  # noqa: PLC0415
+
+            _write_campaign_data(data)
+        side["channels"] = list(targets)
+        sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+        if sidecar_path.is_file():
+            try:
+                sidecar_path.write_text(
+                    json.dumps(side, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
+            except OSError:
+                pass
+
     items: list[dict[str, Any]] = []
-    for platform in compose_publish_channels(brand_id):
+    for platform in targets:
         image_url = _composed_url_for_platform(
             platform=platform,
             asset=camp_asset,
@@ -290,8 +358,14 @@ def enqueue_for_intended_channels(
             event_date=event_date or None,
             provenance=provenance,
             image_url=image_url,
+            post_id=asset_id,
         )
         items.append(item)
+    _mark_unpicked_rows_skipped(
+        brand_id=brand_id,
+        asset_id=asset_id,
+        picked=set(targets),
+    )
     if camp_asset and str(camp_asset.get("caption") or "").strip():
         sync_queue_rows_for_asset(
             brand_id=brand_id,
@@ -302,67 +376,161 @@ def enqueue_for_intended_channels(
     return items
 
 
-def backfill_dual_channel_queue(*, brand: str | None = None) -> dict[str, Any]:
-    """Ensure pending queue rows exist for every compose channel on QC-passed drafts."""
-    from _lib.unified_inbox import _campaign_asset_for_id, _load_campaign_data  # noqa: PLC0415
+def _mark_unpicked_rows_skipped(
+    *,
+    brand_id: str,
+    asset_id: str,
+    picked: set[str],
+) -> None:
+    rows = _read_jsonl(_queue_path())
+    prefix = f"qc-{asset_id}-"
+    changed = False
+    for row in rows:
+        key = str(row.get("idempotency_key") or "")
+        if not key.startswith(prefix):
+            continue
+        if validate_brand_id(str(row.get("brand_id") or "")) != brand_id:
+            continue
+        plat = _normalize_platform(str(row.get("platform") or ""))
+        if plat in picked:
+            if str(row.get("status") or "") == "skipped":
+                row["status"] = "pending"
+                row.pop("skipped_reason", None)
+                changed = True
+            continue
+        if str(row.get("status") or "") != "pending":
+            continue
+        row["status"] = "skipped"
+        row["skipped_reason"] = "channel not picked"
+        row["human_approved"] = False
+        row["human_approved_at"] = None
+        changed = True
+    if changed:
+        _rewrite_jsonl(_queue_path(), rows)
 
-    campaign_data = _load_campaign_data()
-    sidecars = sorted((_data_dir() / "draft-assets").glob("*.json"))
-    enqueued = 0
-    skipped = 0
-    brands_touched: set[str] = set()
 
-    for path in sidecars:
-        try:
-            sidecar = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            skipped += 1
-            continue
-        if not isinstance(sidecar, dict):
-            skipped += 1
-            continue
-        brand_id = str(sidecar.get("brand_id") or "")
-        if not brand_id:
-            skipped += 1
-            continue
-        if brand and brand_id != brand:
-            continue
-        asset_id = str(sidecar.get("asset_id") or path.stem)
-        qc = sidecar.get("qc") if isinstance(sidecar.get("qc"), dict) else {}
-        if str(qc.get("verdict") or "").lower() in ("fail", "failed", "reject"):
-            skipped += 1
-            continue
-        _cid, asset = _campaign_asset_for_id(campaign_data, asset_id)
-        caption = str((asset or {}).get("caption") or "")
-        if not caption.strip():
-            skipped += 1
-            continue
-        inbox_item_id = str(sidecar.get("source_inbox_item_id") or "")
-        rows = enqueue_for_intended_channels(
-            brand_id=brand_id,
-            caption_preview=caption,
-            inbox_item_id=inbox_item_id,
-            asset_id=asset_id,
-            asset=asset,
-            sidecar=sidecar,
-        )
-        sync_queue_rows_for_asset(
-            brand_id=brand_id,
-            asset_id=asset_id,
-            caption=caption,
-            asset=asset,
-            sidecar=sidecar,
-        )
-        if rows:
-            brands_touched.add(brand_id)
-            enqueued += len(rows)
+def set_post_channels(
+    *,
+    brand_id: str,
+    calendar_id: str,
+    channels: list[str],
+) -> dict[str, Any]:
+    """Set picked channels on the post asset; skip or revive delivery rows."""
+    from _lib import onepost  # noqa: PLC0415
+    from _lib.unified_inbox import post_state_for  # noqa: PLC0415
 
+    brand_id = validate_brand_id(brand_id)
+    cal_id = str(calendar_id or "").strip()
+    if not cal_id:
+        return {"ok": False, "error": "calendar_id required", "code": "bad_request"}
+    state_doc = post_state_for(brand_id, cal_id)
+    if not state_doc:
+        return {"ok": False, "error": "calendar record not found", "code": "not_found"}
+    if state_doc.get("channels_locked"):
+        return {"ok": False, "error": "channels locked", "code": "channels_locked"}
+    try:
+        picked = onepost.normalize_picked_channels([str(c) for c in channels], brand_id)
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc), "code": "bad_request"}
+
+    asset_id = str(state_doc.get("asset_id") or state_doc.get("post_id") or "")
+    if not asset_id:
+        return {"ok": False, "error": "no asset for moment", "code": "not_found"}
+    from _lib.unified_inbox import _campaign_asset_for_id, _load_campaign_data, _write_campaign_data  # noqa: PLC0415
+
+    data = _load_campaign_data()
+    _cid, asset = _campaign_asset_for_id(data, asset_id)
+    if not asset:
+        return {"ok": False, "error": "asset not found", "code": "not_found"}
+    asset["channels"] = list(picked)
+    _write_campaign_data(data)
+    side = _load_draft_sidecar(asset_id)
+    side["channels"] = list(picked)
+    sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+    sidecar_path.write_text(json.dumps(side, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    inbox_ref = str(state_doc.get("inbox_item_id") or "")
+    caption = str(asset.get("caption") or "")
+    enqueue_for_intended_channels(
+        brand_id=brand_id,
+        caption_preview=caption,
+        inbox_item_id=inbox_ref,
+        asset_id=asset_id,
+        asset=asset,
+        sidecar=side,
+    )
+    _mark_unpicked_rows_skipped(brand_id=brand_id, asset_id=asset_id, picked=set(picked))
+    after = post_state_for(brand_id, cal_id) or state_doc
     return {
         "ok": True,
-        "enqueued_rows": enqueued,
-        "skipped_sidecars": skipped,
-        "brands": sorted(brands_touched),
+        "channels_picked": picked,
+        "state": after.get("state"),
+        "deliveries": after.get("deliveries"),
     }
+
+
+def retry_delivery(
+    *,
+    brand_id: str,
+    calendar_id: str,
+    channel: str,
+) -> dict[str, Any]:
+    from _lib.unified_inbox import post_state_for  # noqa: PLC0415
+
+    brand_id = validate_brand_id(brand_id)
+    plat = _normalize_platform(channel)
+    state_doc = post_state_for(brand_id, calendar_id)
+    if not state_doc:
+        return {"ok": False, "error": "calendar record not found", "code": "not_found"}
+    asset_id = str(state_doc.get("asset_id") or "")
+    key = f"qc-{asset_id}-{plat}"
+    rows = _read_jsonl(_queue_path())
+    found: dict[str, Any] | None = None
+    for row in rows:
+        if str(row.get("idempotency_key") or "") == key:
+            found = row
+            break
+    if not found:
+        return {"ok": False, "error": "delivery not found", "code": "not_found"}
+    if str(found.get("status") or "") != "failed":
+        return {"ok": False, "error": "delivery is not failed", "code": "not_failed"}
+    found["status"] = "pending"
+    found["attempts"] = 0
+    found["last_error"] = None
+    found["last_attempt_at"] = None
+    _rewrite_jsonl(_queue_path(), rows)
+    return {"ok": True, "idempotency_key": key, "channel": plat}
+
+
+def skip_delivery(
+    *,
+    brand_id: str,
+    calendar_id: str,
+    channel: str,
+) -> dict[str, Any]:
+    from _lib.unified_inbox import post_state_for  # noqa: PLC0415
+
+    brand_id = validate_brand_id(brand_id)
+    plat = _normalize_platform(channel)
+    state_doc = post_state_for(brand_id, calendar_id)
+    if not state_doc:
+        return {"ok": False, "error": "calendar record not found", "code": "not_found"}
+    asset_id = str(state_doc.get("asset_id") or "")
+    key = f"qc-{asset_id}-{plat}"
+    rows = _read_jsonl(_queue_path())
+    found = False
+    for row in rows:
+        if str(row.get("idempotency_key") or "") == key:
+            row["status"] = "skipped"
+            row["skipped_reason"] = "dropped by operator"
+            row["human_approved"] = False
+            found = True
+            break
+    if not found:
+        return {"ok": False, "error": "delivery not found", "code": "not_found"}
+    _rewrite_jsonl(_queue_path(), rows)
+    return {"ok": True, "idempotency_key": key, "channel": plat}
 
 
 def sync_queue_rows_for_asset(
@@ -574,6 +742,7 @@ def enqueue_item(
     provenance: Optional[dict[str, Any]] = None,
     image_url: Optional[str] = None,
     image_path: Optional[str] = None,
+    post_id: Optional[str] = None,
 ) -> dict[str, Any]:
     """Append a pending queue row (no network)."""
     ensure_sandbox_layout()
@@ -611,6 +780,15 @@ def enqueue_item(
         item["image_url"] = str(image_url).strip()
     if image_path:
         item["image_path"] = str(image_path).strip()
+    if post_id:
+        item["post_id"] = str(post_id).strip()
+    elif key.startswith("qc-"):
+        from _lib.unified_inbox import asset_id_from_queue_row  # noqa: PLC0415
+
+        aid = asset_id_from_queue_row({"idempotency_key": key})
+        if aid:
+            item["post_id"] = aid
+    item.setdefault("attempts", 0)
     _append_jsonl(_queue_path(), item)
     return item
 
@@ -745,6 +923,7 @@ def release_moment(
     calendar_id: str,
     editor: str = "operator",
     dispatch: bool,
+    channels: list[str] | None = None,
 ) -> dict[str, Any]:
     """Set human_approved on this moment's pending rows. Scheduled → Released."""
     from _lib.unified_inbox import post_state_for  # noqa: PLC0415
@@ -754,16 +933,24 @@ def release_moment(
     if not cal_id:
         return {"ok": False, "error": "calendar_id required", "code": "bad_request"}
 
+    if channels is not None:
+        ch_result = set_post_channels(
+            brand_id=brand_id, calendar_id=cal_id, channels=list(channels)
+        )
+        if not ch_result.get("ok"):
+            return ch_result
+
     state_doc = post_state_for(brand_id, cal_id)
     if not state_doc:
         return {"ok": False, "error": "calendar record not found", "code": "not_found"}
 
     state = str(state_doc.get("state") or "")
-    sandbox = state_doc.get("sandbox") or []
+    picked = list(state_doc.get("channels_picked") or [])
+    deliveries = state_doc.get("deliveries") or []
     go_live = state_doc.get("go_live_date")
     would_publish_at = _would_publish_at_from_event_date(str(go_live or ""))
 
-    if state in ("released", "posted"):
+    if state in ("posted",):
         return {
             "ok": False,
             "error": "already released",
@@ -771,27 +958,35 @@ def release_moment(
             "state": state,
             "would_publish_at": would_publish_at,
         }
-    if state != "scheduled":
+    if state not in ("scheduled", "released", "partly_posted", "send_failed"):
         return {
             "ok": False,
             "error": f"not scheduled (state={state})",
             "code": "not_scheduled",
             "state": state,
         }
-    if not sandbox:
+    if not picked:
         return {
             "ok": False,
-            "error": "no publish channel queue row",
-            "code": "no_channel",
+            "error": "no channels picked",
+            "code": "no_channels",
             "state": state,
         }
 
     released: list[str] = []
-    for row in sandbox:
-        if str(row.get("status") or "") != "pending":
+    for d in deliveries:
+        if d.get("channel") not in picked:
             continue
-        key = str(row.get("idempotency_key") or "")
+        key = str(d.get("idempotency_key") or "")
         if not key:
+            continue
+        rows = _read_jsonl(_queue_path())
+        row = next((r for r in rows if str(r.get("idempotency_key") or "") == key), None)
+        if not row or str(row.get("status") or "") in ("skipped", "failed", "rejected"):
+            continue
+        if str(row.get("status") or "") != "pending":
+            if row.get("human_approved"):
+                released.append(key)
             continue
         if row.get("human_approved"):
             released.append(key)
@@ -874,6 +1069,9 @@ def dispatch_pending() -> dict[str, Any]:
 
     updated_rows: list[dict[str, Any]] = []
     for row in rows:
+        if str(row.get("status") or "") in ("skipped", "failed", "rejected", "dispatched"):
+            updated_rows.append(row)
+            continue
         if row.get("status") != "pending":
             updated_rows.append(row)
             continue
