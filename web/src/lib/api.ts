@@ -108,6 +108,13 @@ export type InboxItem = {
     template_reference_urls?: string[]
     archetype?: { id?: string; canvas?: string; schema?: string }
     compose_pending?: boolean
+    visual_gap?: {
+      reason?: string
+      label?: string
+      post_type?: string
+      archetype_id?: string | null
+      checked_at?: string
+    }
     source_inbox_item_id?: string
     oneshot?: {
       prompt_used?: string | null
@@ -1128,6 +1135,21 @@ export async function selectBrand(brandId: string) {
   }
   if (!res.ok) throw new Error(`select brand ${res.status}`)
   return res.json() as Promise<{ ok?: boolean; brand_id?: string }>
+}
+
+export async function recheckVisual(itemId: string) {
+  const res = await fetch(`/api/inbox/${encodeURIComponent(itemId)}/recheck-visual`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  return res.json() as Promise<{
+    ok?: boolean
+    gap?: boolean
+    decision?: { status?: string; label?: string; reason?: string }
+    error?: string
+  }>
 }
 
 export async function inboxAction(

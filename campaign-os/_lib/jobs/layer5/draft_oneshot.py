@@ -571,6 +571,12 @@ def process_draft_oneshot_row(
     brand_id: str,
     draft_ctx: ImageDraftContext | None = None,
 ) -> tuple[Optional[str], Optional[str]]:
+    from _lib.visual_gate import decide  # noqa: PLC0415
+
+    decision = decide(brand_id, item_id)
+    if decision.is_gap():
+        return None, f"gap:{decision.reason}"
+
     from _lib import llm_spend  # noqa: PLC0415
     from _lib.image_gen_router import (  # noqa: PLC0415
         ImageGenAuthError,

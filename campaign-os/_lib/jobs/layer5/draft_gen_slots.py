@@ -177,6 +177,7 @@ def finalize_gen_slots_from_krea_poll(
     merged.update(
         {
             "action": "draft_gen_slots",
+            "background_source": "generated",
             "gen_slots": {slot_id: bg_path},
             "photo_candidates": photo_candidates,
             "qc": qc_payload,
@@ -223,6 +224,14 @@ def process_draft_gen_slots_row(
 ) -> tuple[Optional[str], Optional[str]]:
     if str(row.get("status") or "").lower() == "waiting":
         return None, None
+
+    from _lib.visual_gate import decide  # noqa: PLC0415
+
+    decision = decide(brand_id, item_id)
+    if decision.is_gap():
+        return None, f"gap:{decision.reason}"
+    if decision.background != "generated_background":
+        return None, f"gap:{decision.reason or 'generated_background_not_allowed'}"
 
     from _lib.archetypes import select_archetype  # noqa: PLC0415
     from _lib.image_gen_router import ImageGenAuthError, generate_image_with_persistence  # noqa: PLC0415
@@ -430,6 +439,7 @@ def process_draft_gen_slots_row(
     merged.update(
         {
             "action": "draft_gen_slots",
+            "background_source": "generated",
             "gen_slots": gen_paths,
             "photo_candidates": photo_candidates,
             "qc": qc_payload,

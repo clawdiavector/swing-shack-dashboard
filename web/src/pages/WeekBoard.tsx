@@ -23,6 +23,7 @@ import {
   sastTodayIso,
   sastTomorrowIso,
   type PostingWeekDay,
+  type PostingWeekGapSummary,
   type PostingWeekPost,
 } from '../lib/postingWeek'
 
@@ -133,6 +134,7 @@ export function WeekBoard() {
   const [oneshotBusy, setOneshotBusy] = useState(false)
   const [scheduling, setScheduling] = useState(false)
   const [scheduleMessage, setScheduleMessage] = useState('')
+  const [weekGaps, setWeekGaps] = useState<PostingWeekGapSummary[]>([])
 
   const singleBrandId = scope === 'all' ? 'swing-shack' : scope
   const scheduleBrandIds = isAll ? brandIds : [singleBrandId]
@@ -171,6 +173,7 @@ export function WeekBoard() {
         setDays(merged.days_list || [])
         setUndated(isDayMode ? [] : merged.undated || [])
         setUndatedTotal(isDayMode ? 0 : merged.undated_total ?? merged.undated?.length ?? 0)
+        setWeekGaps(isDayMode ? [] : merged.gaps || [])
         setError('')
         return
       }
@@ -183,6 +186,7 @@ export function WeekBoard() {
           setDays(payload.days_list || [])
           setUndated(isDayMode ? [] : payload.undated || [])
           setUndatedTotal(isDayMode ? 0 : payload.undated_total ?? payload.undated?.length ?? 0)
+          setWeekGaps(isDayMode ? [] : payload.gaps || [])
           setError('')
         })
         .catch((err: Error) => setError(err.message))
@@ -336,6 +340,34 @@ export function WeekBoard() {
             ? 'Every post across operating brands — past three days, today through the next six, and undated backlog.'
             : 'Every post for this brand — past three days, today through the next six, and undated backlog.'}
       </PageIntro>
+
+      {!isDayMode && weekGaps.length > 0 ? (
+        <section
+          className="rounded-2xl border border-yel/30 bg-yel/5 px-4 py-3"
+          data-testid="week-gaps-strip"
+        >
+          <h2 className="font-display text-sm font-semibold text-yel">Gaps this week</h2>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {weekGaps.map((row) => {
+              const key = `${row.post_type ?? ''}-${row.label ?? ''}`
+              const count = row.count ?? 0
+              const typeLabel = row.post_type ? String(row.post_type).replace(/_/g, ' ') : 'post'
+              return (
+                <li
+                  key={key}
+                  className="rounded-full border border-yel/40 bg-bg/60 px-3 py-1 text-xs font-semibold text-tx2"
+                  title={row.label}
+                >
+                  {typeLabel} × {count}
+                </li>
+              )
+            })}
+          </ul>
+          <p className="mt-2 text-xs text-tx3">
+            Measure templates with the campaign-os-template skill — gaps clear automatically once vetted.
+          </p>
+        </section>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <button

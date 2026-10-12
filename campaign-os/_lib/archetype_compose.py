@@ -677,46 +677,26 @@ _PHOTO_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp")
 
 
 def _filter_library_photo_paths(files: list[Path]) -> list[Path]:
-    """Prefer real venue shots over stand-ins and finished-post crops."""
+    """Prefer real venue shots; never return stand-ins or reference crops."""
+    from _lib.visual_gate import is_stand_in  # noqa: PLC0415
+
     venue = sorted(
-        (p for p in files if p.name.startswith(("venue-taildrop-", "venue-"))),
+        (
+            p
+            for p in files
+            if p.name.startswith(("venue-taildrop-", "venue-")) and not is_stand_in(p)
+        ),
         key=lambda p: p.name,
     )
     if venue:
         return venue
-    non_standin = sorted(
-        (p for p in files if not p.name.startswith("standin-")),
-        key=lambda p: p.name,
-    )
-    return non_standin if non_standin else files
+    return sorted((p for p in files if not is_stand_in(p)), key=lambda p: p.name)
 
 
 def _library_photo(brand_id: str, rel_dir: str, seed: str):
-    rel = rel_dir.strip().strip("/")
-    merged: dict[str, Path] = {}
-    ref_by_name: dict[str, Path] = {}
-    for d in _candidate_brand_dirs(brand_id):
-        folder = d / rel
-        if not folder.is_dir():
-            continue
-        files = sorted(p for p in folder.iterdir() if p.suffix.lower() in _PHOTO_SUFFIXES)
-        if rel.endswith("/photos"):
-            ref_rel = rel[: -len("photos")] + "references"
-            ref_folder = d / ref_rel.strip("/")
-            if ref_folder.is_dir():
-                for p in ref_folder.iterdir():
-                    if p.suffix.lower() in _PHOTO_SUFFIXES:
-                        ref_by_name.setdefault(p.name, p)
-        for p in files:
-            merged.setdefault(p.name, p)
-    files = sorted(merged.values(), key=lambda p: p.name)
-    ref_files = sorted(ref_by_name.values(), key=lambda p: p.name)
-    if rel.endswith("/photos"):
-        if not files and ref_files:
-            files = ref_files
-        elif files and ref_files and all(p.name.startswith("standin-") for p in files):
-            files = ref_files
-    files = _filter_library_photo_paths(files)
+    from _lib.visual_gate import list_trusted_library_photos  # noqa: PLC0415
+
+    files = list_trusted_library_photos(brand_id, rel_dir)
     if files:
         return _load_image(files[zlib.crc32(seed.encode("utf-8")) % len(files)])
     return None

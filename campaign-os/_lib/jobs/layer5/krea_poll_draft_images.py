@@ -285,6 +285,15 @@ def _complete_row(
             row["note"] = "oneshot poll finalize failed"
             return
     else:
+        from _lib.visual_gate import decide, record_gap_for_moment  # noqa: PLC0415
+
+        poll_decision = decide(brand_id, item_id)
+        if poll_decision.is_gap():
+            record_gap_for_moment(brand_id, item_id, poll_decision)
+            row["status"] = "gap"
+            row["note"] = poll_decision.label[:240]
+            image_jobs_state.drop_entry(item_id)
+            return
         _finalize_draft_from_poll(
             brand_id=brand_id,
             item_id=item_id,

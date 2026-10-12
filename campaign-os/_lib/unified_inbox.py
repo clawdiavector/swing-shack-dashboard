@@ -670,6 +670,10 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 meta["composed"] = sidecar["composed"]
             if sidecar.get("archetype"):
                 meta["archetype"] = sidecar["archetype"]
+            if sidecar.get("visual_gap"):
+                meta["visual_gap"] = sidecar["visual_gap"]
+                meta["image_url"] = None
+                meta["image_path"] = None
             from _lib.template_catalog import attach_template_fields  # noqa: PLC0415
 
             attach_template_fields(
@@ -896,6 +900,7 @@ POST_STATES = frozenset(
         "drafting",
         "needs_fix",
         "draft_ready",
+        "gap",
         "scheduled",
         "released",
         "posted",
@@ -1174,6 +1179,10 @@ def _derive_post_state(
         return "released", None
     if draft and draft.get("draft_bucket") == "approved":
         return "scheduled", None
+    from _lib.visual_gate import decide  # noqa: PLC0415
+
+    if decide(index.brand_id, inbox_item_id).is_gap():
+        return "gap", None
     if draft and caption_ok and has_image:
         return "draft_ready", None
     if _image_job_failed(index, inbox_item_id):
@@ -1246,6 +1255,7 @@ def _next_action_for_state(state: str, *, needs_fix_reason: str | None) -> str:
         "drafting": "Draft in progress",
         "needs_fix": "Needs fix",
         "draft_ready": "Ready to review",
+        "gap": "Visual gap",
         "scheduled": "On the shelf",
         "released": "Waiting to go out",
         "posted": "Posted",
@@ -1280,7 +1290,13 @@ def post_state(
         work_rows=work_rows,
         inbox_item_id=inbox_item_id,
     )
+    from _lib.visual_gate import decide  # noqa: PLC0415
+
+    visual_decision = decide(index.brand_id, inbox_item_id)
     flags = _compute_flags(record, state=state, now=now)
+    if visual_decision.is_gap() and state in ("scheduled", "released", "posted"):
+        if "untrusted_visual" not in flags:
+            flags.append("untrusted_visual")
     stages, stage = _rollup_stages(
         has_moment=True,
         draft=draft,
@@ -1334,6 +1350,10 @@ def post_state(
     }
     if needs_fix_reason:
         out["needs_fix_reason"] = needs_fix_reason
+    if state == "gap":
+        out["image_url"] = None
+        out["gap"] = visual_decision.as_gap_payload()
+        out["next_action"] = visual_decision.label or out.get("next_action")
     from _lib.template_catalog import attach_template_fields  # noqa: PLC0415
 
     attach_template_fields(
@@ -1484,6 +1504,39 @@ def week_board(
         if st in state_counts:
             state_counts[st] += 1
 
+    gap_agg: dict[tuple[str, str], dict[str, Any]] = {}
+    for day in days_list:
+        for post in day.get("posts") or []:
+            if str(post.get("state") or "") != "gap":
+                continue
+            gap = post.get("gap") if isinstance(post.get("gap"), dict) else {}
+            post_type = str(gap.get("post_type") or post.get("post_type") or "")
+            label = str(gap.get("label") or post.get("next_action") or "Gap")
+            key = (post_type, label)
+            bucket = gap_agg.setdefault(
+                key,
+                {"post_type": post_type, "label": label, "count": 0, "calendar_ids": []},
+            )
+            bucket["count"] += 1
+            cal_id = str(post.get("calendar_id") or "")
+            if cal_id and cal_id not in bucket["calendar_ids"]:
+                bucket["calendar_ids"].append(cal_id)
+    for post in undated_posts:
+        if str(post.get("state") or "") != "gap":
+            continue
+        gap = post.get("gap") if isinstance(post.get("gap"), dict) else {}
+        post_type = str(gap.get("post_type") or post.get("post_type") or "")
+        label = str(gap.get("label") or post.get("next_action") or "Gap")
+        key = (post_type, label)
+        bucket = gap_agg.setdefault(
+            key,
+            {"post_type": post_type, "label": label, "count": 0, "calendar_ids": []},
+        )
+        bucket["count"] += 1
+        cal_id = str(post.get("calendar_id") or "")
+        if cal_id and cal_id not in bucket["calendar_ids"]:
+            bucket["calendar_ids"].append(cal_id)
+
     return {
         "ok": True,
         "brand": brand_id,
@@ -1503,8 +1556,10 @@ def week_board(
             "posted": state_counts.get("posted", 0),
             "candidates": state_counts.get("candidate", 0),
             "needs_fix": state_counts.get("needs_fix", 0),
+            "gaps": state_counts.get("gap", 0),
             "stale": sum(1 for d in days_list for p in d["posts"] if "stale" in (p.get("flags") or [])),
         },
+        "gaps": sorted(gap_agg.values(), key=lambda g: (-int(g.get("count") or 0), g.get("post_type") or "")),
     }
 
 
@@ -1819,6 +1874,20 @@ def find_item(item_id: str) -> Optional[dict[str, Any]]:
             return item
     if item_type == "draft_asset":
         return _draft_asset_item_by_campaign_key(key, now=datetime.now(timezone.utc))
+    if item_type == "calendar_candidate":
+        try:
+            brand_id, cal_id = key.split(":", 1)
+        except ValueError:
+            return None
+        record = _calendar_record_for_key(brand_id, cal_id)
+        if record:
+            return {
+                "id": item_id,
+                "type": "calendar_candidate",
+                "brand_id": brand_id,
+                "title": str(record.get("title") or cal_id),
+                "status": "pending",
+            }
     return None
 
 

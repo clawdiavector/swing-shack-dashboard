@@ -118,6 +118,7 @@ DUAL_AUTH_PREFIXES = (
     '/api/ops/images-today/',
     '/api/ops/moments/',
     '/api/drafts/',
+    '/api/inbox/',
 )
 
 # L4 inbox item actions — approve/reject/edit only (not stub siblings).
@@ -18976,6 +18977,13 @@ def ops_queue_enqueue():
         if not brand_id:
             return jsonify({"ok": False, "error": "item has no brand_id"}), 400
 
+        if action in allowed_actions:
+            from _lib.visual_gate import decide, decision_for_api  # noqa: PLC0415
+
+            gap_decision = decide(brand_id, item_id)
+            if gap_decision.is_gap():
+                return jsonify({"ok": False, "gap": decision_for_api(gap_decision)}), 409
+
         cap_info = _ops_layers_mod.brand_images_today(brand_id)
         if cap_info.get("at_cap"):
             return jsonify({
@@ -19037,6 +19045,8 @@ def api_drafts_regenerate(draft_id: str):
         body = request.get_json(silent=True) or {}
         note = str(body.get("note") or "").strip()
         result = _draft_actions.regenerate_photo(draft_id, note=note)
+        if isinstance(result, dict) and result.get("gap"):
+            return jsonify({"ok": False, "gap": result.get("gap")}), 409
         if result.get("at_cap"):
             return jsonify(result), 409
         if not result.get("ok"):
@@ -19238,6 +19248,52 @@ def oneshot_day_enqueue():
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         _app_log.exception("oneshot_day_enqueue failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/<path:item_id>/recheck-visual', methods=['POST'])
+def inbox_recheck_visual(item_id: str):
+    """Re-run visual_gate.decide(); enqueue image phase when trusted."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+        from _lib.l5_create_enqueue import enqueue_create_actions
+        from _lib.visual_gate import clear_gap_if_trusted, decide, decision_for_api
+
+        item = _unified_inbox_mod.find_item(item_id)
+        if not item:
+            return jsonify({"ok": False, "error": "inbox item not found"}), 404
+        brand_id = str(item.get("brand_id") or "").strip()
+        if not brand_id:
+            return jsonify({"ok": False, "error": "item has no brand_id"}), 400
+
+        decision = decide(brand_id, item_id)
+        payload = {"ok": True, "decision": decision_for_api(decision), "enqueued": []}
+        if decision.is_gap():
+            return jsonify(payload), 200
+
+        clear_gap_if_trusted(brand_id, item_id, decision)
+        from pathlib import Path
+
+        from _lib.jobs.layer5.draft_assets import _read_queue, _write_queue
+
+        rows = _read_queue()
+        enqueued = enqueue_create_actions(
+            item_id=item_id,
+            brand_id=brand_id,
+            reason="recheck-visual",
+            rows=rows,
+            phase="image",
+        )
+        if rows:
+            _write_queue(rows)
+        payload["enqueued"] = enqueued
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_recheck_visual failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
