@@ -45303,6 +45303,21 @@ def planning_timeline(brand_id):
             # encounters an unserialisable object, the catch returns a
             # traceback via stderr + degraded payload so the SPA still
             # renders the spine.
+            # The operator's own important dates and the golf-moments list:
+            # until now only the Month grid read them.
+            notes_to_show = []
+            try:
+                from _lib.plan_extras import dates_to_note as _dates_to_note
+                note_rows = []
+                for yr in years:
+                    note_rows.extend(_filter_demo_out(_read_important_dates(yr)))
+                    note_rows.extend(_read_golf_moments(yr))
+                notes_to_show = _dates_to_note(
+                    brand_id, note_rows, start_d, end_d,
+                    already_named=[e.get("name") or e.get("title") for e in ordered],
+                )
+            except Exception as note_err:
+                print(f"[timeline] dates_to_note EXC: {type(note_err).__name__}: {note_err}", file=_sys_main.stderr, flush=True)
             try:
                 normalised = _normalize_for_json({
                     "ok": True,
@@ -45312,6 +45327,7 @@ def planning_timeline(brand_id):
                     "years": years,
                     "always_on_pillars": seed_always_on,
                     "events": ordered,
+                    "dates_to_note": notes_to_show,
                     "tier_counts": counts,
                     "source": sources[0] if sources else None,
                     "sources": sources,
@@ -45666,14 +45682,20 @@ def planning_waiting(brand_id):
     What the operator suggested and has not yet added to the Main Calendar,
     soonest first. Read-only; the Plan page lists these at the top so a new
     suggestion does not have to be found through Search Dates. Candidates
-    written by automation stay in Search Dates and are not listed here.
+    written by automation are listed apart, as scout_suggestions: the
+    soonest few with a real date, with probe and test rows left out.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in ("swing-shack", "stick", "bag-drop"):
         return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+    from _lib.plan_extras import scout_suggestions as _scout_suggestions
+    pending = _operator_pending_suggestions(brand_id)
+    scout_picks, scout_count = _scout_suggestions(
+        [r for r in pending if not _typed_by_operator(r)], _dt.date.today(),
+    )
     suggestions = []
-    for r in _operator_pending_suggestions(brand_id):
+    for r in pending:
         if not _typed_by_operator(r):
             continue
         suggestions.append({
@@ -45692,6 +45714,8 @@ def planning_waiting(brand_id):
         "brand_id": brand_id,
         "count": len(suggestions),
         "suggestions": suggestions,
+        "scout_suggestions": scout_picks,
+        "scout_count": scout_count,
     }), 200
 
 
