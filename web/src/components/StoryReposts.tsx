@@ -1,12 +1,19 @@
 import { CheckCircle2, ExternalLink, Undo2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { fetchStoryReposts, setStoryRepostStatus, type StoryRepost } from '../lib/api'
+import {
+  fetchStoryReposts,
+  fetchStorySuggestions,
+  setStoryRepostStatus,
+  type StoryRepost,
+  type StorySuggestion,
+} from '../lib/api'
 import { BrandChip } from './BrandChip'
 
 /** Links people sent Foreman to share to Stories. Tap, use the app's own "Share to story", tick off. */
 export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
   const [open, setOpen] = useState<StoryRepost[]>([])
   const [done, setDone] = useState<StoryRepost[]>([])
+  const [ideas, setIdeas] = useState<StorySuggestion[]>([])
   const [failed, setFailed] = useState(false)
 
   const load = useCallback(() => {
@@ -19,10 +26,16 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
       .catch(() => setFailed(true))
   }, [])
   useEffect(load, [load])
+  useEffect(() => {
+    fetchStorySuggestions()
+      .then((r) => setIdeas(r.suggestions))
+      .catch(() => setIdeas([]))
+  }, [])
 
   const keep = (r: StoryRepost) => !brandIds?.length || brandIds.includes(r.brand)
   const openRows = open.filter(keep)
   const doneRows = done.filter(keep)
+  const ideaRows = ideas.filter((i) => !brandIds?.length || brandIds.includes(i.brand))
 
   async function mark(id: string, status: 'open' | 'done') {
     try {
@@ -32,7 +45,7 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
     }
   }
 
-  if (!failed && !openRows.length && !doneRows.length) return null
+  if (!failed && !ideaRows.length && !openRows.length && !doneRows.length) return null
 
   return (
     <section
@@ -42,6 +55,28 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
     >
       <p className="text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">Stories to share</p>
       {failed ? <p className="text-sm text-tx2">Couldn’t load the story list. Try again in a minute.</p> : null}
+      {ideaRows.length ? (
+        <ul className="space-y-2" aria-label="Today's idea">
+          {ideaRows.map((i) => (
+            <li key={i.brand} className="flex flex-wrap items-center gap-2 text-sm text-tx2">
+              <BrandChip brandId={i.brand} />
+              <span className="font-semibold text-tx">Today: {i.feature}</span>
+              <span>· repost from {i.repost_from.name}</span>
+              {i.repost_from.instagram ? (
+                <a href={i.repost_from.instagram} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
+                  Instagram
+                </a>
+              ) : null}
+              {i.repost_from.facebook ? (
+                <a href={i.repost_from.facebook} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
+                  Facebook
+                </a>
+              ) : null}
+              {i.repost_from.look_for ? <span className="w-full text-xs text-tx3">{i.repost_from.look_for}</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <ul className="space-y-2">
         {openRows.map((r) => (
           <li key={r.id} className="flex flex-wrap items-center gap-2">

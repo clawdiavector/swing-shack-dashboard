@@ -14702,6 +14702,19 @@ def stories_route():
     return jsonify({"ok": True, "created": created, "item": item}), 201 if created else 200
 
 
+@app.route('/api/stories/suggestion', methods=['GET'])
+def stories_suggestion_route():
+    """GET /api/stories/suggestion?brand=<id> — today's story idea (Africa/Johannesburg date)."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from _lib import story_suggestion
+
+    brands = [request.args['brand']] if request.args.get('brand') else ['swing-shack', 'stick']
+    day = datetime.now(ZoneInfo('Africa/Johannesburg')).date()
+    out = [s for s in (story_suggestion.suggest(b, day) for b in brands) if s]
+    return jsonify({"ok": True, "suggestions": out})
+
+
 @app.route('/api/stories/<item_id>/<status>', methods=['POST'])
 def stories_status_route(item_id, status):
     """POST /api/stories/<id>/done (or /open to undo)."""

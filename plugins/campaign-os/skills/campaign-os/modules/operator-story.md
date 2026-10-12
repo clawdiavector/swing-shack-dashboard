@@ -39,3 +39,11 @@ Mark one done: `POST /api/stories/<id>/done`. Undo: `/open`. List: `GET /api/sto
 - Download the media or post it through Meta. Reposting with the app's own button keeps the original credit.
 - Add links from sites other than Instagram and Facebook.
 - Suggest a brand's latest releases. Pick things the shop stocks or services it offers.
+
+## Today's idea
+
+`GET /api/stories/suggestion?brand=<id>` returns what to feature today and which
+stocked brand to repost from (Instagram and Facebook page links). If someone asks
+"what should we story today", read it out: feature, brand, and the `look_for` line.
+The brand lists are `data/brand-directory/<brand>/story-brands.json`. RipIt has no
+handles yet and is skipped until they are added.

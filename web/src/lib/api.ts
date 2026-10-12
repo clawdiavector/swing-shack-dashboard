@@ -2268,3 +2268,15 @@ export function fetchStoryReposts() {
 export function setStoryRepostStatus(id: string, status: 'open' | 'done') {
   return postJson<{ ok: boolean }>(`/api/stories/${encodeURIComponent(id)}/${status}`, {})
 }
+
+export type StorySuggestion = {
+  brand: string
+  date: string
+  kind: 'retail' | 'service'
+  feature: string
+  repost_from: { id: string; name: string; instagram: string | null; facebook: string | null; look_for: string }
+}
+
+export function fetchStorySuggestions() {
+  return getJson<{ ok: boolean; suggestions: StorySuggestion[] }>('/api/stories/suggestion')
+}
