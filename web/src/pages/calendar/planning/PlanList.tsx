@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react'
-import { PIN_COLORS } from '../../../lib/planning'
+import { PIN_COLORS, tierLabel } from '../../../lib/planning'
 import type { PlanningEventDetail, PlanningTimelineEvent } from '../../../lib/planningTypes'
 import { EventDetail } from './EventDetail'
 import { useBrief } from './PlanningContextModal'
@@ -170,7 +170,7 @@ export function PlanList({
                   className="justify-self-start rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider"
                   style={{ background: c.bg, color: c.fg }}
                 >
-                  {tier}
+                  {tierLabel(tier)}
                 </span>
                 <span className="min-w-0">
                   <span className="text-sm font-bold text-tx">

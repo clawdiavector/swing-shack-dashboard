@@ -321,9 +321,9 @@ export function SuggestDateModal({ brand, brandId, onClose, onSubmitted, initial
               {(
                 [
                   { id: 'ASSESS', label: 'Let Campaign OS assess' },
-                  { id: 'A-PIN', label: 'A-PIN' },
-                  { id: 'B-PIN', label: 'B-PIN' },
-                  { id: 'C-PIN', label: 'C-PIN' },
+                  { id: 'A-PIN', label: 'Major' },
+                  { id: 'B-PIN', label: 'Medium' },
+                  { id: 'C-PIN', label: 'Light' },
                 ] as const
               ).map((opt) => (
                 <label

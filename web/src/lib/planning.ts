@@ -69,22 +69,29 @@ export const PIN_COLORS: Record<
     fg: '#f0a030',
     bar: '#f0a030',
     barBg: 'rgba(240,160,48,0.10)',
-    label: 'A-PIN major commercial',
+    label: 'Major commercial push',
   },
   'B-PIN': {
     bg: 'rgba(20,184,166,0.16)',
     fg: '#14b8a6',
     bar: '#14b8a6',
     barBg: 'rgba(20,184,166,0.10)',
-    label: 'B-PIN content week',
+    label: 'Medium content week',
   },
   'C-PIN': {
     bg: 'rgba(148,163,184,0.10)',
     fg: '#94a3b8',
     bar: '#94a3b8',
     barBg: 'rgba(148,163,184,0.06)',
-    label: 'C-PIN light hook',
+    label: 'Light hook',
   },
+}
+
+const TIER_NAMES: Record<string, string> = { 'A-PIN': 'Major', 'B-PIN': 'Medium', 'C-PIN': 'Light' }
+
+/** The name a tier is shown by. Stored values stay A-PIN / B-PIN / C-PIN. */
+export function tierLabel(tier?: string | null): string {
+  return TIER_NAMES[tier || ''] || tier || '—'
 }
 
 export const LANE_FILTER_ORDER = Object.keys(LANE_META)
