@@ -89,6 +89,12 @@ export const PIN_COLORS: Record<
 
 export const LANE_FILTER_ORDER = Object.keys(LANE_META)
 
+/** A lane's label for a brand. The series names after the dot ("Ask Stick") are Stick's own. */
+export function laneLabel(lane: string | undefined, brand: string): string {
+  const label = LANE_META[lane || '']?.label || lane || '—'
+  return /stick/i.test(brand) ? label : label.split(' · ')[0]
+}
+
 /** Local calendar YYYY-MM-DD (fixes Classic UTC slice bug B3). */
 export function formatLocalIso(d: Date): string {
   const y = d.getFullYear()
