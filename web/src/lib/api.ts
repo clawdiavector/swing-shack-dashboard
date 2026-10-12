@@ -2337,7 +2337,7 @@ export function setStoryRepostStatus(id: string, status: 'open' | 'done') {
 export type StorySuggestion = {
   brand: string
   date: string
-  kind: 'retail' | 'service'
+  kind: 'retail' | 'service' | 'moment'
   feature: string
   repost_from: { id: string; name: string; instagram: string | null; facebook: string | null; look_for: string }
 }

@@ -58,9 +58,11 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
       {ideaRows.length ? (
         <ul className="space-y-2" aria-label="Today's idea">
           {ideaRows.map((i) => (
-            <li key={i.brand} className="flex flex-wrap items-center gap-2 text-sm text-tx2">
+            <li key={`${i.brand}-${i.kind}`} className="flex flex-wrap items-center gap-2 text-sm text-tx2">
               <BrandChip brandId={i.brand} />
-              <span className="font-semibold text-tx">Today: {i.feature}</span>
+              <span className="font-semibold text-tx">
+                {i.kind === 'moment' ? 'Golf moment' : i.kind === 'service' ? 'Service' : 'Retail'}: {i.feature}
+              </span>
               <span>· repost from {i.repost_from.name}</span>
               {i.repost_from.instagram ? (
                 <a href={i.repost_from.instagram} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
