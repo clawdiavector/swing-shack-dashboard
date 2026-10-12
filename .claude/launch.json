@@ -9,6 +9,12 @@
         "cd campaign-os && DATA_DIR=\"$PWD/data\" PORT=8010 python3 app.py"
       ],
       "port": 8010
+    },
+    {
+      "name": "campaign-os-win",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", ".claude\\campaign-os-win.cmd"],
+      "port": 8010
     }
   ]
 }
