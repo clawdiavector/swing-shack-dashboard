@@ -19,7 +19,14 @@ import {
 } from '../lib/api'
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
-import { sandboxGoesOutIso, sandboxRowId, sandboxTitle } from '../lib/sandboxRow'
+import {
+  groupSandboxQueue,
+  sandboxGoesOutIso,
+  sandboxGroupIdempotencyKeys,
+  sandboxGroupPlatforms,
+  sandboxRowId,
+  sandboxTitle,
+} from '../lib/sandboxRow'
 import { formatStamp } from '../lib/stamp'
 
 export function Publish() {
@@ -34,19 +41,21 @@ export function Publish() {
   const [publishingKey, setPublishingKey] = useState('')
   const [publishNote, setPublishNote] = useState('')
 
-  function publishNowButton(idem: string) {
-    if (!idem) return undefined
+  function publishNowButton(idempotencyKeys: string | string[]) {
+    const keys = (Array.isArray(idempotencyKeys) ? idempotencyKeys : [idempotencyKeys]).filter(Boolean)
+    if (!keys.length) return undefined
+    const busyKey = keys.join('|')
     return (
       <button
         type="button"
-        disabled={publishingKey === idem}
+        disabled={publishingKey === busyKey}
         className="shrink-0 rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
         onClick={(event) => {
           event.preventDefault()
           event.stopPropagation()
-          setPublishingKey(idem)
+          setPublishingKey(busyKey)
           setPublishNote('')
-          void publishDispatchNow(idem)
+          void publishDispatchNow(keys)
             .then(({ data: body }) => {
               const err = body.errors?.join('; ') || body.error
               setPublishNote(err ? String(err) : 'Sent.')
@@ -129,8 +138,8 @@ export function Publish() {
     ? `${next.platform || 'post'} · ${next.brand_id || 'brand'}${next.created_at ? ` · ${formatStamp(next.created_at)}` : ''}`
     : 'Approve on Review, shelf it, then queue here — still sandbox only.'
 
-  const releasedWaiting = sandbox.filter((row) => row.human_approved)
-  const notReleased = sandbox.filter((row) => !row.human_approved)
+  const releasedWaiting = groupSandboxQueue(sandbox.filter((row) => row.human_approved))
+  const notReleased = groupSandboxQueue(sandbox.filter((row) => !row.human_approved))
   const queueCountLabel =
     sandbox.length > 0 && sandboxTotal > sandbox.length
       ? `${sandbox.length} of ${sandboxTotal}`
@@ -227,16 +236,17 @@ export function Publish() {
             <>
               <h3 className="mb-2 text-sm font-semibold text-tx2">Released, waiting to dispatch</h3>
               <ul className="mb-4 space-y-2">
-                {releasedWaiting.map((row) => {
+                {releasedWaiting.map(({ key, rows }) => {
+                  const row = rows[0]
                   const id = sandboxRowId(row)
                   const thumb = resolveAssetUrl(row.image_url || row.image_path)
                   const caption = String(row.caption || row.caption_preview || '').trim()
                   const goesOut = sandboxGoesOutIso(row)
-                  const platform = String(row.platform || 'post')
-                  const idem = String(row.idempotency_key || '')
+                  const platform = sandboxGroupPlatforms(rows)
+                  const idemKeys = sandboxGroupIdempotencyKeys(rows)
                   return (
                     <QueueItem
-                      key={`rel-${id || sandboxTitle(row)}`}
+                      key={`rel-${key}`}
                       to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
                       tip="Approved. The hourly job sends it when the time is due."
                       badge="released"
@@ -250,7 +260,7 @@ export function Publish() {
                       dateOnly={Boolean(goesOut)}
                       thumb={thumb || undefined}
                       thumbAlt={caption.slice(0, 80) || id}
-                      action={publishNowButton(idem)}
+                      action={publishNowButton(idemKeys)}
                     />
                   )
                 })}
@@ -263,16 +273,17 @@ export function Publish() {
               </ul>
               <h3 className="mb-2 text-sm font-semibold text-tx2">Not released yet</h3>
               <ul className="space-y-2">
-                {notReleased.map((row) => {
+                {notReleased.map(({ key, rows }) => {
+                  const row = rows[0]
                   const id = sandboxRowId(row)
                   const thumb = resolveAssetUrl(row.image_url || row.image_path)
                   const caption = String(row.caption || row.caption_preview || '').trim()
                   const goesOut = sandboxGoesOutIso(row)
-                  const platform = String(row.platform || 'post')
-                  const idem = String(row.idempotency_key || '')
+                  const platform = sandboxGroupPlatforms(rows)
+                  const idemKeys = sandboxGroupIdempotencyKeys(rows)
                   return (
                     <QueueItem
-                      key={`nr-${id || sandboxTitle(row)}`}
+                      key={`nr-${key}`}
                       to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
                       tip="Not released. Publish now approves it and sends it immediately."
                       badge="sandbox"
@@ -286,7 +297,7 @@ export function Publish() {
                       dateOnly={Boolean(goesOut)}
                       thumb={thumb || undefined}
                       thumbAlt={caption.slice(0, 80) || id}
-                      action={publishNowButton(idem)}
+                      action={publishNowButton(idemKeys)}
                     />
                   )
                 })}

@@ -23,3 +23,32 @@ export function sandboxGoesOutIso(row: SandboxQueueItem): string | null {
   const s = String(raw).trim()
   return s || null
 }
+
+export type SandboxQueueGroup = {
+  key: string
+  rows: SandboxQueueItem[]
+}
+
+/** One card per post (asset), not per platform row. */
+export function groupSandboxQueue(rows: SandboxQueueItem[]): SandboxQueueGroup[] {
+  const map = new Map<string, SandboxQueueItem[]>()
+  for (const row of rows) {
+    const aid = String(row.asset_id ?? '').trim()
+    const key = aid
+      ? `${String(row.brand_id ?? '').trim()}:${aid}`
+      : sandboxRowId(row) || sandboxTitle(row)
+    const bucket = map.get(key)
+    if (bucket) bucket.push(row)
+    else map.set(key, [row])
+  }
+  return [...map.entries()].map(([key, grouped]) => ({ key, rows: grouped }))
+}
+
+export function sandboxGroupPlatforms(rows: SandboxQueueItem[]): string {
+  const platforms = [...new Set(rows.map((r) => String(r.platform || 'post').trim()).filter(Boolean))]
+  return platforms.join(' · ')
+}
+
+export function sandboxGroupIdempotencyKeys(rows: SandboxQueueItem[]): string[] {
+  return rows.map((r) => String(r.idempotency_key ?? '').trim()).filter(Boolean)
+}

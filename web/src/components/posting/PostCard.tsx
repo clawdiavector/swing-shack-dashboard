@@ -1,7 +1,16 @@
 import { ImageIcon } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { inboxAction, releaseMoment, resolveAssetUrl, saveMomentFields } from '../../lib/api'
+import {
+  inboxAction,
+  releaseMoment,
+  resolveAssetUrl,
+  retryDelivery,
+  saveMomentFields,
+  setPostChannels,
+} from '../../lib/api'
+import { ChannelPicker } from './ChannelPicker'
+import { DeliveryChips } from './DeliveryChips'
 import { BrandChip } from '../BrandChip'
 import { useBrand, useBrandScope } from '../BrandSwitch'
 import {
@@ -99,17 +108,26 @@ export function PostCard({
   const [postTypeVal, setPostTypeVal] = useState(post.post_type ?? '')
   const [modeVal, setModeVal] = useState<RenderMode>(renderModeOf(post))
   const [captionVal, setCaptionVal] = useState('')
+  const [pickedChannels, setPickedChannels] = useState<string[]>(() => post.channels_picked ?? [])
+  const [channelErr, setChannelErr] = useState('')
+  const [savingChannels, setSavingChannels] = useState(false)
 
   useEffect(() => {
     setTitleVal(post.title ?? '')
     setAngleVal(post.angle ?? '')
     setPostTypeVal(post.post_type ?? '')
     setModeVal(renderModeOf(post))
-  }, [post.title, post.angle, post.post_type, post.render_mode])
+    setPickedChannels(post.channels_picked ?? [])
+  }, [post.title, post.angle, post.post_type, post.render_mode, post.channels_picked])
 
   const isCandidate = post.state === 'candidate'
   const isScheduled = post.state === 'scheduled'
   const isReleased = post.state === 'released'
+
+  const channelsAvailable = post.channels_available ?? []
+  const channelsLocked = Boolean(post.channels_locked)
+  const showChannelPicker =
+    channelsAvailable.length > 0 && Boolean(post.calendar_id) && (isCandidate || isScheduled || isReleased)
   const isHoliday = post.flags?.includes('holiday')
   const noDate = post.flags?.includes('no_date')
   const to = isScheduled || isReleased ? undefined : linkForPostState(post)
@@ -139,8 +157,32 @@ export function PostCard({
     if (!post.calendar_id) return
     setReleasing(true)
     await waitForReads?.()
-    await releaseMoment(rowBrandId, post.calendar_id)
+    const channels = pickedChannels.length ? pickedChannels : undefined
+    await releaseMoment(rowBrandId, post.calendar_id, 'christelle', channels)
     setReleasing(false)
+    onRefresh?.()
+  }
+
+  async function handleChannelsChange(next: string[]) {
+    if (!post.calendar_id || channelsLocked) return
+    setChannelErr('')
+    setPickedChannels(next)
+    setSavingChannels(true)
+    await waitForReads?.()
+    const { data: body } = await setPostChannels(rowBrandId, post.calendar_id, next)
+    setSavingChannels(false)
+    if (body.error) {
+      setChannelErr(body.error)
+      setPickedChannels(post.channels_picked ?? [])
+      return
+    }
+    onRefresh?.()
+  }
+
+  async function handleDeliveryRetry(channel: string) {
+    if (!post.calendar_id) return
+    await waitForReads?.()
+    await retryDelivery(rowBrandId, post.calendar_id, channel)
     onRefresh?.()
   }
 
@@ -217,7 +259,26 @@ export function PostCard({
             </p>
           ) : null}
           <p className="text-xs text-tx3">{factLine}</p>
-          {channel ? <p className="text-xs font-medium text-tx2">{channel}</p> : null}
+          {showChannelPicker ? (
+            <div className="space-y-1 pt-0.5" onClick={(e) => e.stopPropagation()}>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-tx3">Platforms</p>
+              <ChannelPicker
+                available={channelsAvailable}
+                comingSoon={post.channels_coming}
+                picked={pickedChannels.length ? pickedChannels : channelsAvailable.slice(0, 1)}
+                locked={channelsLocked || savingChannels}
+                onChange={(next) => void handleChannelsChange(next)}
+              />
+              {channelErr ? <p className="text-xs text-red">{channelErr}</p> : null}
+            </div>
+          ) : channel ? (
+            <p className="text-xs font-medium text-tx2">{channel}</p>
+          ) : null}
+          {post.deliveries?.length ? (
+            <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+              <DeliveryChips deliveries={post.deliveries} onRetry={(ch) => void handleDeliveryRetry(ch)} />
+            </div>
+          ) : null}
           {canEditFields && to ? (
             <Link to={to} className="text-xs font-semibold text-ac">
               Open →
