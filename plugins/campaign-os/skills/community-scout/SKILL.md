@@ -91,3 +91,34 @@ Approved by / posted by / date: (left blank)
   2026-09-18). A scheduled job needs Reddit's official OAuth API credentials, which
   Christelle must create; none are on file.
 - Log opened threads to avoid re-suggesting them.
+
+## Triage rules for F5Bot emails
+
+F5Bot emails a link and snippet for each keyword hit on Reddit. Open the thread (or work
+from the pasted text) and decide pass or skip.
+
+**Pass (draft a comment) when all are true:**
+1. A person asks a question or describes a real problem (distance loss, fitting, sim vs
+   course, building or buying a sim, where to get fitted, storing or carrying clubs).
+2. Under 12 months old, thread open, and under about 40 comments so a reply is seen.
+3. We can add something specific that is not already said in the replies.
+4. South Africa first (r/southafrica, r/johannesburg, r/capetown, local wording like
+   "rand", "Gauteng", "Paarl"); otherwise only if the advice stands alone anywhere.
+5. The community allows it: read the rules. Self-promotion banned, or hostile to brands:
+   value-only comment, no mention.
+
+**Mention the brand (disclosed) only when** the poster asks for a place, fitter or
+service in our area. First sentence says "I work with <brand>". No link unless asked.
+
+**Skip when any are true:**
+- Keyword is a false match (a person named Stick, "bag drop" at an airport, "swing shack" as a place elsewhere).
+- Memes, rage posts, politics, LIV or tour gossip, injuries, legal or refund disputes.
+- "Rate my swing" video dumps or sale listings.
+- A competitor is being discussed by name and we would be correcting or attacking them.
+- Already answered well, locked, or older than 12 months.
+- Poster is a minor.
+- The only thing we could say is a pitch.
+
+**Output per email:** Pass or Skip, the one-line reason, and for Pass the drafted comment
+in the standard format. Report counts at the top ("12 emails: 3 pass, 9 skip") so noisy
+keywords can be dropped from F5Bot.
