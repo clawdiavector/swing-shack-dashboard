@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, ExternalLink, Loader2 } from 'lucide-react'
 import { PlanningContextModal } from './PlanningContextModal'
+import { tierLabel } from '../../../lib/planning'
 
 type Candidate = {
   id?: string
@@ -320,7 +321,7 @@ export function PlanningCandidatesPanel({
                   <span
                     className={`rounded px-1.5 py-0.5 text-[9px] font-bold tracking-wider uppercase ${tier.bg} ${tier.fg}`}
                   >
-                    {c.suggested_tier || '—'}
+                    {tierLabel(c.suggested_tier)}
                   </span>
                   <span
                     className={`rounded px-1.5 py-0.5 text-[9px] font-bold tracking-wider uppercase ${conf.bg} ${conf.fg}`}

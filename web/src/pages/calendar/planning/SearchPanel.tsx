@@ -3,6 +3,7 @@ import { Calendar, ExternalLink, Loader2, MapPin, Search as SearchIcon } from 'l
 import { Tip } from '../../../components/ui'
 import { brandDisplayName } from '../../../lib/planning'
 import { BriefSection } from './PlanningContextModal'
+import { tierLabel } from '../../../lib/planning'
 
 // V2.9 §3+§4+§6+§7+§9 — Operator Date Intelligence.
 //
@@ -147,7 +148,7 @@ function ResultRow({
                 <MapPin className="h-3 w-3" /> {r.location}
               </span>
             ) : null}
-            {r.suggested_tier ? <span className="text-yel">{r.suggested_tier}</span> : null}
+            {r.suggested_tier ? <span className="text-yel">{tierLabel(r.suggested_tier)}</span> : null}
             {r.recommended_lead_time_weeks != null ? (
               <span>lead {r.recommended_lead_time_weeks}w</span>
             ) : null}
