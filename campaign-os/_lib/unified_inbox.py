@@ -643,6 +643,7 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                     "platform": primary_channel or row.get("platform"),
                     "primary_channel": primary_channel,
                     "event_date": event_date or None,
+                    "calendar_id": _calendar_id_from_inbox_ref(source_item),
                     "approval_status": row.get("approvalStatus"),
                     "caption": full_caption,
                     "image_path": image_path,
@@ -1317,7 +1318,11 @@ def post_state(
 
     visual_decision = decide(index.brand_id, moment_inbox_id)
     flags = _compute_flags(record, state=state, now=now)
-    if visual_decision.is_gap() and state in ("scheduled", "released", "posted"):
+    if (
+        visual_decision.is_gap()
+        and state in ("scheduled", "released", "posted")
+        and str(record.get("source_type") or "") != "operator"  # a person placed this image
+    ):
         if "untrusted_visual" not in flags:
             flags.append("untrusted_visual")
     stages, stage = _rollup_stages(
@@ -1869,6 +1874,7 @@ def _draft_asset_item_by_campaign_key(key: str, *, now: datetime) -> Optional[di
             "platform": primary_channel or platform,
             "primary_channel": primary_channel,
             "event_date": event_date or None,
+            "calendar_id": _calendar_id_from_inbox_ref(source_item),
             "approval_status": approval,
             "caption": caption,
             "image_path": image_path,

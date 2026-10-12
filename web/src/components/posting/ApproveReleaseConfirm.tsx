@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { postingChannelLabel } from '../../lib/postingWeek'
 
 /** Kyle: one outward-facing release confirm; delete this file + imports to revert Review to content-only approve. */
@@ -19,8 +20,10 @@ export function ApproveReleaseConfirmDialog({
   onConfirm: () => void
   busy?: boolean
 }) {
-  if (!open) return null
-  return (
+  if (!open || typeof document === 'undefined') return null
+  // Portal to <body>: inside a card with a transform, `fixed` is relative to the card and the
+  // Release button lands off-screen.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       role="dialog"
@@ -53,6 +56,7 @@ export function ApproveReleaseConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
