@@ -1,6 +1,7 @@
 {
   "hooks": {
-    "SessionStart": [{"matcher": "startup|resume", "hooks": [{"type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\"", "timeout": 60}]}],
+    "SessionStart": [{"matcher": "startup|resume", "hooks": [{"type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\"", "timeout": 60}]},
+      {"matcher": "startup|resume", "hooks": [{"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/campaign-os-mail/scripts/cos_mail.py\" check", "timeout": 10}]}],
     "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/prompt-relevant.py\"", "timeout": 5}]}],
     "Stop": [{"hooks": [{"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/stop-nudge.py\"", "timeout": 5}]}]
   }

@@ -15,7 +15,8 @@ python cos_mail.py status        # prints READY or what is missing
 ```
 Not READY, or the person has no inbox yet -> follow `SETUP.md` and walk them through it step by step. Do not guess keys.
 
-## Read your inbox (do this at session start, or when the user asks 'any mail?')
+## Read your inbox
+The plugin tells you at session start how many messages are unread. Also check when the user asks 'any mail?' or after they say they are waiting on a reply.
 ```
 python cos_mail.py inbox --unread          # list
 python cos_mail.py inbox --read "<id>"     # open one (id is printed under each item)
