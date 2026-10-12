@@ -95,3 +95,28 @@ Searched "fitting worth it", "lost distance launch monitor fitting", "home simul
 - Driver Shaft Advice (https://forums.golfwrx.com/topic/2111998-driver-shaft-advice-with-some-launch-monitor-data/): poster is well informed, has had fittings, and already has advice in the thread.
 - Swing Feel on the Down Swing: philosophical discussion, no question we can add to.
 - Ping MOI heads, PXG hybrid recommendations, wedge shafting: equipment-brand questions, no angle for us.
+
+---
+
+# Third scan: MyGolfSpy and Golf Monthly (same day)
+
+- **Golf Monthly:** `golfmonthly.com/forum` returns "page can't be found". No forum to scan.
+- **MyGolfSpy** (forum.mygolfspy.com) loads fine in Chrome. Read the Fittings, General Q&A and What Would the Forum Do? sections. It is a US forum; replies need a registered account.
+
+## 4. Any Back Nine Golf or other 24/7 sim facility members out there? (OPTIONAL, disclosed)
+
+- Brand: Swing Shack (Bag Drop for the member angle)
+- Link: https://forum.mygolfspy.com/topic/76589-any-back-nine-golf-or-other-247-sim-facility-members-out-there/
+- Forum / age / replies: General Q&A, posted September 23 (about 3 weeks old), 0 replies when checked
+- Why: a golfer deciding whether a 24/7 sim studio membership is worth it and what to ask: how often 24/7 access gets used, how easy it is to get times, whether unlimited access changes practice. It is a question about members' experience, and we are an operator, not a member, so a comment must say so.
+- Rules: open thread, no reply yet. The poster is in Massachusetts, so no brand mention is useful; only join if an operator's view is welcome.
+- Mode: disclosed, no brand name, no link.
+- Draft:
+
+  > I work at an indoor golf studio, so this is the operator side rather than a member's view. Before you join anywhere, ask three things: how many bays versus members (that tells you how hard it is to get a prime evening slot), whether access is first-come or bookable ahead, and what the quietest and busiest hours actually look like. For the 24/7 question, most members use the early or late hours less than they expect, but the ones who do get the most from it tend to go in short, regular sessions of 30 to 40 minutes, not long ones. The thing that changes how much you practice is having a plan for the session, like one club and one target at a time, not just unlimited time.
+
+## Skipped
+
+- Golf Club Fitting: Does It Really Make a Difference? (https://forum.mygolfspy.com/topic/76413-golf-club-fitting-does-it-really-make-a-difference/): 61 replies, started Aug 27, already thoroughly answered.
+- Fitting malpractice?, What to start with, other Fittings threads: 7 weeks to 3 months old, answered.
+- Everything else in the other sections: product reviews, sales, tour, off-topic.
