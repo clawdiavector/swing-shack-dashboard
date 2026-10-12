@@ -45860,10 +45860,12 @@ def planning_waiting(brand_id):
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in ("swing-shack", "stick", "bag-drop"):
         return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+    from zoneinfo import ZoneInfo
     from _lib.plan_extras import scout_suggestions as _scout_suggestions
     pending = _operator_pending_suggestions(brand_id)
     scout_picks, scout_count = _scout_suggestions(
-        [r for r in pending if not _typed_by_operator(r)], _dt.date.today(),
+        [r for r in pending if not _typed_by_operator(r)],
+        _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date(),
     )
     suggestions = []
     for r in pending:

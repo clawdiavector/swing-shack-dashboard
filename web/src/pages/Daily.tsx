@@ -150,9 +150,13 @@ export function Daily() {
   const [inboxItems, setInboxItems] = useState<InboxItem[] | null>(null)
   const [error, setError] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
+  // The counts below come from the inbox rows. If that fetch fails, show '—' and say so,
+  // never a 0 that reads as an empty desk.
+  const [inboxFailed, setInboxFailed] = useState(false)
 
   function load() {
     setInboxItems(null)
+    setInboxFailed(false)
     const runAll = async () => {
       setFailures([])
       // Sequential fan-outs (plan §3.5) — at most one 3-brand wave at a time.
@@ -184,7 +188,9 @@ export function Daily() {
         })),
       )
       inboxMerged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
-      setInboxItems(inboxMerged)
+      // A brand whose inbox failed would be counted as empty, so withhold the counts.
+      if (inboxFan.failures.length > 0) setInboxFailed(true)
+      else setInboxItems(inboxMerged)
     }
 
     if (isAll) {
@@ -206,7 +212,10 @@ export function Daily() {
         })
       fetchInbox('pending', brand)
         .then((payload) => setInboxItems(payload.items || []))
-        .catch(() => setInboxItems([]))
+        .catch((err: Error) => {
+          setInboxFailed(true)
+          setError(err.message || 'The inbox did not load.')
+        })
     }
     fetchLearn()
       .then(setLearn)
@@ -248,11 +257,11 @@ export function Daily() {
   ).length
   const staleDrafts = draftRows.filter((i) => i.sla_state === 'stale').length
   const approvedReady = counts?.approved ?? 0
+  // Built from the same inbox rows as the cards above, so the line never disagrees with them.
   const summary =
-    data?.summary ||
-    (data && inboxItems
+    data && inboxItems
       ? `${draftsWaiting} draft${draftsWaiting === 1 ? '' : 's'} to approve. ${candidatesWaiting} date${candidatesWaiting === 1 ? '' : 's'} to decide in Inbox. ${approvedReady} ready to publish.`
-      : '')
+      : data?.summary || ''
   const tickerItems = (inboxItems || []).slice(0, 7)
   const igWorkedPosts = posts.slice(0, 3)
   const igWithImmediateThumb = igWorkedPosts.filter((p) => Boolean(insightPostThumbSrc(p)))
@@ -427,7 +436,7 @@ export function Daily() {
           icon={Rocket}
           kicker="Do this right now"
           title={
-            data
+            data && inboxItems
               ? morningTitle({
                   layers,
                   learn,
@@ -435,7 +444,9 @@ export function Daily() {
                   stale: staleDrafts + staleCandidates,
                   pending: (draftsWaiting || 0) + (candidatesWaiting || 0),
                 })
-              : 'Loading today’s desk…'
+              : inboxFailed
+                ? 'Today’s counts did not load.'
+                : 'Loading today’s desk…'
           }
           meta={asOf ? `As of ${formatStamp(asOf)}` : undefined}
           extra={

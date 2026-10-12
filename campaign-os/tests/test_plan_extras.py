@@ -105,5 +105,20 @@ class ScoutSuggestions(unittest.TestCase):
         self.assertEqual(picks[0]["title"], "Moment 0")
 
 
+class SameEventTests(unittest.TestCase):
+    def _row(self, name):
+        return {"event_name": name, "start_date": "2026-11-01", "event_type": "SHOPPING"}
+
+    def test_a_longer_name_holding_the_calendars_name_is_still_the_same_event(self):
+        out = dates_to_note("stick", [self._row("Black Friday + Cyber Monday")], START, END,
+                            already_named=["Black Friday"])
+        self.assertEqual(out, [])
+
+    def test_a_short_name_does_not_hide_other_dates(self):
+        out = dates_to_note("stick", [self._row("Easter Monday"), self._row("Open Day")], START, END,
+                            already_named=["Easter", "Fathers Day"])
+        self.assertEqual({e["name"] for e in out}, {"Easter Monday", "Open Day"})
+
+
 if __name__ == "__main__":
     unittest.main()

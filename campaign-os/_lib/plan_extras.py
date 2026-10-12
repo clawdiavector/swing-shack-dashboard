@@ -45,6 +45,18 @@ def _key(text: Any) -> str:
     return re.sub(r"[^a-z0-9]+", "", str(text or "").lower())
 
 
+# A name must be this long before one containing the other counts as the same event.
+# Shorter names ("Open", "Easter") sit inside too many unrelated ones.
+_MIN_CONTAINED_LEN = 8
+
+
+def _same_event(a: str, b: str) -> bool:
+    """Same normalised name, or one holds the other and the shorter is long enough to mean it."""
+    if a == b:
+        return True
+    return min(len(a), len(b)) >= _MIN_CONTAINED_LEN and (a in b or b in a)
+
+
 def tier_of(notes: Any) -> Optional[str]:
     """The tier the operator wrote into a date's notes, as a pin. None if unstated."""
     m = _TIER_RE.search(str(notes or ""))
@@ -75,8 +87,9 @@ def dates_to_note(
     """Important dates inside [start, end], shaped like timeline events.
 
     Skips a date the calendar already carries under the same name (either
-    name containing the other, so "Black Friday" does not repeat beside
-    "Black Friday + Cyber Monday"), and a date local to another brand's town.
+    name containing the other when the shorter is long enough, so "Black Friday"
+    does not repeat beside "Black Friday + Cyber Monday"), and a date local to
+    another brand's town.
     """
     taken = [k for k in (_key(n) for n in already_named) if k]
     other_brands_local = {
@@ -96,7 +109,7 @@ def dates_to_note(
         if _mentions(row, other_brands_local):
             continue
         key = _key(name)
-        if (key, d_start) in seen or any(key in t or t in key for t in taken):
+        if (key, d_start) in seen or any(_same_event(key, t) for t in taken):
             continue
         seen.add((key, d_start))
         event_type = str(row.get("event_type") or "")
