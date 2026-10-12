@@ -1,0 +1,79 @@
+{
+  "schema": "https://campaign-os/brand-directory/visual-spec/platforms/v1",
+  "brand_id": "mcm",
+  "platforms": {
+    "instagram": {
+      "aspect_ratio": "4:5",
+      "aspect_px": "1080x1350",
+      "use_cases": ["single image post", "carousel card", "reel thumbnail", "story card"],
+      "text_safety_zone": "x 0.05-0.95 y 0.04-0.96",
+      "min_text_height_px": 40,
+      "model_hints": []
+    },
+    "tiktok": {
+      "aspect_ratio": "9:16",
+      "aspect_px": "1080x1920",
+      "use_cases": ["video thumbnail", "static overlay post", "story"],
+      "text_safety_zone": "top 30% and bottom 25% — middle band is safest for text",
+      "min_text_height_px": 50,
+      "model_hints": []
+    },
+    "twitter": {
+      "aspect_ratio": "16:9",
+      "aspect_px": "1200x675",
+      "use_cases": ["link preview card", "standalone image tweet", "header element"],
+      "text_safety_zone": "bottom third — title and CTA, top 2/3 for visual",
+      "min_text_height_px": 35,
+      "model_hints": []
+    },
+    "facebook": {
+      "aspect_ratio": "1.91:1",
+      "aspect_px": "1200x630",
+      "use_cases": ["link preview", "feed post", "event cover"],
+      "text_safety_zone": "x 0.05-0.95 y 0.08-0.92",
+      "min_text_height_px": 38,
+      "model_hints": []
+    },
+    "gmb": {
+      "aspect_ratio": "1.78:1",
+      "aspect_px": "720x405",
+      "use_cases": ["Google Business profile photo", "post image", "service photo"],
+      "text_safety_zone": "full frame — prefer no overlaid text, let the image speak",
+      "min_text_height_px": 30,
+      "model_hints": []
+    },
+    "story": {
+      "aspect_ratio": "9:16",
+      "aspect_px": "1080x1920",
+      "use_cases": ["instagram story", "facebook story", "vertical story card"],
+      "text_safety_zone": "top 30% and bottom 25% — middle band is safest for text",
+      "min_text_height_px": 50,
+      "model_hints": []
+    },
+    "gbp": {
+      "aspect_ratio": "4:3",
+      "aspect_px": "1200x900",
+      "use_cases": ["Google Business Profile post", "local post image"],
+      "text_safety_zone": "x 0.06-0.94 y 0.06-0.94",
+      "min_text_height_px": 30,
+      "model_hints": []
+    },
+    "instagram_story": {
+      "aspect_ratio": "9:16",
+      "aspect_px": "1080x1920",
+      "use_cases": ["instagram story"],
+      "text_safety_zone": "x 0.05-0.95 y 0.16-0.84",
+      "min_text_height_px": 50,
+      "model_hints": []
+    }
+  },
+  "pillars": {},
+  "_pillars_todo": "TODO: QUESTION 2 — Content pillars with model_hints / negative_prompts (see stick/visual-spec/platforms.json)",
+  "brand_voice_for_images": {
+    "always_include": [],
+    "never_include": [],
+    "lighting_mood": {},
+    "photojournalism_notes": [],
+    "_todo": "TODO: QUESTION 4 + 5 — Image-gen hints aligned with bible-visual.json (no invented brand colours)."
+  }
+}

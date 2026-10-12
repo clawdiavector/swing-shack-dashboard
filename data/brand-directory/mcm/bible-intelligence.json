@@ -1,0 +1,26 @@
+{
+  "_schema": "https://campaign-os/brand-directory/bible-intelligence/v1",
+  "brand_id": "mcm",
+  "version": "0.0-skeleton",
+  "confidence": "pending",
+  "last_updated": "2026-10-12T00:00:00Z",
+  "format": "structured",
+  "sources": [
+    {
+      "path": "data/brand-directory/mcm/bible-source.txt",
+      "label": "TODO: QUESTION 5 — MCM brand bible title/version"
+    },
+    {
+      "path": "data/brand-directory/mcm/strategy-source.txt",
+      "label": "TODO: QUESTION 2 — MCM strategy doc title/version"
+    }
+  ],
+  "voice": "TODO: QUESTION 4",
+  "visual_language": "TODO: QUESTION 5",
+  "colours": [],
+  "typography": "TODO: QUESTION 5",
+  "logo_rules": "TODO: QUESTION 5",
+  "photography": "TODO: QUESTION 5",
+  "product_fidelity": "TODO: QUESTION 7 — vehicle / finance representation rules",
+  "compliance_notes": "TODO: QUESTION 7"
+}
