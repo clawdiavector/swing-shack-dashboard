@@ -17,6 +17,36 @@ export type PostState =
   | 'scheduled'
   | 'released'
   | 'posted'
+  | 'partly_posted'
+  | 'send_failed'
+
+export type DeliveryStatus =
+  | 'not_picked'
+  | 'awaiting_approval'
+  | 'queued'
+  | 'sending'
+  | 'posted'
+  | 'failed'
+  | 'skipped'
+  | 'coming_soon'
+
+export type PostDelivery = {
+  channel: string
+  status: DeliveryStatus | string
+  idempotency_key?: string
+  would_publish_at?: string | null
+  dispatched_at?: string | null
+  external_id?: string | null
+  attempts?: number
+  last_error?: string | null
+}
+
+export type DeliverySummary = {
+  picked?: number
+  posted?: number
+  failed?: number
+  queued?: number
+}
 
 export type PostFlag = 'no_date' | 'no_channel' | 'stale' | 'holiday' | 'operator'
 
@@ -51,6 +81,8 @@ export const POST_STATE_LABELS: Record<PostState, string> = {
   scheduled: 'Scheduled',
   released: 'Released',
   posted: 'Posted',
+  partly_posted: 'Partly posted',
+  send_failed: 'Send failed',
 }
 
 export const POST_FLAG_LABELS: Record<PostFlag, string> = {
@@ -92,6 +124,13 @@ export type PostingWeekPost = {
   template_label?: string
   template_reference_urls?: string[]
   sandbox?: { would_publish_at?: string | null; platform?: string | null }[]
+  post_id?: string | null
+  channels_available?: string[]
+  channels_coming?: string[]
+  channels_picked?: string[]
+  channels_locked?: boolean
+  deliveries?: PostDelivery[]
+  delivery_summary?: DeliverySummary
 }
 
 export type PostingWeekDay = {
@@ -121,7 +160,17 @@ const GOES_OUT_MONTHS_SHORT = [
 const POSTING_CHANNEL_LABELS: Record<string, string> = {
   facebook: 'Facebook',
   instagram: 'Instagram',
+  gbp: 'Google Business',
+  youtube: 'YouTube',
+  tiktok: 'TikTok',
+}
+
+const POSTING_CHANNEL_ABBREV: Record<string, string> = {
+  facebook: 'FB',
+  instagram: 'IG',
   gbp: 'GBP',
+  youtube: 'YouTube',
+  tiktok: 'TikTok',
 }
 
 export type ShelfDateGroup = {
@@ -142,6 +191,7 @@ export type ShelfPayload = {
     undated?: number
     releasable_today?: number
     released_today?: number
+    attention?: number
   }
   error?: string
 }
@@ -217,7 +267,91 @@ export function postingChannelLabel(raw?: string | null): string | null {
     .trim()
     .toLowerCase()
   if (!key) return null
-  return POSTING_CHANNEL_LABELS[key] ?? null
+  return POSTING_CHANNEL_LABELS[key] ?? key.replace(/_/g, ' ')
+}
+
+export function postingChannelAbbrev(raw?: string | null): string {
+  const key = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+  if (!key) return ''
+  return POSTING_CHANNEL_ABBREV[key] ?? postingChannelLabel(key) ?? key
+}
+
+/** "IG + FB" for Review list lines. */
+export function channelsPickedSummary(channels?: string[] | null): string {
+  const list = (channels ?? []).map((c) => postingChannelAbbrev(c)).filter(Boolean)
+  return list.join(' + ')
+}
+
+export function defaultChannelsForBrand(_brandId?: string): string[] {
+  return ['instagram', 'facebook']
+}
+
+export function deliveryChipLabel(status?: string | null): string {
+  const key = String(status ?? '').toLowerCase()
+  switch (key) {
+    case 'not_picked':
+      return 'Not picked'
+    case 'awaiting_approval':
+      return 'Awaiting approval'
+    case 'queued':
+      return 'Queued'
+    case 'sending':
+      return 'Sending'
+    case 'posted':
+      return 'Posted'
+    case 'failed':
+      return 'Failed'
+    case 'skipped':
+      return 'Skipped'
+    case 'coming_soon':
+      return 'Coming later'
+    default:
+      return key ? key.replace(/_/g, ' ') : '—'
+  }
+}
+
+export function deliveryChipTone(status?: string | null): 'mute' | 'warn' | 'ok' | 'bad' | 'gold' {
+  const key = String(status ?? '').toLowerCase()
+  switch (key) {
+    case 'posted':
+      return 'ok'
+    case 'failed':
+      return 'bad'
+    case 'queued':
+    case 'sending':
+      return 'gold'
+    case 'awaiting_approval':
+      return 'warn'
+    default:
+      return 'mute'
+  }
+}
+
+/** One status line from post state + deliveries (when API sends them). */
+export function postFactLine(
+  post: Pick<PostingWeekPost, 'state' | 'next_action' | 'deliveries' | 'delivery_summary'>,
+  dayDate: string,
+  weekday: string,
+  goesOutAt?: string | null,
+): string {
+  const sastClock = formatSastClock(goesOutAt)
+  const datePart = dayDate ? formatGoesOut(dayDate, weekday) : null
+  const summary = post.delivery_summary
+  if (post.state === 'partly_posted' && summary) {
+    const failed = post.deliveries?.find((d) => d.status === 'failed')
+    const err = failed?.last_error ? `: ${String(failed.last_error).slice(0, 60)}` : ''
+    return `Posted to ${summary.posted ?? 0} of ${summary.picked ?? 0}${err}`
+  }
+  if (post.state === 'send_failed') {
+    const failed = post.deliveries?.find((d) => d.status === 'failed')
+    const ch = failed ? postingChannelLabel(failed.channel) : 'Channel'
+    const err = failed?.last_error ? `: ${String(failed.last_error).slice(0, 80)}` : ''
+    return `${ch} failed${err}`
+  }
+  const nextAction = post.next_action || '—'
+  return [datePart, sastClock, nextAction].filter(Boolean).join(' · ')
 }
 
 /** 13:00 SAST from a real UTC instant. Does not use the browser timezone. */
@@ -278,7 +412,10 @@ export function postFlagLabel(flag: PostFlag | string): string {
 export function postStateTone(state?: PostState | string | null): 'mute' | 'warn' | 'ok' | 'bad' {
   switch (state) {
     case 'needs_fix':
+    case 'send_failed':
       return 'bad'
+    case 'partly_posted':
+      return 'warn'
     case 'candidate':
     case 'drafting':
       return 'warn'
@@ -292,6 +429,10 @@ export function postStateTone(state?: PostState | string | null): 'mute' | 'warn
   }
 }
 
+export function isAttentionPostState(state?: PostState | string | null): boolean {
+  return state === 'partly_posted' || state === 'send_failed'
+}
+
 export function renderModeOf(post: PostingWeekPost): RenderMode {
   const raw = String(post.render_mode ?? '')
     .trim()
@@ -302,7 +443,13 @@ export function renderModeOf(post: PostingWeekPost): RenderMode {
 
 export function renderModeEditable(state?: PostState | string | null): boolean {
   const s = String(state ?? '')
-  return s !== 'scheduled' && s !== 'released' && s !== 'posted'
+  return (
+    s !== 'scheduled' &&
+    s !== 'released' &&
+    s !== 'posted' &&
+    s !== 'partly_posted' &&
+    s !== 'send_failed'
+  )
 }
 
 export const ONESHOT_POST_TYPES = new Set([
