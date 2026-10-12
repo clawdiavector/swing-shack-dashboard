@@ -18,6 +18,7 @@ import {
   lodgeDisabled,
   type InboxDateFilter,
   type InboxSourceFilter,
+  isCandidateItem,
 } from '../lib/inboxCandidates'
 import { sumCounts } from '../lib/mergeCounts'
 import { useLoadGate } from '../lib/useLoadGate'
@@ -226,6 +227,12 @@ export function InboxPage() {
     () => filterInboxCandidates(items, source, dateFilter),
     [items, source, dateFilter],
   )
+  // The fetch also returns drafts, which Approve drafts lists; count candidates only.
+  const candidateCount = useMemo(() => items.filter(isCandidateItem).length, [items])
+  const staleCandidateCount = useMemo(
+    () => items.filter((i) => isCandidateItem(i) && i.sla_state === 'stale').length,
+    [items],
+  )
 
   return (
     <div className="space-y-6">
@@ -240,8 +247,8 @@ export function InboxPage() {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard icon={Inbox} label="Pending" value={pending ?? '—'} hint="Candidates" tone="gold" />
-        <StatCard icon={RotateCcw} label="Stale" value={stale ?? '—'} hint="Needs a decision" tone="mute" />
+        <StatCard icon={Inbox} label="Pending" value={pending == null ? '—' : candidateCount} hint="Candidates" tone="gold" />
+        <StatCard icon={RotateCcw} label="Stale" value={stale == null ? '—' : staleCandidateCount} hint="Needs a decision" tone="mute" />
         <StatCard icon={BookMarked} label="Lodged today" value={approvedToday ?? '—'} hint="Booked today" tone="green" />
       </div>
 
