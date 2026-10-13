@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { useCallback, useEffect, useState } from 'react'
 import {
   KIND_LABEL,
@@ -252,6 +253,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
     setError(null)
     const e = take(await fn())
     if (e) setError(e)
+    else notifyAlertsChanged()
     setBusy(false)
   }
 

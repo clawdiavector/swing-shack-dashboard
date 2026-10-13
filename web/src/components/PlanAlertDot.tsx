@@ -1,0 +1,52 @@
+import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
+import { dotState, fetchAlerts, onAlertsChanged, type CalendarAlert } from '../lib/calendarAlerts'
+import { useBrand, useBrandScope } from './BrandSwitch'
+
+const REFRESH_MS = 5 * 60 * 1000
+
+/** A dot on the Plan menu item: red when an approved date is close and has
+ *  nothing ready, yellow when one is coming up. Nothing when all is ready. */
+export function PlanAlertDot({ className = '' }: { className?: string }) {
+  const { brandId } = useBrand()
+  const { isAll } = useBrandScope()
+  const loc = useLocation()
+  const [alerts, setAlerts] = useState<CalendarAlert[]>([])
+  const [tick, setTick] = useState(0)
+  const brand = isAll ? '' : brandId || ''
+
+  useEffect(() => onAlertsChanged(() => setTick((t) => t + 1)), [])
+
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), REFRESH_MS)
+    return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void fetchAlerts(brand).then((r) => {
+      if (!cancelled && r.ok) setAlerts(r.alerts)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [brand, loc.pathname, tick])
+
+  const { count, tone } = dotState(alerts)
+  if (tone === 'none') return null
+  const loud = tone === 'scream'
+  return (
+    <span
+      role="img"
+      data-testid="plan-alert-dot"
+      data-tone={tone}
+      aria-label={`${count} approved ${count === 1 ? 'date needs' : 'dates need'} a plan`}
+      title={`${count} approved ${count === 1 ? 'date needs' : 'dates need'} a plan`}
+      className={`pointer-events-auto absolute grid min-h-[14px] min-w-[14px] place-items-center rounded-full px-1 text-[9px] leading-none font-extrabold ${
+        loud ? 'bg-red text-bg motion-safe:animate-pulse' : 'bg-yel text-bg'
+      } ${className}`}
+    >
+      {count > 9 ? '9+' : count}
+    </span>
+  )
+}

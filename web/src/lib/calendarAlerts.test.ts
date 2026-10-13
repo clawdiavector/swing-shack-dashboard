@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { alertAction, alertHeadline, type CalendarAlert } from './calendarAlerts'
+import { alertAction, alertHeadline, dotState, type CalendarAlert } from './calendarAlerts'
 
 const a = (level: 'scream' | 'warn'): CalendarAlert => ({
   event_key: 'k',
@@ -33,5 +33,13 @@ describe('alertAction', () => {
     expect(alertAction('no_plan')).toBe('Make a plan')
     expect(alertAction('plan_draft')).toBe('Open the plan')
     expect(alertAction('plan_approved')).toBe('Open the plan')
+  })
+})
+
+describe('dotState', () => {
+  it('is quiet with nothing, yellow for warnings, red when anything screams', () => {
+    expect(dotState([])).toEqual({ count: 0, tone: 'none' })
+    expect(dotState([a('warn')])).toEqual({ count: 1, tone: 'warn' })
+    expect(dotState([a('warn'), a('scream')])).toEqual({ count: 2, tone: 'scream' })
   })
 })

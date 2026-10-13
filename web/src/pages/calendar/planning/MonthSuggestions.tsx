@@ -14,6 +14,7 @@ import {
   type Suggestion,
   type Undo,
 } from '../../../lib/calendarSuggestions'
+import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { actorName, planFromEvent } from '../../../lib/plan'
 import { tierLabel } from '../../../lib/planning'
 
@@ -56,6 +57,7 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
 
   const settle = useCallback(() => {
     setTick((t) => t + 1)
+    notifyAlertsChanged()
     onChanged()
   }, [onChanged])
 
@@ -94,6 +96,7 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
       return
     }
     setPlanNote('Brief and draft plan made. Find it under Plan, then List, to check and approve.')
+    notifyAlertsChanged()
     onChanged()
   }
 

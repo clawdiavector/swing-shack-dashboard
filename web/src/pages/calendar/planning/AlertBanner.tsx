@@ -1,7 +1,13 @@
 import { Loader2, Siren } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { alertAction, alertHeadline, fetchAlerts, type CalendarAlert } from '../../../lib/calendarAlerts'
+import {
+  alertAction,
+  alertHeadline,
+  fetchAlerts,
+  notifyAlertsChanged,
+  type CalendarAlert,
+} from '../../../lib/calendarAlerts'
 import { planFromEvent } from '../../../lib/plan'
 
 /** The loud one: approved dates that are close and have no plan or content.
@@ -34,6 +40,7 @@ export function AlertBanner({ brandId = '', refreshKey = 0 }: { brandId?: string
     }
     setDone((d) => ({ ...d, [a.event_key]: 'Draft plan made. Open it in Plan, check it, then approve.' }))
     setTick((t) => t + 1)
+    notifyAlertsChanged()
   }, [])
 
   if (!alerts.length) return null

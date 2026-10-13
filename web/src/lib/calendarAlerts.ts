@@ -51,3 +51,22 @@ export function alertHeadline(alerts: CalendarAlert[]): string {
 export function alertAction(state: AlertState): string {
   return state === 'no_plan' ? 'Make a plan' : 'Open the plan'
 }
+
+const CHANGED = 'cos:alerts-changed'
+
+/** Tell anything showing alerts (the menu dot, the banners) to look again. */
+export function notifyAlertsChanged(): void {
+  window.dispatchEvent(new Event(CHANGED))
+}
+
+/** Listen for notifyAlertsChanged; returns the function that stops listening. */
+export function onAlertsChanged(cb: () => void): () => void {
+  window.addEventListener(CHANGED, cb)
+  return () => window.removeEventListener(CHANGED, cb)
+}
+
+/** What the menu dot shows: red when anything screams, yellow when it only warns. */
+export function dotState(alerts: CalendarAlert[]): { count: number; tone: 'scream' | 'warn' | 'none' } {
+  if (!alerts.length) return { count: 0, tone: 'none' }
+  return { count: alerts.length, tone: alerts.some((a) => a.level === 'scream') ? 'scream' : 'warn' }
+}
