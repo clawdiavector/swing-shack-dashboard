@@ -76,3 +76,29 @@ def test_decisions_round_trip(tmp_path, monkeypatch):
     assert cs.clear_decision("stick", "note:x:2026-11-07") is True
     assert cs.clear_decision("stick", "note:x:2026-11-07") is False
     assert cs.read_decisions("stick") == {}
+
+
+def test_undo_tokens_work_once_and_lapse_after_a_day(tmp_path, monkeypatch):
+    import datetime as dt
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    now = dt.datetime(2026, 10, 13, 12, 0, tzinfo=dt.timezone.utc)
+    payload = {"kind": "approve", "key": "k", "calendar_id": "c1"}
+    token = cs.issue_undo("stick", payload, now=now)
+    assert cs.get_undo("stick", token, now=now + dt.timedelta(hours=1)) == payload
+    assert cs.get_undo("stick", "und-made-up", now=now) is None
+    assert cs.get_undo("stick", None, now=now) is None
+    assert cs.get_undo("stick", token, now=now + dt.timedelta(hours=25)) is None   # lapsed
+    cs.drop_undo("stick", token)
+    assert cs.get_undo("stick", token, now=now) is None                            # used
+    # issuing a new one sweeps out lapsed ones
+    old = cs.issue_undo("stick", payload, now=now - dt.timedelta(hours=30))
+    fresh = cs.issue_undo("stick", payload, now=now)
+    assert cs.get_undo("stick", old, now=now - dt.timedelta(hours=29)) is None
+    assert cs.get_undo("stick", fresh, now=now) == payload
+
+
+def test_an_agent_find_already_on_the_calendar_is_hidden_but_an_operators_stays():
+    rows = [row("c1", "Black Friday 2027 push", "2026-11-10"),
+            row("c2", "Black Friday 2027 push", "2026-11-11", created_by="operator")]
+    out = items(pending=rows, names=["Black Friday 2027 push"])
+    assert [i["calendar_id"] for i in out] == ["c2"]

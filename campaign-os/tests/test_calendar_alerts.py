@@ -70,3 +70,24 @@ def test_past_events_and_repeats_are_dropped_and_order_is_urgency():
 def test_today_and_tomorrow_wording():
     assert "is today" in run([ev("x", "Big day", "2026-10-13")])[0]["message"]
     assert "is tomorrow" in run([ev("x", "Big day", "2026-10-14")])[0]["message"]
+
+
+def test_an_event_already_under_way_with_nothing_ready_screams():
+    # Black Friday style: a long window that started yesterday, peak later
+    a = run([{"id": "x", "name": "Black Friday", "start": "2026-10-12", "end": "2026-11-30", "tier": "A-PIN"}])
+    assert len(a) == 1 and a[0]["level"] == "scream" and a[0]["in_progress"] is True
+    assert a[0]["days"] == 0 and "is on now" in a[0]["message"] and a[0]["ends"] == "2026-11-30"
+
+
+def test_an_event_that_has_ended_is_dropped_and_a_one_day_event_is_not_on_now_tomorrow():
+    assert run([{"id": "x", "name": "Over", "start": "2026-10-01", "end": "2026-10-12", "tier": "A-PIN"}]) == []
+    assert run([ev("x", "Yesterday", "2026-10-12")]) == []          # single day, already past
+    on_today = run([ev("x", "Today only", "2026-10-13")])
+    assert on_today and on_today[0]["in_progress"] is False and "is today" in on_today[0]["message"]
+    starts_today = run([{"id": "x", "name": "Week long", "start": "2026-10-13", "end": "2026-10-19", "tier": "A-PIN"}])
+    assert starts_today[0]["in_progress"] is True
+
+
+def test_content_booked_during_a_running_window_covers_it():
+    e = [{"id": "x", "name": "Black Friday", "start": "2026-10-12", "end": "2026-11-30", "tier": "A-PIN"}]
+    assert run(e, content=["2026-11-20"]) == []

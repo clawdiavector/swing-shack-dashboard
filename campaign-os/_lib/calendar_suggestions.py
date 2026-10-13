@@ -18,6 +18,7 @@ import datetime as _dt
 import json
 import os
 import re
+import uuid
 from typing import Any, Dict, Iterable, List, Optional
 
 from _lib.plan_profiles import event_kind
@@ -76,6 +77,10 @@ def month_items(
         mine = bool(typed_by_operator(r))
         if not mine and (d < today or _JUNK_TITLE_RE.search(title)):
             continue
+        # A find by an agent that is already on the calendar is not a suggestion.
+        # One the operator typed stays: they asked for it by name.
+        if not mine and any(_same_event(_key(title), t) for t in approved):
+            continue
         end = _parse(r.get("event_end") or r.get("end")) or d
         if not first <= d <= last:  # drawn once, on its first day
             continue
@@ -120,6 +125,71 @@ def month_items(
 
     out.sort(key=lambda i: (i["date"], i["title"]))
     return out
+
+
+# ── undo tokens ───────────────────────────────────────────────────────
+#
+# Approve and reject hand back a token; undo takes the token, not the details.
+# What to reverse is read from what the server stored when the action happened,
+# so a request cannot name some other record. A token works once and lapses
+# after a day.
+
+UNDO_TTL_HOURS = 24
+
+
+def _undo_path(brand_id: str) -> str:
+    return os.path.join(os.environ.get("DATA_DIR", "data"), "calendar-suggestion-undo",
+                        f"{brand_id}.json")
+
+
+def _read_undo(brand_id: str) -> Dict[str, Any]:
+    try:
+        with open(_undo_path(brand_id), "r", encoding="utf-8") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+
+
+def _write_undo(brand_id: str, d: Dict[str, Any]) -> None:
+    p = _undo_path(brand_id)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(d, f, ensure_ascii=False)
+    os.replace(tmp, p)
+
+
+def issue_undo(brand_id: str, payload: Dict[str, Any], now: Optional[_dt.datetime] = None) -> str:
+    """Store what an action did and return the token that reverses it."""
+    now = now or _dt.datetime.now(_dt.timezone.utc)
+    keep = {t: v for t, v in _read_undo(brand_id).items()
+            if _dt.datetime.fromisoformat(v["at"]) > now - _dt.timedelta(hours=UNDO_TTL_HOURS)}
+    token = "und-" + uuid.uuid4().hex[:16]
+    keep[token] = {"at": now.isoformat(), "payload": payload}
+    _write_undo(brand_id, keep)
+    return token
+
+
+def get_undo(brand_id: str, token: Any, now: Optional[_dt.datetime] = None) -> Optional[Dict[str, Any]]:
+    """The stored payload for a token that is known and has not lapsed, else None."""
+    now = now or _dt.datetime.now(_dt.timezone.utc)
+    rec = _read_undo(brand_id).get(str(token or ""))
+    if not rec:
+        return None
+    try:
+        if _dt.datetime.fromisoformat(rec["at"]) <= now - _dt.timedelta(hours=UNDO_TTL_HOURS):
+            return None
+    except (KeyError, ValueError):
+        return None
+    return rec.get("payload")
+
+
+def drop_undo(brand_id: str, token: Any) -> None:
+    d = _read_undo(brand_id)
+    if str(token or "") in d:
+        del d[str(token)]
+        _write_undo(brand_id, d)
 
 
 # ── decisions on important dates ──────────────────────────────────────

@@ -55,7 +55,9 @@ _WORDS = {
 }
 
 
-def _days_phrase(n: int) -> str:
+def _days_phrase(n: int, in_progress: bool = False) -> str:
+    if in_progress:
+        return "is on now"
     if n == 0:
         return "is today"
     if n == 1:
@@ -73,7 +75,9 @@ def find_alerts(
 ) -> List[Dict[str, Any]]:
     """Alerts for approved events, most urgent first.
 
-    events           [{id/event_key, name, start, tier}] approved on the calendar
+    events           [{id/event_key, name, start, end, tier}] approved on the calendar.
+                     One that has started and not ended is "on now": it screams
+                     if nothing is ready, since the time to prepare has gone.
     briefs_by_event  {event key: brief id}
     plans_by_brief   {brief id: live plan}
     content_dates    dates of content already booked (not made by a plan)
@@ -90,8 +94,13 @@ def find_alerts(
         tier = _tier(e.get("tier"))
         if tier not in WARN_DAYS:
             continue
-        days = (start - today).days
-        if days < 0 or days > WARN_DAYS[tier] or (name.lower(), start) in seen:
+        end = _parse(e.get("end") or e.get("event_end")) or start
+        if end < today:
+            continue
+        # A one-day event today is "today"; a longer one that has begun is "on now".
+        in_progress = start < today or (start == today and end > start)
+        days = 0 if in_progress else (start - today).days
+        if days > WARN_DAYS[tier] or (name.lower(), start) in seen:
             continue
         seen.add((name.lower(), start))
         brief_id = briefs_by_event.get(key) or ""
@@ -100,14 +109,16 @@ def find_alerts(
         if state == "on_calendar":
             continue
         window_start = start - _dt.timedelta(days=CONTENT_WINDOW_DAYS)
-        if any(window_start <= d <= start for d in booked):
+        if any(window_start <= d <= end for d in booked):
             continue
-        level = "scream" if days <= SCREAM_DAYS[tier] else "warn"
+        level = "scream" if in_progress or days <= SCREAM_DAYS[tier] else "warn"
         out.append({
             "event_key": key,
             "name": name,
             "date": start.isoformat(),
             "days": days,
+            "in_progress": in_progress,
+            "ends": end.isoformat(),
             "tier": tier,
             "level": level,
             "state": state,
@@ -115,7 +126,7 @@ def find_alerts(
             "plan_id": (plan or {}).get("plan_id"),
             "brand_id": brand_id,
             "kind": e.get("kind") or "standard",
-            "message": f"{name} {_days_phrase(days)} and {_WORDS[state]}.",
+            "message": f"{name} {_days_phrase(days, in_progress)} and {_WORDS[state]}.",
         })
     out.sort(key=lambda a: (a["level"] != "scream", a["days"], a["name"]))
     return out

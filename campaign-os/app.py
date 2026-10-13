@@ -46144,8 +46144,8 @@ def _alerts_for_brand(brand_id):
             spine = None
         for e in (spine or {}).get("events") or []:
             events.append({"id": e.get("id"), "name": e.get("name") or e.get("title"),
-                           "start": e.get("start") or e.get("public_peak"), "tier": e.get("tier"),
-                           "kind": _event_kind(e)})
+                           "start": e.get("start") or e.get("public_peak"), "end": e.get("end"),
+                           "tier": e.get("tier"), "kind": _event_kind(e)})
     content_dates = []
     for r in mc.latest_revisions(mc.list_records(brand_id) or []):
         if r.get("status") != "approved" or r.get("plan_id"):
@@ -46156,6 +46156,7 @@ def _alerts_for_brand(brand_id):
             # Someone chose this date for the calendar, so it is never quieter than B.
             events.append({"event_key": r.get("event_key") or r.get("calendar_id"),
                            "name": r.get("title") or r.get("name"), "start": start,
+                           "end": r.get("event_end"),
                            "tier": r.get("tier") if r.get("tier") in ("A-PIN", "B-PIN") else "B-PIN",
                            "kind": _event_kind(r)})
         elif kind == "content":
@@ -46280,7 +46281,13 @@ def calendar_suggestions_approve(brand_id):
         except (ValueError, PermissionError) as e:
             return jsonify({"ok": False, "error": str(e)}), 400
         cid, made = rec.get("calendar_id"), True
-    resp = planning_approve_candidate(brand_id, cid)
+    try:
+        resp = planning_approve_candidate(brand_id, cid)
+    except Exception:
+        _app_log.exception("calendar suggestion approve failed for %s", cid)
+        if made:
+            mc.transition_status(brand_id, cid, "ignored", reason="approval failed; not kept")
+        return jsonify({"ok": False, "error": "could not approve it; nothing was changed"}), 500
     code = 200
     if isinstance(resp, tuple):
         resp, code = resp[0], resp[1]
@@ -46292,9 +46299,10 @@ def calendar_suggestions_approve(brand_id):
     if item["source"] == "date":
         cs.record_decision(brand_id, item["key"], "approved", actor, calendar_id=cid,
                            event_key=data.get("event_key"))
-    return jsonify({"ok": True, "undo": {
-        "kind": "approve", "key": item["key"], "source": item["source"],
-        "calendar_id": cid, "event_key": data.get("event_key"), "month": body.get("month")}}), 200
+    undo = {"kind": "approve", "key": item["key"], "source": item["source"],
+            "calendar_id": cid, "event_key": data.get("event_key"), "month": body.get("month")}
+    undo["token"] = cs.issue_undo(brand_id, undo)
+    return jsonify({"ok": True, "undo": undo}), 200
 
 
 @app.route("/api/calendar-suggestions/<brand_id>/reject", methods=["POST"])
@@ -46318,9 +46326,10 @@ def calendar_suggestions_reject(brand_id):
     else:
         mc.transition_status(brand_id, item["calendar_id"], "ignored",
                              reason=f"rejected from the calendar view by {actor}")
-    return jsonify({"ok": True, "undo": {
-        "kind": "reject", "key": item["key"], "source": item["source"],
-        "calendar_id": item.get("calendar_id"), "month": body.get("month")}}), 200
+    undo = {"kind": "reject", "key": item["key"], "source": item["source"],
+            "calendar_id": item.get("calendar_id"), "month": body.get("month")}
+    undo["token"] = cs.issue_undo(brand_id, undo)
+    return jsonify({"ok": True, "undo": undo}), 200
 
 
 @app.route("/api/calendar-suggestions/<brand_id>/undo", methods=["POST"])
@@ -46331,7 +46340,12 @@ def calendar_suggestions_undo(brand_id):
         return bad
     from _lib import calendar_suggestions as cs
     from _lib import marketing_calendar as mc
-    u = (request.get_json(silent=True) or {}).get("undo") or {}
+    sent = (request.get_json(silent=True) or {}).get("undo") or {}
+    token = sent.get("token")
+    # What to reverse comes from what the server stored, never from the request.
+    u = cs.get_undo(brand_id, token)
+    if not u:
+        return jsonify({"ok": False, "error": "That can no longer be undone: it was already undone, or it is more than a day old."}), 404
     kind, source, key = u.get("kind"), u.get("source"), u.get("key")
     cid, event_key = u.get("calendar_id"), u.get("event_key")
     if kind not in ("approve", "reject") or not key:
@@ -46349,6 +46363,7 @@ def calendar_suggestions_undo(brand_id):
                                  reason="approval undone")
         if source == "date":
             cs.clear_decision(brand_id, key)
+    cs.drop_undo(brand_id, token)
     return jsonify({"ok": True}), 200
 
 

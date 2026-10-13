@@ -222,3 +222,22 @@ def test_month_steps_skips_superseded_plans():
     cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY, force=True)
     ids = {s["plan_id"] for s in cp.month_steps("stick", date(2026, 11, 1), date(2026, 12, 31))}
     assert first["plan_id"] not in ids and len(ids) == 1
+
+
+def test_late_is_worked_out_when_read_not_frozen_at_creation(monkeypatch):
+    p = cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY)["plan"]
+    assert not any(i["late"] for i in cp.get_plan("stick", p["plan_id"])["items"])
+    # three weeks on, the early steps have gone overdue without anyone editing the plan
+    monkeypatch.setattr(cp, "_today", lambda: date(2026, 12, 3))
+    items = cp.get_plan("stick", p["plan_id"])["items"]
+    overdue = [i for i in items if i["due"] < "2026-12-03"]
+    assert overdue and all(i["late"] for i in overdue)
+    assert not any(i["late"] for i in items if i["due"] >= "2026-12-03")
+    # done and removed steps are never late
+    cp.edit_item("stick", p["plan_id"], overdue[0]["item_id"], {"status": "done"})
+    cp.edit_item("stick", p["plan_id"], overdue[1]["item_id"], {"status": "removed"})
+    again = {i["item_id"]: i["late"] for i in cp.get_plan("stick", p["plan_id"])["items"]}
+    assert again[overdue[0]["item_id"]] is False and again[overdue[1]["item_id"]] is False
+    # the month list uses the same rule
+    steps = cp.month_steps("stick", date(2026, 11, 1), date(2026, 12, 31))
+    assert any(s["late"] for s in steps)

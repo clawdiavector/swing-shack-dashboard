@@ -42,6 +42,28 @@ EDITABLE_ITEM_FIELDS = ("title", "due", "kind", "channel", "note", "owner")
 
 
 
+def _today() -> date:
+    """Today in Johannesburg, where the team works, not the server's UTC day."""
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo("Africa/Johannesburg")).date()
+    except Exception:  # no tz database: fall back to the server's day
+        return date.today()
+
+
+def refresh_late(plan: Optional[dict], today: Optional[date] = None) -> Optional[dict]:
+    """Set each step's `late` from its date and today. A step is late when its
+    date has passed and it is not done or removed. Derived on every read, so a
+    step that goes overdue later turns red without anyone editing it."""
+    if not plan:
+        return plan
+    today = today or _today()
+    for i in plan.get("items") or []:
+        due = _parse_date(i.get("due"))
+        i["late"] = bool(due and due < today and i.get("status") not in ("done", "removed"))
+    return plan
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -122,7 +144,7 @@ def build_items(event_day: date, today: Optional[date] = None,
                 profile: str = "standard", duration_days: int = 0) -> list[dict]:
     """The proposed checklist for an event on `event_day`, soonest first,
     shaped by `profile` (see plan_profiles)."""
-    today = today or date.today()
+    today = today or _today()
     lead = (event_day - today).days
     rows = rows_for(profile, lead, duration_days)
     items = [_item(*r, event_day, today, source="template") for r in rows]
@@ -261,7 +283,7 @@ def month_steps(brand_id: str, first: date, last: date) -> list[dict]:
 
 
 def get_plan(brand_id: str, plan_id: str) -> Optional[dict]:
-    return _read_json(_plan_path(brand_id, plan_id))
+    return refresh_late(_read_json(_plan_path(brand_id, plan_id)))
 
 
 def list_plans(brand_id: str, status: Optional[str] = None) -> list[dict]:
@@ -273,7 +295,7 @@ def list_plans(brand_id: str, status: Optional[str] = None) -> list[dict]:
         if fn.endswith(".json"):
             p = _read_json(os.path.join(d, fn))
             if p and (not status or p.get("status") == status):
-                out.append(p)
+                out.append(refresh_late(p))
     return out
 
 
@@ -329,7 +351,7 @@ def edit_item(brand_id: str, plan_id: str, item_id: str, patch: dict,
     if "due" in changed:
         ev = _parse_date(plan["event_date"])
         item["days_before_event"] = (ev - _parse_date(item["due"])).days
-        item["late"] = _parse_date(item["due"]) < date.today()
+        item["late"] = _parse_date(item["due"]) < _today() and item.get("status") != "done"
         item["source"] = "operator"
     if changed:
         item["needs_real_video"] = (item["kind"] == "boost"
@@ -364,7 +386,7 @@ def add_item(brand_id: str, plan_id: str, item: dict,
         "owner": item.get("owner") or "marketing",
         "note": item.get("note") or "",
         "needs_real_video": kind == "boost" or "real video" in title.lower(),
-        "late": due < date.today(),
+        "late": due < _today(),
         "status": "kept",
         "source": "operator",
     }

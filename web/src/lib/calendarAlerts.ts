@@ -8,6 +8,9 @@ export type CalendarAlert = {
   name: string
   date: string
   days: number
+  /** Started and not yet over. */
+  in_progress?: boolean
+  ends?: string
   tier: string
   level: AlertLevel
   state: AlertState

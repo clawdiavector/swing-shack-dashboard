@@ -72,7 +72,7 @@ export function AlertBanner({ brandId = '', refreshKey = 0 }: { brandId?: string
                 a.level === 'scream' ? 'bg-red text-bg' : 'bg-yel/30 text-yel'
               }`}
             >
-              {a.days === 0 ? 'today' : `${a.days}d`}
+              {a.in_progress ? 'on now' : a.days === 0 ? 'today' : `${a.days}d`}
             </span>
             <EventTypeIcon kind={a.kind} />
             <span className="min-w-0 flex-1 text-sm font-semibold text-tx">{a.message}</span>

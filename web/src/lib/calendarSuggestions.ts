@@ -27,6 +27,8 @@ export type Undo = {
   calendar_id?: string | null
   event_key?: string | null
   month?: string
+  /** Issued by the server; undo works from this, once, for a day. */
+  token?: string
 }
 
 type Result = { ok: boolean; error?: string; items?: Suggestion[]; undo?: Undo }
