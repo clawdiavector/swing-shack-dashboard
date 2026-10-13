@@ -229,6 +229,17 @@ def propose_plan(brand_id: str, brief: dict, *, force: bool = False,
     return {"ok": True, "plan": plan, "existing": False}
 
 
+def sync_brief_status(plan: Optional[dict], brief: Optional[dict]) -> Optional[dict]:
+    """Copy the brief's current status onto the plan, so a brief approved
+    after the plan was proposed does not leave the plan stuck. Saves only
+    when it changed."""
+    if plan and brief and brief.get("status") != plan.get("brief_status"):
+        plan["brief_status"] = brief.get("status")
+        plan["updated_at"] = _now_iso()
+        _write_plan(plan)
+    return plan
+
+
 def get_plan(brand_id: str, plan_id: str) -> Optional[dict]:
     return _read_json(_plan_path(brand_id, plan_id))
 

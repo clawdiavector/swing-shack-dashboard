@@ -99,3 +99,11 @@ def test_boost_without_video_blocks_approval():
                          {"status": "removed"})
     r = cp.approve_plan("stick", p["plan_id"])
     assert not r["ok"] and "real human video" in r["error"]
+
+
+def test_sync_brief_status_unsticks_a_plan():
+    p = cp.propose_plan("stick", brief("draft"), today=TODAY)["plan"]
+    assert not cp.approve_plan("stick", p["plan_id"])["ok"]
+    cp.sync_brief_status(cp.get_plan("stick", p["plan_id"]), brief("approved"))
+    assert cp.get_plan("stick", p["plan_id"])["brief_status"] == "approved"
+    assert cp.approve_plan("stick", p["plan_id"])["ok"]

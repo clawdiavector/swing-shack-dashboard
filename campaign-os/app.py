@@ -25147,6 +25147,16 @@ def _plan_guard(brand_id):
     return None
 
 
+def _plan_sync(brand_id, plan):
+    """Refresh the plan's copy of its brief's status. Never raises."""
+    try:
+        if plan:
+            _plan_import().sync_brief_status(
+                plan, _cb_import()._read_brief(brand_id, plan.get("brief_id")))
+    except Exception:
+        pass
+
+
 @app.route('/api/plan/v1/<brand_id>/propose', methods=['POST'])
 def plan_v1_propose(brand_id):
     """POST body: {brief_id, force?}. Builds a dated checklist from the
@@ -25174,6 +25184,8 @@ def plan_v1_list(brand_id):
         return bad
     items = _plan_import().list_plans(brand_id,
                                       (request.args.get("status") or None))
+    for _p in items:
+        _plan_sync(brand_id, _p)
     return jsonify({"ok": True, "brand_id": brand_id,
                     "count": len(items), "plans": items}), 200
 
@@ -25189,6 +25201,7 @@ def plan_v1_get(brand_id, plan_id):
         return jsonify({"ok": False, "error": str(e)}), 400
     if not plan:
         return jsonify({"ok": False, "error": "plan not found"}), 404
+    _plan_sync(brand_id, plan)
     return jsonify({"ok": True, "plan": plan}), 200
 
 
@@ -25228,6 +25241,7 @@ def plan_v1_approve(brand_id, plan_id):
         return bad
     body = request.get_json(silent=True) or {}
     try:
+        _plan_sync(brand_id, _plan_import().get_plan(brand_id, plan_id))
         r = _plan_import().approve_plan(brand_id, plan_id,
                                         body.get("actor") or "operator")
     except ValueError as e:

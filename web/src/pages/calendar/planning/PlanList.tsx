@@ -1,7 +1,9 @@
 import { Loader2 } from 'lucide-react'
+import { useState } from 'react'
 import { PIN_COLORS, tierLabel } from '../../../lib/planning'
 import type { PlanningEventDetail, PlanningTimelineEvent } from '../../../lib/planningTypes'
 import { EventDetail } from './EventDetail'
+import { PlanPanel } from './PlanPanel'
 import { useBrief } from './PlanningContextModal'
 
 const MONTHS = [
@@ -44,15 +46,24 @@ function monthHeading(iso: string): string {
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
-/** The one next step for an entry on the calendar: create its Brief, or open it. */
-function NextStep({ brandId, ev }: { brandId: string; ev: PlanningTimelineEvent }) {
+type BriefState = ReturnType<typeof useBrief>
+
+/** The one next step for an entry on the calendar: create its Brief, or open it and its plan. */
+function NextStep({
+  brandId,
+  ev,
+  brief,
+  planOpen,
+  onTogglePlan,
+}: {
+  brandId: string
+  ev: PlanningTimelineEvent
+  brief: BriefState
+  planOpen: boolean
+  onTogglePlan: () => void
+}) {
   const eventKey = ev.event_key || ev.id
-  const { briefId, busy, refused, error, createBrief, briefUrl } = useBrief({
-    brandId,
-    eventKey,
-    knownBriefId: ev.brief_id || '',
-    lookup: false,
-  })
+  const { briefId, busy, refused, error, createBrief, briefUrl } = brief
   // A scheduled post is already made; it is not something to brief.
   const noBrief = ev.note_only
     ? 'Date to note'
@@ -62,15 +73,26 @@ function NextStep({ brandId, ev }: { brandId: string; ev: PlanningTimelineEvent 
 
   if (briefId) {
     return (
-      <a
-        href={briefUrl(briefId)}
-        target="_blank"
-        rel="noreferrer"
-        data-testid="plan-open-brief"
-        className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/25"
-      >
-        Open brief
-      </a>
+      <span className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={onTogglePlan}
+          aria-expanded={planOpen}
+          data-testid="plan-open-plan"
+          className="rounded-full border border-yel/40 bg-yel/15 px-3 py-1.5 text-xs font-semibold text-yel hover:bg-yel/25"
+        >
+          {planOpen ? 'Hide plan' : 'Plan'}
+        </button>
+        <a
+          href={briefUrl(briefId)}
+          target="_blank"
+          rel="noreferrer"
+          data-testid="plan-open-brief"
+          className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/25"
+        >
+          Open brief
+        </a>
+      </span>
     )
   }
   if (noBrief) {
@@ -112,6 +134,94 @@ function NextStep({ brandId, ev }: { brandId: string; ev: PlanningTimelineEvent 
   )
 }
 
+/** One calendar entry: its dates, its next step, and (once briefed) its plan. */
+function PlanRow({
+  brandId,
+  ev,
+  open,
+  heading,
+  eventDetail,
+  onOpenEvent,
+  onCloseEvent,
+}: {
+  brandId: string
+  ev: PlanningTimelineEvent
+  open: boolean
+  heading: string | null
+  eventDetail: PlanningEventDetail | null
+  onOpenEvent: (id: string) => void
+  onCloseEvent: () => void
+}) {
+  const brief = useBrief({
+    brandId,
+    eventKey: ev.event_key || ev.id,
+    knownBriefId: ev.brief_id || '',
+    lookup: false,
+  })
+  const [planOpen, setPlanOpen] = useState(false)
+  const tier = ev.tier || 'C-PIN'
+  const c = PIN_COLORS[tier] || PIN_COLORS['C-PIN']
+  const start = eventStart(ev)
+  const end = ev.end && ev.end !== start ? ev.end : ''
+  return (
+    <li>
+      {heading ? (
+        <p className="px-1 pt-4 pb-1 text-[11px] font-bold tracking-widest text-tx3 uppercase">
+          {heading}
+        </p>
+      ) : null}
+      <div className="flex items-center gap-3 rounded-md bg-bg2 px-3 py-2" data-testid="plan-list-row">
+        <button
+          type="button"
+          disabled={ev.note_only}
+          onClick={() => (open ? onCloseEvent() : onOpenEvent(ev.id))}
+          aria-expanded={ev.note_only ? undefined : open}
+          className="grid min-w-0 flex-1 grid-cols-[6.5rem_4rem_1fr] items-baseline gap-3 text-left enabled:hover:text-yel sm:grid-cols-[11.5rem_4rem_1fr]"
+        >
+          <span className="text-xs font-semibold text-tx2">
+            {start ? formatPlanDate(start) : 'No date yet'}
+            {end ? ` – ${formatPlanDate(end)}` : ''}
+          </span>
+          <span
+            className="justify-self-start rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider"
+            style={{ background: c.bg, color: c.fg }}
+          >
+            {tierLabel(tier)}
+          </span>
+          <span className="min-w-0">
+            <span className="text-sm font-bold text-tx">
+              {ev.name || '(untitled)'}
+              {ev.shopping_moment ? ' 🛍' : ''}
+            </span>
+            {ev.local ? (
+              <span className="ml-2 rounded bg-ac/15 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-ac uppercase">
+                Local
+              </span>
+            ) : null}
+            {ev.category ? <span className="ml-2 text-[11px] text-tx3">{ev.category}</span> : null}
+            {ev.commercial_push ? (
+              <span className="mt-0.5 block truncate text-xs text-tx3">{ev.commercial_push}</span>
+            ) : null}
+          </span>
+        </button>
+        <NextStep
+          brandId={brandId}
+          ev={ev}
+          brief={brief}
+          planOpen={planOpen}
+          onTogglePlan={() => setPlanOpen((v) => !v)}
+        />
+      </div>
+      {open ? <EventDetail data={eventDetail} onClose={onCloseEvent} /> : null}
+      {planOpen && brief.briefId ? (
+        <div className="mt-1 rounded-md border border-bd">
+          <PlanPanel brandId={brandId} briefId={brief.briefId} />
+        </div>
+      ) : null}
+    </li>
+  )
+}
+
 /** Everything on the calendar from today to 12 months out, soonest first, one row each. */
 export function PlanList({
   brandId,
@@ -143,62 +253,20 @@ export function PlanList({
   return (
     <ul className="space-y-1" data-testid="plan-list">
       {rows.map((ev) => {
-        const tier = ev.tier || 'C-PIN'
-        const c = PIN_COLORS[tier] || PIN_COLORS['C-PIN']
-        const start = eventStart(ev)
-        const end = ev.end && ev.end !== start ? ev.end : ''
-        const heading = monthHeading(start)
+        const heading = monthHeading(eventStart(ev))
         const showHeading = heading !== lastHeading
         lastHeading = heading
-        const open = openId === ev.id
         return (
-          <li key={ev.id}>
-            {showHeading ? (
-              <p className="px-1 pt-4 pb-1 text-[11px] font-bold tracking-widest text-tx3 uppercase">
-                {heading}
-              </p>
-            ) : null}
-            <div
-              className="flex items-center gap-3 rounded-md bg-bg2 px-3 py-2"
-              data-testid="plan-list-row"
-            >
-              <button
-                type="button"
-                disabled={ev.note_only}
-                onClick={() => (open ? onCloseEvent() : onOpenEvent(ev.id))}
-                aria-expanded={ev.note_only ? undefined : open}
-                className="grid min-w-0 flex-1 grid-cols-[6.5rem_4rem_1fr] items-baseline gap-3 text-left enabled:hover:text-yel sm:grid-cols-[11.5rem_4rem_1fr]"
-              >
-                <span className="text-xs font-semibold text-tx2">
-                  {start ? formatPlanDate(start) : 'No date yet'}
-                  {end ? ` – ${formatPlanDate(end)}` : ''}
-                </span>
-                <span
-                  className="justify-self-start rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider"
-                  style={{ background: c.bg, color: c.fg }}
-                >
-                  {tierLabel(tier)}
-                </span>
-                <span className="min-w-0">
-                  <span className="text-sm font-bold text-tx">
-                    {ev.name || '(untitled)'}
-                    {ev.shopping_moment ? ' 🛍' : ''}
-                  </span>
-                  {ev.local ? (
-                    <span className="ml-2 rounded bg-ac/15 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-ac uppercase">
-                      Local
-                    </span>
-                  ) : null}
-                  {ev.category ? <span className="ml-2 text-[11px] text-tx3">{ev.category}</span> : null}
-                  {ev.commercial_push ? (
-                    <span className="mt-0.5 block truncate text-xs text-tx3">{ev.commercial_push}</span>
-                  ) : null}
-                </span>
-              </button>
-              <NextStep brandId={brandId} ev={ev} />
-            </div>
-            {open ? <EventDetail data={eventDetail} onClose={onCloseEvent} /> : null}
-          </li>
+          <PlanRow
+            key={ev.id}
+            brandId={brandId}
+            ev={ev}
+            open={openId === ev.id}
+            heading={showHeading ? heading : null}
+            eventDetail={eventDetail}
+            onOpenEvent={onOpenEvent}
+            onCloseEvent={onCloseEvent}
+          />
         )
       })}
     </ul>
