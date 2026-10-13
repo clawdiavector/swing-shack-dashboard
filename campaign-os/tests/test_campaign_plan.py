@@ -107,3 +107,91 @@ def test_sync_brief_status_unsticks_a_plan():
     cp.sync_brief_status(cp.get_plan("stick", p["plan_id"]), brief("approved"))
     assert cp.get_plan("stick", p["plan_id"])["brief_status"] == "approved"
     assert cp.approve_plan("stick", p["plan_id"])["ok"]
+
+
+def _approved_plan():
+    p = cp.propose_plan("stick", brief(), today=TODAY)["plan"]
+    assert cp.approve_plan("stick", p["plan_id"])["ok"]
+    return p["plan_id"]
+
+
+class FakeCalendar:
+    def __init__(self):
+        self.rows, self.moved = [], []
+
+    def add(self, brand, record, status):
+        rec = dict(record, calendar_id=f"cal-{len(self.rows)}", status=status)
+        self.rows.append(rec)
+        return rec
+
+    def transition(self, brand, cid, status, reason=""):
+        self.moved.append((cid, status))
+
+
+def test_place_needs_approved_plan():
+    p = cp.propose_plan("stick", brief(), today=TODAY)["plan"]
+    r = cp.place_on_calendar("stick", p["plan_id"], add_record=FakeCalendar().add)
+    assert not r["ok"] and "approve" in r["error"]
+
+
+def test_place_creates_content_and_reminders_once():
+    pid = _approved_plan()
+    cal = FakeCalendar()
+    r = cp.place_on_calendar("stick", pid, add_record=cal.add)
+    assert r["ok"] and r["placed"] == len(cal.rows) > 0
+    types = {row["plan_item_kind"]: row["type"] for row in cal.rows}
+    assert types["post"] == "content" and types["story"] == "content"
+    assert types["shoot"] == "reminder" and types["boost"] == "reminder"
+    assert all(row["status"] == "approved" for row in cal.rows)
+    again = cp.place_on_calendar("stick", pid, add_record=cal.add)
+    assert again["placed"] == 0 and len(cal.rows) == r["placed"]
+
+
+def test_removed_steps_are_not_placed():
+    p = cp.propose_plan("stick", brief(), today=TODAY)["plan"]
+    gone = p["items"][0]
+    cp.edit_item("stick", p["plan_id"], gone["item_id"], {"status": "removed"})
+    cp.approve_plan("stick", p["plan_id"])
+    cal = FakeCalendar()
+    cp.place_on_calendar("stick", p["plan_id"], add_record=cal.add)
+    assert all(row["plan_item_id"] != gone["item_id"] for row in cal.rows)
+
+
+def test_take_off_undoes_and_unblocks_reopen():
+    pid = _approved_plan()
+    cal = FakeCalendar()
+    cp.place_on_calendar("stick", pid, add_record=cal.add)
+    assert not cp.reopen_plan("stick", pid)["ok"]
+    r = cp.take_off_calendar("stick", pid, transition=cal.transition)
+    assert r["ok"] and r["removed"] == len(cal.rows)
+    assert all(status == "ignored" for _, status in cal.moved)
+    assert cp.get_plan("stick", pid)["placed_at"] is None
+    assert cp.reopen_plan("stick", pid)["ok"]
+
+
+def test_one_failed_step_is_reported_not_hidden():
+    pid = _approved_plan()
+    cal = FakeCalendar()
+
+    def flaky(brand, record, status):
+        if record["plan_item_kind"] == "boost":
+            raise ValueError("no")
+        return cal.add(brand, record, status)
+
+    r = cp.place_on_calendar("stick", pid, add_record=flaky)
+    assert not r["ok"] and len(r["failed"]) == 1 and r["placed"] > 0
+    retry = cp.place_on_calendar("stick", pid, add_record=cal.add)
+    assert retry["placed"] == 1
+
+
+def test_latest_revisions_lets_an_undo_hide_the_old_row():
+    from _lib.marketing_calendar import latest_revisions
+    rows = [
+        {"calendar_id": "a", "status": "approved"},
+        {"calendar_id": "b", "status": "approved"},
+        {"calendar_id": "a", "status": "ignored"},
+        {"status": "approved", "title": "no id"},
+    ]
+    kept = latest_revisions(rows)
+    assert [(r.get("calendar_id"), r["status"]) for r in kept] == [
+        ("b", "approved"), ("a", "ignored"), (None, "approved")]

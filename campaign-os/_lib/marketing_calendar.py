@@ -652,6 +652,20 @@ def list_records(brand_id: str, status_filter: Optional[str] = None) -> List[Dic
     return records
 
 
+def latest_revisions(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Collapse an append-only record list so the newest row per calendar_id
+    wins. A transition (approved -> ignored) appends a copy, so a reader that
+    only looks for status == "approved" still sees the old row unless it
+    collapses first. Rows without a calendar_id are kept as they are."""
+    newest: Dict[str, int] = {}
+    for i, r in enumerate(records):
+        cid = r.get("calendar_id")
+        if cid:
+            newest[cid] = i
+    return [r for i, r in enumerate(records)
+            if not r.get("calendar_id") or newest[r["calendar_id"]] == i]
+
+
 def transition_status(
     brand_id: str,
     calendar_id: str,

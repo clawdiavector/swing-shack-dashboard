@@ -25249,6 +25249,41 @@ def plan_v1_approve(brand_id, plan_id):
     return jsonify(r), (200 if r.get("ok") else 400)
 
 
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/place', methods=['POST'])
+def plan_v1_place(brand_id, plan_id):
+    """Put the approved plan's steps on the Main Calendar. Not published.
+    The calendar's write-gate only books an approved slot for a request that
+    names its person, so X-Actor-Display-Name is required, as for lodging."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip()
+    if not actor:
+        return jsonify({"ok": False, "error": (
+            "send your name in the X-Actor-Display-Name header -- the calendar "
+            "only books a slot for a named person")}), 400
+    try:
+        r = _plan_import().place_on_calendar(brand_id, plan_id, actor)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/unplace', methods=['POST'])
+def plan_v1_unplace(brand_id, plan_id):
+    """Undo: take the plan's steps off the Main Calendar."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    try:
+        r = _plan_import().take_off_calendar(
+            brand_id, plan_id, body.get("actor") or "operator")
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
 @app.route('/api/plan/v1/<brand_id>/<plan_id>/reopen', methods=['POST'])
 def plan_v1_reopen(brand_id, plan_id):
     bad = _plan_guard(brand_id)
@@ -44139,7 +44174,7 @@ def planning_month_view(brand_id):
     try:
         from _lib import marketing_calendar as _mc_month
         try:
-            _op_records = _mc_month.list_records(brand_id) or []
+            _op_records = _mc_month.latest_revisions(_mc_month.list_records(brand_id) or [])
         except Exception:
             _op_records = []
         for r in _op_records:

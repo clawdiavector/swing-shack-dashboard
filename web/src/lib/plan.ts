@@ -26,6 +26,8 @@ export type PlanItem = {
   needs_real_video: boolean
   late: boolean
   status: PlanItemStatus
+  /** Set once the step is on the Main Calendar; '' otherwise. */
+  calendar_id?: string
   source: 'template' | 'operator'
 }
 
@@ -39,6 +41,8 @@ export type Plan = {
   status: 'proposed' | 'approved' | 'superseded'
   approved_at?: string | null
   approved_by?: string | null
+  /** When the steps were put on the calendar; null when they are not on it. */
+  placed_at?: string | null
   items: PlanItem[]
 }
 
@@ -66,12 +70,17 @@ export const KIND_ORDER: PlanItemKind[] = [
   'boost',
 ]
 
-async function call(method: string, path: string, body?: unknown): Promise<PlanResult> {
+async function call(
+  method: string,
+  path: string,
+  body?: unknown,
+  extraHeaders: Record<string, string> = {},
+): Promise<PlanResult> {
   try {
     const res = await fetch(path, {
       method,
       credentials: 'same-origin',
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...extraHeaders },
       body: body === undefined ? undefined : JSON.stringify(body),
     })
     if (res.status === 401) {
@@ -112,6 +121,33 @@ export const addPlanItem = (
 
 export const approvePlan = (brand: string, planId: string) =>
   call('POST', `${base(brand)}/${encodeURIComponent(planId)}/approve`, {})
+
+const NAME_KEY = 'cos_actor_name'
+
+/** The calendar books a slot only for a named person. Ask once, remember it. */
+export function actorName(ask: (q: string) => string | null = (q) => window.prompt(q)): string {
+  try {
+    const saved = window.localStorage.getItem(NAME_KEY)
+    if (saved) return saved
+  } catch {
+    /* private window: ask every time */
+  }
+  const name = (ask('Your name, for the record (who is putting this on the calendar)?') || '').trim()
+  if (name) {
+    try {
+      window.localStorage.setItem(NAME_KEY, name)
+    } catch {
+      /* ignore */
+    }
+  }
+  return name
+}
+
+export const placePlan = (brand: string, planId: string, name: string) =>
+  call('POST', `${base(brand)}/${encodeURIComponent(planId)}/place`, {}, { 'X-Actor-Display-Name': name })
+
+export const unplacePlan = (brand: string, planId: string) =>
+  call('POST', `${base(brand)}/${encodeURIComponent(planId)}/unplace`, {})
 
 export const reopenPlan = (brand: string, planId: string) =>
   call('POST', `${base(brand)}/${encodeURIComponent(planId)}/reopen`, {})

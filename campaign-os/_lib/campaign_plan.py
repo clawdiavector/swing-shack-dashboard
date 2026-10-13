@@ -391,9 +391,109 @@ def reopen_plan(brand_id: str, plan_id: str, actor: str = "operator") -> dict:
     plan = get_plan(brand_id, plan_id)
     if not plan or plan.get("status") != PLAN_APPROVED:
         return {"ok": False, "error": "only an approved plan can be reopened"}
+    if plan.get("placed_at"):
+        return {"ok": False,
+                "error": "take the plan off the calendar before reopening it"}
     plan["status"] = PLAN_PROPOSED
     plan["approved_at"] = None
     plan["approved_by"] = None
     _log(plan, actor, "reopened plan")
     _write_plan(plan)
     return {"ok": True, "plan": plan}
+
+
+# ── Step 3: put an approved plan on the calendar, and take it off again ──
+#
+# Posts and stories become `content` entries; every other step (check, decide,
+# shoot, edit, approve, boost) becomes a `reminder`, so the dates show up on
+# the calendar without the scheduler trying to make a post from them. Nothing
+# is published and no image is generated. "Taking it off" marks the entries
+# ignored (the calendar store is append-only, so nothing is deleted).
+
+_CALENDAR_TYPE = {"post": "content", "story": "content"}
+
+
+def _calendar_record(plan: dict, item: dict) -> dict:
+    kind = item["kind"]
+    return {
+        "type": _CALENDAR_TYPE.get(kind, "reminder"),
+        "title": f"{item['title']} — {plan['event_name']}",
+        "event_date": item["due"],
+        "event_start": item["due"],
+        "event_end": item["due"],
+        "primary_channel": item.get("channel") or "",
+        "angle": item.get("note") or "",
+        "source_type": "operator",
+        "created_by": "plan:" + plan["plan_id"],
+        "plan_id": plan["plan_id"],
+        "plan_item_id": item["item_id"],
+        "plan_item_kind": kind,
+        "brief_id": plan.get("brief_id"),
+    }
+
+
+def place_on_calendar(brand_id: str, plan_id: str, actor: str = "operator",
+                      add_record=None) -> dict:
+    """Create a calendar entry for every kept step that is not already on it.
+    Needs an approved plan. Safe to repeat: steps already placed are skipped.
+    `add_record(brand_id, record, initial_status)` is injectable for tests."""
+    plan = get_plan(brand_id, plan_id)
+    if not plan:
+        return {"ok": False, "error": "plan not found"}
+    if plan.get("status") != PLAN_APPROVED:
+        return {"ok": False,
+                "error": "approve the plan before putting it on the calendar"}
+    if add_record is None:
+        from _lib.marketing_calendar import add_candidate as add_record  # noqa: PLC0415
+    created, failed = [], []
+    for item in plan["items"]:
+        if item["status"] == "removed" or item.get("calendar_id"):
+            continue
+        try:
+            rec = add_record(brand_id, _calendar_record(plan, item), "approved")
+        except Exception as e:  # keep going; report what did not land
+            failed.append({"item_id": item["item_id"], "error": str(e)})
+            continue
+        item["calendar_id"] = rec.get("calendar_id", "")
+        created.append(item["calendar_id"])
+    if created:
+        plan["placed_at"] = _now_iso()
+        _log(plan, actor, f"put {len(created)} steps on the calendar")
+        _write_plan(plan)
+    out = {"ok": not failed, "plan": plan, "placed": len(created),
+           "failed": failed}
+    if failed:
+        out["error"] = f"{len(failed)} steps could not be placed"
+    return out
+
+
+def take_off_calendar(brand_id: str, plan_id: str, actor: str = "operator",
+                      transition=None) -> dict:
+    """Undo: mark this plan's calendar entries ignored and clear the links.
+    `transition(brand_id, calendar_id, status, reason=...)` is injectable."""
+    plan = get_plan(brand_id, plan_id)
+    if not plan:
+        return {"ok": False, "error": "plan not found"}
+    if transition is None:
+        from _lib.marketing_calendar import transition_status as transition  # noqa: PLC0415
+    removed, failed = 0, []
+    for item in plan["items"]:
+        cid = item.get("calendar_id")
+        if not cid:
+            continue
+        try:
+            transition(brand_id, cid, "ignored", reason="plan taken off calendar")
+            item["calendar_id"] = ""
+            removed += 1
+        except Exception as e:
+            failed.append({"item_id": item["item_id"], "error": str(e)})
+    if removed:
+        if not any(i.get("calendar_id") for i in plan["items"]):
+            plan["placed_at"] = None
+        _log(plan, actor, f"took {removed} steps off the calendar")
+        _write_plan(plan)
+    out = {"ok": not failed, "plan": plan, "removed": removed,
+           "failed": failed}
+    if failed:
+        out["error"] = f"{len(failed)} steps could not be taken off"
+    return out

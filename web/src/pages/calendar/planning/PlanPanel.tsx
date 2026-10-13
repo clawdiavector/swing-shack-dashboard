@@ -3,9 +3,12 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   KIND_LABEL,
   KIND_ORDER,
+  actorName,
   addPlanItem,
   approveBlocker,
   approvePlan,
+  placePlan,
+  unplacePlan,
   dueLabel,
   editPlanItem,
   formatDay as formatPlanDate,
@@ -302,9 +305,11 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
           {approved ? 'Approved' : 'Draft'}
         </span>
         <span className="text-xs text-tx3">
-          {approved
-            ? 'Approved. Putting these steps on the calendar is not built yet.'
-            : 'A draft. Change anything you like. Nothing is scheduled.'}
+          {plan.placed_at
+            ? 'On the calendar. Nothing is published until each post is approved and released.'
+            : approved
+              ? 'Approved, but not on the calendar yet.'
+              : 'A draft. Change anything you like. Nothing is scheduled.'}
         </span>
       </div>
 
@@ -356,14 +361,53 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
 
       <div className="flex flex-wrap items-center gap-2 border-t border-bd pt-3">
         {approved ? (
-          <button
-            type="button"
-            className={btnQuiet}
-            disabled={busy}
-            onClick={() => void run(() => reopenPlan(brandId, plan.plan_id))}
-          >
-            Reopen to edit
-          </button>
+          <>
+            {plan.placed_at ? (
+              <button
+                type="button"
+                className={btnQuiet}
+                disabled={busy}
+                onClick={() => void run(() => unplacePlan(brandId, plan.plan_id))}
+                data-testid="plan-unplace"
+              >
+                Take off the calendar (undo)
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={btnYel}
+                  disabled={busy}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Put ${active.length} steps on the calendar? Dates only. Nothing is posted. You can undo this.`,
+                      )
+                    ) {
+                      const name = actorName()
+                      if (!name) {
+                        setError('A name is needed so the calendar knows who booked these.')
+                        return
+                      }
+                      void run(() => placePlan(brandId, plan.plan_id, name))
+                    }
+                  }}
+                  data-testid="plan-place"
+                >
+                  {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                  Put on the calendar
+                </button>
+                <button
+                  type="button"
+                  className={btnQuiet}
+                  disabled={busy}
+                  onClick={() => void run(() => reopenPlan(brandId, plan.plan_id))}
+                >
+                  Reopen to edit
+                </button>
+              </>
+            )}
+          </>
         ) : (
           <>
             <button
