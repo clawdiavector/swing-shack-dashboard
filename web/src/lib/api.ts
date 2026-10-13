@@ -2345,3 +2345,28 @@ export type StorySuggestion = {
 export function fetchStorySuggestions() {
   return getJson<{ ok: boolean; suggestions: StorySuggestion[] }>('/api/stories/suggestion')
 }
+
+export type StoryCandidate = {
+  page_id: string
+  page: string
+  kind: 'vibe' | 'product' | 'story'
+  why: string
+  url: string
+  likes: number | null
+  comments: number | null
+  posted: string
+  media_type: string
+  image: string | null
+  caption: string
+  score: number
+}
+
+export function fetchStoryCandidates(brand: string) {
+  return getJson<{ ok: boolean; posts: StoryCandidate[]; errors: string[] }>(
+    `/api/stories/candidates?brand=${encodeURIComponent(brand)}`,
+  )
+}
+
+export function addStoryRepost(brand: string, url: string, note: string) {
+  return postJson<{ ok: boolean }>('/api/stories', { brand, url, note, added_by: 'Scout' })
+}
