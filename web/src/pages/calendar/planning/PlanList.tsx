@@ -1,5 +1,6 @@
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { EventTypeIcon, EventTypeLegend } from '../../../components/EventTypeIcon'
 import { PIN_COLORS, tierLabel } from '../../../lib/planning'
 import type { PlanningEventDetail, PlanningTimelineEvent } from '../../../lib/planningTypes'
 import { EventDetail } from './EventDetail'
@@ -189,9 +190,9 @@ function PlanRow({
             {tierLabel(tier)}
           </span>
           <span className="min-w-0">
+            <EventTypeIcon kind={ev.kind} className="mr-1.5 align-middle" />
             <span className="text-sm font-bold text-tx">
               {ev.name || '(untitled)'}
-              {ev.shopping_moment ? ' 🛍' : ''}
             </span>
             {ev.local ? (
               <span className="ml-2 rounded bg-ac/15 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-ac uppercase">
@@ -251,6 +252,8 @@ export function PlanList({
   const openId = eventDetail?.event?.id
   let lastHeading = ''
   return (
+    <>
+    <EventTypeLegend className="pb-2" />
     <ul className="space-y-1" data-testid="plan-list">
       {rows.map((ev) => {
         const heading = monthHeading(eventStart(ev))
@@ -270,5 +273,6 @@ export function PlanList({
         )
       })}
     </ul>
+    </>
   )
 }

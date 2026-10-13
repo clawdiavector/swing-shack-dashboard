@@ -14,6 +14,7 @@ export type CalendarAlert = {
   brief_id: string | null
   plan_id: string | null
   brand_id: string
+  kind?: string
   message: string
 }
 

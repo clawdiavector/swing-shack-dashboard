@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { EventTypeIcon } from '../../../components/EventTypeIcon'
 import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { useCallback, useEffect, useState } from 'react'
 import {
@@ -319,6 +320,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
 
       {plan.profile_label ? (
         <p className="text-xs text-tx3" data-testid="plan-shape">
+          <EventTypeIcon kind={plan.profile} size="sm" className="mr-1.5 align-middle" />
           Shaped as <b className="text-tx2">{plan.profile_label}</b>. {plan.profile_reason}
         </p>
       ) : null}

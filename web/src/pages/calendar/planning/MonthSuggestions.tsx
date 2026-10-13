@@ -14,6 +14,7 @@ import {
   type Suggestion,
   type Undo,
 } from '../../../lib/calendarSuggestions'
+import { EventTypeIcon, EventTypeLegend } from '../../../components/EventTypeIcon'
 import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { actorName, planFromEvent } from '../../../lib/plan'
 import { tierLabel } from '../../../lib/planning'
@@ -225,9 +226,10 @@ export function GhostChip({
           }
           if (e.key === 'Escape') setPos(null)
         }}
-        className="block max-w-full cursor-pointer truncate rounded-full border border-dashed border-tx3/50 bg-tx3/5 px-2 py-0.5 text-[10.5px] font-semibold text-tx2 opacity-60 hover:opacity-100"
+        className="flex max-w-full cursor-pointer items-center gap-1 rounded-full border border-dashed border-tx3/50 bg-tx3/5 px-1.5 py-0.5 text-[10.5px] font-semibold text-tx2 opacity-60 hover:opacity-100"
       >
-        {s.title}
+        <EventTypeIcon kind={s.kind} size="sm" className="!border-0 !bg-transparent !p-0" />
+        <span className="min-w-0 truncate">{s.title}</span>
       </span>
       {pos
         ? createPortal(
@@ -241,7 +243,10 @@ export function GhostChip({
               style={{ position: 'fixed', left: pos.left, top: pos.top, width: CARD_W }}
               className="z-50 space-y-2 rounded-xl border border-bd bg-bg2 p-3 text-left shadow-xl"
             >
-              <p className="text-[10px] font-bold tracking-widest text-tx3 uppercase">{SOURCE_LABEL[s.source]}</p>
+              <p className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-tx3 uppercase">
+                {SOURCE_LABEL[s.source]}
+                <EventTypeIcon kind={s.kind} size="sm" withLabel />
+              </p>
               <p className="text-sm font-bold text-tx">{s.title}</p>
               <p className="flex flex-wrap items-center gap-2 text-xs text-tx2">
                 {spanLabel(s.date, s.end)}
@@ -373,6 +378,7 @@ export function SuggestionBar({
         </div>
       ) : null}
       {error ? <p className="text-xs text-red">{error}</p> : null}
+      <EventTypeLegend />
     </div>
   )
 }

@@ -138,3 +138,37 @@ def test_duration_from_the_brief_is_used_for_a_season():
                         today=TODAY, event_meta={"category": "always-on-arc"})["plan"]
     assert p["profile"] == "season"
     assert len([i for i in p["items"] if i["title"].startswith("Week ")]) == 8
+
+
+# ── the type of an entry, for its icon ──
+
+def test_event_kind_reads_an_entrys_own_fields():
+    from _lib.plan_profiles import event_kind
+    assert event_kind({"name": "Black Friday", "tier": "A-PIN", "shopping_moment": True,
+                       "start": "2027-10-11", "end": "2027-11-29"}) == "retail_push"
+    assert event_kind({"name": "Masters Week", "tier": "A-PIN", "category": "golf-moment"}) == "sport_event"
+    assert event_kind({"name": "Pre-Season", "category": "always-on-arc",
+                       "start": "2027-01-04", "end": "2027-03-21"}) == "season"
+    assert event_kind({"name": "Heritage Day", "tier": "C-PIN", "category": "sa-cultural"}) == "light"
+    assert event_kind({"title": "Fitting week", "pillars": {"fitting": "x"}}) == "service_push"
+    assert event_kind({}) == "standard"
+    # a bad date does not break it, and the default lead-time class is not a choice
+    assert event_kind({"name": "X", "start": "nope", "end": "2027-01-01",
+                       "lead_time_class": "normal_campaign"}) == "standard"
+
+
+def test_suggestions_and_alerts_carry_a_kind():
+    from _lib import calendar_suggestions as cs
+    from _lib.calendar_alerts import find_alerts
+    out = cs.month_items(
+        "stick", "2026-11", [], lambda r: True,
+        [{"event_name": "Italy v Springboks", "start_date": "2026-11-07", "event_type": "SA_SPORT",
+          "notes": "Rugby. Tier B."}],
+        {}, [], TODAY)
+    assert out[0]["kind"] == "sport_event"
+    a = find_alerts("stick", [{"id": "k", "name": "Heritage Day", "start": "2026-10-20",
+                               "tier": "A-PIN", "kind": "light"}], {}, {}, [], TODAY)
+    assert a[0]["kind"] == "light"
+    b = find_alerts("stick", [{"id": "k", "name": "X", "start": "2026-10-20", "tier": "A-PIN"}],
+                    {}, {}, [], TODAY)
+    assert b[0]["kind"] == "standard"

@@ -50,6 +50,8 @@ export type PlanningTimelineEvent = {
   post_type?: string
   /** Brief already written for this entry, '' when none (range timeline only). */
   brief_id?: string
+  /** What kind of date it is (retail_push, sport_event, ...), for its icon. */
+  kind?: string
   name?: string
   tier?: PlanningTier | string
   category?: string

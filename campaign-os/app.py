@@ -45712,8 +45712,10 @@ def planning_timeline(brand_id):
             # The Plan list shows each row's next step (Create brief /
             # Open brief) without one lookup per row.
             brief_ids = _brief_ids_by_event(brand_id)
+            from _lib.plan_profiles import event_kind as _event_kind
             for e in ordered:
                 e["brief_id"] = brief_ids.get(e.get("event_key") or e.get("id")) or ""
+                e["kind"] = _event_kind(e)
 
             counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
             for e in ordered:
@@ -45740,6 +45742,8 @@ def planning_timeline(brand_id):
                     brand_id, note_rows, start_d, end_d,
                     already_named=[e.get("name") or e.get("title") for e in ordered],
                 )
+                for _n in notes_to_show:
+                    _n["kind"] = _event_kind(_n)
             except Exception as note_err:
                 print(f"[timeline] dates_to_note EXC: {type(note_err).__name__}: {note_err}", file=_sys_main.stderr, flush=True)
             try:
@@ -46108,6 +46112,7 @@ def _alerts_for_brand(brand_id):
     from _lib import calendar_alerts as ca
     from _lib import campaign_plan as cp
     from _lib import marketing_calendar as mc
+    from _lib.plan_profiles import event_kind as _event_kind
     today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
     horizon = today + _dt.timedelta(days=max(ca.WARN_DAYS.values()))
     events = []
@@ -46118,7 +46123,8 @@ def _alerts_for_brand(brand_id):
             spine = None
         for e in (spine or {}).get("events") or []:
             events.append({"id": e.get("id"), "name": e.get("name") or e.get("title"),
-                           "start": e.get("start") or e.get("public_peak"), "tier": e.get("tier")})
+                           "start": e.get("start") or e.get("public_peak"), "tier": e.get("tier"),
+                           "kind": _event_kind(e)})
     content_dates = []
     for r in mc.latest_revisions(mc.list_records(brand_id) or []):
         if r.get("status") != "approved" or r.get("plan_id"):
@@ -46129,7 +46135,8 @@ def _alerts_for_brand(brand_id):
             # Someone chose this date for the calendar, so it is never quieter than B.
             events.append({"event_key": r.get("event_key") or r.get("calendar_id"),
                            "name": r.get("title") or r.get("name"), "start": start,
-                           "tier": r.get("tier") if r.get("tier") in ("A-PIN", "B-PIN") else "B-PIN"})
+                           "tier": r.get("tier") if r.get("tier") in ("A-PIN", "B-PIN") else "B-PIN",
+                           "kind": _event_kind(r)})
         elif kind == "content":
             content_dates.append(start)
     plans = {p.get("brief_id"): p for p in cp.list_plans(brand_id) if p.get("status") != "superseded"}

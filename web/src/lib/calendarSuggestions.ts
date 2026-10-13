@@ -16,6 +16,8 @@ export type Suggestion = {
   calendar_id: string | null
   /** Pillars the entry already carries; a brief needs at least one. */
   pillars?: string[]
+  /** What kind of date it is, for its icon. */
+  kind?: string
 }
 
 export type Undo = {

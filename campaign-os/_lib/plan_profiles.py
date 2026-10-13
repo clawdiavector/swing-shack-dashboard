@@ -233,6 +233,32 @@ def classify(meta: Optional[Dict[str, Any]], name: str = "") -> Tuple[str, str]:
     return "standard", "No special type, so the standard shape."
 
 
+def event_kind(e: Dict[str, Any]) -> str:
+    """The type of a calendar entry, for its icon: one of PROFILES, worked out
+    from the entry's own fields (tier, category, shopping_moment, pillars,
+    lead_time_class, start and end). The same rules choose a plan's shape, so
+    the icon and the plan always agree."""
+    start = str(e.get("start") or e.get("event_start") or e.get("date") or "")[:10]
+    end = str(e.get("end") or e.get("event_end") or "")[:10]
+    duration = 0
+    try:
+        if start and end:
+            from datetime import date as _d
+            duration = (_d.fromisoformat(end) - _d.fromisoformat(start)).days + 1
+    except ValueError:
+        duration = 0
+    lead = e.get("lead_time_class")
+    meta = {
+        "tier": e.get("tier"),
+        "category": e.get("category"),
+        "shopping_moment": bool(e.get("shopping_moment")),
+        "pillars": e.get("pillars"),
+        "lead_time_class": None if lead == "normal_campaign" else lead,  # the default is not a choice
+        "duration_days": duration,
+    }
+    return classify(meta, str(e.get("name") or e.get("title") or ""))[0]
+
+
 def rows_for(profile: str, lead_days: int, duration_days: int = 0) -> List[Row]:
     """The rows for a shape, with the boost and its real-video shoot added only
     when the lead time allows both."""

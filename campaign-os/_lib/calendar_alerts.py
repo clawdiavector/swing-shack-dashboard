@@ -114,6 +114,7 @@ def find_alerts(
             "brief_id": brief_id or None,
             "plan_id": (plan or {}).get("plan_id"),
             "brand_id": brand_id,
+            "kind": e.get("kind") or "standard",
             "message": f"{name} {_days_phrase(days)} and {_WORDS[state]}.",
         })
     out.sort(key=lambda a: (a["level"] != "scream", a["days"], a["name"]))

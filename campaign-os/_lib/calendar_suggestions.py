@@ -20,6 +20,7 @@ import os
 import re
 from typing import Any, Dict, Iterable, List, Optional
 
+from _lib.plan_profiles import event_kind
 from _lib.plan_extras import _JUNK_TITLE_RE, _key, _parse, dates_to_note, _same_event
 
 SOURCES = ("yours", "scout", "date")
@@ -93,6 +94,7 @@ def month_items(
             "why": r.get("why_it_matters") or r.get("summary") or r.get("relevance_reason") or r.get("angle") or "",
             "calendar_id": cid,
             "pillars": [p for p in (r.get("pillars") or []) if isinstance(p, str)],
+            "kind": event_kind({**r, "name": title, "start": d.isoformat(), "end": end.isoformat()}),
         })
 
     taken = list(approved) + [_key(i["title"]) for i in out]
@@ -112,6 +114,8 @@ def month_items(
             "why": n.get("commercial_push") or "",
             "calendar_id": None,
             "pillars": [],
+            "kind": event_kind({"name": n["name"], "tier": n.get("tier"), "category": n.get("category"),
+                                "start": n["start"], "end": n["end"]}),
         })
 
     out.sort(key=lambda i: (i["date"], i["title"]))

@@ -8,6 +8,7 @@ import {
   notifyAlertsChanged,
   type CalendarAlert,
 } from '../../../lib/calendarAlerts'
+import { EventTypeIcon } from '../../../components/EventTypeIcon'
 import { planFromEvent } from '../../../lib/plan'
 
 /** The loud one: approved dates that are close and have no plan or content.
@@ -73,6 +74,7 @@ export function AlertBanner({ brandId = '', refreshKey = 0 }: { brandId?: string
             >
               {a.days === 0 ? 'today' : `${a.days}d`}
             </span>
+            <EventTypeIcon kind={a.kind} />
             <span className="min-w-0 flex-1 text-sm font-semibold text-tx">{a.message}</span>
             {done[a.event_key] ? (
               <span className="text-xs text-tx2">{done[a.event_key]}</span>
