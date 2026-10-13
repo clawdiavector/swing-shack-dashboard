@@ -1,5 +1,6 @@
 import { Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   SOURCE_LABEL,
   approveSuggestion,
@@ -87,6 +88,23 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
   }
 }
 
+const CARD_W = 256
+
+/** Where the card sits: under the chip, kept inside the screen, flipped above
+ *  when there is no room below. Fixed to the viewport, so it is not clipped by
+ *  the grid or the glass panel around it. */
+export function cardPosition(
+  chip: { left: number; top: number; bottom: number },
+  viewport: { w: number; h: number; x?: number },
+  cardH = 190,
+): { left: number; top: number } {
+  const x = viewport.x ?? 0
+  const left = Math.max(x + 8, Math.min(chip.left, x + viewport.w - CARD_W - 8))
+  const below = chip.bottom + 4
+  const top = below + cardH > viewport.h ? Math.max(8, chip.top - cardH - 4) : below
+  return { left, top }
+}
+
 /** A faded chip for one suggestion. Hover, focus or tap opens its card. */
 export function GhostChip({
   s,
@@ -99,84 +117,115 @@ export function GhostChip({
   onApprove: () => void
   onReject: () => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
+  const chipRef = useRef<HTMLSpanElement>(null)
+  const timer = useRef<number | undefined>(undefined)
+  const open = pos !== null
+
+  const show = () => {
+    window.clearTimeout(timer.current)
+    const r = chipRef.current?.getBoundingClientRect()
+    // The visual viewport is what the person sees; it is narrower than the
+    // layout viewport when the page overflows sideways.
+    const vv = window.visualViewport
+    const view = vv
+      ? { w: vv.width, h: vv.height, x: vv.offsetLeft }
+      : { w: window.innerWidth, h: window.innerHeight }
+    if (r) setPos(cardPosition(r, view))
+  }
+  const hideSoon = () => {
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setPos(null), 180)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const close = () => setPos(null)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open])
+
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
   return (
-    <span
-      className="relative block"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false)
-      }}
-    >
+    <span className="block" onMouseEnter={show} onMouseLeave={hideSoon} onFocus={show}>
       <span
+        ref={chipRef}
         role="button"
         tabIndex={0}
         aria-expanded={open}
         data-testid="ghost-chip"
         onClick={(e) => {
           e.stopPropagation()
-          setOpen((v) => !v)
+          if (open) setPos(null)
+          else show()
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             e.stopPropagation()
-            setOpen((v) => !v)
+            if (open) setPos(null)
+            else show()
           }
+          if (e.key === 'Escape') setPos(null)
         }}
         className="block max-w-full cursor-pointer truncate rounded-full border border-dashed border-tx3/50 bg-tx3/5 px-2 py-0.5 text-[10.5px] font-semibold text-tx2 opacity-60 hover:opacity-100"
       >
         {s.title}
       </span>
-      {open ? (
-        <span
-          role="dialog"
-          aria-label={`Suggestion: ${s.title}`}
-          data-testid="ghost-card"
-          onClick={(e) => e.stopPropagation()}
-          className="absolute top-full left-0 z-30 w-64 pt-1"
-        >
-          <span className="block space-y-2 rounded-xl border border-bd bg-bg2 p-3 text-left shadow-xl">
-            <span className="block text-[10px] font-bold tracking-widest text-tx3 uppercase">
-              {SOURCE_LABEL[s.source]}
-            </span>
-            <span className="block text-sm font-bold text-tx">{s.title}</span>
-            <span className="flex flex-wrap items-center gap-2 text-xs text-tx2">
-              {spanLabel(s.date, s.end)}
-              {s.tier ? (
-                <span className="rounded bg-bg px-1.5 py-0.5 text-[10px] font-bold tracking-wider">
-                  {tierLabel(s.tier)}
-                </span>
-              ) : null}
-              {s.category ? <span className="text-tx3">{s.category}</span> : null}
-            </span>
-            {s.why ? <span className="line-clamp-4 block text-xs text-tx3">{s.why}</span> : null}
-            <span className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={onApprove}
-                data-testid="ghost-approve"
-                className="inline-flex items-center gap-1 rounded-full border border-yel/40 bg-yel/15 px-3 py-1 text-xs font-semibold text-yel hover:bg-yel/25 disabled:opacity-60"
-              >
-                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                Approve
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={onReject}
-                data-testid="ghost-reject"
-                className="rounded-full border border-bd px-3 py-1 text-xs font-semibold text-tx2 hover:text-tx disabled:opacity-60"
-              >
-                Reject
-              </button>
-            </span>
-          </span>
-        </span>
-      ) : null}
+      {pos
+        ? createPortal(
+            <div
+              role="dialog"
+              aria-label={`Suggestion: ${s.title}`}
+              data-testid="ghost-card"
+              onClick={(e) => e.stopPropagation()}
+              onMouseEnter={() => window.clearTimeout(timer.current)}
+              onMouseLeave={hideSoon}
+              style={{ position: 'fixed', left: pos.left, top: pos.top, width: CARD_W }}
+              className="z-50 space-y-2 rounded-xl border border-bd bg-bg2 p-3 text-left shadow-xl"
+            >
+              <p className="text-[10px] font-bold tracking-widest text-tx3 uppercase">{SOURCE_LABEL[s.source]}</p>
+              <p className="text-sm font-bold text-tx">{s.title}</p>
+              <p className="flex flex-wrap items-center gap-2 text-xs text-tx2">
+                {spanLabel(s.date, s.end)}
+                {s.tier ? (
+                  <span className="rounded bg-bg px-1.5 py-0.5 text-[10px] font-bold tracking-wider">
+                    {tierLabel(s.tier)}
+                  </span>
+                ) : null}
+                {s.category ? <span className="text-tx3">{s.category}</span> : null}
+              </p>
+              {s.why ? <p className="line-clamp-4 text-xs text-tx3">{s.why}</p> : null}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onApprove}
+                  data-testid="ghost-approve"
+                  className="inline-flex items-center gap-1 rounded-full border border-yel/40 bg-yel/15 px-3 py-1 text-xs font-semibold text-yel hover:bg-yel/25 disabled:opacity-60"
+                >
+                  {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onReject}
+                  data-testid="ghost-reject"
+                  className="rounded-full border border-bd px-3 py-1 text-xs font-semibold text-tx2 hover:text-tx disabled:opacity-60"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </span>
   )
 }

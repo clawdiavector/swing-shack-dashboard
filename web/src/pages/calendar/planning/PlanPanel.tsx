@@ -99,17 +99,17 @@ function ItemRow({
 
   return (
     <li
-      className="flex items-start gap-3 rounded-md bg-bg2 px-3 py-2"
+      className="flex flex-col gap-1 rounded-md bg-bg2 px-3 py-2 sm:flex-row sm:items-start sm:gap-3"
       data-testid="plan-item"
       data-kind={item.kind}
     >
-      <div className="w-28 shrink-0 text-xs">
+      <div className="flex shrink-0 flex-wrap items-baseline gap-x-2 text-xs sm:block sm:w-28">
         <p className="font-semibold text-tx2">{formatPlanDate(item.due)}</p>
         <p className={item.late && !done ? 'text-red' : 'text-tx3'}>
           {done ? 'done' : item.late ? `late · ${dueLabel(item.due, today)}` : dueLabel(item.due, today)}
         </p>
       </div>
-      <span className="mt-0.5 w-14 shrink-0 rounded bg-bg px-1.5 py-0.5 text-center text-[10px] font-bold tracking-wider text-tx2 uppercase">
+      <span className="w-14 shrink-0 self-start rounded bg-bg px-1.5 py-0.5 text-center text-[10px] font-bold tracking-wider text-tx2 uppercase sm:mt-0.5">
         {KIND_LABEL[item.kind]}
       </span>
       <div className="min-w-0 flex-1">
@@ -125,7 +125,7 @@ function ItemRow({
         ) : null}
         {err ? <p className="text-xs text-red">{err}</p> : null}
       </div>
-      <div className="flex shrink-0 items-center gap-1 text-xs">
+      <div className="flex shrink-0 flex-wrap items-center gap-1 text-xs">
         {locked ? (
           <button
             type="button"

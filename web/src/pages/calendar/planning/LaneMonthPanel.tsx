@@ -343,7 +343,7 @@ export function LaneMonthPanel({
           : 'Showing all lanes. Click a lane chip to filter.'}
       </p>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-[repeat(7,minmax(0,1fr))] gap-1.5">
         {DOW.map((d, i) => (
           <div
             key={d}
