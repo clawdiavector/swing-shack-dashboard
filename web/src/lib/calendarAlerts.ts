@@ -58,9 +58,33 @@ export function alertAction(state: AlertState): string {
 
 const CHANGED = 'cos:alerts-changed'
 
+// Two menu dots (side rail and phone bar) and the banners all ask for the same
+// alerts. They share one request: a repeat within this time gets the same answer.
+const SHARE_MS = 30_000
+const shared = new Map<string, { at: number; request: Promise<AlertsResult> }>()
+
+/** fetchAlerts, but callers within SHARE_MS share one request. A failure is not kept. */
+export function fetchAlertsShared(brand: string, now: number = Date.now()): Promise<AlertsResult> {
+  const key = brand || 'all'
+  const hit = shared.get(key)
+  if (hit && now - hit.at < SHARE_MS) return hit.request
+  const request = fetchAlerts(brand)
+  shared.set(key, { at: now, request })
+  void request.then((r) => {
+    if (!r.ok && shared.get(key)?.request === request) shared.delete(key)
+  })
+  return request
+}
+
+/** Forget what was shared, so the next ask goes to the server. */
+export function clearSharedAlerts(): void {
+  shared.clear()
+}
+
 /** Tell anything showing alerts (the menu dot, the banners) to look again. */
 export function notifyAlertsChanged(): void {
-  window.dispatchEvent(new Event(CHANGED))
+  clearSharedAlerts()
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(CHANGED))
 }
 
 /** Listen for notifyAlertsChanged; returns the function that stops listening. */

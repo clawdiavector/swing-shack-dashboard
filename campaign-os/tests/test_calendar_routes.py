@@ -17,23 +17,37 @@ KEY = "note:capetowncycletour:2027-03-14"          # an important date in the re
 NAMED = {"X-Actor-Display-Name": "Christelle"}
 
 
-@pytest.fixture()
-def env(monkeypatch, tmp_path):
-    monkeypatch.setenv("DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("BUNDLED_DATA_DIR", str(REPO_ROOT / "data"))
-    # The operator's important-dates list, as a fixture of our own.
-    (tmp_path / "important-dates").mkdir()
-    (tmp_path / "important-dates" / "2027.json").write_text(json.dumps({"dates": [
+@pytest.fixture(scope="module")
+def loaded_app(tmp_path_factory):
+    """The app, imported once (it takes seconds), with an important-dates list of our own."""
+    base = tmp_path_factory.mktemp("cosdata")
+    (base / "important-dates").mkdir()
+    (base / "important-dates" / "2027.json").write_text(json.dumps({"dates": [
         {"event_name": "Cape Town Cycle Tour", "start_date": "2027-03-14", "end_date": "2027-03-14",
          "event_type": "SA_SPORT", "notes": "B/C-tier Western Cape Sport.", "status": "VERIFIED"},
     ]}), encoding="utf-8")
-    for mod in list(sys.modules):
-        if mod == "app":
-            del sys.modules[mod]
+    mp = pytest.MonkeyPatch()
+    mp.setenv("DATA_DIR", str(base))
+    mp.setenv("BUNDLED_DATA_DIR", str(REPO_ROOT / "data"))
+    sys.modules.pop("app", None)
     import app as app_module
 
     app_module._GIT_SYNC_DONE = True
-    return app_module.app.test_client(), app_module, tmp_path
+    yield app_module
+    mp.undo()
+
+
+@pytest.fixture()
+def env(loaded_app, monkeypatch, tmp_path):
+    """A clean data folder for each test: briefs, the calendar, plans, decisions and undo codes."""
+    from _lib import campaign_brief as cb
+    from _lib import marketing_calendar as mc
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.setattr(cb, "DATA_DIR_DEFAULT", str(tmp_path))
+    monkeypatch.setattr(mc, "_CALENDAR_DIR", tmp_path / "intelligence" / "marketing-calendar")
+    monkeypatch.setattr(mc, "_CALENDAR_DIR_READY", False)
+    return loaded_app.app.test_client(), loaded_app, tmp_path
 
 
 def _ghosts(client, month="2027-03"):
@@ -125,3 +139,50 @@ def app_client_anon(client):
     import app as app_module
 
     return app_module.app.test_client(cos_anon=True)
+
+
+def _write_brief(tmp_path, bid, event_key, status="approved"):
+    d = tmp_path / "briefs" / "stick"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"{bid}.json").write_text(json.dumps({
+        "brief_id": bid, "brand_id": "stick", "status": status, "revision": 1,
+        "source_opportunity": {"event_key": event_key}}), encoding="utf-8")
+
+
+def test_the_brief_index_is_read_once_and_rebuilt_only_when_a_brief_changes(env, monkeypatch):
+    _, app_module, tmp_path = env
+    from _lib import campaign_brief as cb
+
+    _write_brief(tmp_path, "brf-aaaa0001", "ev-one")
+    _write_brief(tmp_path, "brf-aaaa0002", "ev-two")
+    reads = []
+    real = cb._read_brief
+    monkeypatch.setattr(cb, "_read_brief", lambda b, i: (reads.append(i), real(b, i))[1])
+
+    first = app_module._brief_ids_by_event("stick")
+    assert first == {"ev-one": "brf-aaaa0001", "ev-two": "brf-aaaa0002"}
+    after_first = len(reads)
+    assert after_first >= 2
+    for _ in range(5):
+        assert app_module._brief_ids_by_event("stick") == first
+    assert len(reads) == after_first                      # five more calls, no brief opened
+
+    first["ev-one"] = "tampered"                          # a caller changing its copy cannot poison the cache
+    assert app_module._brief_ids_by_event("stick")["ev-one"] == "brf-aaaa0001"
+
+    _write_brief(tmp_path, "brf-aaaa0001", "ev-one", status="superseded")   # a brief changes on disk
+    assert app_module._brief_ids_by_event("stick") == {"ev-two": "brf-aaaa0002"}
+    _write_brief(tmp_path, "brf-aaaa0003", "ev-three")                      # a brief is added
+    assert app_module._brief_ids_by_event("stick") == {"ev-two": "brf-aaaa0002", "ev-three": "brf-aaaa0003"}
+
+
+def test_a_failed_read_is_not_kept(env, monkeypatch):
+    _, app_module, tmp_path = env
+    from _lib import campaign_brief as cb
+
+    _write_brief(tmp_path, "brf-bbbb0001", "ev-one")
+    real = cb._read_brief
+    monkeypatch.setattr(cb, "_read_brief", lambda b, i: None)      # unreadable right now
+    assert app_module._brief_ids_by_event("stick") == {}
+    monkeypatch.setattr(cb, "_read_brief", real)
+    assert app_module._brief_ids_by_event("stick") == {"ev-one": "brf-bbbb0001"}   # recovered, not stuck

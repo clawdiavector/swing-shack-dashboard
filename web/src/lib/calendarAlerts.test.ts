@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'vitest'
-import { alertAction, alertHeadline, dotState, type CalendarAlert } from './calendarAlerts'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  alertAction,
+  alertHeadline,
+  clearSharedAlerts,
+  dotState,
+  fetchAlertsShared,
+  notifyAlertsChanged,
+  type CalendarAlert,
+} from './calendarAlerts'
 
 const a = (level: 'scream' | 'warn'): CalendarAlert => ({
   event_key: 'k',
@@ -42,5 +50,64 @@ describe('dotState', () => {
     expect(dotState([a('warn'), a('warn')])).toEqual({ count: 0, tone: 'none' })
     expect(dotState([a('warn'), a('scream')])).toEqual({ count: 1, tone: 'scream' })
     expect(dotState([a('scream'), a('scream')])).toEqual({ count: 2, tone: 'scream' })
+  })
+})
+
+describe('fetchAlertsShared', () => {
+  const ok = (n: number) =>
+    new Response(JSON.stringify({ ok: true, alerts: [], screaming: n }), { status: 200 })
+
+  beforeEach(() => {
+    clearSharedAlerts()
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('shares one request between callers, then asks again once the time is up', async () => {
+    const f = vi.fn(async () => ok(1))
+    vi.stubGlobal('fetch', f)
+    const [a, b, c] = await Promise.all([
+      fetchAlertsShared('stick', 1000),
+      fetchAlertsShared('stick', 1005),
+      fetchAlertsShared('stick', 1010),
+    ])
+    expect(f).toHaveBeenCalledTimes(1)
+    expect(a).toBe(b)
+    expect(b).toBe(c)
+    await fetchAlertsShared('stick', 1000 + 31_000)
+    expect(f).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps brands apart, and treats "" as all brands', async () => {
+    const f = vi.fn(async () => ok(0))
+    vi.stubGlobal('fetch', f)
+    await fetchAlertsShared('stick', 1)
+    await fetchAlertsShared('swing-shack', 1)
+    await fetchAlertsShared('', 1)
+    await fetchAlertsShared('all', 2)
+    expect(f).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not keep a failure, so the next ask tries again', async () => {
+    const f = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 500 }))
+      .mockResolvedValue(ok(2))
+    vi.stubGlobal('fetch', f)
+    const bad = await fetchAlertsShared('stick', 1)
+    expect(bad.ok).toBe(false)
+    const good = await fetchAlertsShared('stick', 2)
+    expect(good.ok).toBe(true)
+    expect(f).toHaveBeenCalledTimes(2)
+  })
+
+  it('a change forgets what was shared', async () => {
+    const f = vi.fn(async () => ok(1))
+    vi.stubGlobal('fetch', f)
+    await fetchAlertsShared('stick', 1)
+    notifyAlertsChanged()
+    await fetchAlertsShared('stick', 2)
+    expect(f).toHaveBeenCalledTimes(2)
   })
 })

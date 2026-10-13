@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import {
   alertAction,
   alertHeadline,
-  fetchAlerts,
+  fetchAlertsShared,
   notifyAlertsChanged,
   type CalendarAlert,
 } from '../../../lib/calendarAlerts'
@@ -22,7 +22,7 @@ export function AlertBanner({ brandId = '', refreshKey = 0 }: { brandId?: string
 
   useEffect(() => {
     let cancelled = false
-    void fetchAlerts(brandId).then((r) => {
+    void fetchAlertsShared(brandId).then((r) => {
       if (!cancelled && r.ok) setAlerts(r.alerts)
     })
     return () => {

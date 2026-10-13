@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { dotState, fetchAlerts, onAlertsChanged, type CalendarAlert } from '../lib/calendarAlerts'
+import { dotState, fetchAlertsShared, onAlertsChanged, type CalendarAlert } from '../lib/calendarAlerts'
 import { useBrand, useBrandScope } from './BrandSwitch'
 
 const REFRESH_MS = 5 * 60 * 1000
@@ -25,7 +25,7 @@ export function PlanAlertDot({ className = '' }: { className?: string }) {
 
   useEffect(() => {
     let cancelled = false
-    void fetchAlerts(brand).then((r) => {
+    void fetchAlertsShared(brand).then((r) => {
       if (!cancelled && r.ok) setAlerts(r.alerts)
     })
     return () => {

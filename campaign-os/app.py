@@ -46110,21 +46110,59 @@ def _typed_by_operator(record):
     )
 
 
+_BRIEF_INDEX: Dict[str, Any] = {}
+
+
+def _briefs_signature(brand_id):
+    """What the brand's brief files look like right now (name, mtime, size).
+    Cheap to read: it stats the files and opens none."""
+    try:
+        d = _cb_import()._briefs_dir(brand_id)
+        with os.scandir(d) as it:
+            rows = []
+            for e in it:
+                if e.is_file() and e.name.endswith(".json"):
+                    st = e.stat()
+                    rows.append((e.name, st.st_mtime_ns, st.st_size))
+            return tuple(sorted(rows))
+    except (FileNotFoundError, OSError):
+        return ()
+
+
 def _brief_ids_by_event(brand_id):
-    """{event_key: brief_id} for every brief of the brand that is not superseded."""
+    """{event_key: brief_id} for every brief of the brand that is not superseded.
+
+    Reading every brief is the cost, and it was paid on every timeline and alert
+    request (twice per brief). The answer is kept until a brief file is added,
+    removed or changed, and a read that failed is never kept."""
+    sig = _briefs_signature(brand_id)
+    key = (os.environ.get("DATA_DIR", ""), brand_id)
+    hit = _BRIEF_INDEX.get(key)
+    if hit and hit[0] == sig:
+        return dict(hit[1])
     out: Dict[str, str] = {}
+    complete = True
     try:
         cb = _cb_import()
-        for row in cb.list_briefs(brand_id):
-            full = cb._read_brief(brand_id, row.get("brief_id"))
-            if not full or full.get("status") == cb.STATUS_SUPERSEDED:
+        for name, _mtime, _size in sig:
+            try:
+                full = cb._read_brief(brand_id, name[:-len(".json")])
+            except Exception:
+                full = None
+            if full is None:
+                complete = False  # unreadable now; try again next time
+                continue
+            if full.get("status") == cb.STATUS_SUPERSEDED:
                 continue
             ek = (full.get("source_opportunity") or {}).get("event_key")
             if ek and full.get("brief_id"):
                 out.setdefault(ek, full["brief_id"])
     except Exception:
         _app_log.exception("_brief_ids_by_event failed for %s", brand_id)
-    return out
+        complete = False
+    if complete:
+        _BRIEF_INDEX[key] = (sig, out)
+    return dict(out)
 
 
 # ── Approved dates that are close and have no plan or content ──
