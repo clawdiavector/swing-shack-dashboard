@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   KIND_LABEL,
   KIND_ORDER,
+  PROFILE_OPTIONS,
   actorName,
   addPlanItem,
   approveBlocker,
@@ -21,6 +22,7 @@ import {
   type Plan,
   type PlanItem,
   type PlanItemKind,
+  type PlanProfile,
   type PlanResult,
 } from '../../../lib/plan'
 
@@ -315,6 +317,12 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
         </span>
       </div>
 
+      {plan.profile_label ? (
+        <p className="text-xs text-tx3" data-testid="plan-shape">
+          Shaped as <b className="text-tx2">{plan.profile_label}</b>. {plan.profile_reason}
+        </p>
+      ) : null}
+
       {late ? (
         <p className="rounded-md border border-red/30 bg-red/10 px-3 py-2 text-xs text-red" data-testid="plan-late">
           {late} {late === 1 ? 'step is' : 'steps are'} already past its date. They are marked in red, not moved.
@@ -435,6 +443,28 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
             >
               Start again
             </button>
+            <select
+              aria-label="Change the shape of the plan"
+              data-testid="plan-reshape"
+              disabled={busy}
+              value=""
+              className={`${field} text-xs`}
+              onChange={(e) => {
+                const shape = e.target.value as PlanProfile
+                if (!shape) return
+                const label = PROFILE_OPTIONS.find((o) => o.id === shape)?.label || shape
+                if (window.confirm(`Start again as a ${label}? Your changes to this plan will be replaced.`)) {
+                  void run(() => proposePlan(brandId, briefId, true, shape))
+                }
+              }}
+            >
+              <option value="">Change the shape…</option>
+              {PROFILE_OPTIONS.filter((o) => o.id !== plan.profile).map((o) => (
+                <option key={o.id} value={o.id} title={o.hint}>
+                  {o.label}: {o.hint}
+                </option>
+              ))}
+            </select>
           </>
         )}
         {!approved && blocker ? (

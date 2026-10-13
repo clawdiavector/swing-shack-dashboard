@@ -25147,6 +25147,45 @@ def _plan_guard(brand_id):
     return None
 
 
+def _plan_event_meta(brand_id, brief):
+    """What the calendar knows about a brief's date (tier, category, whether it
+    is a shopping moment, how long it runs, its lead-time class), so the plan
+    can take the right shape. Empty when the date is not found."""
+    src = (brief or {}).get("source_opportunity") or {}
+    key = src.get("event_key") or src.get("id") or ""
+    year = str(src.get("date") or "")[:4]
+    meta = {}
+    try:
+        # An event can run into the next year, so its file may be the year before its date.
+        for yr in ((int(year), int(year) - 1) if year.isdigit() else ()):
+            spine, _src = _load_events_for_year(brand_id, yr)
+            for e in (spine or {}).get("events") or []:
+                if e.get("id") == key:
+                    meta = {"tier": e.get("tier"), "category": e.get("category"),
+                            "shopping_moment": bool(e.get("shopping_moment")),
+                            "pillars": e.get("pillars"),
+                            "start": e.get("start"), "end": e.get("end")}
+                    break
+            if meta:
+                break
+        if not meta:
+            from _lib import marketing_calendar as mc
+            for r in mc.latest_revisions(mc.list_records(brand_id) or []):
+                if (r.get("event_key") or r.get("calendar_id")) == key:
+                    meta = {"tier": r.get("tier"), "category": r.get("category"),
+                            "lead_time_class": r.get("lead_time_class"),
+                            "start": r.get("event_start"), "end": r.get("event_end")}
+                    if meta["lead_time_class"] == "normal_campaign":
+                        meta["lead_time_class"] = None  # the default, not a choice
+                    break
+        a, b = str(meta.get("start") or "")[:10], str(meta.get("end") or "")[:10]
+        if a and b:
+            meta["duration_days"] = max(1, (_dt.date.fromisoformat(b) - _dt.date.fromisoformat(a)).days + 1)
+    except Exception:
+        _app_log.exception("plan event meta failed for %s", key)
+    return meta
+
+
 def _plan_sync(brand_id, plan):
     """Refresh the plan's copy of its brief's status. Never raises."""
     try:
@@ -25172,8 +25211,10 @@ def plan_v1_propose(brand_id):
         brief = _cb_import()._read_brief(brand_id, brief_id)
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
-    r = _plan_import().propose_plan(brand_id, brief,
-                                    force=bool(body.get("force")))
+    r = _plan_import().propose_plan(
+        brand_id, brief, force=bool(body.get("force")),
+        profile=(body.get("profile") or None),
+        event_meta=_plan_event_meta(brand_id, brief))
     return jsonify(r), (200 if r.get("ok") else 400)
 
 
@@ -25207,7 +25248,8 @@ def plan_v1_from_event(brand_id):
         if not r.get("ok"):
             return jsonify({"ok": False, "error": r.get("error") or "could not write the brief"}), 400
         brief = r.get("brief")
-    res = _plan_import().propose_plan(brand_id, brief)
+    res = _plan_import().propose_plan(brand_id, brief,
+                                      event_meta=_plan_event_meta(brand_id, brief))
     if not res.get("ok"):
         return jsonify(res), 400
     return jsonify({"ok": True, "brief_id": brief.get("brief_id"),

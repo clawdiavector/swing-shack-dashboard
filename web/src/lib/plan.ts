@@ -39,12 +39,28 @@ export type Plan = {
   event_name: string
   event_date: string
   status: 'proposed' | 'approved' | 'superseded'
+  /** The shape chosen for this kind of date, and why. */
+  profile?: PlanProfile
+  profile_label?: string
+  profile_reason?: string
   approved_at?: string | null
   approved_by?: string | null
   /** When the steps were put on the calendar; null when they are not on it. */
   placed_at?: string | null
   items: PlanItem[]
 }
+
+export type PlanProfile = 'standard' | 'retail_push' | 'sport_event' | 'service_push' | 'season' | 'light'
+
+/** The shapes a plan can take, with what each is for. */
+export const PROFILE_OPTIONS: { id: PlanProfile; label: string; hint: string }[] = [
+  { id: 'retail_push', label: 'Retail push', hint: 'Weeks of lead time, product shot early, a run of posts' },
+  { id: 'sport_event', label: 'Sport event', hint: 'Build-up, game-day posts and a reaction after' },
+  { id: 'service_push', label: 'Service push', hint: 'Fitting or coaching, aimed at bookings' },
+  { id: 'season', label: 'Season', hint: 'A steady post every week for as long as it runs' },
+  { id: 'light', label: 'Light touch', hint: 'One post and a story' },
+  { id: 'standard', label: 'Standard', hint: 'The general shape' },
+]
 
 export type PlanResult = { ok: boolean; error?: string; plan?: Plan; existing?: boolean }
 
@@ -107,8 +123,8 @@ export async function findPlan(brand: string, briefId: string): Promise<PlanResu
   return { ok: true, plan, found: Boolean(plan) }
 }
 
-export const proposePlan = (brand: string, briefId: string, force = false) =>
-  call('POST', `${base(brand)}/propose`, { brief_id: briefId, force })
+export const proposePlan = (brand: string, briefId: string, force = false, profile?: PlanProfile) =>
+  call('POST', `${base(brand)}/propose`, { brief_id: briefId, force, ...(profile ? { profile } : {}) })
 
 export const editPlanItem = (brand: string, planId: string, itemId: string, patch: Partial<PlanItem>) =>
   call('PATCH', `${base(brand)}/${encodeURIComponent(planId)}/item/${encodeURIComponent(itemId)}`, patch)
