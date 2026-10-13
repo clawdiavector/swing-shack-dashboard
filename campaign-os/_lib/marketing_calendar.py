@@ -656,14 +656,16 @@ def latest_revisions(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Collapse an append-only record list so the newest row per calendar_id
     wins. A transition (approved -> ignored) appends a copy, so a reader that
     only looks for status == "approved" still sees the old row unless it
-    collapses first. Rows without a calendar_id are kept as they are."""
+    collapses first. A row is identified by calendar_id, else event_key; rows with neither are kept."""
+    def ident(r: Dict[str, Any]) -> Optional[str]:
+        return r.get("calendar_id") or r.get("event_key")
+
     newest: Dict[str, int] = {}
     for i, r in enumerate(records):
-        cid = r.get("calendar_id")
-        if cid:
-            newest[cid] = i
+        if ident(r):
+            newest[ident(r)] = i
     return [r for i, r in enumerate(records)
-            if not r.get("calendar_id") or newest[r["calendar_id"]] == i]
+            if not ident(r) or newest[ident(r)] == i]
 
 
 def transition_status(

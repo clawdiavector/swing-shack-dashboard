@@ -44171,6 +44171,7 @@ def planning_month_view(brand_id):
     # any approved event shows up the moment it is approved.
     operator_approved_events: List[Dict[str, Any]] = []
     operator_approved_days: Dict[str, List[Dict[str, Any]]] = {}
+    _op_seen: set = set()
     try:
         from _lib import marketing_calendar as _mc_month
         try:
@@ -44191,6 +44192,12 @@ def planning_month_view(brand_id):
             if not start_iso.startswith(month):
                 continue
             ek = r.get("event_key")
+            # Approving a suggestion leaves two approved rows (the event and the
+            # suggestion it came from); draw the day once.
+            _dup_key = (str(r.get("title") or r.get("name") or "").strip().lower(), start_iso)
+            if _dup_key in _op_seen:
+                continue
+            _op_seen.add(_dup_key)
             lane = r.get("lane") or "operator"
             item = {
                 "id": ek or start_iso,
@@ -45961,6 +45968,9 @@ def _operator_pending_suggestions(brand_id):
         rid = r.get("calendar_id") or r.get("event_key")
         if rid:
             current_status[rid] = r.get("status")
+    # Only an approval that still stands counts: an undone one has a newer
+    # "ignored" row for the same event.
+    for r in _mc_pending.latest_revisions(records):
         if r.get("status") == "approved":
             src = (r.get("candidate_metadata") or {}).get("candidate_id")
             if src:
@@ -46010,6 +46020,170 @@ def _brief_ids_by_event(brand_id):
     except Exception:
         _app_log.exception("_brief_ids_by_event failed for %s", brand_id)
     return out
+
+
+# ── Suggestions on the month calendar: faded until approved or rejected ──
+def _cs_guard(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+    return None
+
+
+def _cs_items(brand_id, month):
+    """Faded suggestions for a month, from the operator store and the
+    important-dates list, minus anything already on the calendar."""
+    from zoneinfo import ZoneInfo
+    from _lib import calendar_suggestions as cs
+    from _lib import marketing_calendar as mc
+    first, last = cs.month_bounds(month)
+    today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
+    years = sorted({first.year, last.year})
+    note_rows, names = [], []
+    for yr in years:
+        note_rows.extend(_filter_demo_out(_read_important_dates(yr)))
+        note_rows.extend(_read_golf_moments(yr))
+        try:
+            spine, _src = _load_events_for_year(brand_id, yr)
+            names.extend((e.get("name") or e.get("title") or "") for e in (spine or {}).get("events") or [])
+        except Exception:
+            pass
+    for r in mc.latest_revisions(mc.list_records(brand_id) or []):
+        if r.get("status") == "approved":
+            names.append(r.get("title") or r.get("name") or "")
+    return cs.month_items(
+        brand_id, month, _operator_pending_suggestions(brand_id), _typed_by_operator,
+        note_rows, cs.read_decisions(brand_id), names, today)
+
+
+@app.route("/api/calendar-suggestions/<brand_id>", methods=["GET"])
+def calendar_suggestions_list(brand_id):
+    """GET ?month=YYYY-MM — the faded entries for the month grid."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    month = (request.args.get("month") or "").strip()
+    try:
+        items = _cs_items(brand_id, month)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify({"ok": True, "brand_id": brand_id, "month": month,
+                    "count": len(items), "items": items}), 200
+
+
+def _cs_find(brand_id, body):
+    month = (body.get("month") or "").strip()
+    key = (body.get("key") or "").strip()
+    for it in _cs_items(brand_id, month):
+        if it["key"] == key:
+            return it
+    return None
+
+
+@app.route("/api/calendar-suggestions/<brand_id>/approve", methods=["POST"])
+def calendar_suggestions_approve(brand_id):
+    """Approve a faded entry: it becomes a real Main Calendar event through
+    the canonical approval path. An important date first becomes a campaign
+    suggestion of its own, so it can be approved like any other."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    from _lib import marketing_calendar as mc
+    body = request.get_json(silent=True) or {}
+    try:
+        item = _cs_find(brand_id, body)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    if not item:
+        return jsonify({"ok": False, "error": "that suggestion is no longer there"}), 404
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    cid, made = item.get("calendar_id"), False
+    if item["source"] == "date":
+        why = item.get("why") or ""
+        try:
+            rec = mc.add_candidate(brand_id, {
+                "type": "campaign", "title": item["title"],
+                "event_start": item["date"], "event_end": item["end"], "public_peak": item["date"],
+                "summary": why, "why_it_matters": why, "tier": item.get("tier"),
+                "category": item.get("category"), "source_type": "operator",
+                "source": "OPERATOR_PROVIDED", "created_by": "operator", "is_suggested": True,
+                "origin_note_id": item["key"],
+            }, initial_status="candidate")
+        except (ValueError, PermissionError) as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        cid, made = rec.get("calendar_id"), True
+    resp = planning_approve_candidate(brand_id, cid)
+    code = 200
+    if isinstance(resp, tuple):
+        resp, code = resp[0], resp[1]
+    data = resp.get_json(silent=True) or {}
+    if code >= 400 or not data.get("ok"):
+        if made:
+            mc.transition_status(brand_id, cid, "ignored", reason="approval failed; not kept")
+        return jsonify({"ok": False, "error": data.get("error") or "could not approve it"}), (code if code >= 400 else 400)
+    if item["source"] == "date":
+        cs.record_decision(brand_id, item["key"], "approved", actor, calendar_id=cid,
+                           event_key=data.get("event_key"))
+    return jsonify({"ok": True, "undo": {
+        "kind": "approve", "key": item["key"], "source": item["source"],
+        "calendar_id": cid, "event_key": data.get("event_key"), "month": body.get("month")}}), 200
+
+
+@app.route("/api/calendar-suggestions/<brand_id>/reject", methods=["POST"])
+def calendar_suggestions_reject(brand_id):
+    """Reject a faded entry: it stops being offered. Undo brings it back."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    from _lib import marketing_calendar as mc
+    body = request.get_json(silent=True) or {}
+    try:
+        item = _cs_find(brand_id, body)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    if not item:
+        return jsonify({"ok": False, "error": "that suggestion is no longer there"}), 404
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    if item["source"] == "date":
+        cs.record_decision(brand_id, item["key"], "rejected", actor)
+    else:
+        mc.transition_status(brand_id, item["calendar_id"], "ignored",
+                             reason=f"rejected from the calendar view by {actor}")
+    return jsonify({"ok": True, "undo": {
+        "kind": "reject", "key": item["key"], "source": item["source"],
+        "calendar_id": item.get("calendar_id"), "month": body.get("month")}}), 200
+
+
+@app.route("/api/calendar-suggestions/<brand_id>/undo", methods=["POST"])
+def calendar_suggestions_undo(brand_id):
+    """Reverse the last approve or reject, using the `undo` the call returned."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    from _lib import marketing_calendar as mc
+    u = (request.get_json(silent=True) or {}).get("undo") or {}
+    kind, source, key = u.get("kind"), u.get("source"), u.get("key")
+    cid, event_key = u.get("calendar_id"), u.get("event_key")
+    if kind not in ("approve", "reject") or not key:
+        return jsonify({"ok": False, "error": "nothing to undo"}), 400
+    if kind == "reject":
+        if source == "date":
+            cs.clear_decision(brand_id, key)
+        elif cid:
+            mc.transition_status(brand_id, cid, "candidate", reason="reject undone")
+    else:
+        if event_key:
+            mc.transition_status(brand_id, event_key, "ignored", reason="approval undone")
+        if cid:
+            mc.transition_status(brand_id, cid, "ignored" if source == "date" else "candidate",
+                                 reason="approval undone")
+        if source == "date":
+            cs.clear_decision(brand_id, key)
+    return jsonify({"ok": True}), 200
 
 
 @app.route("/api/planning/<brand_id>/waiting", methods=["GET"])

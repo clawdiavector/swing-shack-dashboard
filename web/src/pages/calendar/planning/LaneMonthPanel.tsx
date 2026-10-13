@@ -14,6 +14,8 @@ import {
   truncateChipTitle,
 } from '../../../lib/planning'
 import type { PlanningMonthItem, PlanningMonthView } from '../../../lib/planningTypes'
+import { groupByDay, readShowSuggestions, saveShowSuggestions } from '../../../lib/calendarSuggestions'
+import { GhostChip, SuggestionBar, useMonthSuggestions } from './MonthSuggestions'
 
 const DOW = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
@@ -170,15 +172,25 @@ export function LaneMonthPanel({
   monthView,
   onMonthChange,
   onSuggestDate,
+  brandId = '',
+  onChanged,
 }: {
   brand: string
   monthParam: string
   monthView: PlanningMonthView | null
   onMonthChange: (next: string) => void
   onSuggestDate?: (iso: string) => void
+  /** The brand's id; suggestions are drawn only when one brand is chosen. */
+  brandId?: string
+  /** Called after a suggestion is approved, rejected or undone, to reload the month. */
+  onChanged?: () => void
 }) {
   const [laneFilter, setLaneFilter] = useState('')
   const [drawerIso, setDrawerIso] = useState<string | null>(null)
+  const [showGhosts, setShowGhosts] = useState(readShowSuggestions)
+  const noop = useCallback(() => {}, [])
+  const sug = useMonthSuggestions(brandId, monthParam, showGhosts && Boolean(brandId), onChanged || noop)
+  const ghostsByDay = useMemo(() => groupByDay(sug.items), [sug.items])
 
   const [year, month1] = monthParam.split('-').map(Number)
   const todayIso = localTodayIso()
@@ -310,6 +322,21 @@ export function LaneMonthPanel({
           )
         })}
       </div>
+      {brandId ? (
+        <SuggestionBar
+          show={showGhosts}
+          onToggle={(v) => {
+            setShowGhosts(v)
+            saveShowSuggestions(v)
+          }}
+          count={sug.items.length}
+          decided={sug.decided}
+          busy={sug.busyKey !== null}
+          error={sug.error}
+          onUndo={sug.undo}
+          onDismiss={sug.dismiss}
+        />
+      ) : null}
       <p className="text-xs text-tx3">
         {laneFilter
           ? `Filtering by ${laneLabel(laneFilter, brand)}. Click a day to see all lanes.`
@@ -330,6 +357,7 @@ export function LaneMonthPanel({
         {cells.map((cell) => {
           const allItems = monthView.days?.[cell.iso] || []
           const items = filterMonthItemsByLane(allItems, laneFilter)
+          const ghosts = ghostsByDay[cell.iso] || []
           const isFeatured = cell.iso === featuredDate
           return (
             <button
@@ -378,12 +406,21 @@ export function LaneMonthPanel({
                   ) : null}
                 </div>
               </div>
-              {items.length === 0 && cell.inMonth ? (
+              {items.length === 0 && ghosts.length === 0 && cell.inMonth ? (
                 <span className="text-[9px] text-tx3 italic">no content</span>
               ) : (
                 <div className="flex flex-col gap-0.5">
                   {items.map((it, idx) => (
                     <LaneChip key={`${it.title}-${idx}`} lane={it.lane} title={it.title} status={it.status} />
+                  ))}
+                  {ghosts.map((g) => (
+                    <GhostChip
+                      key={g.key}
+                      s={g}
+                      busy={sug.busyKey === g.key}
+                      onApprove={() => void sug.approve(g)}
+                      onReject={() => void sug.reject(g)}
+                    />
                   ))}
                 </div>
               )}

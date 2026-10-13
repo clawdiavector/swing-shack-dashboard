@@ -342,6 +342,8 @@ export function Lanes() {
           monthView={monthView}
           onMonthChange={setMonthParam}
           onSuggestDate={openSuggestDate}
+          brandId={scopeBrand || ''}
+          onChanged={() => setRefreshKey((k) => k + 1)}
         />
       ) : null}
 
