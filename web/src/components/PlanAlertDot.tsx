@@ -5,8 +5,9 @@ import { useBrand, useBrandScope } from './BrandSwitch'
 
 const REFRESH_MS = 5 * 60 * 1000
 
-/** A dot on the Plan menu item: red when an approved date is close and has
- *  nothing ready, yellow when one is coming up. Nothing when all is ready. */
+/** A dot on the Plan menu item: red, with a count, when an approved date is
+ *  close and has nothing ready. Nothing otherwise; dates that are only coming
+ *  up show in the banners, not here. */
 export function PlanAlertDot({ className = '' }: { className?: string }) {
   const { brandId } = useBrand()
   const { isAll } = useBrandScope()
@@ -34,17 +35,15 @@ export function PlanAlertDot({ className = '' }: { className?: string }) {
 
   const { count, tone } = dotState(alerts)
   if (tone === 'none') return null
-  const loud = tone === 'scream'
+  const label = `${count} approved ${count === 1 ? 'date is' : 'dates are'} close and not ready`
   return (
     <span
       role="img"
       data-testid="plan-alert-dot"
       data-tone={tone}
-      aria-label={`${count} approved ${count === 1 ? 'date needs' : 'dates need'} a plan`}
-      title={`${count} approved ${count === 1 ? 'date needs' : 'dates need'} a plan`}
-      className={`pointer-events-auto absolute grid min-h-[14px] min-w-[14px] place-items-center rounded-full px-1 text-[9px] leading-none font-extrabold ${
-        loud ? 'bg-red text-bg motion-safe:animate-pulse' : 'bg-yel text-bg'
-      } ${className}`}
+      aria-label={label}
+      title={label}
+      className={`pointer-events-auto absolute grid min-h-[14px] min-w-[14px] place-items-center rounded-full bg-red px-1 text-[9px] leading-none font-extrabold text-bg motion-safe:animate-pulse ${className}`}
     >
       {count > 9 ? '9+' : count}
     </span>

@@ -65,8 +65,10 @@ export function onAlertsChanged(cb: () => void): () => void {
   return () => window.removeEventListener(CHANGED, cb)
 }
 
-/** What the menu dot shows: red when anything screams, yellow when it only warns. */
-export function dotState(alerts: CalendarAlert[]): { count: number; tone: 'scream' | 'warn' | 'none' } {
-  if (!alerts.length) return { count: 0, tone: 'none' }
-  return { count: alerts.length, tone: alerts.some((a) => a.level === 'scream') ? 'scream' : 'warn' }
+/** What the menu dot shows: red, with how many are close and not ready, and
+ *  nothing at all otherwise. Dates that are only coming up stay in the banners,
+ *  so the dot never sits there for weeks. */
+export function dotState(alerts: CalendarAlert[]): { count: number; tone: 'scream' | 'none' } {
+  const loud = alerts.filter((a) => a.level === 'scream').length
+  return loud ? { count: loud, tone: 'scream' } : { count: 0, tone: 'none' }
 }

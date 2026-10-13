@@ -37,9 +37,10 @@ describe('alertAction', () => {
 })
 
 describe('dotState', () => {
-  it('is quiet with nothing, yellow for warnings, red when anything screams', () => {
+  it('is quiet with nothing and with only warnings, and counts only the red ones', () => {
     expect(dotState([])).toEqual({ count: 0, tone: 'none' })
-    expect(dotState([a('warn')])).toEqual({ count: 1, tone: 'warn' })
-    expect(dotState([a('warn'), a('scream')])).toEqual({ count: 2, tone: 'scream' })
+    expect(dotState([a('warn'), a('warn')])).toEqual({ count: 0, tone: 'none' })
+    expect(dotState([a('warn'), a('scream')])).toEqual({ count: 1, tone: 'scream' })
+    expect(dotState([a('scream'), a('scream')])).toEqual({ count: 2, tone: 'scream' })
   })
 })
