@@ -25132,6 +25132,123 @@ def brief_v1_list(brand_id):
                     "count": len(items), "briefs": items}), 200
 
 
+# ── Plan from a date: approved brief -> dated, editable checklist ──
+def _plan_import():
+    from _lib import campaign_plan as cp
+    return cp
+
+
+def _plan_guard(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    return None
+
+
+@app.route('/api/plan/v1/<brand_id>/propose', methods=['POST'])
+def plan_v1_propose(brand_id):
+    """POST body: {brief_id, force?}. Builds a dated checklist from the
+    brief's event date. Nothing is scheduled or published."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    brief_id = (body.get("brief_id") or "").strip()
+    if not brief_id:
+        return jsonify({"ok": False, "error": "brief_id required"}), 400
+    try:
+        brief = _cb_import()._read_brief(brand_id, brief_id)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    r = _plan_import().propose_plan(brand_id, brief,
+                                    force=bool(body.get("force")))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/list', methods=['GET'])
+def plan_v1_list(brand_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    items = _plan_import().list_plans(brand_id,
+                                      (request.args.get("status") or None))
+    return jsonify({"ok": True, "brand_id": brand_id,
+                    "count": len(items), "plans": items}), 200
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>', methods=['GET'])
+def plan_v1_get(brand_id, plan_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    try:
+        plan = _plan_import().get_plan(brand_id, plan_id)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    if not plan:
+        return jsonify({"ok": False, "error": "plan not found"}), 404
+    return jsonify({"ok": True, "plan": plan}), 200
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/item/<item_id>', methods=['PATCH'])
+def plan_v1_edit_item(brand_id, plan_id, item_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    actor = body.pop("actor", "operator") or "operator"
+    try:
+        r = _plan_import().edit_item(brand_id, plan_id, item_id, body, actor)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/item', methods=['POST'])
+def plan_v1_add_item(brand_id, plan_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    actor = body.pop("actor", "operator") or "operator"
+    try:
+        r = _plan_import().add_item(brand_id, plan_id, body, actor)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/approve', methods=['POST'])
+def plan_v1_approve(brand_id, plan_id):
+    """Records the yes. Does not put anything on the calendar yet."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    try:
+        r = _plan_import().approve_plan(brand_id, plan_id,
+                                        body.get("actor") or "operator")
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/reopen', methods=['POST'])
+def plan_v1_reopen(brand_id, plan_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    try:
+        r = _plan_import().reopen_plan(brand_id, plan_id,
+                                       body.get("actor") or "operator")
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
 @app.route('/api/brief/v1/<brand_id>/<brief_id>', methods=['GET'])
 def brief_v1_get(brand_id, brief_id):
     """GET /api/brief/v1/<brand_id>/<brief_id> — full Brief JSON."""
