@@ -92,6 +92,7 @@ def month_items(
             "category": r.get("category") or (r.get("type") or "").replace("_", " "),
             "why": r.get("why_it_matters") or r.get("summary") or r.get("relevance_reason") or r.get("angle") or "",
             "calendar_id": cid,
+            "pillars": [p for p in (r.get("pillars") or []) if isinstance(p, str)],
         })
 
     taken = list(approved) + [_key(i["title"]) for i in out]
@@ -110,6 +111,7 @@ def month_items(
             "category": n.get("category") or "",
             "why": n.get("commercial_push") or "",
             "calendar_id": None,
+            "pillars": [],
         })
 
     out.sort(key=lambda i: (i["date"], i["title"]))

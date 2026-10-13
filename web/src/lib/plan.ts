@@ -206,3 +206,16 @@ export function formatDay(iso?: string | null): string {
   if (!y || !m || !d) return iso
   return `${d} ${MONTH_ABBR[m - 1]} ${y}`
 }
+
+export type FromEventResult = PlanResult & {
+  brief_id?: string
+  brief_status?: string
+  brief_existed?: boolean
+}
+
+/** One step from a calendar date to a draft plan: reuse the date's brief or
+ *  write one, then propose the plan. */
+export async function planFromEvent(brand: string, eventKey: string, force = false): Promise<FromEventResult> {
+  const r = (await call('POST', `${base(brand)}/from-event`, { event_key: eventKey, force })) as FromEventResult
+  return r
+}

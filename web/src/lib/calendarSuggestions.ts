@@ -14,6 +14,8 @@ export type Suggestion = {
   category: string
   why: string
   calendar_id: string | null
+  /** Pillars the entry already carries; a brief needs at least one. */
+  pillars?: string[]
 }
 
 export type Undo = {
@@ -61,8 +63,21 @@ const base = (brand: string) => `/api/calendar-suggestions/${encodeURIComponent(
 export const fetchSuggestions = (brand: string, month: string) =>
   call('GET', `${base(brand)}?month=${encodeURIComponent(month)}`)
 
-export const approveSuggestion = (brand: string, month: string, key: string, name: string) =>
-  call('POST', `${base(brand)}/approve`, { month, key }, name)
+export const approveSuggestion = (brand: string, month: string, key: string, name: string, pillars: string[] = []) =>
+  call('POST', `${base(brand)}/approve`, { month, key, pillars }, name)
+
+export type PillarOption = { pillar_id: string; name?: string }
+
+/** The brand's pillars, for the picker on a card. Empty when they cannot be read. */
+export async function fetchPillars(brand: string): Promise<PillarOption[]> {
+  try {
+    const res = await fetch(`/api/calendar/context/${encodeURIComponent(brand)}`, { credentials: 'same-origin' })
+    const j = (await res.json()) as { pillars?: Array<{ pillar_id?: string; name?: string }> }
+    return (j.pillars || []).filter((p): p is PillarOption => Boolean(p.pillar_id))
+  } catch {
+    return []
+  }
+}
 
 export const rejectSuggestion = (brand: string, month: string, key: string, name: string) =>
   call('POST', `${base(brand)}/reject`, { month, key }, name)

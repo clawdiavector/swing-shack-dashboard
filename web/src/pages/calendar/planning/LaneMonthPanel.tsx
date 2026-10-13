@@ -335,6 +335,9 @@ export function LaneMonthPanel({
           error={sug.error}
           onUndo={sug.undo}
           onDismiss={sug.dismiss}
+          onMakePlan={sug.makePlan}
+          planBusy={sug.planBusy}
+          planNote={sug.planNote}
         />
       ) : null}
       <p className="text-xs text-tx3">
@@ -418,7 +421,8 @@ export function LaneMonthPanel({
                       key={g.key}
                       s={g}
                       busy={sug.busyKey === g.key}
-                      onApprove={() => void sug.approve(g)}
+                      pillars={sug.pillars}
+                      onApprove={(pillar) => void sug.approve(g, pillar)}
                       onReject={() => void sug.reject(g)}
                     />
                   ))}

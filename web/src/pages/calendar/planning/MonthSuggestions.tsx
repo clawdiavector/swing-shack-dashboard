@@ -4,15 +4,17 @@ import { createPortal } from 'react-dom'
 import {
   SOURCE_LABEL,
   approveSuggestion,
+  fetchPillars,
   fetchSuggestions,
   rejectSuggestion,
   spanLabel,
   undoMessage,
   undoSuggestion,
+  type PillarOption,
   type Suggestion,
   type Undo,
 } from '../../../lib/calendarSuggestions'
-import { actorName } from '../../../lib/plan'
+import { actorName, planFromEvent } from '../../../lib/plan'
 import { tierLabel } from '../../../lib/planning'
 
 export type Decided = { undo: Undo; title: string }
@@ -23,6 +25,9 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [decided, setDecided] = useState<Decided | null>(null)
+  const [pillars, setPillars] = useState<PillarOption[]>([])
+  const [planBusy, setPlanBusy] = useState(false)
+  const [planNote, setPlanNote] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
@@ -38,12 +43,23 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
     }
   }, [brandId, month, enabled, tick])
 
+  useEffect(() => {
+    if (!enabled || !brandId) return
+    let cancelled = false
+    void fetchPillars(brandId).then((p) => {
+      if (!cancelled) setPillars(p)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [brandId, enabled])
+
   const settle = useCallback(() => {
     setTick((t) => t + 1)
     onChanged()
   }, [onChanged])
 
-  async function decide(s: Suggestion, verb: 'approve' | 'reject') {
+  async function decide(s: Suggestion, verb: 'approve' | 'reject', pillar = '') {
     const name = actorName()
     if (!name) {
       setError('A name is needed so the calendar knows who decided.')
@@ -51,15 +67,34 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
     }
     setBusyKey(s.key)
     setError(null)
-    const call = verb === 'approve' ? approveSuggestion : rejectSuggestion
-    const r = await call(brandId, month, s.key, name)
+    const r =
+      verb === 'approve'
+        ? await approveSuggestion(brandId, month, s.key, name, pillar ? [pillar] : [])
+        : await rejectSuggestion(brandId, month, s.key, name)
     setBusyKey(null)
     if (!r.ok || !r.undo) {
       setError(r.error || 'That did not work.')
       return
     }
+    setPlanNote(null)
     setDecided({ undo: r.undo, title: s.title })
     settle()
+  }
+
+  /** From the approved date straight to a brief and a draft plan. */
+  async function makePlan() {
+    const key = decided?.undo.event_key
+    if (!key) return
+    setPlanBusy(true)
+    setError(null)
+    const r = await planFromEvent(brandId, key)
+    setPlanBusy(false)
+    if (!r.ok) {
+      setError(r.error || 'Could not make the plan.')
+      return
+    }
+    setPlanNote('Brief and draft plan made. Find it under Plan, then List, to check and approve.')
+    onChanged()
   }
 
   async function undo() {
@@ -72,18 +107,26 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
       return
     }
     setDecided(null)
+    setPlanNote(null)
     settle()
   }
 
   return {
     items: enabled && brandId ? items : [],
+    pillars,
     busyKey,
     error,
     decided,
-    approve: (s: Suggestion) => decide(s, 'approve'),
+    approve: (s: Suggestion, pillar?: string) => decide(s, 'approve', pillar),
     reject: (s: Suggestion) => decide(s, 'reject'),
     undo,
-    dismiss: () => setDecided(null),
+    makePlan,
+    planBusy,
+    planNote,
+    dismiss: () => {
+      setDecided(null)
+      setPlanNote(null)
+    },
     clearError: () => setError(null),
   }
 }
@@ -109,14 +152,20 @@ export function cardPosition(
 export function GhostChip({
   s,
   busy,
+  pillars,
   onApprove,
   onReject,
 }: {
   s: Suggestion
   busy: boolean
-  onApprove: () => void
+  pillars: PillarOption[]
+  onApprove: (pillar: string) => void
   onReject: () => void
 }) {
+  const [pillar, setPillar] = useState('')
+  // An important date has no pillar of its own, and without one it can never
+  // get a brief, so it is asked for here. Entries that already carry one skip it.
+  const needsPillar = !(s.pillars && s.pillars.length) && s.source === 'date' && pillars.length > 0
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
   const chipRef = useRef<HTMLSpanElement>(null)
   const timer = useRef<number | undefined>(undefined)
@@ -201,11 +250,30 @@ export function GhostChip({
                 {s.category ? <span className="text-tx3">{s.category}</span> : null}
               </p>
               {s.why ? <p className="line-clamp-4 text-xs text-tx3">{s.why}</p> : null}
+              {needsPillar ? (
+                <label className="block text-xs text-tx2">
+                  What is it for?
+                  <select
+                    value={pillar}
+                    onChange={(e) => setPillar(e.target.value)}
+                    data-testid="ghost-pillar"
+                    className="mt-1 w-full rounded border border-bd bg-bg px-2 py-1 text-sm text-tx"
+                  >
+                    <option value="">Choose a pillar</option>
+                    {pillars.map((p) => (
+                      <option key={p.pillar_id} value={p.pillar_id}>
+                        {p.name || p.pillar_id}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <div className="flex items-center gap-2 pt-1">
                 <button
                   type="button"
-                  disabled={busy}
-                  onClick={onApprove}
+                  disabled={busy || (needsPillar && !pillar)}
+                  title={needsPillar && !pillar ? 'Choose what it is for first, so it can get a brief' : undefined}
+                  onClick={() => onApprove(pillar)}
                   data-testid="ghost-approve"
                   className="inline-flex items-center gap-1 rounded-full border border-yel/40 bg-yel/15 px-3 py-1 text-xs font-semibold text-yel hover:bg-yel/25 disabled:opacity-60"
                 >
@@ -240,6 +308,9 @@ export function SuggestionBar({
   error,
   onUndo,
   onDismiss,
+  onMakePlan,
+  planBusy = false,
+  planNote = null,
 }: {
   show: boolean
   onToggle: (v: boolean) => void
@@ -249,6 +320,9 @@ export function SuggestionBar({
   error: string | null
   onUndo: () => void
   onDismiss: () => void
+  onMakePlan?: () => void
+  planBusy?: boolean
+  planNote?: string | null
 }) {
   return (
     <div className="space-y-2" data-testid="suggestion-bar">
@@ -268,6 +342,19 @@ export function SuggestionBar({
           data-testid="undo-bar"
         >
           <span>{undoMessage(decided.undo.kind, decided.title)}</span>
+          {decided.undo.kind === 'approve' && decided.undo.event_key && onMakePlan && !planNote ? (
+            <button
+              type="button"
+              disabled={busy || planBusy}
+              onClick={onMakePlan}
+              data-testid="make-plan-button"
+              className="inline-flex items-center gap-1 rounded-full border border-yel/40 bg-yel/20 px-3 py-1 font-bold text-yel hover:bg-yel/30 disabled:opacity-60"
+            >
+              {planBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              Make a plan
+            </button>
+          ) : null}
+          {planNote ? <span className="text-tx2">{planNote}</span> : null}
           <button
             type="button"
             disabled={busy}

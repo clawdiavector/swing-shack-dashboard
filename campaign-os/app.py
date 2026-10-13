@@ -25177,6 +25177,44 @@ def plan_v1_propose(brand_id):
     return jsonify(r), (200 if r.get("ok") else 400)
 
 
+@app.route('/api/plan/v1/<brand_id>/from-event', methods=['POST'])
+def plan_v1_from_event(brand_id):
+    """POST body: {event_key, force?}. One step from a calendar date to a draft
+    plan: reuse the date's brief or write one, then propose the plan."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    event_key = (body.get("event_key") or "").strip()
+    if not event_key:
+        return jsonify({"ok": False, "error": "event_key required"}), 400
+    cb = _cb_import()
+    brief = None
+    existing = cb._find_active_brief(brand_id, event_key)
+    if existing:
+        brief = cb._read_brief(brand_id, existing["brief_id"])
+    else:
+        r = cb.create_brief(brand_id, event_key, force=bool(body.get("force")))
+        if r.get("decision"):
+            watch = r["decision"] == "WATCH"
+            reasons = [f.get("reason") or f.get("gate") or ""
+                       for f in ((r.get("gate") or {}).get("hard_gate_failures") or [])]
+            lead = ("Campaign OS wants to watch this one, not brief it yet."
+                    if watch else "Campaign OS will not brief this entry.")
+            return jsonify({"ok": False, "decision": r["decision"],
+                            "reasons": [x for x in reasons if x],
+                            "error": " ".join([lead] + [x.rstrip(".") + "." for x in reasons if x])}), 200
+        if not r.get("ok"):
+            return jsonify({"ok": False, "error": r.get("error") or "could not write the brief"}), 400
+        brief = r.get("brief")
+    res = _plan_import().propose_plan(brand_id, brief)
+    if not res.get("ok"):
+        return jsonify(res), 400
+    return jsonify({"ok": True, "brief_id": brief.get("brief_id"),
+                    "brief_status": brief.get("status"), "plan": res["plan"],
+                    "brief_existed": bool(existing)}), 200
+
+
 @app.route('/api/plan/v1/<brand_id>/list', methods=['GET'])
 def plan_v1_list(brand_id):
     bad = _plan_guard(brand_id)
@@ -46022,6 +46060,62 @@ def _brief_ids_by_event(brand_id):
     return out
 
 
+# ── Approved dates that are close and have no plan or content ──
+def _alerts_for_brand(brand_id):
+    from zoneinfo import ZoneInfo
+    from _lib import calendar_alerts as ca
+    from _lib import campaign_plan as cp
+    from _lib import marketing_calendar as mc
+    today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
+    horizon = today + _dt.timedelta(days=max(ca.WARN_DAYS.values()))
+    events = []
+    for yr in sorted({today.year, horizon.year}):
+        try:
+            spine, _src = _load_events_for_year(brand_id, yr)
+        except Exception:
+            spine = None
+        for e in (spine or {}).get("events") or []:
+            events.append({"id": e.get("id"), "name": e.get("name") or e.get("title"),
+                           "start": e.get("start") or e.get("public_peak"), "tier": e.get("tier")})
+    content_dates = []
+    for r in mc.latest_revisions(mc.list_records(brand_id) or []):
+        if r.get("status") != "approved" or r.get("plan_id"):
+            continue  # steps a plan put there are the plan's, not content made for the date
+        kind = r.get("type")
+        start = r.get("event_start") or r.get("event_date") or r.get("public_peak")
+        if kind in ("campaign", "moment"):
+            # Someone chose this date for the calendar, so it is never quieter than B.
+            events.append({"event_key": r.get("event_key") or r.get("calendar_id"),
+                           "name": r.get("title") or r.get("name"), "start": start,
+                           "tier": r.get("tier") if r.get("tier") in ("A-PIN", "B-PIN") else "B-PIN"})
+        elif kind == "content":
+            content_dates.append(start)
+    plans = {p.get("brief_id"): p for p in cp.list_plans(brand_id) if p.get("status") != "superseded"}
+    return ca.find_alerts(brand_id, events, _brief_ids_by_event(brand_id), plans, content_dates, today)
+
+
+@app.route("/api/calendar-alerts", methods=["GET"])
+def calendar_alerts():
+    """GET ?brand=stick|swing-shack|bag-drop|all — approved dates that are
+    close and have no plan or content, loudest first."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = (request.args.get("brand") or "all").strip()
+    brands = ["swing-shack", "stick", "bag-drop"] if brand == "all" else [brand]
+    if any(b not in ("swing-shack", "stick", "bag-drop") for b in brands):
+        return jsonify({"ok": False, "error": f"brand '{brand}' invalid"}), 400
+    alerts = []
+    for b in brands:
+        try:
+            alerts.extend(_alerts_for_brand(b))
+        except Exception:
+            _app_log.exception("calendar alerts failed for %s", b)
+    alerts.sort(key=lambda a: (a["level"] != "scream", a["days"], a["name"]))
+    return jsonify({"ok": True, "brand": brand, "count": len(alerts),
+                    "screaming": sum(1 for a in alerts if a["level"] == "scream"),
+                    "alerts": alerts}), 200
+
+
 # ── Suggestions on the month calendar: faded until approved or rejected ──
 def _cs_guard(brand_id):
     if not _is_authed():
@@ -46100,6 +46194,7 @@ def calendar_suggestions_approve(brand_id):
         return jsonify({"ok": False, "error": "that suggestion is no longer there"}), 404
     actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
     cid, made = item.get("calendar_id"), False
+    pillars = [p for p in (body.get("pillars") or []) if isinstance(p, str) and p]
     if item["source"] == "date":
         why = item.get("why") or ""
         try:
@@ -46110,6 +46205,7 @@ def calendar_suggestions_approve(brand_id):
                 "category": item.get("category"), "source_type": "operator",
                 "source": "OPERATOR_PROVIDED", "created_by": "operator", "is_suggested": True,
                 "origin_note_id": item["key"],
+                "pillars": pillars,
             }, initial_status="candidate")
         except (ValueError, PermissionError) as e:
             return jsonify({"ok": False, "error": str(e)}), 400

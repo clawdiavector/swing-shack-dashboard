@@ -25,6 +25,7 @@ import type {
   PlanningTimeline,
 } from '../../lib/planningTypes'
 import { EventTimelinePanel } from './planning/EventTimelinePanel'
+import { AlertBanner } from './planning/AlertBanner'
 import { LaneMonthPanel } from './planning/LaneMonthPanel'
 import { PlanList } from './planning/PlanList'
 import { PlanningCandidatesPanel } from './planning/PlanningCandidatesPanel'
@@ -300,6 +301,8 @@ export function Lanes() {
           </button>
         ) : null}
       </div>
+
+      <AlertBanner brandId={scopeBrand || ''} refreshKey={refreshKey} />
 
       {!scopeBrand ? <p className="text-sm text-tx3">Pick a brand to load its plan.</p> : null}
 
