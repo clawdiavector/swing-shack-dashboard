@@ -187,10 +187,12 @@ def propose_plan(brand_id: str, brief: dict, *, force: bool = False,
     meta = dict(event_meta or {})
     meta.setdefault("pillars", (brief.get("source_opportunity") or {}).get("pillars"))
     meta.setdefault("duration_days", _duration_days(brief, event_meta))
+    # The type of the date is what it is; the shape of the plan can be overridden.
+    event_kind, auto_reason = classify(meta, name)
     if profile in PROFILES:
         chosen, reason = profile, "Chosen by you."
     else:
-        chosen, reason = classify(meta, name)
+        chosen, reason = event_kind, auto_reason
     duration = _duration_days(brief, event_meta)
     now = _now_iso()
     plan = {
@@ -205,6 +207,7 @@ def propose_plan(brand_id: str, brief: dict, *, force: bool = False,
         "updated_at": now,
         "approved_at": None,
         "approved_by": None,
+        "event_kind": event_kind,
         "profile": chosen,
         "profile_label": PROFILES[chosen]["label"],
         "profile_reason": reason,
@@ -414,6 +417,7 @@ def _calendar_record(plan: dict, item: dict) -> dict:
         "plan_id": plan["plan_id"],
         "plan_item_id": item["item_id"],
         "plan_item_kind": kind,
+        "event_kind": plan.get("event_kind") or plan.get("profile"),
         "brief_id": plan.get("brief_id"),
     }
 

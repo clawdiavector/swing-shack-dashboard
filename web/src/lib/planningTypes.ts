@@ -29,6 +29,8 @@ export type PlanningMonthItem = {
   hook?: string
   is_paid_supported?: boolean
   stock_refs?: string[]
+  /** What kind of date it is, for its icon. Set on events, not on content cards. */
+  kind?: string
 }
 
 export type PlanningMonthView = {

@@ -44252,6 +44252,7 @@ def planning_month_view(brand_id):
     operator_approved_events: List[Dict[str, Any]] = []
     operator_approved_days: Dict[str, List[Dict[str, Any]]] = {}
     _op_seen: set = set()
+    from _lib.plan_profiles import event_kind as _month_kind
     try:
         from _lib import marketing_calendar as _mc_month
         try:
@@ -44295,6 +44296,8 @@ def planning_month_view(brand_id):
                 "source": r.get("source_origin") or "operator-store",
                 "tier": r.get("tier"),
                 "event_key": ek,
+                # A step a plan put on the calendar carries the type of its event.
+                "kind": r.get("event_kind") or _month_kind(r),
             }
             operator_approved_events.append(item)
             operator_approved_days.setdefault(start_iso, []).append(item)
@@ -44310,6 +44313,7 @@ def planning_month_view(brand_id):
                 "execution_type": "operator_approved",
                 "source": "operator-store",
                 "channel": "main-calendar",
+                "kind": item["kind"],
             })
             # Also surface in days_extended for the three-layer panel.
             if start_iso in days_extended:
@@ -44379,6 +44383,7 @@ def planning_month_view(brand_id):
                     "event_key": ev.get("event_key") or ev.get("id"),
                     "public_peak": (ev.get("public_peak") or "")[:10],
                     "phases": ev.get("phases"),
+                    "kind": _month_kind(ev),
                 }
                 days.setdefault(start_iso, []).append(spine_item)
                 # Also push into days_extended.planned_content

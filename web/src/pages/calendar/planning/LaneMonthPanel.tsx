@@ -14,6 +14,7 @@ import {
   truncateChipTitle,
 } from '../../../lib/planning'
 import type { PlanningMonthItem, PlanningMonthView } from '../../../lib/planningTypes'
+import { EventTypeIcon } from '../../../components/EventTypeIcon'
 import { groupByDay, readShowSuggestions, saveShowSuggestions } from '../../../lib/calendarSuggestions'
 import { GhostChip, SuggestionBar, useMonthSuggestions } from './MonthSuggestions'
 
@@ -23,10 +24,12 @@ function LaneChip({
   lane,
   title,
   status,
+  kind,
 }: {
   lane?: string
   title?: string
   status?: string
+  kind?: string
 }) {
   const meta = LANE_META[lane || ''] || { color: 'var(--color-tx3)', label: lane || '—' }
   const opacity = status === 'NEEDS_CAPTURE' ? 0.55 : 1
@@ -41,7 +44,11 @@ function LaneChip({
       }}
       title={`${title || ''} — ${lane} (${status || ''})`}
     >
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.color }} />
+      {kind ? (
+        <EventTypeIcon kind={kind} size="sm" className="!border-0 !bg-transparent !p-0" />
+      ) : (
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.color }} />
+      )}
       {truncateChipTitle(title || '')}
     </span>
   )
@@ -101,7 +108,7 @@ function DayDrawer({
               return (
                 <li key={`${it.title}-${i}`} className="space-y-2 border-b border-bd/50 pb-4 last:border-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <LaneChip lane={it.lane} title={laneLabel(it.lane, brand)} status={it.status} />
+                    <LaneChip lane={it.lane} title={laneLabel(it.lane, brand)} status={it.status} kind={it.kind} />
                     {it.status ? (
                       <span
                         className="rounded-full border px-2 py-0.5 text-[10px]"
@@ -414,7 +421,7 @@ export function LaneMonthPanel({
               ) : (
                 <div className="flex flex-col gap-0.5">
                   {items.map((it, idx) => (
-                    <LaneChip key={`${it.title}-${idx}`} lane={it.lane} title={it.title} status={it.status} />
+                    <LaneChip key={`${it.title}-${idx}`} lane={it.lane} title={it.title} status={it.status} kind={it.kind} />
                   ))}
                   {ghosts.map((g) => (
                     <GhostChip

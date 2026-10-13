@@ -172,3 +172,20 @@ def test_suggestions_and_alerts_carry_a_kind():
     b = find_alerts("stick", [{"id": "k", "name": "X", "start": "2026-10-20", "tier": "A-PIN"}],
                     {}, {}, [], TODAY)
     assert b[0]["kind"] == "standard"
+
+
+def test_a_plan_keeps_the_type_of_its_date_when_its_shape_is_changed():
+    meta = {"shopping_moment": True, "tier": "A-PIN"}
+    p = cp.propose_plan("stick", brief(), today=TODAY, event_meta=meta,
+                        profile="light")["plan"]
+    assert p["profile"] == "light" and p["event_kind"] == "retail_push"
+
+
+def test_steps_put_on_the_calendar_carry_the_type_of_the_date():
+    meta = {"shopping_moment": True, "tier": "A-PIN"}
+    p = cp.propose_plan("stick", brief(), today=TODAY, event_meta=meta, profile="light")["plan"]
+    cp.approve_plan("stick", p["plan_id"])
+    rows = []
+    cp.place_on_calendar("stick", p["plan_id"],
+                         add_record=lambda b, r, s: rows.append(r) or dict(r, calendar_id=f"c{len(rows)}"))
+    assert rows and all(r["event_kind"] == "retail_push" for r in rows)
