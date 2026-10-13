@@ -15,7 +15,15 @@ import {
 } from '../../../lib/planning'
 import type { PlanningMonthItem, PlanningMonthView } from '../../../lib/planningTypes'
 import { EventTypeIcon } from '../../../components/EventTypeIcon'
-import { groupByDay, readShowSuggestions, saveShowSuggestions } from '../../../lib/calendarSuggestions'
+import {
+  groupByDay,
+  readShowPlanSteps,
+  readShowSuggestions,
+  saveShowPlanSteps,
+  saveShowSuggestions,
+} from '../../../lib/calendarSuggestions'
+import { stepsByDay } from '../../../lib/planSteps'
+import { PlanStepChip, useMonthPlanSteps } from './PlanStepChips'
 import { GhostChip, SuggestionBar, useMonthSuggestions } from './MonthSuggestions'
 
 const DOW = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
@@ -198,6 +206,9 @@ export function LaneMonthPanel({
   const noop = useCallback(() => {}, [])
   const sug = useMonthSuggestions(brandId, monthParam, showGhosts && Boolean(brandId), onChanged || noop)
   const ghostsByDay = useMemo(() => groupByDay(sug.items), [sug.items])
+  const [showPlanSteps, setShowPlanSteps] = useState(readShowPlanSteps)
+  const planSteps = useMonthPlanSteps(brandId, monthParam, showPlanSteps)
+  const planStepsByDay = useMemo(() => stepsByDay(planSteps), [planSteps])
 
   const [year, month1] = monthParam.split('-').map(Number)
   const todayIso = localTodayIso()
@@ -337,6 +348,12 @@ export function LaneMonthPanel({
             saveShowSuggestions(v)
           }}
           count={sug.items.length}
+          showPlans={showPlanSteps}
+          onTogglePlans={(v) => {
+            setShowPlanSteps(v)
+            saveShowPlanSteps(v)
+          }}
+          planStepCount={planSteps.length}
           decided={sug.decided}
           busy={sug.busyKey !== null}
           error={sug.error}
@@ -368,6 +385,7 @@ export function LaneMonthPanel({
           const allItems = monthView.days?.[cell.iso] || []
           const items = filterMonthItemsByLane(allItems, laneFilter)
           const ghosts = ghostsByDay[cell.iso] || []
+          const steps = planStepsByDay[cell.iso] || []
           const isFeatured = cell.iso === featuredDate
           return (
             <button
@@ -416,12 +434,15 @@ export function LaneMonthPanel({
                   ) : null}
                 </div>
               </div>
-              {items.length === 0 && ghosts.length === 0 && cell.inMonth ? (
+              {items.length === 0 && ghosts.length === 0 && steps.length === 0 && cell.inMonth ? (
                 <span className="text-[9px] text-tx3 italic">no content</span>
               ) : (
                 <div className="flex flex-col gap-0.5">
                   {items.map((it, idx) => (
                     <LaneChip key={`${it.title}-${idx}`} lane={it.lane} title={it.title} status={it.status} kind={it.kind} />
+                  ))}
+                  {steps.map((st) => (
+                    <PlanStepChip key={st.key} s={st} />
                   ))}
                   {ghosts.map((g) => (
                     <GhostChip

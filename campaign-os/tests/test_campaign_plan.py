@@ -195,3 +195,30 @@ def test_latest_revisions_lets_an_undo_hide_the_old_row():
     kept = latest_revisions(rows)
     assert [(r.get("calendar_id"), r["status"]) for r in kept] == [
         ("b", "approved"), ("a", "ignored"), (None, "approved")]
+
+
+def test_month_steps_lists_only_steps_not_yet_on_the_calendar():
+    p = cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY)["plan"]
+    gone = p["items"][0]
+    cp.edit_item("stick", p["plan_id"], gone["item_id"], {"status": "removed"})
+    first, last = date(2026, 11, 1), date(2026, 12, 31)
+    steps = cp.month_steps("stick", first, last)
+    assert steps and all(first <= date.fromisoformat(s["date"]) <= last for s in steps)
+    assert gone["item_id"] not in [s["item_id"] for s in steps]
+    assert steps == sorted(steps, key=lambda s: (s["date"], s["event_name"], s["title"]))
+    assert steps[0]["event_name"] == "Black Friday" and steps[0]["plan_status"] == "proposed"
+    # a month with nothing due is empty
+    assert cp.month_steps("stick", date(2027, 6, 1), date(2027, 6, 30)) == []
+    # once on the calendar they are solid there, so they leave this list
+    cp.approve_plan("stick", p["plan_id"])
+    assert cp.month_steps("stick", first, last)  # approved but not placed: still faded
+    cp.place_on_calendar("stick", p["plan_id"],
+                         add_record=lambda b, r, s: dict(r, calendar_id=r["plan_item_id"]))
+    assert cp.month_steps("stick", first, last) == []
+
+
+def test_month_steps_skips_superseded_plans():
+    first = cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY)["plan"]
+    cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY, force=True)
+    ids = {s["plan_id"] for s in cp.month_steps("stick", date(2026, 11, 1), date(2026, 12, 31))}
+    assert first["plan_id"] not in ids and len(ids) == 1

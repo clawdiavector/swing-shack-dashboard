@@ -112,12 +112,29 @@ export function undoMessage(kind: Undo['kind'], title: string): string {
 }
 
 const SHOW_KEY = 'cos_month_suggestions'
+const SHOW_PLANS_KEY = 'cos_month_plan_steps'
 
 export function readShowSuggestions(): boolean {
   try {
     return window.localStorage.getItem(SHOW_KEY) !== 'off'
   } catch {
     return true
+  }
+}
+
+export function readShowPlanSteps(): boolean {
+  try {
+    return window.localStorage.getItem(SHOW_PLANS_KEY) !== 'off'
+  } catch {
+    return true
+  }
+}
+
+export function saveShowPlanSteps(on: boolean): void {
+  try {
+    window.localStorage.setItem(SHOW_PLANS_KEY, on ? 'on' : 'off')
+  } catch {
+    /* private window: the choice lasts until reload */
   }
 }
 

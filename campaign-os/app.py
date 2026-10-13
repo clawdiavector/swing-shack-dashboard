@@ -25257,6 +25257,22 @@ def plan_v1_from_event(brand_id):
                     "brief_existed": bool(existing)}), 200
 
 
+@app.route('/api/plan/v1/<brand_id>/month', methods=['GET'])
+def plan_v1_month(brand_id):
+    """GET ?month=YYYY-MM — steps of draft (or approved, not yet placed) plans
+    due that month, for the faded chips on the month grid."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    try:
+        first, last = cs.month_bounds((request.args.get("month") or "").strip())
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    steps = _plan_import().month_steps(brand_id, first, last)
+    return jsonify({"ok": True, "brand_id": brand_id, "count": len(steps), "steps": steps}), 200
+
+
 @app.route('/api/plan/v1/<brand_id>/list', methods=['GET'])
 def plan_v1_list(brand_id):
     bad = _plan_guard(brand_id)

@@ -1,6 +1,5 @@
 import { Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useState } from 'react'
 import {
   SOURCE_LABEL,
   approveSuggestion,
@@ -15,6 +14,7 @@ import {
   type Undo,
 } from '../../../lib/calendarSuggestions'
 import { EventTypeIcon, EventTypeLegend } from '../../../components/EventTypeIcon'
+import { HoverChip } from './HoverChip'
 import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { actorName, planFromEvent } from '../../../lib/plan'
 import { tierLabel } from '../../../lib/planning'
@@ -135,22 +135,7 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
   }
 }
 
-const CARD_W = 256
-
-/** Where the card sits: under the chip, kept inside the screen, flipped above
- *  when there is no room below. Fixed to the viewport, so it is not clipped by
- *  the grid or the glass panel around it. */
-export function cardPosition(
-  chip: { left: number; top: number; bottom: number },
-  viewport: { w: number; h: number; x?: number },
-  cardH = 190,
-): { left: number; top: number } {
-  const x = viewport.x ?? 0
-  const left = Math.max(x + 8, Math.min(chip.left, x + viewport.w - CARD_W - 8))
-  const below = chip.bottom + 4
-  const top = below + cardH > viewport.h ? Math.max(8, chip.top - cardH - 4) : below
-  return { left, top }
-}
+export { cardPosition } from './HoverChip'
 
 /** A faded chip for one suggestion. Hover, focus or tap opens its card. */
 export function GhostChip({
@@ -170,139 +155,73 @@ export function GhostChip({
   // An important date has no pillar of its own, and without one it can never
   // get a brief, so it is asked for here. Entries that already carry one skip it.
   const needsPillar = !(s.pillars && s.pillars.length) && s.source === 'date' && pillars.length > 0
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
-  const chipRef = useRef<HTMLSpanElement>(null)
-  const timer = useRef<number | undefined>(undefined)
-  const open = pos !== null
-
-  const show = () => {
-    window.clearTimeout(timer.current)
-    const r = chipRef.current?.getBoundingClientRect()
-    // The visual viewport is what the person sees; it is narrower than the
-    // layout viewport when the page overflows sideways.
-    const vv = window.visualViewport
-    const view = vv
-      ? { w: vv.width, h: vv.height, x: vv.offsetLeft }
-      : { w: window.innerWidth, h: window.innerHeight }
-    if (r) setPos(cardPosition(r, view))
-  }
-  const hideSoon = () => {
-    window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => setPos(null), 180)
-  }
-
-  useEffect(() => {
-    if (!open) return
-    const close = () => setPos(null)
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
-    return () => {
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
-    }
-  }, [open])
-
-  useEffect(() => () => window.clearTimeout(timer.current), [])
-
   return (
-    <span className="block" onMouseEnter={show} onMouseLeave={hideSoon} onFocus={show}>
-      <span
-        ref={chipRef}
-        role="button"
-        tabIndex={0}
-        aria-expanded={open}
-        data-testid="ghost-chip"
-        onClick={(e) => {
-          e.stopPropagation()
-          if (open) setPos(null)
-          else show()
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            e.stopPropagation()
-            if (open) setPos(null)
-            else show()
-          }
-          if (e.key === 'Escape') setPos(null)
-        }}
-        className="flex max-w-full cursor-pointer items-center gap-1 rounded-full border border-dashed border-tx3/50 bg-tx3/5 px-1.5 py-0.5 text-[10.5px] font-semibold text-tx2 opacity-60 hover:opacity-100"
-      >
-        <EventTypeIcon kind={s.kind} size="sm" className="!border-0 !bg-transparent !p-0" />
-        <span className="min-w-0 truncate">{s.title}</span>
-      </span>
-      {pos
-        ? createPortal(
-            <div
-              role="dialog"
-              aria-label={`Suggestion: ${s.title}`}
-              data-testid="ghost-card"
-              onClick={(e) => e.stopPropagation()}
-              onMouseEnter={() => window.clearTimeout(timer.current)}
-              onMouseLeave={hideSoon}
-              style={{ position: 'fixed', left: pos.left, top: pos.top, width: CARD_W }}
-              className="z-50 space-y-2 rounded-xl border border-bd bg-bg2 p-3 text-left shadow-xl"
-            >
-              <p className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-tx3 uppercase">
-                {SOURCE_LABEL[s.source]}
-                <EventTypeIcon kind={s.kind} size="sm" withLabel />
-              </p>
-              <p className="text-sm font-bold text-tx">{s.title}</p>
-              <p className="flex flex-wrap items-center gap-2 text-xs text-tx2">
-                {spanLabel(s.date, s.end)}
-                {s.tier ? (
-                  <span className="rounded bg-bg px-1.5 py-0.5 text-[10px] font-bold tracking-wider">
-                    {tierLabel(s.tier)}
-                  </span>
-                ) : null}
-                {s.category ? <span className="text-tx3">{s.category}</span> : null}
-              </p>
-              {s.why ? <p className="line-clamp-4 text-xs text-tx3">{s.why}</p> : null}
-              {needsPillar ? (
-                <label className="block text-xs text-tx2">
-                  What is it for?
-                  <select
-                    value={pillar}
-                    onChange={(e) => setPillar(e.target.value)}
-                    data-testid="ghost-pillar"
-                    className="mt-1 w-full rounded border border-bd bg-bg px-2 py-1 text-sm text-tx"
-                  >
-                    <option value="">Choose a pillar</option>
-                    {pillars.map((p) => (
-                      <option key={p.pillar_id} value={p.pillar_id}>
-                        {p.name || p.pillar_id}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  disabled={busy || (needsPillar && !pillar)}
-                  title={needsPillar && !pillar ? 'Choose what it is for first, so it can get a brief' : undefined}
-                  onClick={() => onApprove(pillar)}
-                  data-testid="ghost-approve"
-                  className="inline-flex items-center gap-1 rounded-full border border-yel/40 bg-yel/15 px-3 py-1 text-xs font-semibold text-yel hover:bg-yel/25 disabled:opacity-60"
-                >
-                  {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={onReject}
-                  data-testid="ghost-reject"
-                  className="rounded-full border border-bd px-3 py-1 text-xs font-semibold text-tx2 hover:text-tx disabled:opacity-60"
-                >
-                  Reject
-                </button>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
-    </span>
+    <HoverChip
+      chipTestId="ghost-chip"
+      cardTestId="ghost-card"
+      cardLabel={`Suggestion: ${s.title}`}
+      chipClass="flex max-w-full cursor-pointer items-center gap-1 rounded-full border border-dashed border-tx3/50 bg-tx3/5 px-1.5 py-0.5 text-[10.5px] font-semibold text-tx2 opacity-60 hover:opacity-100"
+      chip={
+        <>
+          <EventTypeIcon kind={s.kind} size="sm" className="!border-0 !bg-transparent !p-0" />
+          <span className="min-w-0 truncate">{s.title}</span>
+        </>
+      }
+    >
+      <p className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-tx3 uppercase">
+        {SOURCE_LABEL[s.source]}
+        <EventTypeIcon kind={s.kind} size="sm" withLabel />
+      </p>
+      <p className="text-sm font-bold text-tx">{s.title}</p>
+      <p className="flex flex-wrap items-center gap-2 text-xs text-tx2">
+        {spanLabel(s.date, s.end)}
+        {s.tier ? (
+          <span className="rounded bg-bg px-1.5 py-0.5 text-[10px] font-bold tracking-wider">{tierLabel(s.tier)}</span>
+        ) : null}
+        {s.category ? <span className="text-tx3">{s.category}</span> : null}
+      </p>
+      {s.why ? <p className="line-clamp-4 text-xs text-tx3">{s.why}</p> : null}
+      {needsPillar ? (
+        <label className="block text-xs text-tx2">
+          What is it for?
+          <select
+            value={pillar}
+            onChange={(e) => setPillar(e.target.value)}
+            data-testid="ghost-pillar"
+            className="mt-1 w-full rounded border border-bd bg-bg px-2 py-1 text-sm text-tx"
+          >
+            <option value="">Choose a pillar</option>
+            {pillars.map((p) => (
+              <option key={p.pillar_id} value={p.pillar_id}>
+                {p.name || p.pillar_id}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          disabled={busy || (needsPillar && !pillar)}
+          title={needsPillar && !pillar ? 'Choose what it is for first, so it can get a brief' : undefined}
+          onClick={() => onApprove(pillar)}
+          data-testid="ghost-approve"
+          className="inline-flex items-center gap-1 rounded-full border border-yel/40 bg-yel/15 px-3 py-1 text-xs font-semibold text-yel hover:bg-yel/25 disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+          Approve
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onReject}
+          data-testid="ghost-reject"
+          className="rounded-full border border-bd px-3 py-1 text-xs font-semibold text-tx2 hover:text-tx disabled:opacity-60"
+        >
+          Reject
+        </button>
+      </div>
+    </HoverChip>
   )
 }
 
@@ -311,6 +230,9 @@ export function SuggestionBar({
   show,
   onToggle,
   count,
+  showPlans = false,
+  onTogglePlans,
+  planStepCount = 0,
   decided,
   busy,
   error,
@@ -323,6 +245,9 @@ export function SuggestionBar({
   show: boolean
   onToggle: (v: boolean) => void
   count: number
+  showPlans?: boolean
+  onTogglePlans?: (v: boolean) => void
+  planStepCount?: number
   decided: Decided | null
   busy: boolean
   error: string | null
@@ -334,16 +259,30 @@ export function SuggestionBar({
 }) {
   return (
     <div className="space-y-2" data-testid="suggestion-bar">
-      <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-tx2">
-        <input
-          type="checkbox"
-          checked={show}
-          onChange={(e) => onToggle(e.target.checked)}
-          data-testid="suggestions-toggle"
-        />
-        Show suggestions
-        {show ? <span className="text-tx3">({count} waiting this month, faded)</span> : null}
-      </label>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-tx2">
+          <input
+            type="checkbox"
+            checked={show}
+            onChange={(e) => onToggle(e.target.checked)}
+            data-testid="suggestions-toggle"
+          />
+          Show suggestions
+          {show ? <span className="text-tx3">({count} waiting this month, grey)</span> : null}
+        </label>
+        {onTogglePlans ? (
+          <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-tx2">
+            <input
+              type="checkbox"
+              checked={showPlans}
+              onChange={(e) => onTogglePlans(e.target.checked)}
+              data-testid="plan-steps-toggle"
+            />
+            Show draft plan steps
+            {showPlans ? <span className="text-tx3">({planStepCount} this month, yellow)</span> : null}
+          </label>
+        ) : null}
+      </div>
       {decided ? (
         <div
           className="flex flex-wrap items-center gap-3 rounded-md border border-yel/30 bg-yel/10 px-3 py-2 text-xs text-tx"

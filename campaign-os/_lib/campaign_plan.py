@@ -229,6 +229,37 @@ def sync_brief_status(plan: Optional[dict], brief: Optional[dict]) -> Optional[d
     return plan
 
 
+def month_steps(brand_id: str, first: date, last: date) -> list[dict]:
+    """Steps of plans that are not on the calendar yet, due between `first` and
+    `last`: drafts, and approved plans not yet put on it. Once a plan is on the
+    calendar its steps are solid entries there, so they are left out here.
+    Superseded plans and removed steps are never listed."""
+    out: list[dict] = []
+    for p in list_plans(brand_id):
+        if p.get("status") == PLAN_SUPERSEDED or p.get("placed_at"):
+            continue
+        for i in p.get("items") or []:
+            due = _parse_date(i.get("due"))
+            if i.get("status") == "removed" or not due or not first <= due <= last:
+                continue
+            out.append({
+                "key": f"{p['plan_id']}:{i['item_id']}",
+                "plan_id": p["plan_id"],
+                "item_id": i["item_id"],
+                "title": i["title"],
+                "step": i["kind"],
+                "date": due.isoformat(),
+                "late": bool(i.get("late")),
+                "channel": i.get("channel") or "",
+                "event_name": p.get("event_name") or "",
+                "event_date": p.get("event_date") or "",
+                "event_kind": p.get("event_kind") or p.get("profile") or "standard",
+                "plan_status": p.get("status"),
+            })
+    out.sort(key=lambda s: (s["date"], s["event_name"], s["title"]))
+    return out
+
+
 def get_plan(brand_id: str, plan_id: str) -> Optional[dict]:
     return _read_json(_plan_path(brand_id, plan_id))
 
