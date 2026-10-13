@@ -1,0 +1,352 @@
+{
+ "schema": "campaign-os/instagram-audit/v1",
+ "brand_id": "bag-drop",
+ "collection_method": "graph business_discovery on the_bagdrop_za (public data; no insights; read with the Swing Shack system user token)",
+ "generated_at": "2026-10-13T09:26:48Z",
+ "profile": {
+  "username": "the_bagdrop_za",
+  "name": "The Bag Drop",
+  "followers_count": 183,
+  "follows_count": 0,
+  "media_count": 33,
+  "biography": "Demo clubs, used golf gear and the essentials worth carrying.\nQuality kit. Better value. \nShop the drop ↓",
+  "website": "https://thebagdrop.co.za/"
+ },
+ "post_count": 33,
+ "by_media_type": {
+  "VIDEO": 20,
+  "IMAGE": 13
+ },
+ "posts": [
+  {
+   "id": "18085164614422451",
+   "caption": "Stealth mode activated 🥷 The all-black Ping Anser 2D is looking absolutely lethal. A tour-proven classic with a modern, murdered-out finish. Sitting in the vault and ready to roll. ⛳ Hit the link in our bio to make it yours!",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/Dbz_vKyxEUO/",
+   "timestamp": "2026-08-09T08:20:07+0000",
+   "like_count": 3,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18428911666177409",
+   "caption": "Still holding onto clubs you haven’t swung in two years? Let’s chat 💬 We are aggressively taking trade-ins on drivers, fairway woods, wedges, and milled putters right now. Turn your dusty gear into a fresh setup. Drop what you’ve got in the comments! 👇",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DbxRvlyxsde/",
+   "timestamp": "2026-08-08T07:00:05+0000",
+   "like_count": 3,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18101814206242891",
+   "caption": "The hardest club to fit in your bag is the 3-wood. Buying off the rack rarely works. Stop guessing and fix your gaps with our demo fairway metals and hybrid heads. 🎯 Link in bio to shop.",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/Dbums2oRfhY/",
+   "timestamp": "2026-08-07T06:05:05+0000",
+   "like_count": 3,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17877291504522865",
+   "caption": "The Mizuno STG driver head is seriously underrated and packs a massive punch 💥 Maximum adjustability and pure ball speed. Don’t sleep on this one. Grab it before it’s gone! 🚀 Link in bio.",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DbsX78ig5IB/",
+   "timestamp": "2026-08-06T09:19:56+0000",
+   "like_count": 6,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18000618239990474",
+   "caption": "Specials @ Bagdrop 🏷️\nFree delivery & R500 off a fitting at our partner facilities 🏌️‍♂️\nTake advantage while the specials last ⛳️\nVisit the online store or DM.",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DbZ_ylFRdJG/",
+   "timestamp": "2026-07-30T06:00:03+0000",
+   "like_count": 8,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17889512709416548",
+   "caption": "TaylorMade Qi35 demo driver head 🏌️‍♂️\nLoft: 11 Condition: B Price: R7500\nFresh demo stock. Better buy.\nVisit the online store or DM⛳️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DbYtxJsA177/",
+   "timestamp": "2026-07-29T18:06:44+0000",
+   "like_count": 6,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18128602372649074",
+   "caption": "Running through some of our driver heads we have on site 🏌️‍♂️\n\nVisit the store online or DM us for more info ⛳️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DbVRERWgnJl/",
+   "timestamp": "2026-07-28T09:57:11+0000",
+   "like_count": 6,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18160450387482324",
+   "caption": "Fairway woods available now 👇\nOff the tee. From the fairway. Into the bag.\nCheck current stock before it moves🏌️‍♂️\nVisit the online store or DM⛳️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DbLe2HyATIg/",
+   "timestamp": "2026-07-24T14:45:18+0000",
+   "like_count": 8,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18120131605890780",
+   "caption": "Putt like a major winner 👀\n\nPing Anser 2D putter 👌 Condition: New Price: R5999\nA trusted shape with serious bag appeal.\nVisit the online store or DM⛳️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DbIbJhBgsbN/",
+   "timestamp": "2026-07-23T10:15:26+0000",
+   "like_count": 4,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18351685054247538",
+   "caption": "Callaway Ai Smoke Triple Diamond demo driver head 🏌️‍♂️\nLoft: 11 Condition: Demo Price: R5000 \nLow-spin driver head 🌀\nVisit the online store or DM ⛳️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DbGQd_pgGGC/",
+   "timestamp": "2026-07-22T14:04:47+0000",
+   "like_count": 13,
+   "comments_count": 3,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17881783371470206",
+   "caption": "Demo heads available now🏌️‍♂️\nTop brands. Mint condition. Better price point.\nBuild smarter.\nVisit the online store or DM⛳️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DbDIhmOAqTn/",
+   "timestamp": "2026-07-21T08:57:37+0000",
+   "like_count": 6,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17863722153640853",
+   "caption": "Odyssey Ai-ONE Seven T putter. Condition: New Price: R8 500\nClean shape. Strong roll. Ready for the bag 🏌️‍♂️\nVisit the online store or DM⛳️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DbA_z9cgA6n/",
+   "timestamp": "2026-07-20T13:03:44+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18149626318508095",
+   "caption": "No mystery clubs 🏌️‍♂️\nEvery club is inspected, tested and listed in the condition we promise.\nWhat you see is what you get.\nVisit the online store or DM⛳️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/Da7Nz09gw6C/",
+   "timestamp": "2026-07-18T07:12:55+0000",
+   "like_count": 5,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18173562844424211",
+   "caption": "Old balls do old-ball things🤷🏻‍♂️\nScuffs, damaged covers and tired dimples can cost distance, spin and feel.\nPlay better stock🏌️‍♂️\nVisit the online store or DM ⛳️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/Da4jGl2RlfN/",
+   "timestamp": "2026-07-17T06:15:05+0000",
+   "like_count": 13,
+   "comments_count": 2,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18361956010215070",
+   "caption": "Old wedges cost shots 🤷🏻‍♂️\nFresh grooves give you more control where it matters most.\nCheck the current wedge stock.\nVisit the online store or DM⛳️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/Da2ADLHxaEU/",
+   "timestamp": "2026-07-16T06:30:06+0000",
+   "like_count": 5,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18095142746360609",
+   "caption": "Demo head does not mean damaged 💥\nThese heads are inspected, checked and in mint condition before they go up for sale.\nSame performance. Better price.\nVisit the online store or DM🏌️‍♂️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/Dazj1qwxK4J/",
+   "timestamp": "2026-07-15T07:45:05+0000",
+   "like_count": 11,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18090447875548660",
+   "caption": "Bag Drop is live ⛳️\nDemo heads, full clubs, putters, wedges, fairway woods, balls and golf gear worth checking first.\nStock moves fast.\nVisit the online store or DM 🏌️‍♂️",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DaxqC4nAmq-/",
+   "timestamp": "2026-07-14T14:03:24+0000",
+   "like_count": 13,
+   "comments_count": 1,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17894947014354435",
+   "caption": "Demo clubs are where smart value lives.\nBuy a demo club from The Bag Drop and get R500 off a fitting at SwingShack or Stick.paarl\n\nwww.thebagdrop.co.za",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DZ_qNyKD1lW/",
+   "timestamp": "2026-06-25T04:01:16+0000",
+   "like_count": 3,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18057011933738622",
+   "caption": "Putters are personal.\nShop putters on The Bag Drop.\nwww.thebagdrop.co.za",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DZ9FZiHka7V/",
+   "timestamp": "2026-06-24T04:00:50+0000",
+   "like_count": 3,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17957125998151785",
+   "caption": "The Bag Drop is live.\nDemo clubs, putters, shafts, grips and balls, all in one place.\nShop the drop: www.thebagdrop.co.za",
+   "media_type": "VIDEO",
+   "permalink": "https://www.instagram.com/reel/DZ6gm6ik0SI/",
+   "timestamp": "2026-06-23T04:00:58+0000",
+   "like_count": 3,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17853602526694634",
+   "caption": "Free shipping until 30 July.\n\nThat means the price you see works harder.\nShop now: www.thebagdrop.co.za",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZ5OOoPoNGA/",
+   "timestamp": "2026-06-22T16:00:52+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18406498927155692",
+   "caption": "Buy from The Bag Drop and get R500 off a fitting at SwingShack or Stick.paarl\nShop now: www.thebagdrop.co.za",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZ5AcuuEV10/",
+   "timestamp": "2026-06-22T14:00:17+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18035973263800593",
+   "caption": "No fuss. No mystery listings. No overpaying for the sake of it.\n\nJust golf gear that makes sense.\n\nDemo clubs, second-hand clubs and useful essentials available at Bag Drop.\n\nMessage us to check stock.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZUovZNkV-4/",
+   "timestamp": "2026-06-08T11:00:39+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18107201192293535",
+   "caption": "We’ve got the goods.\n\nDemo clubs, second-hand clubs, balls, gloves, grips, towels and the kind of golf gear that makes the bag look alive again.\n\nStock changes often.\n\nMessage us for current stock.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZRvYNwFWdp/",
+   "timestamp": "2026-06-07T08:01:11+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17891751045518555",
+   "caption": "Bag Drop stocks golf gloves and everyday essentials to keep you ready from the first tee.\n\nMessage us to check stock.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZRhmz7Fq1S/",
+   "timestamp": "2026-06-07T06:00:25+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18111651859716087",
+   "caption": "Your next putter is waiting at Bag Drop.\n\nDemo and second-hand putters available, depending on current stock.\n\nFeel it. Roll it. Claim it.\n\nMessage us before it’s gone.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZRT3G5l6xU/",
+   "timestamp": "2026-06-07T04:00:17+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17864330706631716",
+   "caption": "The shaft matters.\n\nBag Drop stocks shafts and club gear for golfers who know the right setup can change the feel of the whole club.\n\nMessage us to check what’s available.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZPmD1mllEY/",
+   "timestamp": "2026-06-06T12:01:21+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17988699230812952",
+   "caption": "The main event.\n\nDemo clubs and second-hand clubs available at Bag Drop.\n\nDrivers, irons, wedges and putters move fast, so check the rack often.\n\nMessage us for current stock.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZPReDylgMs/",
+   "timestamp": "2026-06-06T09:01:45+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17885928384570201",
+   "caption": "Running low on golf balls?\n\nBag Drop stocks balls for the range, the course and the days when the water hazard starts collecting rent.\n\nMessage us to check what’s currently available.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZO8zBEDiG7/",
+   "timestamp": "2026-06-06T06:00:23+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18123318832710507",
+   "caption": "Simple brief: golf gear that makes sense.\n\nBag Drop stocks clubs and essentials for golfers who like a smart buy and a rack worth checking.\nDemo stock, second-hand clubs and useful gear available.\nMessage us for current stock.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZOvEN6jdjR/",
+   "timestamp": "2026-06-06T04:00:32+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17867375661623438",
+   "caption": "Bag Drop, your golf gear stop before the full retail bill.\n\nDemo clubs, second-hand clubs, grips, towels and useful golf gear available.\nVisit www.thebagdrop.co.za or message us for current stock.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZN_GqtmB3z/",
+   "timestamp": "2026-06-05T21:01:26+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "17919456156167599",
+   "caption": "Bag Drop stocks demo clubs, second-hand clubs and useful golf essentials at better price points.\n\nSmart gear. Better value. Ready to play.\nMessage us to check what’s available.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZNqdhHIL3h/",
+   "timestamp": "2026-06-05T18:01:18+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  },
+  {
+   "id": "18468317191101117",
+   "caption": "Your next club is already waiting.\nDemo clubs, second-hand finds and proper golf gear are available now.\nGood clubs move quickly. Check the rack before someone else does.\n\nMessage us for current stock.",
+   "media_type": "IMAGE",
+   "permalink": "https://www.instagram.com/p/DZNO7vLlMqe/",
+   "timestamp": "2026-06-05T14:00:28+0000",
+   "like_count": 2,
+   "comments_count": 0,
+   "username": "the_bagdrop_za"
+  }
+ ]
+}
