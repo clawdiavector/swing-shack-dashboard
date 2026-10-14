@@ -2448,6 +2448,846 @@
       "modified": null,
       "folder": "Location/Photos of iron sets",
       "ingested": 1791223634.2311478
+    },
+    "IMG_5924.HEIC": {
+      "drive_id": "1qojCKnGIkxai3eQUPG500PC6oZgoraup",
+      "size": "1416731",
+      "md5": "70e4b4696572a22403ce53992190c770",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889711.0233192
+    },
+    "IMG_5925.HEIC": {
+      "drive_id": "1dw2JLT0AsfNmBv9CU7JZ-lOG1ZGuEy8b",
+      "size": "2818430",
+      "md5": "322b886a66089a0671fd5cd6339a2ce6",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889714.1001916
+    },
+    "IMG_5926.HEIC": {
+      "drive_id": "1LXFLISzfhGt6NihTsFEnP1BMZGb1qPAO",
+      "size": "1455141",
+      "md5": "0aa8c3014cb3f236def2161c63c9bd0b",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889717.0063562
+    },
+    "IMG_5927.HEIC": {
+      "drive_id": "1b7qlGZkT5OXqfAFoR8LBnlg0tOcpxox7",
+      "size": "937010",
+      "md5": "e88f43449aeb88b2168610e5e28c1fee",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889719.6569474
+    },
+    "IMG_5928.HEIC": {
+      "drive_id": "1pDlNDCgbCNITXsS-tBLI9_EvUq0119e0",
+      "size": "2087643",
+      "md5": "4c16cf336adea73ea61c171d69cbfcd0",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889722.433495
+    },
+    "IMG_5930.HEIC": {
+      "drive_id": "13ORCqdhTIxFWCFj_8turVQvREbVn0F40",
+      "size": "944444",
+      "md5": "de6f8aa32f57484a148d41c4fe28c806",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889724.9662912
+    },
+    "IMG_5931.HEIC": {
+      "drive_id": "19fQtFyQAqqEqhVe3BmHIOJQkEaaXxEYa",
+      "size": "934895",
+      "md5": "b5fb0e585358dfef03b92e48d100d43e",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889727.6607294
+    },
+    "IMG_5932.HEIC": {
+      "drive_id": "1jVBGz-dsh1QcUOQ81EZNYB7WynLC-VbI",
+      "size": "2659236",
+      "md5": "a853e945ddd05d1e6752993175ee8e9f",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889730.625806
+    },
+    "IMG_5933.HEIC": {
+      "drive_id": "1GYSexrHQ-kW_-saIUMeyRWPxCkZ95eJI",
+      "size": "2888856",
+      "md5": "fe2610a86ab1747b10256e610a926086",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889733.623632
+    },
+    "IMG_5934.HEIC": {
+      "drive_id": "1PLuAGybAAIxXWwTBemGhphdM0yTVqgyo",
+      "size": "880117",
+      "md5": "640caf1086869c96a76a2af91c557028",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889735.495733
+    },
+    "IMG_5935.HEIC": {
+      "drive_id": "18dRsqEuuQRKblNfWMqMvCLtk7ug6D2KF",
+      "size": "2425870",
+      "md5": "3d0e7f7a0167f1211b01075deca4fd4d",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889737.70353
+    },
+    "IMG_5936.HEIC": {
+      "drive_id": "1fq0tsdBQJrP1kDhDdTG33imDGMTMnc-G",
+      "size": "980278",
+      "md5": "0cb1b6227e5bb6d229a46593d47831fa",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889740.061688
+    },
+    "IMG_5937.HEIC": {
+      "drive_id": "1eRCjF-dJUPXVaqF7lzDhfnw_f17ndObV",
+      "size": "1626645",
+      "md5": "eb5b43bc6597f95de33b07ef3828b8fa",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889742.4372344
+    },
+    "IMG_5938.HEIC": {
+      "drive_id": "1rCaC07prb3EOjUoLz5LZMI1b2ncc2P-x",
+      "size": "1786333",
+      "md5": "ca4f5ae2ddf6979a626256b75376eb36",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889744.8839972
+    },
+    "IMG_5939.HEIC": {
+      "drive_id": "10CVdWOBs2zlqSPUJU7_xGAzFGrLRlBOh",
+      "size": "1852515",
+      "md5": "45082b78c18158c9e209c206d68258c1",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889747.562759
+    },
+    "IMG_5940.HEIC": {
+      "drive_id": "1EMDtHZLl1dRYTUnze9-HS3rRnIopVmvm",
+      "size": "2673788",
+      "md5": "8267b29bf29fd0c66e1dcdead19e4511",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889750.4377828
+    },
+    "IMG_5941.HEIC": {
+      "drive_id": "1CtfVt_GO9GrpWQAO77v6A5YjNCA5y9ab",
+      "size": "687564",
+      "md5": "53e986a2e2b5635b7db805c126c354fe",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889752.400443
+    },
+    "IMG_5942.HEIC": {
+      "drive_id": "1Q7_of8D6X2mpwm77kHlmrCl8mIEfKGZG",
+      "size": "684976",
+      "md5": "f41998eecb6cc84d5dbf16061023086a",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889754.9311976
+    },
+    "IMG_5943.HEIC": {
+      "drive_id": "1Ok0MA9HsfIcQr4Tf-ZUS1NHXjl7JrpUk",
+      "size": "1110262",
+      "md5": "50bbb734025286540bc262e31558d430",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889757.2883427
+    },
+    "IMG_5948.HEIC": {
+      "drive_id": "1hpir7RwiEd28fTAAV7W_YueibGsRKwuX",
+      "size": "1066268",
+      "md5": "56a1f0f09155ce3b9bb8fc75f80de730",
+      "modified": null,
+      "folder": "",
+      "ingested": 1791889759.6367965
+    },
+    "Products/Psycho Bunny/IMG_2847.heic": {
+      "drive_id": "1rUe177Dr5dP3YSDval0G0M8o2xUxQGRT",
+      "size": "1193574",
+      "md5": "01966606e1759061d6a762494e3b636c",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890098.5485208
+    },
+    "Products/Psycho Bunny/IMG_2848.heic": {
+      "drive_id": "1i9CvnD2zZef_0q60amHt__ASFr9S8JDX",
+      "size": "657312",
+      "md5": "f36b94334ed8b45bb332074210a2c101",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890101.0184922
+    },
+    "Products/Psycho Bunny/IMG_2849.heic": {
+      "drive_id": "19tKNRnkx0jGON9IPaevIbSk-qMgHEt2z",
+      "size": "722876",
+      "md5": "3c8fb286852aeeac9af850ad540d56b2",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890103.6223242
+    },
+    "Products/Psycho Bunny/IMG_2888.heic": {
+      "drive_id": "1tEv52hUP-WseJt206MWrvnvqfzn_os15",
+      "size": "690362",
+      "md5": "d11bc1599496a328f309b97d6f6262c7",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890105.4562936
+    },
+    "Products/Psycho Bunny/IMG_2889.heic": {
+      "drive_id": "1Qd135ukQP7UCsE-jR-kW6ldlgpVzBSRq",
+      "size": "959536",
+      "md5": "5f6fdb08c27c60e4ebdad4d2742bc616",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890108.3632202
+    },
+    "Products/Psycho Bunny/IMG_2890.heic": {
+      "drive_id": "1PVmOH4zGpGf_cqekG9spvO_RaWS5cmNs",
+      "size": "2200278",
+      "md5": "1dfdc99037a32e93b09db62bc706160e",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890111.412645
+    },
+    "Products/Psycho Bunny/IMG_2891.heic": {
+      "drive_id": "1MKWLDDMo9TeWFkqHd91y9ZOb9ocZtBW6",
+      "size": "1898044",
+      "md5": "c35bda77558d395d76f2cc6ffb290515",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890114.3297284
+    },
+    "Products/Psycho Bunny/IMG_2892.heic": {
+      "drive_id": "13tT6DmwzfFMjXpBc-C4u7EIVNvUBpZy-",
+      "size": "1591604",
+      "md5": "1b77093ef6400854c6b06d6fef47f70e",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890116.9982011
+    },
+    "Products/Psycho Bunny/IMG_2895.HEIC": {
+      "drive_id": "19Qbs8FlAv_X8ZjeEXtvp_76GnV_u-Zc9",
+      "size": "1920458",
+      "md5": "84fe60b4c768ddd2dd439edb48b380f2",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890119.9571211
+    },
+    "Products/Psycho Bunny/IMG_2898.heic": {
+      "drive_id": "1ACuhnA4RkY6fst98vKlRT8lvus6bjoRT",
+      "size": "928059",
+      "md5": "b0a6efe6eb0590a41859d0035e062b0d",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890122.4652662
+    },
+    "Products/Psycho Bunny/IMG_2899.heic": {
+      "drive_id": "1TFK6-dXob-nnb2LIM6kShSJos6wdbhbI",
+      "size": "737525",
+      "md5": "47165e2004fded563a138c786c91fd60",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890125.0344238
+    },
+    "Products/Psycho Bunny/IMG_2903.heic": {
+      "drive_id": "1tSHLFT684jt3iW3bBpLBKiR61KWH2ian",
+      "size": "580922",
+      "md5": "db3e831e080cf92b77087c640f71ae2f",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890127.735917
+    },
+    "Products/Psycho Bunny/IMG_2904.heic": {
+      "drive_id": "1MGt63ZSCjO2ClzdMS13yLijVDF5maZzA",
+      "size": "580420",
+      "md5": "0f5eb0f331cbe8db223f6d3d318f2d67",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890130.3905475
+    },
+    "Products/Psycho Bunny/IMG_2905.heic": {
+      "drive_id": "1EjnO85ya29Q7vtSoPFbdZ1DC09wQkEUA",
+      "size": "571835",
+      "md5": "d1b3c9865b3160b2ef0fca6e7a2366c7",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890132.9863057
+    },
+    "Products/Psycho Bunny/IMG_2906.heic": {
+      "drive_id": "1px5kG4Z1xBjjIohJ5rVM3cmSXDPepVSm",
+      "size": "862711",
+      "md5": "fd4bf7258699983e38935e7ea1361f72",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890136.0100906
+    },
+    "Products/Psycho Bunny/IMG_2907.HEIC": {
+      "drive_id": "1tzD9eoUqfQ7szm_CoqBfXrwJkL0HwQJt",
+      "size": "2139934",
+      "md5": "7369b18740cdff0299d0dd7279ae04bf",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890139.02795
+    },
+    "Products/Psycho Bunny/IMG_2908.HEIC": {
+      "drive_id": "1bDNbbXpHIXVIac2HFDFLwlcv3LmLijEZ",
+      "size": "2095036",
+      "md5": "4e96d1dc3feb282f0af9a8808b0e9a6f",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890141.9628086
+    },
+    "Products/Psycho Bunny/IMG_2909.heic": {
+      "drive_id": "1pZR3K4ODwh-DkKSTnxwmaybFzzTvrAEL",
+      "size": "1006289",
+      "md5": "c362dbd68d0f6c8b50d318b091490a96",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890144.6794086
+    },
+    "Products/Psycho Bunny/IMG_2910.heic": {
+      "drive_id": "1_5sFXus5HZfuvybVaUlDRmNj4aHj5Maw",
+      "size": "863682",
+      "md5": "46ee74d478c3480787b2fa121cdd8752",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890147.2546697
+    },
+    "Products/Psycho Bunny/IMG_2911.heic": {
+      "drive_id": "1WVqBUMbunCkZad1dQwB5hpccJOcCFtu8",
+      "size": "768214",
+      "md5": "bdc0024f8fd44972f044214c964c083b",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890150.355932
+    },
+    "Products/Psycho Bunny/IMG_2931.HEIC": {
+      "drive_id": "1MkGLxkUAdtgWTdE7mbeXcfSeiMi0HAi8",
+      "size": "1541161",
+      "md5": "849c5b0aa8c1f359669c0eb013f81741",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890153.1696725
+    },
+    "Products/Psycho Bunny/IMG_2932.HEIC": {
+      "drive_id": "1afagmum-PHUuO_fwxs_0saTEFQYqm_vP",
+      "size": "1918459",
+      "md5": "c3cd66792a4c5af5c01606692488ca91",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890155.9590766
+    },
+    "Products/Psycho Bunny/IMG_2934.HEIC": {
+      "drive_id": "1bZ2eOGcSRAddg6DFj08gdXLseTone2-x",
+      "size": "1618537",
+      "md5": "1f95d0b54d240de9c9c15f9da7c47c44",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890158.8632643
+    },
+    "Products/Psycho Bunny/IMG_2982.HEIC": {
+      "drive_id": "12V_pGi8gsTQtBcGMxV9UGwb2SZ5OxgSM",
+      "size": "2203320",
+      "md5": "ddf9f97817d43293adcf83a7d7767dbf",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890161.6452026
+    },
+    "Products/Psycho Bunny/IMG_2983.HEIC": {
+      "drive_id": "1z2gP2FmQwXviAz1Rf-OPWYgbeWNop7qU",
+      "size": "1801453",
+      "md5": "b0b190e3ea6cc589dbc9a185a948f091",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890164.520463
+    },
+    "Products/Psycho Bunny/IMG_2984.HEIC": {
+      "drive_id": "1Y1YFSuwH2depbRK_o4V1Nb6fdcrsdZky",
+      "size": "2028082",
+      "md5": "e3e8ea29efae6a288a7b115f81db5e24",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890167.5581622
+    },
+    "Products/Psycho Bunny/IMG_2985.heic": {
+      "drive_id": "1ECONvZ0OMTUfKL_p3-zFJJnguLBgPgLW",
+      "size": "1360948",
+      "md5": "bccabae4881442eae3b8676d7abcd904",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890171.5667753
+    },
+    "Products/Psycho Bunny/IMG_2986.HEIC": {
+      "drive_id": "1euWRxp4Xh2SoYnmy1v2bWWIw3tsTLZIL",
+      "size": "2029005",
+      "md5": "e7adf06e2ed0265de85e97b8dd5e0eae",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890174.454637
+    },
+    "Products/Psycho Bunny/IMG_2987.HEIC": {
+      "drive_id": "19zpRNSzXICgKzRLAP7aRik1a0hNDo1JE",
+      "size": "2086944",
+      "md5": "bc68d8b132753945bb0aa6842a34f019",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890177.4885828
+    },
+    "Products/Psycho Bunny/IMG_2988.HEIC": {
+      "drive_id": "1253EhA5CLACD5T1dwO1ZjNKBZ3h5GnKQ",
+      "size": "2079233",
+      "md5": "b56699fab0fdfdf9cab94eb2c11a48e3",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890180.2721374
+    },
+    "Products/Psycho Bunny/IMG_2989.HEIC": {
+      "drive_id": "15k-XsMgdfAjxixIJgO9NB0hfsW5sfzgS",
+      "size": "2074254",
+      "md5": "0edcd1abafb61d86abd66989b8e2b7b2",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890183.4143136
+    },
+    "Products/Psycho Bunny/IMG_2990.heic": {
+      "drive_id": "1DcRiv0mR6gDHKnonICnN6OXBomgwFtIX",
+      "size": "748397",
+      "md5": "c9f228a0b8f61039b1f1f52c856c733d",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890186.2197099
+    },
+    "Products/Psycho Bunny/IMG_2991.heic": {
+      "drive_id": "1-o9jUV44YqdFQcwLkMPNVZdW_1a6G-BQ",
+      "size": "629269",
+      "md5": "947e4343539ca381b3fdb42405e1bd14",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890188.5961568
+    },
+    "Products/Psycho Bunny/IMG_2992.heic": {
+      "drive_id": "1pd-mNvi1vApaxegIWpfYCoKbiZIiMzi6",
+      "size": "647868",
+      "md5": "8aff6ddaa6447dbac4055fb9e68b9355",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890191.1588495
+    },
+    "Products/Psycho Bunny/IMG_2995.heic": {
+      "drive_id": "19CGnuiXgiSXnITPM72wdhE6pocwWXJPo",
+      "size": "632115",
+      "md5": "ebd2a0d71e43867d04b2f1d1a56e00bc",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890193.6797588
+    },
+    "Products/Psycho Bunny/IMG_2996.heic": {
+      "drive_id": "1IaWMdAD3dk-heXaaNBrFs0apL8ZfsBhs",
+      "size": "582744",
+      "md5": "76cd05593cd1d4cb9531867102391838",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890196.0893004
+    },
+    "Products/Psycho Bunny/IMG_2997.HEIC": {
+      "drive_id": "13zweYzJe4ZcERR4tegYFrOiCSIkA_lFH",
+      "size": "1891608",
+      "md5": "16a0611820ff14037804f0dc188a5016",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890200.111403
+    },
+    "Products/Psycho Bunny/IMG_2998.HEIC": {
+      "drive_id": "1Dms9nL0cbKyJmn975egEyDYyh4ID9G9w",
+      "size": "1438979",
+      "md5": "f9d7c724bb9a8376c0eb0d592f88bf7b",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890203.1161692
+    },
+    "Products/Psycho Bunny/IMG_2999.HEIC": {
+      "drive_id": "1s_-LZ5r7Ai_raoJ_UcoVhHHYjrqKILeH",
+      "size": "1347539",
+      "md5": "cfe34c98859b6d188b1d0b84b51f076d",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890206.103007
+    },
+    "Products/Psycho Bunny/IMG_3001.heic": {
+      "drive_id": "1GfcnlXnvvcaa03wtYUlBnbFrBpsnyXjE",
+      "size": "645024",
+      "md5": "3c321c636100849b69e42dab577f1ee3",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890208.689196
+    },
+    "Products/Psycho Bunny/IMG_3002.heic": {
+      "drive_id": "17wXEK1sumefyTb9hzNkn5PS4FhLXpoVN",
+      "size": "584055",
+      "md5": "fcca7254ef3b94ff55faba8bd84c4c9e",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890211.1037202
+    },
+    "Products/Psycho Bunny/IMG_3003.HEIC": {
+      "drive_id": "1JKwyz9Q5Nmet6UTB2wqZ2kHhGdeKgdO9",
+      "size": "1414128",
+      "md5": "94fd969410e38a8e17cbdfce64c1a9bf",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890214.6357517
+    },
+    "Products/Psycho Bunny/IMG_3004.heic": {
+      "drive_id": "196tZCE9hIjiIMMoBRopzE0JrrwZHjxxj",
+      "size": "1078060",
+      "md5": "c2de0f77fa69fced62e0539f4c0d0da9",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890217.5511174
+    },
+    "Products/Psycho Bunny/IMG_3005.heic": {
+      "drive_id": "1qg4qosPkzpLOTXRGHH-KO3TE5s3RInlW",
+      "size": "870655",
+      "md5": "54628360dcefc096bbe776332dfb24fe",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890222.0240877
+    },
+    "Products/Psycho Bunny/IMG_3006.heic": {
+      "drive_id": "1g4tVc12xg7vk3NEcJiKxNkrMTeTdqQnw",
+      "size": "877747",
+      "md5": "ad070664eae832fa653c374c8a475e9a",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890225.213879
+    },
+    "Products/Psycho Bunny/IMG_3007.heic": {
+      "drive_id": "1lcqWLjRSDWvDOuFzVuhR2qSeiKiEdJn-",
+      "size": "683356",
+      "md5": "17b25157956f0acaf5487b1f5bde0124",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890227.8006055
+    },
+    "Products/Psycho Bunny/IMG_3008.heic": {
+      "drive_id": "1JdTaqK-jqeAVWSvHaPhLOBcoNgCpEO-8",
+      "size": "763854",
+      "md5": "af8294669084eeb2a2cd9ba79a9438de",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890229.8690178
+    },
+    "Products/Psycho Bunny/IMG_3374.heic": {
+      "drive_id": "1odWGfYMWEratUxG6Q4kBMVAfGphDlEC1",
+      "size": "1021922",
+      "md5": "e69ab7567fc98e9a91de5df585adc59e",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890232.6363528
+    },
+    "Products/Psycho Bunny/IMG_3377.heic": {
+      "drive_id": "1JOs5XYs4l7RvA3XFHDqfXtEETkm-uk-V",
+      "size": "1458970",
+      "md5": "1ee08c099de588dffe93d3f265a457eb",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890235.4756474
+    },
+    "Products/Psycho Bunny/IMG_3378.heic": {
+      "drive_id": "1jhDrz9SvJMZ6tsbfGlCFWCvGT5A1PEGD",
+      "size": "2123448",
+      "md5": "7d461118d8e00a6b75babfd8b57787cc",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890239.1490872
+    },
+    "Products/Psycho Bunny/IMG_3380.heic": {
+      "drive_id": "1PkhroP-iBZd9YMPDZAEfDD1LcguW4pFe",
+      "size": "1482830",
+      "md5": "11d062c8b99ed5891e70fce00b8458a4",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890242.1465886
+    },
+    "Products/Psycho Bunny/IMG_3381.heic": {
+      "drive_id": "1vOcnyMkQEq4w622ferYkLdiQZNmttELY",
+      "size": "894577",
+      "md5": "dcbb9f0b4c1694507cb8496bc861c135",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890244.8858917
+    },
+    "Products/Psycho Bunny/IMG_3382.heic": {
+      "drive_id": "1D4rUtbMY9UtIzL63BQl_VPbzXNhiKs-j",
+      "size": "1771950",
+      "md5": "783fb3366a2a8845a97e65fa370fbb14",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890247.5982642
+    },
+    "Products/Psycho Bunny/IMG_3383.HEIC": {
+      "drive_id": "1KNU0SG_ZJnIKyY9EBY1k4xkU0mF3qYnl",
+      "size": "2636884",
+      "md5": "741bc69f5289ed3d18144e626a1fd2b6",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890250.6140268
+    },
+    "Products/Psycho Bunny/IMG_3384.HEIC": {
+      "drive_id": "1GWfkQnFuux2YYlf-4PzueJtjfJ5fr_Q4",
+      "size": "2260159",
+      "md5": "77f3f4bf88ae25b7a43a7e764ecf75fa",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890253.5692134
+    },
+    "Products/Psycho Bunny/IMG_3385.heic": {
+      "drive_id": "1FmwKb6jkqCGncTVT3FQNNIHYNtqDIHMc",
+      "size": "1237453",
+      "md5": "c871f3120fdd109f43622e74307b5183",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890256.0175328
+    },
+    "Products/Psycho Bunny/IMG_3386.heic": {
+      "drive_id": "1QkgGbdwlJ3Ho_X1KadvIRoDTURiLikYj",
+      "size": "553400",
+      "md5": "fe3e85053bcb68b2bc0954739cf647f2",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890258.161038
+    },
+    "Products/Psycho Bunny/IMG_3387.heic": {
+      "drive_id": "1q6CORAhVFeTN4OVmruMtEXdR6ADhwetR",
+      "size": "575519",
+      "md5": "939828203f727e8a6703309a92da2c56",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890260.190106
+    },
+    "Products/Psycho Bunny/IMG_3388.heic": {
+      "drive_id": "19msi2arGXZ-LTP1erTPE-KbGGEs0lhaH",
+      "size": "671324",
+      "md5": "3159bc133a28aaa9e5f6742cb80f3f3f",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890262.2110648
+    },
+    "Products/Psycho Bunny/IMG_3389.heic": {
+      "drive_id": "1D5gdIawyAMxjHB-JkHRPG-_Weu619lzs",
+      "size": "713631",
+      "md5": "6210bcb6d0b3c093f9fe8e4bc6ef5b42",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890264.428403
+    },
+    "Products/Psycho Bunny/IMG_3393.heic": {
+      "drive_id": "18dULF0YuP6lF0DILTxbcqmfPX_DChLbn",
+      "size": "600558",
+      "md5": "3aecfaefa34f3862f2eea66151820686",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890266.8018348
+    },
+    "Products/Psycho Bunny/IMG_3394.heic": {
+      "drive_id": "1MOgzZjR9LIL8v9mlwLzCYOsLjqwoX_64",
+      "size": "743123",
+      "md5": "a3f770298da5d4db7c798b85ec8781cc",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890269.5428736
+    },
+    "Products/Psycho Bunny/IMG_3395.heic": {
+      "drive_id": "1KKBhxwJ8-4x1a5LNI2ApZMobnc3Fxm5t",
+      "size": "800711",
+      "md5": "1b575ea92a6f83c810c833dee74e61c9",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890271.9474132
+    },
+    "Products/Psycho Bunny/IMG_3396.heic": {
+      "drive_id": "1U1tkj6JToCRhAA0HnpeEmrFfJ19v-qLa",
+      "size": "763179",
+      "md5": "3faa2ba059e472a7134798a0b89b7d41",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890274.7679067
+    },
+    "Products/Psycho Bunny/IMG_3397.heic": {
+      "drive_id": "1cIj67jlChAQFg3qpOCM_i510mSfaujLG",
+      "size": "1339097",
+      "md5": "a349612d86ef4030e4d9efd7a750bb50",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890277.2355947
+    },
+    "Products/Psycho Bunny/IMG_3398.heic": {
+      "drive_id": "14N1h1zDW8J-tEInV5Ztq1tjvu6zHbT7w",
+      "size": "1343768",
+      "md5": "234c1e2a522e9599891bad3f7dd4ce8a",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890279.6093569
+    },
+    "Products/Psycho Bunny/IMG_3399.heic": {
+      "drive_id": "1K0geteUhbIZp12y1svjl4qdgUhPgyUan",
+      "size": "1003310",
+      "md5": "fad6554f81a7bb98ca2c7b204d221e32",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890282.224867
+    },
+    "Products/Psycho Bunny/IMG_3401.heic": {
+      "drive_id": "1e7L7WxDPSclaO54vRjoc9zrV83cBBcME",
+      "size": "875912",
+      "md5": "b62cda08839630e2aa1994afcf695110",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890284.461518
+    },
+    "Products/Psycho Bunny/IMG_3402.heic": {
+      "drive_id": "1etPkvVNzu-cMa0Q2Br_xZPq6TacOB--O",
+      "size": "1003289",
+      "md5": "9644a7fe484a683539358bab75d98af9",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890286.4707487
+    },
+    "Products/Psycho Bunny/IMG_3403.heic": {
+      "drive_id": "1mN06eYrOHLQW3EvXUniFf7x339bwDmOR",
+      "size": "1059493",
+      "md5": "1f6f512dc12bc2d5cae7f776847862f1",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890288.812265
+    },
+    "Products/Psycho Bunny/IMG_3409.heic": {
+      "drive_id": "1hf9HdVxSPB5GwzgcmG_YI0jDstBlu6Rt",
+      "size": "1157888",
+      "md5": "377b9576b4a1607b5fe0eafa7bce6cfa",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890291.5182245
+    },
+    "Products/Psycho Bunny/IMG_3411.heic": {
+      "drive_id": "15wl1RO6kVxCa_LprHH3DCY-J20I4GPgJ",
+      "size": "2511002",
+      "md5": "8b628d690b557452e505319368bc75c2",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890293.7762966
+    },
+    "Products/Psycho Bunny/IMG_3412.HEIC": {
+      "drive_id": "1cJCsh6TC5X2S3shYptL-teiRW9DGqpRf",
+      "size": "2188787",
+      "md5": "af68fdd199ecb15fad626e83e38ee978",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890296.024784
+    },
+    "Products/Psycho Bunny/IMG_3413.heic": {
+      "drive_id": "19HjPxs-f3QUGfF-4MenB_eRMPJeg3EtL",
+      "size": "2387074",
+      "md5": "09f082f886a0147cf673f497944318c1",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890298.5406082
+    },
+    "Products/Psycho Bunny/IMG_3414.heic": {
+      "drive_id": "1cd1pmUk5QMTMF0waVZQAtShq83ca93qE",
+      "size": "527956",
+      "md5": "cf4616616a6cd496b6d9313f3f2e9ccc",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890300.3562887
+    },
+    "Products/Psycho Bunny/IMG_3415.heic": {
+      "drive_id": "1560D9ro7eSl6h1F-7nHY6XZXL8i6x959",
+      "size": "486475",
+      "md5": "55b141366c16958e488ce5a46ea54ade",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890302.1625886
+    },
+    "Products/Psycho Bunny/IMG_3416.heic": {
+      "drive_id": "1vyyxUyuS3k_p8FeUfuGpXis7epLg1BeT",
+      "size": "577320",
+      "md5": "ef8f4d210d0d806d7e1858a00db57f7f",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890304.1763144
+    },
+    "Products/Psycho Bunny/IMG_3417.heic": {
+      "drive_id": "1JV07-qYDqCRHSUrA5Dnel3UsCbodqdTP",
+      "size": "716095",
+      "md5": "d949a40a9c758212bd81f6d0ccdd3b1f",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890306.8149776
+    },
+    "Products/Psycho Bunny/IMG_3418.heic": {
+      "drive_id": "1_99IczvaKKdmGS2Bv7_2jSpo2sZN2lxM",
+      "size": "608142",
+      "md5": "873fe4261d0779c55311f31e22666ec3",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890308.6717005
+    },
+    "Products/Psycho Bunny/IMG_3419.heic": {
+      "drive_id": "1OeK5lkfYvfsypB8U0yXeISQxCfCmYe7K",
+      "size": "852899",
+      "md5": "9e4c1af9ed9a3b19e8282c990ee17c10",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890310.6460218
+    },
+    "Products/Psycho Bunny/IMG_3420.heic": {
+      "drive_id": "16DxqV6xJ7RhzWqcmnTwrqZJphPLcla2_",
+      "size": "902768",
+      "md5": "a23454e6849b7f1812ead520419b1314",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890312.7443635
+    },
+    "Products/Psycho Bunny/IMG_3421.heic": {
+      "drive_id": "1SnsXaEsDUcduZNWPwVC8OoFZAD7Grt24",
+      "size": "753247",
+      "md5": "1f058f911503c9ddae1c9f1c9ed3b6ec",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890315.1906834
+    },
+    "Products/Psycho Bunny/IMG_3422.HEIC": {
+      "drive_id": "1iMqUOIyDfm2YBStuUWM42TcrwvD3V81Z",
+      "size": "1662070",
+      "md5": "e1f716cf38ba8783a37c523dbf657fde",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890317.2297769
+    },
+    "Products/Psycho Bunny/IMG_3423.HEIC": {
+      "drive_id": "12ZnatERub-kr8TVcjWJC-86LMfM_KcNN",
+      "size": "1639304",
+      "md5": "85a1fbc5d2301862e96a2a08105fc77f",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890321.0615165
+    },
+    "Products/Psycho Bunny/IMG_3424.HEIC": {
+      "drive_id": "1mSn55rGk4yCDBsVE03luy4X6LsGxB4BG",
+      "size": "1629245",
+      "md5": "f2c0b32695d29a46dc4006e123e2235f",
+      "modified": null,
+      "folder": "Products/Psycho Bunny",
+      "ingested": 1791890323.1068404
     }
   },
   "skipped": [
@@ -2484,6 +3324,20 @@
       "name": "dji_mimo_20261005_123006_20261005123004_1791201119170_video.MP4",
       "folder": "Location/Photos of iron sets",
       "mime": "video/mp4",
+      "reason": "non_image"
+    },
+    {
+      "drive_id": "1TCZFxCvVW8hGfnM2s6vW18TvAfma6M6f",
+      "name": "IMG_2900.MOV",
+      "folder": "",
+      "mime": "video/quicktime",
+      "reason": "non_image"
+    },
+    {
+      "drive_id": "10lt2UrRWBkUzD5VhvTFqlOmzdMgpQr4h",
+      "name": "IMG_2935.MOV",
+      "folder": "",
+      "mime": "video/quicktime",
       "reason": "non_image"
     }
   ]

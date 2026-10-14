@@ -1,4 +1,4 @@
-import { CheckCircle2, ExternalLink, Undo2 } from 'lucide-react'
+import { CheckCircle2, ExternalLink, Plus, Undo2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import '../fun.css'
 import { burstConfetti } from '../lib/confetti'
@@ -6,9 +6,12 @@ import { toneFor } from '../lib/brandTone'
 import { Mascot, type FunTone } from './fun'
 import { useBrand } from './BrandSwitch'
 import {
+  addStoryRepost,
+  fetchStoryCandidates,
   fetchStoryReposts,
   fetchStorySuggestions,
   setStoryRepostStatus,
+  type StoryCandidate,
   type StoryRepost,
   type StorySuggestion,
 } from '../lib/api'
@@ -31,6 +34,7 @@ export function StoryReposts({
   const [open, setOpen] = useState<StoryRepost[]>([])
   const [done, setDone] = useState<StoryRepost[]>([])
   const [ideas, setIdeas] = useState<StorySuggestion[]>([])
+  const [found, setFound] = useState<Record<string, StoryCandidate[]>>({})
   const [failed, setFailed] = useState(false)
   const [leaving, setLeaving] = useState<string | null>(null)
   const { brands } = useBrand()
@@ -55,6 +59,31 @@ export function StoryReposts({
       .catch(() => setIdeas([]))
   }, [])
 
+  const scoutKey = (brandIds?.length ? brandIds : ['swing-shack', 'stick']).join(',')
+  useEffect(() => {
+    for (const b of scoutKey.split(',')) {
+      fetchStoryCandidates(b)
+        .then((r) => setFound((f) => ({ ...f, [b]: r.posts })))
+        .catch(() => setFound((f) => ({ ...f, [b]: [] })))
+    }
+  }, [scoutKey])
+
+  const norm = (u: string) => u.replace('://www.', '://').replace(/\/+$/, '')
+  const taken = new Set([...open, ...done].map((r) => norm(r.url)))
+  const scoutRows = scoutKey
+    .split(',')
+    .flatMap((b) => (found[b] || []).map((c) => ({ brand: b, ...c })))
+    .filter((c) => !taken.has(norm(c.url)))
+
+  async function addFound(brand: string, c: StoryCandidate) {
+    try {
+      const firstLine = c.caption.split(/\r?\n/)[0].slice(0, 60)
+      await addStoryRepost(brand, c.url, firstLine ? `${c.page}: ${firstLine}` : c.page)
+    } finally {
+      load()
+    }
+  }
+
   const keep = (r: StoryRepost) => !brandIds?.length || brandIds.includes(r.brand)
   const openRows = open.filter(keep)
   const doneRows = done.filter(keep)
@@ -74,7 +103,8 @@ export function StoryReposts({
     }
   }
 
-  const nothing = !failed && !ideaRows.length && !openRows.length && !doneRows.length
+  const nothing =
+    !failed && !ideaRows.length && !scoutRows.length && !openRows.length && !doneRows.length
   if (nothing && !alwaysShow) return null
 
   return (
@@ -125,6 +155,55 @@ export function StoryReposts({
             </li>
           ))}
         </ul>
+      ) : null}
+      {scoutRows.length ? (
+        <div className="space-y-2" aria-label="Posts worth sharing">
+          <p className="text-xs font-semibold tracking-wide text-tx3 uppercase">Posts worth sharing</p>
+          <ul className="space-y-2">
+            {scoutRows.map((c) => (
+              <li key={`${c.brand}-${c.url}`} className="flex items-start gap-3 text-sm">
+                {c.image ? (
+                  <img
+                    src={c.image}
+                    alt=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                    className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                  />
+                ) : null}
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <BrandChip brandId={c.brand} />
+                    <span className="font-semibold text-tx">{c.page}</span>
+                    <span className="text-xs text-tx3">{c.posted}</span>
+                  </div>
+                  <p className="line-clamp-2 text-tx2">{c.caption || 'No caption'}</p>
+                  <p className="text-xs text-tx3">
+                    {c.why} · {(c.likes ?? 0).toLocaleString()} likes
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col gap-1">
+                  <a
+                    href={c.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-tx2 hover:border-ac hover:text-ac"
+                  >
+                    Look <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => addFound(c.brand, c)}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-tx2 hover:border-ac hover:text-ac"
+                  >
+                    <Plus className="h-3 w-3" /> Add
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
       <ul className="space-y-2">
         {openRows.map((r) => (

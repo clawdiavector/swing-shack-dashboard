@@ -4,7 +4,7 @@ import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Chomper } from '../components/fun'
 import { StoryReposts } from '../components/StoryReposts'
-import { addStoryRepost } from '../lib/api'
+import { submitStoryLink } from '../lib/api'
 import { toneFor } from '../lib/brandTone'
 import { burstConfetti } from '../lib/confetti'
 
@@ -105,7 +105,7 @@ export function Stories() {
     setMsg(null)
     setState('hungry')
     try {
-      const res = await addStoryRepost({ brand, url: url.trim(), note: note.trim() })
+      const res = await submitStoryLink({ brand, url: url.trim(), note: note.trim() })
       if (!res.ok) return refuse(res.error || 'I choked on that one. Try again?')
       const label = choices.find((c) => c.id === brand)?.label || brand
       if (res.created) {
