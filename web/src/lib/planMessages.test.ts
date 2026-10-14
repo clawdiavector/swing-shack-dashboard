@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Plan, PlanItem } from './plan'
-import { brandLabel, shootRequest, shootSteps, signOffMessage } from './planMessages'
+import { brandLabel, defaultShots, shootRequest, shootSteps, signOffMessage, stepsWithoutShots } from './planMessages'
 
 const item = (over: Partial<PlanItem>): PlanItem => ({
   item_id: 'it-1',
@@ -61,9 +61,34 @@ describe('shootRequest', () => {
     expect(text).toContain('Send to: Christelle on WhatsApp')
   })
   it('asks for photos and for video when the plan needs both, and tailors the photos to the type of date', () => {
-    expect(text).toContain('Photos: about 10 to 15 of the products we are promoting')
-    expect(text).toContain('Video: 2 or 3 short clips')
+    expect(text).toContain('Photos:')
+    expect(text).toContain('About 10 to 15 photos of the products we are promoting')
+    expect(text).toContain('Video (short clips of 10 to 20 seconds, with a person on camera):')
     expect(text).toContain('happy to be filmed')
+  })
+  it('uses the exact shots written on the steps, word for word, and no general ask when every step has a list', () => {
+    const listed = [
+      { ...photos, shots: ['The gift vouchers on the counter', 'The new Psycho Bunny shirts, front and back'] },
+      { ...video, shots: ['Pieter showing how a fitting works'] },
+    ]
+    const t = shootRequest({ plan: plan(listed), steps: listed, today: '2026-10-14' })
+    expect(t).toContain('• The gift vouchers on the counter')
+    expect(t).toContain('• The new Psycho Bunny shirts, front and back')
+    expect(t).toContain('• Pieter showing how a fitting works')
+    expect(t).not.toContain('About 10 to 15 photos')
+    expect(t).not.toContain('2 or 3 clips')
+  })
+  it('keeps a general ask for a step that has no list, beside the shots of the steps that do', () => {
+    const mixed = [{ ...photos, shots: ['The gift vouchers'] }, { ...photos, item_id: 'p2', shots: [] }]
+    const t = shootRequest({ plan: plan(mixed), steps: mixed, today: '2026-10-14' })
+    expect(t).toContain('• The gift vouchers')
+    expect(t).toContain('About 10 to 15 photos')
+  })
+  it('does not repeat a shot that two steps both list', () => {
+    const two = [{ ...photos, shots: ['The window'] }, { ...photos, item_id: 'p2', shots: ['The window', 'The till'] }]
+    const t = shootRequest({ plan: plan(two), steps: two, today: '2026-10-14' })
+    expect(t.match(/• The window/g)).toHaveLength(1)
+    expect(t).toContain('• The till')
   })
   it('keeps the rules: real products and spaces, no effects', () => {
     expect(text).toContain('Real products and real spaces only')
@@ -85,6 +110,18 @@ describe('shootRequest', () => {
   it('uses the type of date, not the plan shape, for what to photograph', () => {
     const sport = plan([photos], { event_kind: 'sport_event', profile: 'light' })
     expect(shootRequest({ plan: sport, steps: [photos], today: '2026-10-14' })).toContain('the bays, the gear, the screens')
+  })
+})
+
+describe('shot lists', () => {
+  it('suggests shots to start from, for photos by type of date and for video', () => {
+    expect(defaultShots('retail_push', false)[0]).toBe('The whole range laid out together')
+    expect(defaultShots('sport_event', false)).toContain('The bay or range set up')
+    expect(defaultShots('light', false).length).toBeGreaterThan(0)
+    expect(defaultShots(undefined, true)).toHaveLength(3)
+  })
+  it('finds the steps that still have no list', () => {
+    expect(stepsWithoutShots([{ ...photos, shots: ['a'] }, video]).map((s) => s.item_id)).toEqual(['v'])
   })
 })
 

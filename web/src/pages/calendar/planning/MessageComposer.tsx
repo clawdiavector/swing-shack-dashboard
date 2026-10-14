@@ -31,18 +31,28 @@ export function MessageComposer({
   fields,
   build,
   onClose,
+  notice,
+  onCopied,
+  markLabel,
 }: {
   title: string
   intro: string
   fields: Field[]
   build: (values: Record<string, string>) => string
   onClose: () => void
+  /** Something to say above the text, e.g. that a step has no shot list. */
+  notice?: string
+  /** After a copy: offer to record that it was asked of the first field's name. */
+  onCopied?: (values: Record<string, string>) => Promise<{ ok: boolean; message: string }>
+  markLabel?: string
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(fields.map((f) => [f.key, recall(f)])),
   )
   const [edited, setEdited] = useState<string | null>(null) // the text, once she has changed it herself
   const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [marked, setMarked] = useState<string | null>(null) // set once it worked
+  const [markNote, setMarkNote] = useState<string | null>(null) // why it did not
   const generated = useMemo(() => build(values), [build, values])
   const text = edited ?? generated
 
@@ -75,6 +85,11 @@ export function MessageComposer({
           </label>
         ))}
       </div>
+      {notice ? (
+        <p className="rounded border border-yel/30 bg-yel/10 px-2 py-1 text-xs text-yel" data-testid="composer-notice">
+          {notice}
+        </p>
+      ) : null}
       <textarea
         aria-label="The message"
         data-testid="composer-text"
@@ -114,6 +129,30 @@ export function MessageComposer({
         {status === 'failed' ? (
           <span className="text-xs text-red" data-testid="composer-status">
             Could not copy. Select the text above and copy it yourself.
+          </span>
+        ) : null}
+        {status === 'copied' && onCopied && marked === null ? (
+          <button
+            type="button"
+            data-testid="composer-mark"
+            onClick={async () => {
+              const r = await onCopied(values)
+              if (r.ok) setMarked(r.message)
+              else setMarkNote(r.message)
+            }}
+            className="rounded-full border border-bd px-3 py-1.5 text-xs font-semibold text-tx2 hover:text-tx"
+          >
+            {markLabel || 'I have sent it: mark as asked'}
+          </button>
+        ) : null}
+        {markNote && marked === null ? (
+          <span className="text-xs text-red" data-testid="composer-mark-note">
+            {markNote}
+          </span>
+        ) : null}
+        {marked ? (
+          <span className="text-xs text-emerald-400" data-testid="composer-marked">
+            {marked}
           </span>
         ) : null}
       </div>

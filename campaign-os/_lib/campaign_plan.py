@@ -38,7 +38,29 @@ ITEM_KINDS = ("research", "decide", "shoot", "edit", "review", "post",
               "story", "boost")
 ITEM_STATUSES = ("proposed", "kept", "removed", "done")
 KIND_RANK = {k: i for i, k in enumerate(ITEM_KINDS)}
-EDITABLE_ITEM_FIELDS = ("title", "due", "kind", "channel", "note", "owner", "budget")
+EDITABLE_ITEM_FIELDS = ("title", "due", "kind", "channel", "note", "owner", "budget", "shots", "asked")
+
+# What to capture on a shoot step: the exact shots, one per line, as the person
+# who will shoot should read them. And who has been asked, and when, so a plan
+# shows which shoots are still waiting to be requested.
+MAX_SHOTS = 20
+MAX_SHOT_LEN = 200
+
+
+def parse_shots(v):
+    """(ok, list, error). A list of strings, or text with one shot per line."""
+    if v is None:
+        return True, [], ""
+    if isinstance(v, str):
+        v = v.splitlines()
+    if not isinstance(v, (list, tuple)):
+        return False, [], "shots must be a list, one shot per line"
+    out = [str(x).strip().lstrip("-•*").strip() for x in v if str(x).strip()]
+    if len(out) > MAX_SHOTS:
+        return False, [], f"at most {MAX_SHOTS} shots"
+    if any(len(x) > MAX_SHOT_LEN for x in out):
+        return False, [], f"each shot must be under {MAX_SHOT_LEN} characters"
+    return True, out, ""
 
 # A boost's planned budget, in rand. A plan only records the number: nothing is
 # spent, and nothing is sent to Meta, from here.
@@ -341,9 +363,10 @@ def edit_item(brand_id: str, plan_id: str, item_id: str, patch: dict,
     change can be undone."""
     plan = get_plan(brand_id, plan_id)
     err = _editable(plan)
-    if err and not (plan and plan.get("status") == PLAN_APPROVED
-                    and set(patch) == {"status"}
-                    and patch.get("status") == "done"):
+    # An approved plan is locked, except for ticking a step done and noting who was asked.
+    marks_done = set(patch) == {"status"} and patch.get("status") == "done"
+    marks_asked = set(patch) == {"asked"}
+    if err and not (plan and plan.get("status") == PLAN_APPROVED and (marks_done or marks_asked)):
         return {"ok": False, "error": err}
     item = next((i for i in plan["items"] if i["item_id"] == item_id), None)
     if not item:
@@ -361,6 +384,17 @@ def edit_item(brand_id: str, plan_id: str, item_id: str, patch: dict,
             if not d:
                 return {"ok": False, "error": "due must be YYYY-MM-DD"}
             v = d.isoformat()
+        elif k == "shots":
+            ok, v, why = parse_shots(v)
+            if not ok:
+                return {"ok": False, "error": why}
+            if v and item["kind"] != "shoot":
+                return {"ok": False, "error": "only a shoot step has a shot list"}
+        elif k == "asked":
+            if item["kind"] != "shoot":
+                return {"ok": False, "error": "only a shoot step is asked for"}
+            name = str(v).strip() if v else ""
+            v = {"to": name, "at": _now_iso()} if name else None
         elif k == "budget":
             ok, v, why = parse_budget(v)
             if not ok:
@@ -399,6 +433,11 @@ def add_item(brand_id: str, plan_id: str, item: dict,
         return {"ok": False, "error": "title and due (YYYY-MM-DD) required"}
     if kind not in ITEM_KINDS:
         return {"ok": False, "error": f"invalid kind: {kind}"}
+    ok, shots, why = parse_shots(item.get("shots"))
+    if not ok:
+        return {"ok": False, "error": why}
+    if shots and kind != "shoot":
+        return {"ok": False, "error": "only a shoot step has a shot list"}
     ok, budget, why = parse_budget(item.get("budget"))
     if not ok:
         return {"ok": False, "error": why}
@@ -421,6 +460,8 @@ def add_item(brand_id: str, plan_id: str, item: dict,
     }
     if budget is not None:
         new["budget"] = budget
+    if shots:
+        new["shots"] = shots
     plan["items"].append(new)
     plan["items"].sort(key=lambda i: (i["due"], i["kind"]))
     _log(plan, actor, "added item", new["item_id"])

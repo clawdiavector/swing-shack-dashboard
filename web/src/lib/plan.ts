@@ -28,6 +28,10 @@ export type PlanItem = {
   status: PlanItemStatus
   /** A boost's planned budget in rand. Only a number here: nothing is spent from the plan. */
   budget?: number | null
+  /** A shoot step: the exact shots to capture, one per entry. */
+  shots?: string[]
+  /** A shoot step: who has been asked to shoot it, and when. */
+  asked?: { to: string; at: string } | null
   /** Set once the step is on the Main Calendar; '' otherwise. */
   calendar_id?: string
   source: 'template' | 'operator'
@@ -131,7 +135,13 @@ export const proposePlan = (brand: string, briefId: string, force = false, profi
   call('POST', `${base(brand)}/propose`, { brief_id: briefId, force, ...(profile ? { profile } : {}) })
 
 /** What can be changed on a step. A budget may be typed ("1,500"); the server reads it. */
-export type PlanItemPatch = Partial<Omit<PlanItem, 'budget'>> & { budget?: number | string | null }
+export type PlanItemPatch = Partial<Omit<PlanItem, 'budget' | 'shots' | 'asked'>> & {
+  budget?: number | string | null
+  /** A list, or text with one shot per line. */
+  shots?: string[] | string
+  /** The name of who was asked; '' clears it. */
+  asked?: string | null
+}
 
 export const editPlanItem = (brand: string, planId: string, itemId: string, patch: PlanItemPatch) =>
   call('PATCH', `${base(brand)}/${encodeURIComponent(planId)}/item/${encodeURIComponent(itemId)}`, patch)

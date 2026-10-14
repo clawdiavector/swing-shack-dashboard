@@ -24,6 +24,44 @@ const PHOTO_ASK: Record<string, string> = {
   standard: 'the shop or space and the products',
 }
 
+/** Shots to start from when a shoot step has no list yet. They are suggestions
+ *  for the person writing the request to change, not facts about the shop. */
+export function defaultShots(kind: string | undefined, video: boolean): string[] {
+  if (video) {
+    return [
+      'A 15 second walk-through of the space',
+      'Someone talking about the product or service in their own words',
+      'A close-up of the real thing happening: a swing, a fitting, a purchase',
+    ]
+  }
+  const byKind: Record<string, string[]> = {
+    retail_push: [
+      'The whole range laid out together',
+      'Close-ups of the main products',
+      'A few products shown in use',
+      'The shop display or shelves',
+    ],
+    sport_event: [
+      'The bay or range set up',
+      'Gear and equipment close-ups',
+      'Screens or the scoreboard, if it is on',
+      'People watching or playing',
+    ],
+    service_push: [
+      'The fitting or coaching area',
+      'The equipment being used',
+      'A session in progress',
+      'The result, or the screen after',
+    ],
+  }
+  return byKind[kind || ''] || ['The shop or space', 'Close-ups of the products', 'People using the space']
+}
+
+/** Shoot steps with no list of shots: the request falls back to a general ask. */
+export function stepsWithoutShots(steps: PlanItem[]): PlanItem[] {
+  return steps.filter((s) => !(s.shots && s.shots.length))
+}
+
 export function shootSteps(plan: Plan): PlanItem[] {
   return splitItems(plan.items).active.filter((i) => i.kind === 'shoot')
 }
@@ -56,9 +94,29 @@ export function shootRequest(opts: {
   )
   lines.push('')
   lines.push('What we need:')
-  if (wantsPhotos) lines.push(`• Photos: about 10 to 15 of ${PHOTO_ASK[kind] || PHOTO_ASK.standard}.`)
+  // The shots written on the steps, word for word. A step with no list gets a
+  // general ask instead, so the message is never empty.
+  const listed = (video: boolean) => [
+    ...new Set(steps.filter((s) => !!s.needs_real_video === video).flatMap((s) => s.shots || [])),
+  ]
+  const unlisted = (video: boolean) => stepsWithoutShots(steps.filter((s) => !!s.needs_real_video === video))
+  const photoShots = listed(false)
+  const videoShots = listed(true)
+  if (wantsPhotos) {
+    lines.push('')
+    lines.push('Photos:')
+    for (const shot of photoShots) lines.push(`• ${shot}`)
+    if (!photoShots.length || unlisted(false).length) {
+      lines.push(`• About 10 to 15 photos of ${PHOTO_ASK[kind] || PHOTO_ASK.standard}.`)
+    }
+  }
   if (wantsVideo) {
-    lines.push('• Video: 2 or 3 short clips (10 to 20 seconds each) with a person on camera, talking or doing the thing.')
+    lines.push('')
+    lines.push('Video (short clips of 10 to 20 seconds, with a person on camera):')
+    for (const shot of videoShots) lines.push(`• ${shot}`)
+    if (!videoShots.length || unlisted(true).length) {
+      lines.push('• 2 or 3 clips of someone talking about it, or doing the thing.')
+    }
   }
   lines.push('')
   lines.push('How to shoot it:')

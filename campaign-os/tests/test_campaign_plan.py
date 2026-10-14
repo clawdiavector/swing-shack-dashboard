@@ -272,3 +272,46 @@ def test_the_budget_goes_onto_the_calendar_entry_and_the_month_steps():
                          add_record=lambda b, r, s: rows.append(r) or dict(r, calendar_id=f"c{len(rows)}"))
     boost_row = next(r for r in rows if r["plan_item_kind"] == "boost")
     assert boost_row["planned_budget_zar"] == 1200 and "R1,200" in boost_row["angle"]
+
+
+def _shoot(plan):
+    return next(i for i in plan["items"] if i["kind"] == "shoot")
+
+
+def test_a_shoot_step_takes_a_shot_list_one_per_line():
+    p = cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY)["plan"]
+    shoot, post = _shoot(p), next(i for i in p["items"] if i["kind"] == "post")
+    r = cp.edit_item("stick", p["plan_id"], shoot["item_id"],
+                     {"shots": "- The whole range laid out\n\n• Close-ups of the gift vouchers\n  A few products in use  "})
+    assert r["ok"] and r["item"]["shots"] == ["The whole range laid out", "Close-ups of the gift vouchers", "A few products in use"]
+    assert cp.edit_item("stick", p["plan_id"], shoot["item_id"], {"shots": ["one", "two"]})["item"]["shots"] == ["one", "two"]
+    assert cp.edit_item("stick", p["plan_id"], shoot["item_id"], {"shots": ""})["item"]["shots"] == []
+    assert not cp.edit_item("stick", p["plan_id"], shoot["item_id"], {"shots": ["x"] * 21})["ok"]
+    assert not cp.edit_item("stick", p["plan_id"], shoot["item_id"], {"shots": ["x" * 201]})["ok"]
+    assert not cp.edit_item("stick", p["plan_id"], shoot["item_id"], {"shots": 5})["ok"]
+    assert not cp.edit_item("stick", p["plan_id"], post["item_id"], {"shots": ["a shot"]})["ok"]
+
+
+def test_a_shoot_step_remembers_who_was_asked_even_after_the_plan_is_approved():
+    p = cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY)["plan"]
+    shoot = _shoot(p)
+    r = cp.edit_item("stick", p["plan_id"], shoot["item_id"], {"asked": " Pieter "})
+    assert r["item"]["asked"]["to"] == "Pieter" and r["item"]["asked"]["at"]
+    assert not cp.edit_item("stick", p["plan_id"], next(i for i in p["items"] if i["kind"] == "post")["item_id"],
+                            {"asked": "Pieter"})["ok"]
+    assert cp.approve_plan("stick", p["plan_id"])["ok"]
+    other = [i for i in p["items"] if i["kind"] == "shoot"][-1]
+    assert cp.edit_item("stick", p["plan_id"], other["item_id"], {"asked": "Anel"})["ok"]     # allowed while locked
+    assert not cp.edit_item("stick", p["plan_id"], other["item_id"], {"title": "x", "asked": "Anel"})["ok"]
+    assert cp.reopen_plan("stick", p["plan_id"])["ok"]
+    cleared = cp.edit_item("stick", p["plan_id"], shoot["item_id"], {"asked": ""})
+    assert cleared["item"]["asked"] is None
+
+
+def test_a_new_shoot_step_can_carry_a_shot_list():
+    p = cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY)["plan"]
+    a = cp.add_item("stick", p["plan_id"], {"title": "Shoot the window", "due": "2026-12-01", "kind": "shoot",
+                                            "shots": "The window at dusk\nThe new stock"})
+    assert a["ok"] and a["item"]["shots"] == ["The window at dusk", "The new stock"]
+    assert not cp.add_item("stick", p["plan_id"], {"title": "A post", "due": "2026-12-01", "kind": "post",
+                                                    "shots": ["no"]})["ok"]

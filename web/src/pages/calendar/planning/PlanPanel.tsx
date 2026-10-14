@@ -1,7 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import { EventTypeIcon } from '../../../components/EventTypeIcon'
 import { MessageComposer } from './MessageComposer'
-import { shootRequest, shootSteps, signOffMessage } from '../../../lib/planMessages'
+import { defaultShots, shootRequest, shootSteps, signOffMessage, stepsWithoutShots } from '../../../lib/planMessages'
 import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { useCallback, useEffect, useState } from 'react'
 import {
@@ -45,8 +45,11 @@ function ItemRow({
   locked,
   onSave,
   onCopyRequest,
+  eventKind,
 }: {
   item: PlanItem
+  /** The kind of date, for suggested shots. */
+  eventKind?: string
   today: string
   locked: boolean
   onSave: (patch: PlanItemPatch) => Promise<string | null>
@@ -58,6 +61,7 @@ function ItemRow({
   const [due, setDue] = useState(item.due)
   const [note, setNote] = useState(item.note)
   const [budget, setBudget] = useState(item.budget ? String(item.budget) : '')
+  const [shots, setShots] = useState((item.shots && item.shots.length ? item.shots : defaultShots(eventKind, !!item.needs_real_video)).join('\n'))
   const [err, setErr] = useState<string | null>(null)
   const done = item.status === 'done'
 
@@ -93,6 +97,22 @@ function ItemRow({
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
+        {item.kind === 'shoot' ? (
+          <label className="block text-xs text-tx2">
+            What to capture (one shot per line)
+            <textarea
+              aria-label="What to capture"
+              data-testid="plan-shots-input"
+              rows={5}
+              className={`${field} mt-1 block w-full`}
+              value={shots}
+              onChange={(e) => setShots(e.target.value)}
+            />
+            <span className="mt-1 block text-[11px] text-tx3">
+              These go into the shoot request word for word. The lines shown are suggestions to change.
+            </span>
+          </label>
+        ) : null}
         {item.kind === 'boost' ? (
           <label className="block text-xs text-tx2">
             Planned budget (rand)
@@ -116,7 +136,13 @@ function ItemRow({
             className={btnYel}
             disabled={!title.trim() || !due}
             onClick={() =>
-              void save({ title: title.trim(), due, note, ...(item.kind === 'boost' ? { budget } : {}) })
+              void save({
+                title: title.trim(),
+                due,
+                note,
+                ...(item.kind === 'boost' ? { budget } : {}),
+                ...(item.kind === 'shoot' ? { shots } : {}),
+              })
             }
           >
             Save
@@ -155,6 +181,21 @@ function ItemRow({
         {item.note ? <p className="text-xs text-tx3">{item.note}</p> : null}
         {item.needs_real_video ? (
           <p className="text-[11px] text-tx3">Real video with a person on camera.</p>
+        ) : null}
+        {item.kind === 'shoot' ? (
+          <div className="mt-0.5 space-y-0.5" data-testid="plan-shoot-info">
+            {item.shots && item.shots.length ? (
+              <p className="text-[11px] text-tx2">
+                Capture: {item.shots.slice(0, 4).join('; ')}
+                {item.shots.length > 4 ? ` and ${item.shots.length - 4} more` : ''}
+              </p>
+            ) : (
+              <p className="text-[11px] text-yel">No shot list yet. Use Change to say exactly what to capture.</p>
+            )}
+            <p className={`text-[11px] ${item.asked ? 'text-emerald-400' : 'text-tx3'}`} data-testid="plan-asked-line">
+              {item.asked ? `Asked ${item.asked.to} on ${formatPlanDate(item.asked.at)}.` : 'Nobody asked yet.'}
+            </p>
+          </div>
         ) : null}
         {item.kind === 'boost' ? (
           <p className={`text-[11px] ${item.budget ? 'text-tx2' : 'text-yel'}`} data-testid="plan-budget-line">
@@ -366,6 +407,16 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
         </p>
       ) : null}
 
+      {shootSteps(plan).length ? (
+        <p className="text-xs text-tx3" data-testid="plan-asked-total">
+          Shoot requests:{' '}
+          <b className="text-tx2">
+            {shootSteps(plan).filter((i) => i.asked).length} of {shootSteps(plan).length} asked
+          </b>
+          {shootSteps(plan).some((i) => !(i.shots && i.shots.length)) ? '. Some steps have no shot list yet.' : '.'}
+        </p>
+      ) : null}
+
       {boosts.boosts ? (
         <p className="text-xs text-tx3" data-testid="plan-budget-total">
           Boost budget: <b className="text-tx2">{boosts.total ? formatRand(boosts.total) : 'none set'}</b>
@@ -391,6 +442,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
             today={today}
             locked={approved}
             onSave={async (patch) => take(await editPlanItem(brandId, plan.plan_id, it.item_id, patch))}
+            eventKind={plan.event_kind || plan.profile}
             onCopyRequest={it.kind === 'shoot' ? () => setComposer({ kind: 'shoot', stepIds: [it.item_id] }) : undefined}
           />
         ))}
@@ -565,6 +617,24 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
               today,
             })
           }
+          notice={(() => {
+            const picked = plan.items.filter((i) => composer.stepIds.includes(i.item_id))
+            const n = stepsWithoutShots(picked).length
+            return n
+              ? `${n} of these ${n === 1 ? 'steps has' : 'steps have'} no shot list, so the message asks in general terms. For exact shots, close this, use Change on the step and fill in What to capture.`
+              : undefined
+          })()}
+          markLabel="I have sent it: mark as asked"
+          onCopied={async (v) => {
+            const who = (v.facility || '').trim()
+            if (!who) return { ok: false, message: 'Add who it is for first, so the plan can say who was asked.' }
+            for (const id of composer.stepIds) {
+              const r = await editPlanItem(brandId, plan.plan_id, id, { asked: who })
+              if (!r.ok) return { ok: false, message: r.error || 'Could not mark it.' }
+              if (r.plan) setPlan(r.plan)
+            }
+            return { ok: true, message: `Marked as asked of ${who}.` }
+          }}
           onClose={() => setComposer(null)}
         />
       ) : null}
