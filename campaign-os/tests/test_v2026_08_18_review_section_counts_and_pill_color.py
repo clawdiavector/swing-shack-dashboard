@@ -82,6 +82,7 @@ class ReviewSectionCountsAndPillColorTest(unittest.TestCase):
         self.assertIn('id="review-rejected-count"', self.html,
                       "Rejected h3 must have an id=review-rejected-count badge")
 
+    @_legacy_page.on_old_page_only
     def test_renderReview_writes_count_into_each_badge(self):
         """renderReview() must populate the three count badges from the API response."""
         # The actual source uses `if (_countEls.pending)  _countEls.pending.textContent = ...`

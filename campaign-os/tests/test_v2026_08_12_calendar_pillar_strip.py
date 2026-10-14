@@ -144,6 +144,7 @@ class TestPillarStripDOM(unittest.TestCase):
             "unstyled (no flexbox row, no background, no padding).",
         )
 
+    @_legacy_page.on_old_page_only
     def test_cal_pillar_strip_has_seven_pillar_colour_bindings(self):
         # Each of the 7 named pillars needs its own data-pillar CSS rule so
         # the colour comes from the existing --pillar-* CSS variable. If a
