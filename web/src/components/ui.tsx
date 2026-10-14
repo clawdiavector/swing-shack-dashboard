@@ -178,7 +178,7 @@ export function StatCard({
       <p className="mt-0.5 text-xs text-tx3">{hint}</p>
       {stamp ? (
         <p className="mt-0.5 text-[12px] font-semibold tracking-wide text-tx3 uppercase">
-          {stampLabel(stampKind)} {formatStamp(stamp)}
+          {stampLabel(stampKind, stamp)} {formatStamp(stamp)}
         </p>
       ) : null}
     </>
@@ -367,7 +367,7 @@ export function QueueItem({
           <Badge tone={channelTone || 'blue'}>{channelBadge}</Badge>
         ) : null}
         <span className="text-[12px] font-semibold tracking-wide text-tx3 uppercase">
-          {stampLabel(stampKind)} {when}
+          {stampLabel(stampKind, stamp)} {when}
         </span>
       </div>
       <p className="mt-1.5 text-sm leading-snug font-medium">{title}</p>

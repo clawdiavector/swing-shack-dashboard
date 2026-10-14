@@ -1,4 +1,10 @@
-import type { PostingWeekPayload, PostingWeekPost, ShelfPayload } from './postingWeek'
+import type {
+  DeliverySummary,
+  PostDelivery,
+  PostingWeekPayload,
+  PostingWeekPost,
+  ShelfPayload,
+} from './postingWeek'
 import { renderModeEditable } from './postingWeek'
 
 export type TodayCounts = {
@@ -64,6 +70,12 @@ export type InboxItem = {
     primary_channel?: string
     /** IG + FB targets for this draft (display + publish queue). */
     publish_targets?: string[]
+    channels_available?: string[]
+    channels_coming?: string[]
+    channels_picked?: string[]
+    channels_locked?: boolean
+    deliveries?: PostDelivery[]
+    delivery_summary?: DeliverySummary
     event_date?: string
     goes_out_at?: string
     approval_status?: string
@@ -108,6 +120,13 @@ export type InboxItem = {
     template_reference_urls?: string[]
     archetype?: { id?: string; canvas?: string; schema?: string }
     compose_pending?: boolean
+    visual_gap?: {
+      reason?: string
+      label?: string
+      post_type?: string
+      archetype_id?: string | null
+      checked_at?: string
+    }
     source_inbox_item_id?: string
     oneshot?: {
       prompt_used?: string | null
@@ -502,17 +521,33 @@ export function fetchShelf(brand?: string) {
   return getJson<ShelfPayload>(`/api/inbox/shelf?${q}`)
 }
 
-export function publishDispatchNow(idempotencyKey: string) {
+export function publishDispatchNow(idempotencyKeyOrKeys: string | string[]) {
+  const keys = Array.isArray(idempotencyKeyOrKeys)
+    ? idempotencyKeyOrKeys.filter(Boolean)
+    : [idempotencyKeyOrKeys].filter(Boolean)
+  const body =
+    keys.length === 1 ? { idempotency_key: keys[0] } : { idempotency_keys: keys }
   return postJsonWithStatus<{
     ok?: boolean
     error?: string
     dispatched?: number
     errors?: string[]
     mode?: string
-  }>('/api/publish/dispatch-now', { idempotency_key: idempotencyKey })
+  }>('/api/publish/dispatch-now', body)
 }
 
-export function releaseMoment(brandId: string, calendarId: string, editor = 'christelle') {
+export function releaseMoment(
+  brandId: string,
+  calendarId: string,
+  editor = 'christelle',
+  channels?: string[],
+) {
+  const body: Record<string, unknown> = {
+    brand_id: brandId,
+    calendar_id: calendarId,
+    editor,
+  }
+  if (channels?.length) body.channels = channels
   return postJsonWithStatus<{
     ok?: boolean
     error?: string
@@ -521,7 +556,21 @@ export function releaseMoment(brandId: string, calendarId: string, editor = 'chr
     released?: string[]
     dispatched?: string[]
     would_publish_at?: string
-  }>('/api/publish/release', { brand_id: brandId, calendar_id: calendarId, editor })
+  }>('/api/publish/release', body)
+}
+
+export function setPostChannels(brandId: string, calendarId: string, channels: string[]) {
+  return postJsonWithStatus<{ ok?: boolean; error?: string; code?: string }>(
+    '/api/posts/channels',
+    { brand_id: brandId, calendar_id: calendarId, channels },
+  )
+}
+
+export function retryDelivery(brandId: string, calendarId: string, channel: string) {
+  return postJsonWithStatus<{ ok?: boolean; error?: string; code?: string }>(
+    '/api/publish/retry',
+    { brand_id: brandId, calendar_id: calendarId, channel },
+  )
 }
 
 export function matchInboxItem(item: InboxItem, id: string) {
@@ -1130,6 +1179,21 @@ export async function selectBrand(brandId: string) {
   return res.json() as Promise<{ ok?: boolean; brand_id?: string }>
 }
 
+export async function recheckVisual(itemId: string) {
+  const res = await fetch(`/api/inbox/${encodeURIComponent(itemId)}/recheck-visual`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  return res.json() as Promise<{
+    ok?: boolean
+    gap?: boolean
+    decision?: { status?: string; label?: string; reason?: string }
+    error?: string
+  }>
+}
+
 export async function inboxAction(
   id: string,
   action: 'approve' | 'reject',
@@ -1691,6 +1755,7 @@ export function fetchPublishSandboxSummary() {
 export type SandboxQueueItem = {
   queue_id?: string
   idempotency_key?: string
+  post_id?: string
   brand_id?: string
   platform?: string
   channel?: string
@@ -2246,4 +2311,37 @@ export async function runSocialIngest(brandId: string) {
   }
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
   return { ok: res.ok, status: res.status, data }
+}
+
+export type StoryRepost = {
+  id: string
+  brand: string
+  url: string
+  note: string
+  added_by: string
+  added_at: string
+  status: 'open' | 'done'
+  done_at: string | null
+}
+
+export type StoryRepostList = { ok: boolean; open: StoryRepost[]; done_today: StoryRepost[] }
+
+export function fetchStoryReposts() {
+  return getJson<StoryRepostList>('/api/stories')
+}
+
+export function setStoryRepostStatus(id: string, status: 'open' | 'done') {
+  return postJson<{ ok: boolean }>(`/api/stories/${encodeURIComponent(id)}/${status}`, {})
+}
+
+export type StorySuggestion = {
+  brand: string
+  date: string
+  kind: 'retail' | 'service' | 'moment'
+  feature: string
+  repost_from: { id: string; name: string; instagram: string | null; facebook: string | null; look_for: string }
+}
+
+export function fetchStorySuggestions() {
+  return getJson<{ ok: boolean; suggestions: StorySuggestion[] }>('/api/stories/suggestion')
 }

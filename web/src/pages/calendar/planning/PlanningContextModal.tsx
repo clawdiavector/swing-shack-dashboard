@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AlertCircle, ChevronRight, ExternalLink, FileText, Loader2, X } from 'lucide-react'
+import { tierLabel } from '../../../lib/planning'
 
 type PlanningContext = {
   event?: { name?: string; category?: string; verified_date?: string; public_peak?: string | null }
@@ -196,7 +197,7 @@ function ContextBody({ data }: { data: PlanningContextResponse }) {
         {data.event_key ? (
           <KV label="event_key" value={data.event_key} mono />
         ) : null}
-        {c.tier ? <KV label="Tier" value={c.tier} tone="tier" /> : null}
+        {c.tier ? <KV label="Tier" value={tierLabel(c.tier)} tone="tier" /> : null}
       </div>
 
       {/* verified dates + runway */}

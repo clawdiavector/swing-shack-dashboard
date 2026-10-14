@@ -1,0 +1,69 @@
+{
+  "brand": "swing-shack",
+  "verified": "2026-10-12",
+  "note": "Official pages, read from each brand's own website on 2026-10-12. Swing Shack and Stick both stock these; Psycho Bunny is Stick only.",
+  "retail": [
+    {
+      "id": "takomo",
+      "name": "Takomo",
+      "instagram": "https://www.instagram.com/takomogolf/",
+      "facebook": "https://www.facebook.com/takomogolf/",
+      "look_for": "Forged irons, fitting and tour-proven value. Skip upcoming releases we have not got in."
+    },
+    {
+      "id": "vice",
+      "name": "Vice",
+      "instagram": "https://www.instagram.com/vicegolf",
+      "facebook": "https://www.facebook.com/vicegolf",
+      "look_for": "Balls and gear we carry. Skip anything not on our shelves."
+    },
+    {
+      "id": "lab",
+      "name": "L.A.B. Golf",
+      "instagram": "https://www.instagram.com/labgolfputters",
+      "facebook": "https://www.facebook.com/labgolf/",
+      "look_for": "Putters and lie angle balance. Pairs with putter fitting."
+    },
+    {
+      "id": "avoda",
+      "name": "Avoda",
+      "instagram": "https://www.instagram.com/avodagolf/",
+      "facebook": null,
+      "look_for": "Clubs matched to your swing. Instagram only."
+    },
+    {
+      "id": "vessel",
+      "name": "Vessel",
+      "instagram": "https://www.instagram.com/vesselgolf/",
+      "facebook": "https://www.facebook.com/vesselgolf/",
+      "look_for": "Bags and accessories we carry."
+    },
+    {
+      "id": "ripit",
+      "name": "RipIt",
+      "instagram": null,
+      "facebook": null,
+      "look_for": "Handles not found yet. Add them before this brand can be suggested."
+    }
+  ],
+  "services": [
+    {
+      "id": "fitting",
+      "name": "Club fitting",
+      "pairs_with": "takomo",
+      "source": "swing-shack knowledge.json"
+    },
+    {
+      "id": "putter-fitting",
+      "name": "Putter fitting",
+      "pairs_with": "lab",
+      "source": "swing-shack knowledge.json"
+    },
+    {
+      "id": "coaching",
+      "name": "1-on-1 TrackMan coaching",
+      "pairs_with": null,
+      "source": "swing-shack knowledge.json"
+    }
+  ]
+}

@@ -16,7 +16,15 @@ import { templateMetaFromInbox } from '../lib/templateMeta'
 import { BrandChip } from './BrandChip'
 import { TemplateReferenceCompare } from './TemplateReferenceCompare'
 import { TemplateReferenceTag } from './TemplateReferenceTag'
+import { defaultChannelsForBrand } from '../lib/postingWeek'
 import { Badge, PressIcon, Tip } from './ui'
+import { GapTile } from './posting/GapTile'
+import { ChannelPicker } from './posting/ChannelPicker'
+import { DeliveryChips } from './posting/DeliveryChips'
+import { ApproveReleaseConfirmDialog } from './posting/ApproveReleaseConfirm'
+
+/** Set false to hide Approve & release and keep Review content-only. */
+export const REVIEW_SHOW_APPROVE_AND_RELEASE = true
 
 export type ReviewDraftDetailProps = {
   item: InboxItem
@@ -25,6 +33,7 @@ export type ReviewDraftDetailProps = {
   regenerateTip: string
   busy: boolean
   onApprove: () => void
+  onApproveAndRelease?: (channels: string[]) => void
   onReject: (reason: string) => void
   onRegenerate: (note: string) => void
   onRecomposeHeadline: (headline: string) => void
@@ -44,6 +53,7 @@ export function ReviewDraftDetail({
   regenerateTip,
   busy,
   onApprove,
+  onApproveAndRelease,
   onReject,
   onRegenerate,
   onRecomposeHeadline,
@@ -68,6 +78,8 @@ export function ReviewDraftDetail({
   const refUsed = item.meta?.reference_used
   const templateMeta = templateMetaFromInbox(item)
   const oneshot = oneshotMetaFromInbox(item)
+  const visualGap = item.meta?.visual_gap
+  const isVisualGap = Boolean(visualGap?.label || visualGap?.reason)
 
   const [regenOpen, setRegenOpen] = useState(false)
   const [regenNote, setRegenNote] = useState('')
@@ -78,6 +90,12 @@ export function ReviewDraftDetail({
   const [headlineDraft, setHeadlineDraft] = useState(() =>
     draftHeadlineFromCaption(item.meta?.caption),
   )
+  const available = item.meta?.channels_available ?? ['instagram', 'facebook', 'gbp']
+  const coming = item.meta?.channels_coming ?? ['youtube', 'tiktok']
+  const [pickedChannels, setPickedChannels] = useState<string[]>(
+    () => item.meta?.channels_picked ?? defaultChannelsForBrand(item.brand_id),
+  )
+  const [releaseOpen, setReleaseOpen] = useState(false)
 
   function submitRegenerate() {
     const note = regenNote.trim()
@@ -199,7 +217,9 @@ export function ReviewDraftDetail({
         ) : null}
 
         <div className="overflow-hidden rounded-2xl border border-bd bg-bg2/30">
-          {composedUrl ? (
+          {isVisualGap ? (
+            <GapTile gap={visualGap} />
+          ) : composedUrl ? (
             <img
               src={composedUrl}
               alt={`Composed ${activeChannel}`}
@@ -223,7 +243,7 @@ export function ReviewDraftDetail({
           )}
         </div>
 
-        {candidates.length ? (
+        {!isVisualGap && candidates.length ? (
           <div>
             <h3 className="font-display text-sm font-semibold text-tx">Photo candidates</h3>
             <ul className="mt-2 flex flex-wrap gap-3">
@@ -313,7 +333,7 @@ export function ReviewDraftDetail({
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-bd bg-bg2/30 p-2">
-          {composedUrl ? (
+          {isVisualGap ? null : composedUrl ? (
             <TemplateReferenceCompare
               draftUrl={composedUrl}
               draftAlt={`Composed ${activeChannel}`}
@@ -330,6 +350,22 @@ export function ReviewDraftDetail({
         </div>
       </div>
 
+      <div className="mt-4 space-y-3 border-t border-bd pt-4">
+        <div>
+          <p className="mb-2 text-xs font-semibold text-tx3">Platforms</p>
+          <ChannelPicker
+            available={available}
+            coming={coming}
+            picked={pickedChannels}
+            locked={Boolean(item.meta?.channels_locked)}
+            onChange={setPickedChannels}
+          />
+        </div>
+        {item.meta?.deliveries?.length ? (
+          <DeliveryChips deliveries={item.meta.deliveries} />
+        ) : null}
+      </div>
+
       <div className="mt-5 flex flex-wrap gap-2 border-t border-bd pt-4" data-testid="review-draft-actions">
         <Tip text="Mark this approved. It will not go live.">
           <button
@@ -337,26 +373,43 @@ export function ReviewDraftDetail({
             data-testid="draft-approve-btn"
             disabled={busy}
             onClick={onApprove}
-            className="inline-flex items-center gap-1.5 rounded-full bg-ac px-3 py-1.5 text-sm font-semibold text-bg disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2 disabled:opacity-50"
           >
             <Check className="h-4 w-4" strokeWidth={2.5} />
             Approve
           </button>
         </Tip>
 
-        <Tip text={regenerateTip} block>
-          <button
-            type="button"
-            data-testid="draft-regenerate-btn"
-            title={regenerateTip}
-            disabled={busy || atImageCap}
-            onClick={() => setRegenOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Regenerate photo
-          </button>
-        </Tip>
+        {REVIEW_SHOW_APPROVE_AND_RELEASE && onApproveAndRelease ? (
+          <Tip text="Approve content and release to the picked platforms in one step.">
+            <button
+              type="button"
+              data-testid="draft-approve-release-btn"
+              disabled={busy || pickedChannels.length === 0}
+              onClick={() => setReleaseOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-ac px-3 py-1.5 text-sm font-semibold text-bg disabled:opacity-50"
+            >
+              <Check className="h-4 w-4" strokeWidth={2.5} />
+              Approve &amp; release
+            </button>
+          </Tip>
+        ) : null}
+
+        {!isVisualGap ? (
+          <Tip text={regenerateTip} block>
+            <button
+              type="button"
+              data-testid="draft-regenerate-btn"
+              title={regenerateTip}
+              disabled={busy || atImageCap}
+              onClick={() => setRegenOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold hover:border-ac hover:text-ac disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Regenerate photo
+            </button>
+          </Tip>
+        ) : null}
 
         {!editingHeadline ? (
           <button
@@ -523,6 +576,17 @@ export function ReviewDraftDetail({
           Regenerate is disabled at the daily image cap.
         </p>
       ) : null}
+
+      <ApproveReleaseConfirmDialog
+        open={releaseOpen}
+        channels={pickedChannels}
+        busy={busy}
+        onCancel={() => setReleaseOpen(false)}
+        onConfirm={() => {
+          onApproveAndRelease?.(pickedChannels)
+          setReleaseOpen(false)
+        }}
+      />
     </section>
   )
 }

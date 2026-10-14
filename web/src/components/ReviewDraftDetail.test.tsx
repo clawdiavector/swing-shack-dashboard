@@ -73,4 +73,23 @@ describe('ReviewDraftDetail', () => {
     expect(html).toContain('data-testid="draft-edit-headline-btn"')
     expect(html).toContain('data-testid="draft-reject-btn"')
   })
+
+  it('shows gap tile without img when visual_gap is set', () => {
+    const html = renderDetail({
+      item: {
+        ...fixtureItem,
+        meta: {
+          ...fixtureItem.meta,
+          composed: { instagram: '/brand-images/x.png' },
+          photo_candidates: [],
+          reference_used: undefined,
+          visual_gap: { reason: 'no_layout', label: 'No layout for mystery' },
+        },
+      },
+    })
+    expect(html).toContain('data-testid="gap-tile"')
+    expect(html).toContain('No layout for mystery')
+    expect(html).not.toContain('data-testid="draft-regenerate-btn"')
+    expect(html).not.toMatch(/<img[\s>]/)
+  })
 })

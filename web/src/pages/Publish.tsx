@@ -19,6 +19,8 @@ import {
 } from '../lib/api'
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
+import { groupSandboxRowsByPostId, idempotencyKeysForGroup } from '../lib/publishPostGroup'
+import { postingChannelAbbrev } from '../lib/postingWeek'
 import { sandboxGoesOutIso, sandboxRowId, sandboxTitle } from '../lib/sandboxRow'
 import { formatStamp } from '../lib/stamp'
 
@@ -31,34 +33,78 @@ export function Publish() {
   const [sandboxTotal, setSandboxTotal] = useState(0)
   const [queueErr, setQueueErr] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
-  const [publishingKey, setPublishingKey] = useState('')
+  const [publishingPostId, setPublishingPostId] = useState('')
   const [publishNote, setPublishNote] = useState('')
 
-  function publishNowButton(idem: string) {
-    if (!idem) return undefined
+  function publishNowButton(postId: string, keys: string[]) {
+    if (!keys.length) return undefined
     return (
       <button
         type="button"
-        disabled={publishingKey === idem}
+        disabled={publishingPostId === postId}
         className="shrink-0 rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
+        data-testid={`publish-now-${postId}`}
         onClick={(event) => {
           event.preventDefault()
           event.stopPropagation()
-          setPublishingKey(idem)
+          setPublishingPostId(postId)
           setPublishNote('')
-          void publishDispatchNow(idem)
+          void publishDispatchNow(keys)
             .then(({ data: body }) => {
               const err = body.errors?.join('; ') || body.error
               setPublishNote(err ? String(err) : 'Sent.')
               loadPanelAndQueue()
             })
             .catch((e: unknown) => setPublishNote(e instanceof Error ? e.message : 'Publish failed'))
-            .finally(() => setPublishingKey(''))
+            .finally(() => setPublishingPostId(''))
         }}
       >
         Publish now
       </button>
     )
+  }
+
+  function platformChipSummary(rows: SandboxQueueItem[]) {
+    return rows
+      .map((r) => postingChannelAbbrev(String(r.platform || r.channel || 'post')))
+      .filter(Boolean)
+      .join(' · ')
+  }
+
+  function renderPostGroup(rows: SandboxQueueItem[], released: boolean) {
+    const groups = groupSandboxRowsByPostId(rows)
+    return groups.map((g) => {
+      const first = g.rows[0]
+      const id = sandboxRowId(first)
+      const thumb = resolveAssetUrl(first.image_url || first.image_path)
+      const caption = String(first.caption || first.caption_preview || '').trim()
+      const goesOut = sandboxGoesOutIso(first)
+      const keys = idempotencyKeysForGroup(g)
+      const postKey = g.postId
+      return (
+        <QueueItem
+          key={`${released ? 'rel' : 'nr'}-${postKey}`}
+          to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
+          tip={
+            released
+              ? 'Approved. Publish now sends every picked platform for this post.'
+              : 'Publish now approves and sends every picked platform for this post.'
+          }
+          badge={released ? 'released' : 'sandbox'}
+          tone={released ? 'green' : 'gold'}
+          channelBadge={platformChipSummary(g.rows)}
+          title={sandboxTitle(first)}
+          meta={[isAll ? null : first.brand_id, caption.slice(0, 80)].filter(Boolean).join(' · ')}
+          footer={isAll ? <BrandChip brandId={first.brand_id} show /> : undefined}
+          stamp={goesOut || first.created_at}
+          stampKind={goesOut ? 'goes_out' : 'created'}
+          dateOnly={Boolean(goesOut)}
+          thumb={thumb || undefined}
+          thumbAlt={caption.slice(0, 80) || id}
+          action={publishNowButton(postKey, keys)}
+        />
+      )
+    })
   }
 
   useEffect(() => {
@@ -216,7 +262,7 @@ export function Publish() {
             {!queueErr ? <Badge tone="gold">{queueCountLabel}</Badge> : null}
           </div>
           <p className="mb-3 text-xs text-tx3">
-            Approved rows go out on the hour when their time is due. Publish now sends that row immediately.
+            Approved rows go out on the hour when their time is due. Publish now sends every platform for that post.
           </p>
           {queueErr ? (
             <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
@@ -227,33 +273,7 @@ export function Publish() {
             <>
               <h3 className="mb-2 text-sm font-semibold text-tx2">Released, waiting to dispatch</h3>
               <ul className="mb-4 space-y-2">
-                {releasedWaiting.map((row) => {
-                  const id = sandboxRowId(row)
-                  const thumb = resolveAssetUrl(row.image_url || row.image_path)
-                  const caption = String(row.caption || row.caption_preview || '').trim()
-                  const goesOut = sandboxGoesOutIso(row)
-                  const platform = String(row.platform || 'post')
-                  const idem = String(row.idempotency_key || '')
-                  return (
-                    <QueueItem
-                      key={`rel-${id || sandboxTitle(row)}`}
-                      to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
-                      tip="Approved. The hourly job sends it when the time is due."
-                      badge="released"
-                      tone="green"
-                      channelBadge={platform}
-                      title={sandboxTitle(row)}
-                      meta={[isAll ? null : row.brand_id, caption.slice(0, 80)].filter(Boolean).join(' · ')}
-                      footer={isAll ? <BrandChip brandId={row.brand_id} show /> : undefined}
-                      stamp={goesOut || row.created_at}
-                      stampKind={goesOut ? 'goes_out' : 'created'}
-                      dateOnly={Boolean(goesOut)}
-                      thumb={thumb || undefined}
-                      thumbAlt={caption.slice(0, 80) || id}
-                      action={publishNowButton(idem)}
-                    />
-                  )
-                })}
+                {renderPostGroup(releasedWaiting, true)}
                 {publishNote ? <li className="text-xs text-tx2">{publishNote}</li> : null}
                 {releasedWaiting.length === 0 ? (
                   <li className="rounded-2xl border border-dashed border-bd px-4 py-4 text-sm text-tx3">
@@ -263,33 +283,7 @@ export function Publish() {
               </ul>
               <h3 className="mb-2 text-sm font-semibold text-tx2">Not released yet</h3>
               <ul className="space-y-2">
-                {notReleased.map((row) => {
-                  const id = sandboxRowId(row)
-                  const thumb = resolveAssetUrl(row.image_url || row.image_path)
-                  const caption = String(row.caption || row.caption_preview || '').trim()
-                  const goesOut = sandboxGoesOutIso(row)
-                  const platform = String(row.platform || 'post')
-                  const idem = String(row.idempotency_key || '')
-                  return (
-                    <QueueItem
-                      key={`nr-${id || sandboxTitle(row)}`}
-                      to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
-                      tip="Not released. Publish now approves it and sends it immediately."
-                      badge="sandbox"
-                      tone="gold"
-                      channelBadge={platform}
-                      title={sandboxTitle(row)}
-                      meta={[isAll ? null : row.brand_id, caption.slice(0, 80)].filter(Boolean).join(' · ')}
-                      footer={isAll ? <BrandChip brandId={row.brand_id} show /> : undefined}
-                      stamp={goesOut || row.created_at}
-                      stampKind={goesOut ? 'goes_out' : 'created'}
-                      dateOnly={Boolean(goesOut)}
-                      thumb={thumb || undefined}
-                      thumbAlt={caption.slice(0, 80) || id}
-                      action={publishNowButton(idem)}
-                    />
-                  )
-                })}
+                {renderPostGroup(notReleased, false)}
                 {notReleased.length === 0 && releasedWaiting.length === 0 ? (
                   <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
                     Sandbox queue is empty —{' '}

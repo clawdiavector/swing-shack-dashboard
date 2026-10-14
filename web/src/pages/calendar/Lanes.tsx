@@ -196,9 +196,18 @@ export function Lanes() {
     [scopeBrand],
   )
 
+  // The calendar's own entries plus the dates to note, as one list for both views.
+  const withDatesToNote = useMemo(
+    () =>
+      timeline
+        ? { ...timeline, events: [...(timeline.events || []), ...(timeline.dates_to_note || [])] }
+        : timeline,
+    [timeline],
+  )
+
   const openEvent = useCallback(
     async (eventId: string) => {
-      if (!scopeBrand) return
+      if (!scopeBrand || eventId.startsWith('note:')) return
       const cacheKey = planningEventCacheKey(scopeBrand, eventId)
       const cached = getCachedPlanningEvent(cacheKey) as PlanningEventDetail | undefined
       if (cached?.ok) {
@@ -308,7 +317,7 @@ export function Lanes() {
       {tab === 'list' && scopeBrand && timeline ? (
         <PlanList
           brandId={scopeBrand}
-          events={timeline.events || []}
+          events={withDatesToNote?.events || []}
           eventDetail={eventDetail}
           onOpenEvent={openEvent}
           onCloseEvent={closeEvent}
@@ -319,7 +328,7 @@ export function Lanes() {
         <EventTimelinePanel
           brand={brandLabel}
           year={yearParam}
-          timeline={timeline}
+          timeline={withDatesToNote}
           eventDetail={eventDetail}
           onOpenEvent={openEvent}
           onCloseEvent={closeEvent}

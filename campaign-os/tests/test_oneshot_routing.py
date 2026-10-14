@@ -14,24 +14,30 @@ def test_oneshot_image_phase():
     from _lib.l5_create_enqueue import create_actions_for_moment
 
     rec = {"render_mode": "oneshot", "title": "Line"}
-    assert create_actions_for_moment("stick", "calendar_candidate:stick:cal-1", phase="image", record=rec) == [
-        "draft_oneshot"
-    ]
+    assert create_actions_for_moment("stick", "calendar_candidate:stick:cal-1", phase="image", record=rec) == []
 
 
 def test_template_unchanged():
     from _lib.l5_create_enqueue import create_actions_for_moment
 
-    baseline = create_actions_for_moment("stick", "calendar_candidate:stick:cal-t", phase="image", record={"title": "x"})
+    rec = {"title": "x", "template_id": "stick-brand-statement", "post_type": "coaching_promo"}
+    baseline = create_actions_for_moment("stick", "calendar_candidate:stick:cal-t", phase="image", record=rec)
     assert "draft_oneshot" not in baseline
     assert "compose_post" in baseline
+    assert "draft_photo" not in baseline
 
 
 def test_no_render_mode_key_same_as_template():
     from _lib.l5_create_enqueue import create_actions_for_moment
 
-    a = create_actions_for_moment("stick", "calendar_candidate:stick:cal-a", phase="image", record={})
-    b = create_actions_for_moment("stick", "calendar_candidate:stick:cal-b", phase="image", record={"render_mode": "template"})
+    rec = {"template_id": "stick-brand-statement", "post_type": "coaching_promo"}
+    a = create_actions_for_moment("stick", "calendar_candidate:stick:cal-a", phase="image", record=rec)
+    b = create_actions_for_moment(
+        "stick",
+        "calendar_candidate:stick:cal-b",
+        phase="image",
+        record={**rec, "render_mode": "template"},
+    )
     assert a == b
 
 

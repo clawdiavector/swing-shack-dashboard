@@ -6,6 +6,7 @@ import {
   findFeaturedDate,
   LANE_META,
   LANE_FILTER_ORDER,
+  laneLabel,
   localTodayIso,
   monthSummaryStats,
   monthlyThemeLabel,
@@ -45,10 +46,12 @@ function LaneChip({
 }
 
 function DayDrawer({
+  brand,
   iso,
   items,
   onClose,
 }: {
+  brand: string
   iso: string | null
   items: PlanningMonthItem[]
   onClose: () => void
@@ -87,7 +90,6 @@ function DayDrawer({
         ) : (
           <ul className="space-y-4">
             {items.map((it, i) => {
-              const meta = LANE_META[it.lane || ''] || { color: 'var(--color-tx3)', label: it.lane }
               const statusColor =
                 it.status === 'READY'
                   ? '#10b981'
@@ -97,7 +99,7 @@ function DayDrawer({
               return (
                 <li key={`${it.title}-${i}`} className="space-y-2 border-b border-bd/50 pb-4 last:border-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <LaneChip lane={it.lane} title={meta.label} status={it.status} />
+                    <LaneChip lane={it.lane} title={laneLabel(it.lane, brand)} status={it.status} />
                     {it.status ? (
                       <span
                         className="rounded-full border px-2 py-0.5 text-[10px]"
@@ -303,14 +305,14 @@ export function LaneMonthPanel({
               }}
             >
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: m.color }} />
-              {m.label}
+              {laneLabel(l, brand)}
             </button>
           )
         })}
       </div>
       <p className="text-xs text-tx3">
         {laneFilter
-          ? `Filtering by ${LANE_META[laneFilter]?.label}. Click a day to see all lanes.`
+          ? `Filtering by ${laneLabel(laneFilter, brand)}. Click a day to see all lanes.`
           : 'Showing all lanes. Click a lane chip to filter.'}
       </p>
 
@@ -400,7 +402,7 @@ export function LaneMonthPanel({
         </p>
       </div>
 
-      <DayDrawer iso={drawerIso} items={drawerItems} onClose={closeDrawer} />
+      <DayDrawer brand={brand} iso={drawerIso} items={drawerItems} onClose={closeDrawer} />
     </section>
   )
 }

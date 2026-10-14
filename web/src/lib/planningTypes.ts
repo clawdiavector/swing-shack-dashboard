@@ -71,12 +71,17 @@ export type PlanningTimelineEvent = {
   }[]
   deadlines?: { label?: string; due?: string }[]
   planning_state?: 'not_planned' | 'in_flight' | 'suggested_only' | 'completed' | null
+  /** A date to keep in mind, from the important-dates list. Not a calendar entry: nothing to open or brief. */
+  note_only?: boolean
+  /** A date to note that is local to the brand's own town. */
+  local?: boolean
 }
 
 export type PlanningTimeline = {
   ok?: boolean
   always_on_pillars?: { name?: string; current_push_summary?: string; purpose?: string }[]
   events?: PlanningTimelineEvent[]
+  dates_to_note?: PlanningTimelineEvent[]
   tier_counts?: Record<string, number>
   shopping_moment_count?: number
 }
@@ -142,4 +147,7 @@ export type PlanningWaiting = {
   ok?: boolean
   count?: number
   suggestions?: PlanningWaitingSuggestion[]
+  /** The soonest few dated suggestions the agents filed, and how many there are in all. */
+  scout_suggestions?: PlanningWaitingSuggestion[]
+  scout_count?: number
 }

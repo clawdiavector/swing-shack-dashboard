@@ -77,6 +77,7 @@ def _seed_image_queue_row(tmp_path: Path, *, item_id: str, brand: str = "stick")
             "action": "draft_image",
             "payload_ref": f"inbox/{item_id}",
             "status": "pending",
+            "allow_generate": True,
         },
         {
             "id": f"manual-{brand}-cos-image-compose-post",
@@ -309,6 +310,7 @@ def test_image_cross_links_caption_draft(l5_app, tmp_path):
                 "action": "draft_image",
                 "payload_ref": f"inbox/{item_id}",
                 "status": "pending",
+                "allow_generate": True,
             },
             {
                 "id": "manual-stick-cos-image-compose-post",

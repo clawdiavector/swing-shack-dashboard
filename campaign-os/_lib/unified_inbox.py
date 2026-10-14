@@ -643,6 +643,7 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                     "platform": primary_channel or row.get("platform"),
                     "primary_channel": primary_channel,
                     "event_date": event_date or None,
+                    "calendar_id": _calendar_id_from_inbox_ref(source_item),
                     "approval_status": row.get("approvalStatus"),
                     "caption": full_caption,
                     "image_path": image_path,
@@ -670,6 +671,10 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 meta["composed"] = sidecar["composed"]
             if sidecar.get("archetype"):
                 meta["archetype"] = sidecar["archetype"]
+            if sidecar.get("visual_gap"):
+                meta["visual_gap"] = sidecar["visual_gap"]
+                meta["image_url"] = None
+                meta["image_path"] = None
             from _lib.template_catalog import attach_template_fields  # noqa: PLC0415
 
             attach_template_fields(
@@ -721,54 +726,65 @@ def _publish_request_items(*, brand: str | None, status: str, now: datetime) -> 
     queue_path = publish_sandbox._queue_path()  # noqa: SLF001
     rows = _read_jsonl(queue_path)
     campaign_data = _load_campaign_data()
-    out: list[dict[str, Any]] = []
+    by_asset: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
-        if str(row.get("status") or "") != "pending":
+        if str(row.get("status") or "") not in ("pending", "failed"):
             continue
         brand_id = str(row.get("brand_id") or "")
         if brand and brand_id and brand_id != brand:
             continue
-        key = str(row.get("idempotency_key") or row.get("queue_id") or "")
-        if not key:
+        asset_id = asset_id_from_queue_row(row) or str(row.get("post_id") or "")
+        if not asset_id:
+            asset_id = str(row.get("idempotency_key") or row.get("queue_id") or "")
+        by_asset.setdefault(asset_id, []).append(row)
+
+    out: list[dict[str, Any]] = []
+    for asset_id, group in by_asset.items():
+        if not any(
+            str(r.get("status") or "") == "pending" and not r.get("human_approved")
+            for r in group
+        ):
             continue
-        ts = row.get("created_at")
-        blocked = not row.get("human_approved")
+        brand_id = str(group[0].get("brand_id") or "")
+        blocked = any(not r.get("human_approved") for r in group if str(r.get("status") or "") == "pending")
         item_status = "pending"
         if status != "all" and item_status != status:
             continue
-        lodged_title = str(row.get("lodged_title") or "").strip()
-        inbox_ref = str(row.get("inbox_item_id") or "")
+        lodged_title = str(group[0].get("lodged_title") or "").strip()
+        inbox_ref = str(group[0].get("inbox_item_id") or "")
         if not lodged_title and inbox_ref:
             from _lib.jobs.layer5.image_draft_context import lodged_title_for_item  # noqa: PLC0415
 
             lodged_title = lodged_title_for_item(brand_id, inbox_ref)
-        platform = str(row.get("platform") or "post")
-        title = lodged_title or str(row.get("caption_preview") or "")[:120] or key
-        event_date = str(row.get("event_date") or "").strip()
-        goes_out = row.get("would_publish_at") or (
-            publish_sandbox._would_publish_at_from_event_date(event_date)
-            if event_date and "T" not in event_date
-            else event_date
+        title = lodged_title or str(group[0].get("caption_preview") or "")[:120] or asset_id
+        ts = group[0].get("created_at")
+        picked = publish_sandbox.picked_channels(
+            None,
+            brand_id=brand_id,
+            queue_rows=group,
         )
+        ch_label = " + ".join(picked[:3]).upper() if picked else "channels"
         out.append({
-            "id": _item_id("publish_request", key),
+            "id": _item_id("publish_request", f"post-{asset_id}"),
             "type": "publish_request",
             "brand_id": brand_id,
             "title": title,
-            "summary": str(row.get("caption_preview") or "")[:240],
-            "evidence": [{"source": "publish-sandbox", "ref": key}],
+            "summary": f"Ready to release · {ch_label}",
+            "evidence": [{"source": "publish-sandbox", "ref": asset_id}],
             "created_at": ts,
-            "updated_at": row.get("human_approved_at") or ts,
+            "updated_at": max(
+                (r.get("human_approved_at") or ts or "") for r in group
+            ),
             "status": item_status,
             "sla_state": _sla_state(str(ts) if ts else None, now=now),
             "blocked_missing_oauth": blocked,
             "actions": ["approve", "edit", "reject"],
             "meta": {
-                **_publish_request_meta(row, key, campaign_data),
-                "platform": platform,
-                "primary_channel": platform,
-                "event_date": event_date or None,
-                "goes_out_at": goes_out or None,
+                **_publish_request_meta(group[0], str(group[0].get("idempotency_key") or ""), campaign_data),
+                "asset_id": asset_id,
+                "channels_picked": picked,
+                "event_date": str(group[0].get("event_date") or "").strip() or None,
+                "goes_out_at": group[0].get("would_publish_at"),
             },
         })
     return out
@@ -896,6 +912,7 @@ POST_STATES = frozenset(
         "drafting",
         "needs_fix",
         "draft_ready",
+        "gap",
         "scheduled",
         "released",
         "posted",
@@ -983,30 +1000,14 @@ def _index_publish_by_cal(
         cal_id = _calendar_id_from_inbox_ref(inbox_ref)
         if not cal_id:
             continue
-        queue_by.setdefault(cal_id, []).append(
-            {
-                "platform": row.get("platform"),
-                "idempotency_key": row.get("idempotency_key") or row.get("queue_id"),
-                "inbox_item_id": inbox_ref,
-                "status": row.get("status"),
-                "human_approved": bool(row.get("human_approved")),
-                "would_publish_at": row.get("would_publish_at"),
-            }
-        )
+        queue_by.setdefault(cal_id, []).append(dict(row))
     receipts_by: dict[str, list[dict[str, Any]]] = {}
     for rec in publish_sandbox.receipts_for_brand(brand_id):
         inbox_ref = str(rec.get("inbox_item_id") or "")
         cal_id = _calendar_id_from_inbox_ref(inbox_ref)
         if not cal_id:
             continue
-        receipts_by.setdefault(cal_id, []).append(
-            {
-                "platform": rec.get("platform"),
-                "sandbox_post_id": rec.get("sandbox_post_id"),
-                "dispatched_at": rec.get("dispatched_at"),
-                "inbox_item_id": inbox_ref,
-            }
-        )
+        receipts_by.setdefault(cal_id, []).append(dict(rec))
     return queue_by, receipts_by
 
 
@@ -1164,16 +1165,43 @@ def _derive_post_state(
     from _lib.jobs.layer5.retry_failed_images import MAX_IMAGE_RETRIES  # noqa: PLC0415
 
     cal_status = str(record.get("status") or "")
+    cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
+    moment_inbox_id = _inbox_ref_for_cal(brand_id=index.brand_id, cal_id=cal_id)
     has_image = _draft_has_image(draft)
     caption_ok = bool((draft or {}).get("caption", "").strip())
     retry_count = _retry_count_for_inbox(index, inbox_item_id)
 
-    if receipts:
-        return "posted", None
-    if any(bool(r.get("human_approved")) for r in queue_rows):
-        return "released", None
+    asset: dict[str, Any] | None = None
+    if draft and draft.get("asset_id"):
+        _, asset = _campaign_asset_for_id(_load_campaign_data(), str(draft.get("asset_id") or ""))
+    if queue_rows and (
+        (draft and draft.get("draft_bucket") == "approved")
+        or any(bool(r.get("human_approved")) for r in queue_rows)
+        or receipts
+    ):
+        from _lib import onepost  # noqa: PLC0415
+
+        picked, deliveries, _summary = onepost.build_deliveries(
+            brand_id=index.brand_id,
+            asset=asset,
+            queue_rows=queue_rows,
+            receipts=receipts,
+        )
+        state, hint = onepost.derive_post_state_from_deliveries(
+            picked=picked,
+            deliveries=deliveries,
+            draft=draft,
+            prior_state="scheduled",
+        )
+        if state != "scheduled" or hint:
+            return state, hint
     if draft and draft.get("draft_bucket") == "approved":
         return "scheduled", None
+    from _lib.visual_gate import decide  # noqa: PLC0415
+
+    if draft is not None and decide(index.brand_id, moment_inbox_id).is_gap():
+        if str(record.get("source_type") or "") != "operator":
+            return "gap", None
     if draft and caption_ok and has_image:
         return "draft_ready", None
     if _image_job_failed(index, inbox_item_id):
@@ -1246,10 +1274,15 @@ def _next_action_for_state(state: str, *, needs_fix_reason: str | None) -> str:
         "drafting": "Draft in progress",
         "needs_fix": "Needs fix",
         "draft_ready": "Ready to review",
+        "gap": "Visual gap",
         "scheduled": "On the shelf",
         "released": "Waiting to go out",
         "posted": "Posted",
+        "partly_posted": "Partly posted",
+        "send_failed": "Send failed",
     }
+    if state in ("partly_posted", "send_failed") and needs_fix_reason:
+        return needs_fix_reason
     return mapping.get(state, "—")
 
 
@@ -1266,10 +1299,11 @@ def post_state(
     queue_rows = index.queue.get(cal_id, [])
     receipts = index.receipts.get(cal_id, [])
     work_rows = index.work_orders.get(cal_id, [])
+    moment_inbox_id = _inbox_ref_for_cal(brand_id=index.brand_id, cal_id=cal_id)
     inbox_item_id = (
         str(draft.get("inbox_item_id") or "")
         if draft
-        else _inbox_ref_for_cal(brand_id=index.brand_id, cal_id=cal_id)
+        else moment_inbox_id
     )
     state, needs_fix_reason = _derive_post_state(
         record,
@@ -1280,7 +1314,17 @@ def post_state(
         work_rows=work_rows,
         inbox_item_id=inbox_item_id,
     )
+    from _lib.visual_gate import decide  # noqa: PLC0415
+
+    visual_decision = decide(index.brand_id, moment_inbox_id)
     flags = _compute_flags(record, state=state, now=now)
+    if (
+        visual_decision.is_gap()
+        and state in ("scheduled", "released", "posted")
+        and str(record.get("source_type") or "") != "operator"  # a person placed this image
+    ):
+        if "untrusted_visual" not in flags:
+            flags.append("untrusted_visual")
     stages, stage = _rollup_stages(
         has_moment=True,
         draft=draft,
@@ -1334,6 +1378,10 @@ def post_state(
     }
     if needs_fix_reason:
         out["needs_fix_reason"] = needs_fix_reason
+    if state == "gap":
+        out["image_url"] = None
+        out["gap"] = visual_decision.as_gap_payload()
+        out["next_action"] = visual_decision.label or out.get("next_action")
     from _lib.template_catalog import attach_template_fields  # noqa: PLC0415
 
     attach_template_fields(
@@ -1343,6 +1391,26 @@ def post_state(
         archetype_meta=(draft or {}).get("archetype") if isinstance(draft, dict) else None,
         source_inbox_item_id=inbox_item_id or None,
     )
+    asset: dict[str, Any] | None = None
+    post_id = draft.get("asset_id") if draft else None
+    if post_id:
+        _, asset = _campaign_asset_for_id(_load_campaign_data(), str(post_id))
+    from _lib import onepost, publish_sandbox  # noqa: PLC0415
+
+    picked, deliveries, delivery_summary = onepost.build_deliveries(
+        brand_id=index.brand_id,
+        asset=asset,
+        queue_rows=queue_rows,
+        receipts=receipts,
+        now=now,
+    )
+    out["post_id"] = post_id
+    out["channels_available"] = publish_sandbox.brand_channels(index.brand_id)
+    out["channels_coming"] = sorted(onepost.COMING_SOON_CHANNELS)
+    out["channels_picked"] = picked
+    out["channels_locked"] = onepost.channels_locked_for_state(state)
+    out["deliveries"] = deliveries
+    out["delivery_summary"] = delivery_summary
     return out
 
 
@@ -1484,6 +1552,39 @@ def week_board(
         if st in state_counts:
             state_counts[st] += 1
 
+    gap_agg: dict[tuple[str, str], dict[str, Any]] = {}
+    for day in days_list:
+        for post in day.get("posts") or []:
+            if str(post.get("state") or "") != "gap":
+                continue
+            gap = post.get("gap") if isinstance(post.get("gap"), dict) else {}
+            post_type = str(gap.get("post_type") or post.get("post_type") or "")
+            label = str(gap.get("label") or post.get("next_action") or "Gap")
+            key = (post_type, label)
+            bucket = gap_agg.setdefault(
+                key,
+                {"post_type": post_type, "label": label, "count": 0, "calendar_ids": []},
+            )
+            bucket["count"] += 1
+            cal_id = str(post.get("calendar_id") or "")
+            if cal_id and cal_id not in bucket["calendar_ids"]:
+                bucket["calendar_ids"].append(cal_id)
+    for post in undated_posts:
+        if str(post.get("state") or "") != "gap":
+            continue
+        gap = post.get("gap") if isinstance(post.get("gap"), dict) else {}
+        post_type = str(gap.get("post_type") or post.get("post_type") or "")
+        label = str(gap.get("label") or post.get("next_action") or "Gap")
+        key = (post_type, label)
+        bucket = gap_agg.setdefault(
+            key,
+            {"post_type": post_type, "label": label, "count": 0, "calendar_ids": []},
+        )
+        bucket["count"] += 1
+        cal_id = str(post.get("calendar_id") or "")
+        if cal_id and cal_id not in bucket["calendar_ids"]:
+            bucket["calendar_ids"].append(cal_id)
+
     return {
         "ok": True,
         "brand": brand_id,
@@ -1503,8 +1604,10 @@ def week_board(
             "posted": state_counts.get("posted", 0),
             "candidates": state_counts.get("candidate", 0),
             "needs_fix": state_counts.get("needs_fix", 0),
+            "gaps": state_counts.get("gap", 0),
             "stale": sum(1 for d in days_list for p in d["posts"] if "stale" in (p.get("flags") or [])),
         },
+        "gaps": sorted(gap_agg.values(), key=lambda g: (-int(g.get("count") or 0), g.get("post_type") or "")),
     }
 
 
@@ -1524,6 +1627,7 @@ def shelf_board(*, brand_id: str, include_released: bool = True) -> dict[str, An
     counts = {
         "scheduled": 0,
         "released": 0,
+        "attention": 0,
         "undated": 0,
         "releasable_today": 0,
         "released_today": _released_today_from_edits(),
@@ -1543,6 +1647,11 @@ def shelf_board(*, brand_id: str, include_released: bool = True) -> dict[str, An
             if not include_released:
                 continue
             counts["released"] += 1
+        elif st in ("partly_posted", "send_failed"):
+            counts.setdefault("attention", 0)
+            counts["attention"] += 1
+            if not include_released:
+                continue
         else:
             continue
 
@@ -1765,6 +1874,7 @@ def _draft_asset_item_by_campaign_key(key: str, *, now: datetime) -> Optional[di
             "platform": primary_channel or platform,
             "primary_channel": primary_channel,
             "event_date": event_date or None,
+            "calendar_id": _calendar_id_from_inbox_ref(source_item),
             "approval_status": approval,
             "caption": caption,
             "image_path": image_path,
@@ -1817,8 +1927,37 @@ def find_item(item_id: str) -> Optional[dict[str, Any]]:
     for item in payload.get("items") or []:
         if item.get("id") == item_id:
             return item
+    if item_type == "publish_request" and key.startswith("qc-"):
+        asset_id = None
+        for plat in ("instagram", "facebook", "gbp", "youtube", "tiktok"):
+            if key.endswith(f"-{plat}"):
+                asset_id = asset_id_from_queue_row(
+                    {"idempotency_key": key, "platform": plat}
+                )
+                break
+        if asset_id:
+            grouped = _item_id("publish_request", f"post-{asset_id}")
+            for item in _publish_request_items(
+                brand=None, status="all", now=datetime.now(timezone.utc)
+            ):
+                if item.get("id") == grouped:
+                    return item
     if item_type == "draft_asset":
         return _draft_asset_item_by_campaign_key(key, now=datetime.now(timezone.utc))
+    if item_type == "calendar_candidate":
+        try:
+            brand_id, cal_id = key.split(":", 1)
+        except ValueError:
+            return None
+        record = _calendar_record_for_key(brand_id, cal_id)
+        if record:
+            return {
+                "id": item_id,
+                "type": "calendar_candidate",
+                "brand_id": brand_id,
+                "title": str(record.get("title") or cal_id),
+                "status": "pending",
+            }
     return None
 
 
@@ -2032,9 +2171,37 @@ def approve_item(
     if item_type == "publish_request":
         from _lib import publish_sandbox  # noqa: PLC0415
 
-        updated, err = publish_sandbox.approve_item(key)
-        if err:
-            return {"ok": False, "error": err}
+        brand_id = str(item.get("brand_id") or "")
+        asset_id = str((item.get("meta") or {}).get("asset_id") or "")
+        if key.startswith("post-"):
+            asset_id = key[5:]
+        elif key.startswith("qc-"):
+            asset_id = asset_id_from_queue_row({"idempotency_key": key}) or asset_id
+        cal_id = ""
+        inbox_ref = str((item.get("meta") or {}).get("inbox_item_id") or "")
+        if inbox_ref.startswith("calendar_candidate:"):
+            parts = inbox_ref.split(":", 2)
+            if len(parts) >= 3:
+                cal_id = parts[2]
+        if not cal_id and asset_id:
+            from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+            idx = build_post_index(brand_id=brand_id)
+            for rec in canonical_records(brand_id):
+                st = post_state(rec, index=idx)
+                if str(st.get("asset_id") or "") == asset_id:
+                    cal_id = str(rec.get("calendar_id") or "")
+                    break
+        if not cal_id:
+            return {"ok": False, "error": "calendar moment not found for publish request"}
+        result = publish_sandbox.release_moment(
+            brand_id=brand_id,
+            calendar_id=cal_id,
+            editor=editor,
+            dispatch=False,
+        )
+        if not result.get("ok"):
+            return {"ok": False, "error": result.get("error") or "release failed", "code": result.get("code")}
         _append_jsonl(_human_edits_path(), {
             "schema": HUMAN_EDIT_SCHEMA,
             "ts": _utc_now_iso(),
@@ -2042,9 +2209,9 @@ def approve_item(
             "editor": editor,
             "inbox_item_id": item_id,
             "item_type": item_type,
-            "brand_id": str(item.get("brand_id") or ""),
+            "brand_id": brand_id,
         })
-        return {"ok": True, "item_id": item_id, "queue_item": updated}
+        return {"ok": True, "item_id": item_id, "release": result}
 
     return {"ok": False, "error": "unsupported item type"}
 
@@ -2242,6 +2409,8 @@ def edit_item(
             editable["event_date"] = day
         if editable:
             before = _calendar_record_for_key(brand_id, cal_id) or {}
+            if "render_mode" in editable and str(before.get("status") or "").lower() == "approved":
+                return {"ok": False, "error": "calendar record not found"}
             updated = set_fields(brand_id, cal_id, editable, reason="inbox edit")
             if not updated:
                 return {"ok": False, "error": "calendar record not found"}
@@ -2254,6 +2423,28 @@ def edit_item(
 
     if item_type == "draft_asset" and ("caption" in fields or "title" in fields):
         campaign_id, asset_id = key.split(":", 1)
+        sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+        sidecar_doc: dict[str, Any] = {}
+        if sidecar_path.is_file():
+            try:
+                loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    sidecar_doc = loaded
+            except (OSError, json.JSONDecodeError):
+                pass
+        inbox_ref = str(sidecar_doc.get("source_inbox_item_id") or "")
+        if inbox_ref.startswith("calendar_candidate:"):
+            parts = inbox_ref.split(":", 2)
+            if len(parts) >= 3:
+                cal_id = parts[2]
+                st = post_state_for(brand_id, cal_id) if brand_id else None
+                if st and str(st.get("state") or "") in (
+                    "released",
+                    "partly_posted",
+                    "send_failed",
+                    "posted",
+                ):
+                    return {"ok": False, "error": "post is locked", "code": "locked"}
         data = _load_campaign_data()
         campaign = (data.get("campaigns") or {}).get(campaign_id)
         if campaign:

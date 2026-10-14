@@ -10,6 +10,7 @@ from _lib.archetypes import (  # noqa: F401
     palette_tokens,
     resolve_colour,
     select_archetype,
+    select_archetype_explained,
 )
 
 SCHEMA_URL = "https://campaign-os/brand-directory/visual-archetypes/v2"

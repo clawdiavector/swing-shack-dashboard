@@ -172,8 +172,11 @@ def _build_outcome_row(
     }
 
 
-def run(*, brand: str | None = None) -> dict:
-    """Build post-outcomes.json from IG analytics + optional conversion + receipts."""
+def run(*, brand: str | None = None, now: datetime | None = None) -> dict:
+    """Build post-outcomes.json from IG analytics + optional conversion + receipts.
+
+    ``now`` anchors the WINDOW_DAYS lookback; it defaults to the current time.
+    """
     if not brand:
         return {"ok": False, "error": "brand required"}
     try:
@@ -191,7 +194,7 @@ def run(*, brand: str | None = None) -> dict:
     conversion_index = _conversion_index(conversion_doc)
     receipts = _read_jsonl("publish-sandbox/receipts.jsonl")
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=WINDOW_DAYS)
+    cutoff = (now or datetime.now(timezone.utc)) - timedelta(days=WINDOW_DAYS)
     ig_by_hook: dict[str, dict[str, Any]] = {}
     ig_by_id: dict[str, dict[str, Any]] = {}
     for post in media:

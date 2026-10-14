@@ -307,6 +307,7 @@ class PostStateTests(unittest.TestCase):
                 "title": "COACHING @ stick — service start",
                 "event_date": "2026-09-25",
                 "primary_channel": "instagram",
+                "post_type": "service_start",
             }
         )
         campaign_id = "cos-drafts-stick"

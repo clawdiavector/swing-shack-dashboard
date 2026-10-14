@@ -66,6 +66,7 @@ def _seed_waiting(tmp_path: Path, *, brand: str = "swing-shack", job_id: str = "
                 "action": "draft_image",
                 "payload_ref": f"inbox/{item_id}",
                 "status": "waiting",
+                "allow_generate": True,
             }
         ],
     }

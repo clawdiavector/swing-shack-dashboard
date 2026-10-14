@@ -1,4 +1,4 @@
-import { LANE_META, PIN_COLORS } from '../../../lib/planning'
+import { LANE_META, PIN_COLORS, tierLabel } from '../../../lib/planning'
 import type { PlanningEventDetail } from '../../../lib/planningTypes'
 
 const PILLAR_ORDER = ['retail', 'fitting', 'coaching'] as const
@@ -77,7 +77,7 @@ export function EventDetail({
                 borderColor: `${c.bar}55`,
               }}
             >
-              {ev.tier}
+              {tierLabel(ev.tier)}
             </span>
             {ev.shopping_moment ? (
               <span className="rounded-full border border-purple-500/40 bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-400 uppercase">

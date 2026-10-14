@@ -20,6 +20,9 @@ def _integration_for_platform(integrations: list[dict[str, Any]], platform: str)
     name-only misses those and must not fall back to a different channel.
     """
     want = (platform or "instagram").strip().lower()
+    aliases = {want}
+    if want == "gbp":
+        aliases.update({"gmb", "google_my_business", "google-business", "google_business"})
     for it in integrations:
         if not isinstance(it, dict):
             continue
@@ -31,7 +34,12 @@ def _integration_for_platform(integrations: list[dict[str, Any]], platform: str)
             or ""
         ).lower()
         name = str(it.get("name") or "").lower()
-        if want in (provider, name) or want in provider or want in name:
+        if (
+            want in (provider, name)
+            or want in provider
+            or want in name
+            or any(alias in (provider, name) or alias in provider or alias in name for alias in aliases)
+        ):
             iid = str(it.get("id") or it.get("_id") or "")
             if iid:
                 return iid
@@ -183,6 +191,8 @@ def dispatch_pending(
 
     targets: list[dict[str, Any]] = []
     for row in sandbox._read_jsonl(sandbox._queue_path()):
+        if str(row.get("status") or "") in ("skipped", "failed", "rejected", "dispatched"):
+            continue
         if str(row.get("status") or "") != "pending" or not row.get("human_approved"):
             continue
         if brand_filter:
@@ -257,10 +267,26 @@ def dispatch_pending(
             enriched["would_publish_at"] = None
         row["caption_preview"] = enriched.get("caption_preview")
         row["image_url"] = enriched.get("image_url")
-        ok, pre_err = sandbox.preflight_queue_row(enriched)
+        platform = str(enriched.get("platform") or "instagram")
+        cap = str(enriched.get("caption_preview") or "")
+        if platform == "gbp" and len(cap) > 1500:
+            pre_err = "caption_too_long_for_gbp"
+            ok = False
+        else:
+            ok, pre_err = sandbox.preflight_queue_row(enriched)
         if not ok:
             refused += 1
             errors.append(f"{key}: preflight: {pre_err}")
+            permanent = pre_err in (
+                "missing image_url",
+                "empty caption_preview",
+                "caption_too_long_for_gbp",
+            ) or "no Postiz integration" in str(pre_err)
+            row["attempts"] = int(row.get("attempts") or 0) + 1
+            row["last_error"] = str(pre_err)[:200]
+            row["last_attempt_at"] = sandbox._utc_now_iso()
+            if permanent or row["attempts"] >= sandbox.MAX_SEND_ATTEMPTS:
+                row["status"] = "failed"
             row.update(
                 {
                     "caption_preview": enriched.get("caption_preview"),
@@ -273,8 +299,15 @@ def dispatch_pending(
         if err:
             refused += 1
             errors.append(f"{key}: {err}")
+            row["attempts"] = int(row.get("attempts") or 0) + 1
+            row["last_error"] = str(err)[:200]
+            row["last_attempt_at"] = sandbox._utc_now_iso()
+            permanent = "no Postiz integration" in str(err)
+            if permanent or row["attempts"] >= sandbox.MAX_SEND_ATTEMPTS:
+                row["status"] = "failed"
             updated_rows.append(row)
             continue
+        row["external_id"] = receipt.get("postiz_post_id")
         sandbox._stamp_queue_row_dispatched(row, receipt)
         dispatched += 1
         updated_rows.append(row)
