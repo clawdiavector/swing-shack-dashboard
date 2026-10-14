@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { toDesk } from '../lib/desk'
 import { formatStamp, stampLabel } from '../lib/stamp'
+import type { PostingWeekDay } from '../lib/postingWeek'
 import { Tip } from './ui'
 
 export type FunTone = 'gold' | 'green' | 'blue' | 'violet'
@@ -132,6 +133,47 @@ export function FunTile({
   return (
     <div className="fun-tile" data-tone={tone}>
       {body}
+    </div>
+  )
+}
+
+/** Seven day pills across the top of This week: how full each day is, tap to open it. */
+export function WeekStrip({
+  days,
+  onPick,
+}: {
+  days: PostingWeekDay[]
+  onPick: (dateIso: string) => void
+}) {
+  return (
+    <div className="fun-strip" role="list" aria-label="The week at a glance">
+      {days.map((day) => {
+        const n = day.posts.length
+        const tone: FunTone = n === 0 ? 'blue' : n >= 3 ? 'green' : 'gold'
+        const dd = Number(day.date.slice(8, 10))
+        return (
+          <button
+            key={day.date}
+            type="button"
+            role="listitem"
+            className="fun-day-pill"
+            data-tone={tone}
+            data-today={day.is_today ? 'true' : undefined}
+            data-empty={n === 0 ? 'true' : undefined}
+            onClick={() => onPick(day.date)}
+            title={n === 0 ? `Nothing going out on ${day.weekday}. Open the day.` : `${n} going out on ${day.weekday}. Open the day.`}
+          >
+            <span className="fun-day-pill__wd">{day.weekday.slice(0, 3)}</span>
+            <span className="fun-day-pill__dd">{dd}</span>
+            <span className="fun-dots" aria-hidden>
+              {[0, 1, 2].map((i) => (
+                <i key={i} data-on={i < n} />
+              ))}
+            </span>
+            <span className="fun-day-pill__n">{n === 0 ? 'open' : `${n} post${n === 1 ? '' : 's'}`}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
