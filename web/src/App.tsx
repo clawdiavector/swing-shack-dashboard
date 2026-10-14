@@ -3,6 +3,7 @@ import { Shell } from './components/Shell'
 import { CalendarPage } from './pages/CalendarPage'
 import { Create } from './pages/Create'
 import { Daily } from './pages/Daily'
+import { Stories } from './pages/Stories'
 import { Desk } from './pages/Desk'
 import { Other } from './pages/Other'
 import { Publish } from './pages/Publish'
@@ -42,6 +43,7 @@ export default function App() {
         <Route index element={<Navigate to="/daily" replace />} />
         <Route path="daily" element={<Daily />} />
         <Route path="inbox" element={<InboxPage />} />
+        <Route path="stories" element={<Stories />} />
         <Route path="week" element={<WeekBoard />} />
         <Route path="review" element={<Review />} />
         <Route path="review/long-form" element={<LongFormReview />} />

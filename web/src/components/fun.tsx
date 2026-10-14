@@ -37,6 +37,34 @@ export function Mascot({ tone = 'gold', className = '' }: { tone?: FunTone; clas
   )
 }
 
+/** The link-eating chomper. `state` drives the lid and wiggle in fun.css. */
+export function Chomper({ state = 'idle' }: { state?: 'idle' | 'hungry' | 'munch' | 'nope' }) {
+  return (
+    <svg className="fun-chomper" data-state={state} viewBox="0 0 120 120" aria-hidden>
+      <path d="M14 66c0-32 20-52 46-52s46 20 46 52v34c0 8-6 14-14 14H28c-8 0-14-6-14-14z" fill="var(--play-blue, var(--color-blu))" />
+      <g className="fun-chomper__lid">
+        <path d="M14 66c0-32 20-52 46-52s46 20 46 52z" fill="var(--play-green, var(--color-ac))" />
+      </g>
+      <g className="fun-eye">
+        <circle cx="42" cy="46" r="9" fill="#fff" />
+        <circle cx="44" cy="48" r="4" fill="#1b1a22" />
+      </g>
+      <g className="fun-eye">
+        <circle cx="78" cy="46" r="9" fill="#fff" />
+        <circle cx="80" cy="48" r="4" fill="#1b1a22" />
+      </g>
+      <path
+        className="fun-chomper__mouth"
+        d="M36 82c14 12 34 12 48 0"
+        stroke="#2a1c66"
+        strokeWidth="6"
+        fill="none"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 /** Share of the desk that is ready to ship versus still waiting on a call. */
 export function DeskRing({ ready, waiting }: { ready: number; waiting: number }) {
   const total = ready + waiting

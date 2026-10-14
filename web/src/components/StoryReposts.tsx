@@ -17,7 +17,17 @@ import { BrandChip } from './BrandChip'
 const TONE_MAP = { gold: 'gold', green: 'green', blue: 'blue', red: 'violet' } as const
 
 /** Links people sent Foreman to share to Stories. Tap, use the app's own "Share to story", tick off. */
-export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
+export function StoryReposts({
+  brandIds,
+  refreshKey = 0,
+  alwaysShow = false,
+}: {
+  brandIds?: string[]
+  /** Bump to reload the list, e.g. after a link is added elsewhere on the page. */
+  refreshKey?: number
+  /** Show the empty state instead of hiding the block when there is nothing to list. */
+  alwaysShow?: boolean
+}) {
   const [open, setOpen] = useState<StoryRepost[]>([])
   const [done, setDone] = useState<StoryRepost[]>([])
   const [ideas, setIdeas] = useState<StorySuggestion[]>([])
@@ -38,7 +48,7 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
       })
       .catch(() => setFailed(true))
   }, [])
-  useEffect(load, [load])
+  useEffect(load, [load, refreshKey])
   useEffect(() => {
     fetchStorySuggestions()
       .then((r) => setIdeas(r.suggestions))
@@ -64,7 +74,8 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
     }
   }
 
-  if (!failed && !ideaRows.length && !openRows.length && !doneRows.length) return null
+  const nothing = !failed && !ideaRows.length && !openRows.length && !doneRows.length
+  if (nothing && !alwaysShow) return null
 
   return (
     <section
@@ -163,6 +174,12 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
           </li>
         ))}
       </ul>
+      {nothing ? (
+        <p className="fun-empty" role="status">
+          <Mascot tone="blue" />
+          <span>Nothing on the shelf yet. Drop an Instagram or Facebook link above.</span>
+        </p>
+      ) : null}
       {!failed && !openRows.length && doneRows.length ? (
         <p className="fun-empty" role="status">
           <Mascot tone="green" />

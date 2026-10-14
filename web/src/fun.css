@@ -268,6 +268,83 @@
 .fun-story__done:hover { transform: scale(1.07) rotate(-2deg); }
 .fun-story__done:active { transform: scale(0.94); }
 
+/* Link chomper */
+.fun-mouth {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 1.3rem;
+  align-items: center;
+  border-radius: 2rem;
+  border: 2px solid var(--color-bd);
+  background: var(--color-bg2);
+  padding: 1.3rem;
+  transition: border-color 0.18s ease, transform 0.25s cubic-bezier(0.3, 1.7, 0.5, 1);
+}
+.fun-mouth[data-over='true'] { border-color: var(--color-tx); border-style: dashed; transform: scale(1.01); }
+.fun-mouth[data-shake='true'] { animation: fun-shake 0.4s; }
+.fun-chomper { width: 100%; height: auto; transition: transform 0.3s cubic-bezier(0.3, 1.8, 0.5, 1); }
+.fun-chomper__lid { transform-origin: 60px 66px; transition: transform 0.3s cubic-bezier(0.3, 1.8, 0.5, 1); }
+.fun-chomper .fun-eye { transform-origin: center; transform-box: fill-box; animation: fun-blink 4.5s infinite; }
+.fun-chomper[data-state='hungry'] { animation: fun-wiggle 0.5s infinite; }
+.fun-chomper[data-state='hungry'] .fun-chomper__lid { transform: rotate(-22deg); }
+.fun-chomper[data-state='munch'] { animation: fun-munch 0.3s 4; }
+.fun-chomper[data-state='nope'] { animation: fun-shake 0.4s; }
+.fun-mouth h2 { font-family: var(--font-display); font-size: clamp(1.4rem, 3vw, 1.9rem); line-height: 1.1; margin-bottom: 0.7rem; }
+.fun-mouth__row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.fun-mouth input[type='url'], .fun-mouth input[type='text'] {
+  flex: 1 1 14rem;
+  min-width: 0;
+  border-radius: 999px;
+  border: 2px solid var(--color-bd);
+  background: var(--color-bg);
+  color: var(--color-tx);
+  padding: 0.7rem 1.1rem;
+  font-size: 1rem;
+}
+.fun-mouth input:focus { border-color: var(--color-tx); outline: none; }
+.fun-mouth__go {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.7rem 1.4rem;
+  font-weight: 700;
+  font-size: 1rem;
+  background: var(--play-green, var(--color-ac));
+  color: var(--play-green-ink, var(--color-bg));
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.3, 1.7, 0.5, 1);
+}
+.fun-mouth__go:hover { transform: scale(1.06) rotate(-2deg); }
+.fun-mouth__go:active { transform: scale(0.94); }
+.fun-mouth__go:disabled { opacity: 0.6; cursor: wait; transform: none; }
+.fun-pick { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.7rem; align-items: center; }
+.fun-pick > span { font-size: 0.8rem; font-weight: 700; color: var(--color-tx3); }
+.fun-pick button {
+  --fill: var(--color-bg3);
+  --ink: var(--color-tx2);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: var(--color-bg3);
+  color: var(--color-tx2);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.3, 1.7, 0.5, 1);
+}
+.fun-pick button:hover { transform: scale(1.07) rotate(-1.5deg); }
+.fun-pick button[aria-pressed='true'] { background: var(--fill); color: var(--ink); border-color: var(--ink); }
+.fun-mouth__msg { margin-top: 0.6rem; min-height: 1.3rem; font-size: 0.9rem; font-weight: 600; }
+.fun-mouth__msg[data-kind='error'] { color: var(--color-red); }
+.fun-mouth__msg[data-kind='ok'] { color: var(--color-ac); }
+@media (max-width: 560px) {
+  .fun-mouth { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
+  .fun-chomper { width: 5.5rem; }
+  .fun-mouth__row, .fun-pick { justify-content: center; }
+}
+
+@keyframes fun-wiggle { 50% { transform: rotate(-5deg) scale(1.05); } }
+@keyframes fun-munch { 50% { transform: scale(1.12, 0.9); } }
+@keyframes fun-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 @keyframes fun-pop { from { transform: scale(0.6); opacity: 0; } }
 @keyframes fun-bob { 50% { transform: translateY(-5px) rotate(2deg); } }
 @keyframes fun-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
@@ -289,6 +366,12 @@
   .fun-ticker > *,
   .fun-shortcuts > *,
   .fun-cleared,
+  .fun-mouth,
+  .fun-chomper,
+  .fun-chomper__lid,
+  .fun-chomper .fun-eye,
+  .fun-mouth__go,
+  .fun-pick button,
   .fun-story,
   .fun-idea,
   .fun-story__done,
