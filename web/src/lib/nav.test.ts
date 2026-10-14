@@ -9,7 +9,7 @@ describe('rail sections', () => {
 
   it('keeps every page that used to be a rail item one click from its section', () => {
     const tabs = [...RAIL, SETTINGS].flatMap((item) => item.pages.map((page) => page.to))
-    for (const old of ['/daily', '/inbox', '/week', '/review', '/shelf', '/create', '/calendar/lanes', '/publish', '/results', '/ops', '/other']) {
+    for (const old of ['/daily', '/inbox', '/week', '/review', '/shelf', '/create', '/calendar/lanes', '/todo', '/publish', '/results', '/ops', '/other']) {
       expect(tabs, old).toContain(old)
     }
   })
@@ -26,6 +26,7 @@ describe('rail sections', () => {
     ['/review/long-form/abc', 'Today'],
     ['/inbox', 'Today'],
     ['/week', 'Plan'],
+    ['/todo', 'Plan'],
     ['/calendar', 'Plan'],
     ['/calendar/ideas', 'Plan'],
     ['/create/post', 'Create'],
