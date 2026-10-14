@@ -46236,6 +46236,65 @@ def calendar_alerts():
                     "alerts": alerts}), 200
 
 
+# ── The working list from the plans, and the morning message ──
+def _todo_brands(brand):
+    brands = ["swing-shack", "stick", "bag-drop"] if brand in ("", "all") else [brand]
+    if any(b not in ("swing-shack", "stick", "bag-drop") for b in brands):
+        return None
+    return brands
+
+
+def _jhb_today():
+    from zoneinfo import ZoneInfo
+    return _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
+
+
+@app.route("/api/plan-todo", methods=["GET"])
+def plan_todo_route():
+    """GET ?brand=stick|swing-shack|bag-drop|all — every step still to do across the
+    live plans, overdue first, then today, this week, and the next 30 days."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brands = _todo_brands((request.args.get("brand") or "all").strip())
+    if brands is None:
+        return jsonify({"ok": False, "error": "unknown brand"}), 400
+    from _lib import campaign_plan as cp
+    from _lib import plan_todo as pt
+    today = _jhb_today()
+    steps = []
+    for b in brands:
+        steps.extend(pt.todo_steps(b, cp.list_plans(b), today))
+    steps.sort(key=lambda s: (pt.BUCKETS.index(s["bucket"]), s["due"], s["event_name"], s["title"]))
+    counts = {k: len(v) for k, v in pt.group_by_bucket(steps).items()}
+    return jsonify({"ok": True, "today": today.isoformat(), "count": len(steps),
+                    "counts": counts, "steps": steps}), 200
+
+
+@app.route("/api/jobs/morning-message", methods=["GET"])
+def morning_message_route():
+    """GET ?brand=...|all — the morning message as plain text, for the agent that sends
+    the Telegram brief to read. It sends nothing itself. Session or job bearer."""
+    brands = _todo_brands((request.args.get("brand") or "all").strip())
+    if brands is None:
+        return jsonify({"ok": False, "error": "unknown brand"}), 400
+    from _lib import campaign_plan as cp
+    from _lib import plan_todo as pt
+    today = _jhb_today()
+    sections = {}
+    for b in brands:
+        try:
+            alerts = _alerts_for_brand(b)
+        except Exception:
+            _app_log.exception("morning message alerts failed for %s", b)
+            alerts = []
+        sections[b] = {"alerts": alerts, "steps": pt.todo_steps(b, cp.list_plans(b), today)}
+    text = pt.morning_text(sections, today)
+    return jsonify({"ok": True, "date": today.isoformat(), "text": text,
+                    "screaming": sum(1 for s in sections.values() for a in s["alerts"] if a["level"] == "scream"),
+                    "overdue": sum(1 for s in sections.values() for x in s["steps"] if x["bucket"] == "overdue"),
+                    "due_today": sum(1 for s in sections.values() for x in s["steps"] if x["bucket"] == "today")}), 200
+
+
 # ── Suggestions on the month calendar: faded until approved or rejected ──
 def _cs_guard(brand_id):
     if not _is_authed():

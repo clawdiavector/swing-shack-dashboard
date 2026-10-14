@@ -232,3 +232,55 @@ def test_set_pillars_needs_a_pillar_and_a_real_record(env):
     with pytest.raises(ValueError):
         mc.set_pillars("stick", cid, [])
     assert mc.set_pillars("stick", "cal-missing", ["stick-retail"]) is None
+
+
+def _plan_for_soon(client, tmp_path, days_out=12):
+    """A draft plan for an event a little way off, so some steps are due soon or overdue."""
+    import datetime as dt
+
+    day = (dt.date.today() + dt.timedelta(days=days_out)).isoformat()
+    d = tmp_path / "briefs" / "stick"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "brf-todo0001.json").write_text(json.dumps({
+        "brief_id": "brf-todo0001", "brand_id": "stick", "status": "approved", "revision": 1,
+        "source_opportunity": {"event_key": "ev-todo", "name": "Heritage Day", "date": day}}), encoding="utf-8")
+    r = client.post("/api/plan/v1/stick/propose", json={"brief_id": "brf-todo0001"})
+    assert r.status_code == 200, r.get_json()
+    return r.get_json()["plan"]
+
+
+def test_the_todo_lists_steps_from_the_plans_and_a_done_step_leaves_it(env):
+    client, _, tmp_path = env
+    plan = _plan_for_soon(client, tmp_path)
+    r = client.get("/api/plan-todo?brand=stick")
+    d = r.get_json()
+    assert r.status_code == 200 and d["ok"] and d["count"] > 0
+    assert set(d["counts"]) == {"overdue", "today", "this_week", "later"}
+    order = ["overdue", "today", "this_week", "later"]
+    assert [s["bucket"] for s in d["steps"]] == sorted((s["bucket"] for s in d["steps"]), key=order.index)
+    first = d["steps"][0]
+    assert first["plan_id"] == plan["plan_id"] and first["event_name"] == "Heritage Day"
+    done = client.patch(f"/api/plan/v1/stick/{first['plan_id']}/item/{first['item_id']}", json={"status": "done"})
+    assert done.status_code == 200
+    again = client.get("/api/plan-todo?brand=all").get_json()
+    assert first["key"] not in [s["key"] for s in again["steps"]] and again["count"] == d["count"] - 1
+
+
+def test_the_todo_route_checks_the_brand_and_the_login(env):
+    client, app_module, _ = env
+    assert client.get("/api/plan-todo?brand=nope").status_code == 400
+    assert app_module.app.test_client(cos_anon=True).get("/api/plan-todo?brand=stick").status_code == 401
+
+
+def test_the_morning_message_is_plain_text_readable_with_the_job_token(env, monkeypatch):
+    client, app_module, tmp_path = env
+    _plan_for_soon(client, tmp_path)
+    monkeypatch.setattr(app_module, "COS_JOB_TOKEN", "test-job-token-not-a-secret")
+    anon = app_module.app.test_client(cos_anon=True)
+    assert anon.get("/api/jobs/morning-message?brand=stick").status_code == 401
+    r = anon.get("/api/jobs/morning-message?brand=stick", headers={"Authorization": "Bearer test-job-token-not-a-secret"})
+    d = r.get_json()
+    assert r.status_code == 200 and d["ok"]
+    assert d["text"].startswith("Good morning. Calendar check,")
+    assert isinstance(d["overdue"], int) and isinstance(d["due_today"], int) and isinstance(d["screaming"], int)
+    assert client.get("/api/jobs/morning-message?brand=nope").status_code == 400
