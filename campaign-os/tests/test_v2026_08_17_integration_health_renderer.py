@@ -34,6 +34,11 @@ Tests
 5. No JSON.stringify(it) fallback inside the renderer.
 6. The renderer translates the days_ago=999 sentinel to "never".
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -73,6 +78,7 @@ def _agents_int_render_call() -> str:
     return m.group(0)
 
 
+@_legacy_page.on_old_page_only
 class IntegrationHealthRendererTests(unittest.TestCase):
     """Agents > Integrations must surface blockers + capabilities, not just (name + status + id)."""
 

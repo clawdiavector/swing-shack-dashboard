@@ -27,3 +27,9 @@ def skip_module_unless(marker: str) -> None:
 
 def skip_unless(marker: str):
     return unittest.skipUnless(has(marker), REASON.format(marker))
+
+
+# Present 43 times in the old page and never in the Vite build: one static
+# <section> per sidebar page. Used where a test has no narrower marker.
+OLD_PAGE = '<section class="section" id="sec-'
+on_old_page_only = skip_unless(OLD_PAGE)

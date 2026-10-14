@@ -43,6 +43,11 @@ no fabricated stats, no deletes. Pure UI strip on top of existing data.
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import json
 import re
 import sys
@@ -105,6 +110,7 @@ def _expected_counts(cal: dict) -> dict:
 class TestPillarStripDOM(unittest.TestCase):
     """The HTML container and the render wiring must exist."""
 
+    @_legacy_page.on_old_page_only
     def test_cal_pillar_strip_container_exists(self):
         # The new strip div is mounted in the Calendar section HTML.
         self.assertRegex(
@@ -113,6 +119,7 @@ class TestPillarStripDOM(unittest.TestCase):
             "Missing #cal-pillar-strip container in Calendar section HTML",
         )
 
+    @_legacy_page.on_old_page_only
     def test_cal_pillar_strip_has_help_attr(self):
         # The strip carries a data-help attribute so the universal tooltip
         # system explains what the pills mean to Christelle.
@@ -128,6 +135,7 @@ class TestPillarStripDOM(unittest.TestCase):
         # The tooltip should mention "pillar" so users understand the metaphor.
         self.assertIn("pillar", m.group(1).lower())  # type: ignore[union-attr]
 
+    @_legacy_page.on_old_page_only
     def test_cal_pillar_strip_css_base_rule_exists(self):
         self.assertIn(
             ".cal-pillar-strip{",
@@ -150,6 +158,7 @@ class TestPillarStripDOM(unittest.TestCase):
                     f"colour binding — that pill will render as fallback grey.",
                 )
 
+    @_legacy_page.on_old_page_only
     def test_cal_pillar_strip_has_is_zero_style(self):
         # Zero-count pills fade out so they don't compete with active counts.
         self.assertIn(
@@ -159,6 +168,7 @@ class TestPillarStripDOM(unittest.TestCase):
             "render at full opacity and clutter the strip.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_cal_pillar_strip_render_is_wired(self):
         # The renderCalendar() function must reference #cal-pillar-strip
         # innerHTML to actually populate the strip on every render.
@@ -169,6 +179,7 @@ class TestPillarStripDOM(unittest.TestCase):
             "container stays empty in the DOM.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_cal_pillar_strip_hides_when_no_slots(self):
         # renderCalendar sets display:none when the window has 0 slots so
         # the strip doesn't push the grid down on an empty calendar.

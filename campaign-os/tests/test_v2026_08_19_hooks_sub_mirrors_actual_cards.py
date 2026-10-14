@@ -15,6 +15,11 @@ wins once the API responds, so this only matters on the brief window between
 section render and API response, plus as a search-engine-friendly /
 slow-API fallback.
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -28,6 +33,7 @@ class HookBankSubMirrorsActualCards(unittest.TestCase):
     def setUpClass(cls):
         cls.html = HTML.read_text(encoding="utf-8")
 
+    @_legacy_page.on_old_page_only
     def test_01_hooks_sub_has_id(self):
         # The static sub must carry the id="hooks-total" anchor.
         m = re.search(
@@ -48,6 +54,7 @@ class HookBankSubMirrorsActualCards(unittest.TestCase):
             "old `—`-only fallback still present in hooks-total span",
         )
 
+    @_legacy_page.on_old_page_only
     def test_03_sub_has_data_help(self):
         # The pattern requires data-help and data-help-title for the next editor.
         m = re.search(
@@ -59,6 +66,7 @@ class HookBankSubMirrorsActualCards(unittest.TestCase):
             "hooks-total span missing data-help or data-help-title attributes",
         )
 
+    @_legacy_page.on_old_page_only
     def test_04_sub_lists_visible_cards(self):
         # The descriptive fallback must list every visible card / surface.
         # Required phrases:
@@ -82,6 +90,7 @@ class HookBankSubMirrorsActualCards(unittest.TestCase):
             f"descriptive fallback is missing required phrases: {missing}",
         )
 
+    @_legacy_page.on_old_page_only
     def test_05_sub_no_em_dash(self):
         # Standing rule: no em dash (U+2014) or en dash (U+2013) in published
         # copy / sub text. Both are banned to keep social copy typography honest.
@@ -94,6 +103,7 @@ class HookBankSubMirrorsActualCards(unittest.TestCase):
         self.assertNotIn("\u2014", text, "em dash (U+2014) found in hooks sub")
         self.assertNotIn("\u2013", text, "en dash (U+2013) found in hooks sub")
 
+    @_legacy_page.on_old_page_only
     def test_06_sub_uses_middot_separator(self):
         # Middot (U+00B7) is the standard separator on the other six sub
         # sections (Calendar, Trends, Image Gen, Ideas, Library, Meme Lord).
@@ -111,6 +121,7 @@ class HookBankSubMirrorsActualCards(unittest.TestCase):
             f"(expected 4+ to match the established pattern)",
         )
 
+    @_legacy_page.on_old_page_only
     def test_07_no_js_textcontent_overwrite_on_hooks_total(self):
         # Pattern is shared with Calendar/Meme Lord: there IS a JS overwrite
         # (renderHooks line 9369 sets '<total> hooks · <all_hooks length>

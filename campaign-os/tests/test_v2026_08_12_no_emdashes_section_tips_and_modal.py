@@ -34,6 +34,11 @@ Post-fix:
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -84,6 +89,7 @@ class TestSectionTipEmdashSweep(unittest.TestCase):
         cls.html = HTML_PATH.read_text(encoding="utf-8")
 
     # sec-review tooltip
+    @_legacy_page.on_old_page_only
     def test_01_sec_review_post_fix_present(self):
         self.assertIn(
             POST_FIX_SEC_REVIEW,
@@ -99,6 +105,7 @@ class TestSectionTipEmdashSweep(unittest.TestCase):
         )
 
     # sec-reddit tooltip
+    @_legacy_page.on_old_page_only
     def test_03_sec_reddit_post_fix_present(self):
         self.assertIn(
             POST_FIX_SEC_REDDIT,
@@ -114,6 +121,7 @@ class TestSectionTipEmdashSweep(unittest.TestCase):
         )
 
     # sec-agents tooltip
+    @_legacy_page.on_old_page_only
     def test_05_sec_agents_post_fix_present(self):
         self.assertIn(
             POST_FIX_SEC_AGENTS,
@@ -129,6 +137,7 @@ class TestSectionTipEmdashSweep(unittest.TestCase):
         )
 
     # Review modal IG history data-help
+    @_legacy_page.on_old_page_only
     def test_07_ig_history_post_fix_present(self):
         self.assertIn(
             POST_FIX_IG_HISTORY,
@@ -159,6 +168,7 @@ class TestSectionTipEmdashSweep(unittest.TestCase):
 
     # Generic TIPS-map guard: every sec-* entry under the TIPS object
     # must be em-dash-free. Parses the map literally.
+    @_legacy_page.on_old_page_only
     def test_10_all_tips_map_entries_emdash_free(self):
         m = re.search(
             r"const\s+TIPS\s*=\s*\{(.*?)\n\s*\};",
@@ -181,6 +191,7 @@ class TestSectionTipEmdashSweep(unittest.TestCase):
 
     # Generic data-help guard inside the rvVisualBriefHelp / IG-history
     # data-help block — make sure no NEW em-dash got reintroduced.
+    @_legacy_page.on_old_page_only
     def test_11_rv_modal_datahelps_emdash_free(self):
         # The Review modal template literal — extract the IG-history h4
         # data-help only (pinpointed, so false positives are minimised).

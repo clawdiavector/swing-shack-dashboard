@@ -14,6 +14,11 @@ once the API responds, so this only matters on the brief window between
 section render and API response, plus as a search-engine-friendly /
 slow-API fallback.
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -27,6 +32,7 @@ class MemeLordSubMirrorsActualCards(unittest.TestCase):
     def setUpClass(cls):
         cls.html = HTML.read_text(encoding="utf-8")
 
+    @_legacy_page.on_old_page_only
     def test_01_memes_sub_has_id(self):
         # The static sub must carry the id="memes-summary" anchor.
         m = re.search(
@@ -47,6 +53,7 @@ class MemeLordSubMirrorsActualCards(unittest.TestCase):
             "old `—`-only fallback still present in memes-summary span",
         )
 
+    @_legacy_page.on_old_page_only
     def test_03_sub_has_data_help(self):
         # The pattern requires data-help and data-help-title for the next editor.
         m = re.search(
@@ -58,6 +65,7 @@ class MemeLordSubMirrorsActualCards(unittest.TestCase):
             "memes-summary span missing data-help or data-help-title attributes",
         )
 
+    @_legacy_page.on_old_page_only
     def test_04_sub_lists_visible_cards(self):
         # The descriptive fallback must list every visible card / surface.
         # Required phrases:
@@ -87,6 +95,7 @@ class MemeLordSubMirrorsActualCards(unittest.TestCase):
             f"descriptive fallback is missing required phrases: {missing}",
         )
 
+    @_legacy_page.on_old_page_only
     def test_05_sub_no_em_dash(self):
         # Standing rule: no em dash (U+2014) or en dash (U+2013) in published
         # copy / sub text. Both are banned to keep social copy typography honest.
@@ -99,6 +108,7 @@ class MemeLordSubMirrorsActualCards(unittest.TestCase):
         self.assertNotIn("\u2014", text, "em dash (U+2014) found in memes sub")
         self.assertNotIn("\u2013", text, "en dash (U+2013) found in memes sub")
 
+    @_legacy_page.on_old_page_only
     def test_06_sub_uses_middot_separator(self):
         # Middot (U+00B7) is the standard separator on the other five sub
         # sections (Calendar, Trends, Image Gen, Ideas, Library). At least
@@ -116,6 +126,7 @@ class MemeLordSubMirrorsActualCards(unittest.TestCase):
             f"(expected 4+ to match the established pattern)",
         )
 
+    @_legacy_page.on_old_page_only
     def test_07_no_js_textcontent_overwrite_on_memes_summary(self):
         # Pattern is shared with Calendar/Trends/Image Gen: there IS a JS
         # overwrite (renderMemes line 9554 + the star-count suffix at 9588),

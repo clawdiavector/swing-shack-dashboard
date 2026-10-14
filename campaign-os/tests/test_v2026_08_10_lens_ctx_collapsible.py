@@ -37,6 +37,11 @@ This test asserts the static-HTML invariants:
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -52,6 +57,7 @@ class LensCtxCollapsibleTests(unittest.TestCase):
         self.html = SPA.read_text(encoding="utf-8")
 
     # ─── Calendar ──────────────────────────────────────────────────────
+    @_legacy_page.on_old_page_only
     def test_calendar_lens_ctx_is_details_with_summary(self):
         m = re.search(
             r'<details class="help-collapsible help-section-explainer calendar-lens-ctx"[^>]*>'
@@ -70,6 +76,7 @@ class LensCtxCollapsibleTests(unittest.TestCase):
         self.assertIn("read the calendar", summary.lower(),
                       f"Calendar summary should be self-explanatory, got: {summary!r}")
 
+    @_legacy_page.on_old_page_only
     def test_calendar_lens_ctx_not_open_by_default(self):
         m = re.search(
             r'<details class="help-collapsible help-section-explainer calendar-lens-ctx"([^>]*)>',
@@ -83,6 +90,7 @@ class LensCtxCollapsibleTests(unittest.TestCase):
             "the explainer is supposed to stay collapsed on every visit.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_calendar_lens_ctx_preserves_hud_strip_explanation(self):
         # The original copy mentioned the HUD strip; the fix must not drop it.
         self.assertIn(
@@ -96,6 +104,7 @@ class LensCtxCollapsibleTests(unittest.TestCase):
             "Calendar lens-ctx body must still mention the Duplicate zone (regression check).",
         )
 
+    @_legacy_page.on_old_page_only
     def test_calendar_lens_ctx_body_has_card_chrome(self):
         # The visual chrome lives on a nested .card now (not the <details>).
         m = re.search(
@@ -111,6 +120,7 @@ class LensCtxCollapsibleTests(unittest.TestCase):
         )
 
     # ─── Socials ───────────────────────────────────────────────────────
+    @_legacy_page.on_old_page_only
     def test_socials_lens_ctx_is_details_with_summary(self):
         m = re.search(
             r'<details class="help-collapsible help-section-explainer socials-lens-ctx"[^>]*>'
@@ -125,6 +135,7 @@ class LensCtxCollapsibleTests(unittest.TestCase):
             "pushed-below-the-fold on every visit.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_socials_lens_ctx_not_open_by_default(self):
         m = re.search(
             r'<details class="help-collapsible help-section-explainer socials-lens-ctx"([^>]*)>',
@@ -137,6 +148,7 @@ class LensCtxCollapsibleTests(unittest.TestCase):
             "Socials <details> must NOT have the `open` attribute.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_socials_lens_ctx_preserves_meta_graph_copy(self):
         # The original body explained the Meta Graph + oEmbed fallback — keep it.
         self.assertIn(
@@ -151,6 +163,7 @@ class LensCtxCollapsibleTests(unittest.TestCase):
         )
 
     # ─── Insights v2 ───────────────────────────────────────────────────
+    @_legacy_page.on_old_page_only
     def test_insights_lens_ctx_is_details_with_summary(self):
         m = re.search(
             r'<details class="help-collapsible help-section-explainer insights-lens-ctx"[^>]*>'
@@ -165,6 +178,7 @@ class LensCtxCollapsibleTests(unittest.TestCase):
             "pushed-below-the-fold on every visit.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_insights_lens_ctx_not_open_by_default(self):
         m = re.search(
             r'<details class="help-collapsible help-section-explainer insights-lens-ctx"([^>]*)>',
@@ -177,6 +191,7 @@ class LensCtxCollapsibleTests(unittest.TestCase):
             "Insights <details> must NOT have the `open` attribute.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_insights_lens_ctx_preserves_tone_legend(self):
         # The 🟢🟡🔴 tone legend is the most actionable line in the explainer.
         self.assertIn(

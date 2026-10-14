@@ -42,6 +42,11 @@ Static greps confirm:
        - "No history yet. Every generation is saved here." in #cta-history
 """
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '../campaign-os/tests').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -51,11 +56,13 @@ HTML = (REPO / "campaign-os" / "campaign-os.html").read_text()
 
 
 class TestGenEmptyState(unittest.TestCase):
+    @_legacy_page.on_old_page_only
     def test_helper_exists_with_required_params(self):
         # Helper signature includes kind, title, sub, primaryId, primaryLabel
         m = re.search(r"function _genEmptyState\(\{kind,\s*title,\s*sub,\s*primaryId,\s*primaryLabel\}\)", HTML)
         self.assertIsNotNone(m, "_genEmptyState({kind, title, sub, primaryId, primaryLabel}) helper missing")
 
+    @_legacy_page.on_old_page_only
     def test_helper_renders_empty_card_with_title_and_sub(self):
         # Look for the helper body rendering the empty-card markup
         m = re.search(
@@ -64,6 +71,7 @@ class TestGenEmptyState(unittest.TestCase):
         )
         self.assertIsNotNone(m, "_genEmptyState should render .empty-card with .empty-title and .empty-sub")
 
+    @_legacy_page.on_old_page_only
     def test_fresh_branch_has_cta_link_with_data_gen_cta(self):
         # The fresh (Just generated) variant includes a CTA link that triggers the generate button
         m = re.search(
@@ -77,6 +85,7 @@ class TestGenEmptyState(unittest.TestCase):
         )
         self.assertIsNotNone(m, "CTAs fresh empty state should pass primaryId: 'cta-gen'")
 
+    @_legacy_page.on_old_page_only
     def test_history_branch_has_no_cta(self):
         # History variants don't include a CTA — they're informational only
         m = re.search(
@@ -90,6 +99,7 @@ class TestGenEmptyState(unittest.TestCase):
         )
         self.assertIsNotNone(m, "CTAs history empty state should be wired")
 
+    @_legacy_page.on_old_page_only
     def test_render_head_history_uses_helper(self):
         # _renderHeadHistory should call _genEmptyState for empty branch
         # Find the block after _renderHeadHistory's hist check
@@ -99,6 +109,7 @@ class TestGenEmptyState(unittest.TestCase):
         )
         self.assertIsNotNone(m, "_renderHeadHistory should call _genEmptyState for empty branch")
 
+    @_legacy_page.on_old_page_only
     def test_render_cta_history_uses_helper(self):
         m = re.search(
             r"function _renderCtaHistory\(\)\{[^}]+?if\(!hist\.length\)\{[^}]+?\$?\('#cta-history'\)\.innerHTML\s*=\s*_genEmptyState",
@@ -106,6 +117,7 @@ class TestGenEmptyState(unittest.TestCase):
         )
         self.assertIsNotNone(m, "_renderCtaHistory should call _genEmptyState for empty branch")
 
+    @_legacy_page.on_old_page_only
     def test_render_headlines_initializes_empty_state(self):
         # renderHeadlines should seed #head-list with empty-card on first visit
         m = re.search(
@@ -114,6 +126,7 @@ class TestGenEmptyState(unittest.TestCase):
         )
         self.assertIsNotNone(m, "renderHeadlines() should initialize #head-list with _genEmptyState")
 
+    @_legacy_page.on_old_page_only
     def test_render_ctas_initializes_empty_state(self):
         m = re.search(
             r"async function renderCTAs\(\)\{[^{]*?_renderCtaHistory\(\);.*?#cta-list.*?_genEmptyState",
@@ -121,6 +134,7 @@ class TestGenEmptyState(unittest.TestCase):
         )
         self.assertIsNotNone(m, "renderCTAs() should initialize #cta-list with _genEmptyState")
 
+    @_legacy_page.on_old_page_only
     def test_dataset_gen_state_set_after_generation(self):
         # After successful generation, head-list/cta-list dataset.genState should flip to 'filled'
         self.assertRegex(
