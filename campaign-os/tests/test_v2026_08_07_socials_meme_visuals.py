@@ -79,6 +79,11 @@ class SocialsStatusTests(SocialsMemeVisualsApiTests):
         self.assertIn("oembed_reachable", data)
         self.assertIn("ig_account_id", data)
 
+    @unittest.skipUnless(
+        os.environ.get("META_APP_ID")
+        and (os.environ.get("META_ACCESS_TOKEN") or os.environ.get("META_ACCESS_TOKEN_FILE")),
+        "needs live Meta credentials (META_APP_ID + META_ACCESS_TOKEN[_FILE]); CI has none",
+    )
     def test_status_oembed_reachable(self):
         """oEmbed endpoint should be reachable (public IG API)."""
         r = self.client.get("/api/socials/status")
