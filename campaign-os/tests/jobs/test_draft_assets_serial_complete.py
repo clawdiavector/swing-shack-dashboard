@@ -168,6 +168,7 @@ def test_one_tick_completes_moment_a_only(l5_app, tmp_path):
                 "action": "draft_photo",
                 "payload_ref": f"inbox/{item_a}",
                 "status": "pending",
+                "allow_generate": True,
             },
             {
                 "id": "q-a-compose",
@@ -189,6 +190,7 @@ def test_one_tick_completes_moment_a_only(l5_app, tmp_path):
                 "action": "draft_image",
                 "payload_ref": f"inbox/{item_b}",
                 "status": "pending",
+                "allow_generate": True,
             },
         ],
     )
@@ -260,6 +262,7 @@ def test_cap_mid_image_does_not_caption_moment_b(l5_app, tmp_path, monkeypatch):
                 "action": "draft_image",
                 "payload_ref": f"inbox/{item_a}",
                 "status": "pending",
+                "allow_generate": True,
             },
             {
                 "id": "cap-b-cap",

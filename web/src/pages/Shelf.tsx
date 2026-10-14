@@ -86,7 +86,16 @@ export function Shelf() {
         <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">{error}</p>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+        {counts?.attention != null && counts.attention > 0 ? (
+          <StatCard
+            icon={Rocket}
+            label="Needs attention"
+            value={counts.attention}
+            hint="Failed or partial send"
+            tone="gold"
+          />
+        ) : null}
         <StatCard
           icon={Calendar}
           label="Scheduled"

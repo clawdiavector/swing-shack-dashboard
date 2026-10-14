@@ -67,6 +67,18 @@ def _sidecar_for_item(item_id: str) -> tuple[str | None, dict[str, Any] | None]:
     return None, None
 
 
+def row_allow_generate(row: dict[str, Any], action: str = "") -> bool:
+    flag = row.get("allow_generate")
+    if flag is True or str(flag).lower() in ("1", "true", "yes"):
+        return True
+    act = str(row.get("action") or action or "")
+    if act == "draft_oneshot":
+        return True
+    if str(row.get("reason") or "") == "review-regenerate":
+        return True
+    return False
+
+
 def process_draft_photo_row(
     row: dict[str, Any],
     *,
@@ -193,6 +205,91 @@ def process_draft_photo_row(
             item_id=item_id,
             brand_id=brand_id,
         )
+
+    from _lib.visual_gate import decide, list_trusted_library_photos  # noqa: PLC0415
+
+    decision = decide(brand_id, item_id)
+    allow_gen = row_allow_generate(row, action_label)
+    if not allow_gen and not decision.is_gap() and decision.photo is not None:
+        caption_asset_id, _caption_text = _find_caption_draft_for_item(item_id)
+        if not caption_asset_id:
+            return None, "compose-only archetype requires caption draft first"
+
+        photo_src = decision.photo
+        photo_path = Path(photo_src.path)
+        if not photo_path.is_file():
+            return None, "gap:no_real_photo"
+
+        regen_note = str((regen_sidecar or {}).get("review_regenerate_note") or "").strip()
+        if regen_note and photo_src.kind == "library":
+            bg = archetype.get("background") if isinstance(archetype.get("background"), dict) else {}
+            library = str(bg.get("library") or "")
+            trusted = list_trusted_library_photos(brand_id, library)
+            if len(trusted) > 1:
+                import zlib
+
+                photo_path = trusted[zlib.crc32(f"{item_id}:{regen_note}".encode("utf-8")) % len(trusted)]
+
+        sidecar_path = _data_dir() / "draft-assets" / f"{caption_asset_id}.json"
+        merged: dict[str, Any] = {}
+        if sidecar_path.is_file():
+            try:
+                loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    merged = loaded
+            except (OSError, json.JSONDecodeError):
+                merged = {}
+
+        photo_source = "operator" if photo_src.kind in ("sidecar", "render_spec") else "library"
+        merged.update(
+            {
+                "action": action_label,
+                "asset_id": caption_asset_id,
+                "brand_id": brand_id,
+                "source_inbox_item_id": item_id,
+                "venue_photo": str(photo_path),
+                "photo_source": photo_source,
+                "archetype": {
+                    "id": archetype_id,
+                    "canvas": archetype.get("canvas"),
+                    "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
+                },
+                "qc": {
+                    "verdict": "pass",
+                    "checked_at": _utc_now_iso(),
+                    "candidates": [{"index": 0, "path": str(photo_path), "verdict": "pass", "reasons": []}],
+                    "selected": 0,
+                },
+                "photo_candidates": [
+                    {
+                        "index": 0,
+                        "path": str(photo_path),
+                        "url": image_url_for(brand_id, str(photo_path)),
+                    }
+                ],
+            }
+        )
+        merged.pop("review_regenerate_note", None)
+        merged.pop("composed", None)
+        atomic_write(f"draft-assets/{caption_asset_id}.json", merged)
+        from _lib import post_cost  # noqa: PLC0415
+
+        post_cost.record_line(
+            usd=0.0,
+            brand_id=brand_id,
+            kind="image",
+            route="job:draft_assets/photo",
+            inbox_item_id=item_id,
+            action="compose_post",
+            cost_source="estimate",
+            draft_asset_id=caption_asset_id,
+            event_key=event_key,
+            queue_row_id=str(row.get("id") or "") or None,
+        )
+        return caption_asset_id, None
+
+    if decision.is_gap() and not allow_gen:
+        return None, f"gap:{decision.reason}"
 
     size = ctx.aspect
     est = llm_spend.modelled_image_cost(size)
@@ -411,6 +508,8 @@ def process_draft_photo_row(
             "context_degraded": ctx.lineage.get("degraded") or [],
             "image_size": size,
             "prompt": ctx.job,
+            "photo_source": "generated",
+            "generated_image": True,
         }
     )
     atomic_write(f"draft-assets/{asset_id}.json", merged)
@@ -434,9 +533,10 @@ def process_compose_post_row(
     item_id: str,
     brand_id: str,
 ) -> tuple[Optional[str], Optional[str]]:
-    from _lib.archetype_compose import compose_post_for_channels  # noqa: PLC0415
+    from _lib.archetype_compose import ComposeError, compose_post_for_channels  # noqa: PLC0415
     from _lib.archetypes_v2 import select_archetype  # noqa: PLC0415
     from _lib.publish_sandbox import intended_publish_channels  # noqa: PLC0415
+    from _lib.visual_gate import decide  # noqa: PLC0415
 
     asset_id, sidecar = _sidecar_for_item(item_id)
     if not sidecar:
@@ -446,6 +546,15 @@ def process_compose_post_row(
     needs_photo = archetype.get("applies_to", {}).get("needs_photo", True)
     qc = sidecar.get("qc") if isinstance(sidecar.get("qc"), dict) else {}
     candidates = sidecar.get("photo_candidates") if isinstance(sidecar.get("photo_candidates"), list) else []
+
+    gate = decide(brand_id, item_id)
+    if gate.is_gap():
+        explicit = str(sidecar.get("photo_source") or "") == "generated" or sidecar.get("generated_image")
+        explicit = explicit or str(sidecar.get("action") or "") == "draft_oneshot"
+        explicit = explicit or row_allow_generate(row)
+        qc_ok = qc.get("verdict") == "pass" and candidates
+        if not explicit and not qc_ok:
+            return None, f"gap:{gate.reason}"
     photo_bytes: bytes | None = None
     if needs_photo:
         gen_slots = sidecar.get("gen_slots") if isinstance(sidecar.get("gen_slots"), dict) else {}
@@ -474,6 +583,10 @@ def process_compose_post_row(
         from _lib.draft_review_actions import resolve_compose_photo_bytes  # noqa: PLC0415
 
         photo_bytes = resolve_compose_photo_bytes(brand_id, archetype_id, sidecar)
+    if photo_bytes is None and gate.photo is not None:
+        path = Path(gate.photo.path)
+        if path.is_file():
+            photo_bytes = path.read_bytes()
 
     _, caption_text = _find_caption_draft_for_item(item_id)
     if not caption_text and asset_id:

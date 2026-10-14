@@ -1035,6 +1035,16 @@ def _reject_caption_only_drafts(brand: str | None = None) -> int:
             sidecar = sidecars.get(str(aid))
             if not sidecar:
                 continue
+            if sidecar.get("visual_gap"):
+                continue
+            moment_id = str(sidecar.get("source_inbox_item_id") or "")
+            if moment_id.startswith("calendar_candidate:"):
+                parts = moment_id.split(":", 2)
+                if len(parts) >= 2:
+                    from _lib.visual_gate import decide  # noqa: PLC0415
+
+                    if decide(parts[1], moment_id).is_gap():
+                        continue
             if str(sidecar.get("action") or "") not in _CAPTION_SIDEcar_ACTIONS:
                 continue
             image_path, image_url = _asset_image_meta(asset)
@@ -1156,6 +1166,8 @@ _ROW_SOFT_ERRORS = (
 def _is_row_soft_error(err: str | None) -> bool:
     if not err:
         return False
+    if str(err).startswith("gap:"):
+        return True
     return any(token in err for token in _ROW_SOFT_ERRORS)
 
 
@@ -1207,9 +1219,16 @@ def _process_image_row(
     item_id: str,
     brand_id: str,
     draft_ctx: ImageDraftContext | None = None,
+    allow_generate: bool | None = None,
 ) -> tuple[Optional[str], Optional[str]]:
     from _lib import llm_spend  # noqa: PLC0415
     from _lib.image_gen_router import ImageGenAuthError, generate_image_with_persistence  # noqa: PLC0415
+    from _lib.visual_gate import decide  # noqa: PLC0415
+
+    explicit = allow_generate if allow_generate is not None else bool(row.get("allow_generate"))
+    gap = decide(brand_id, item_id)
+    if gap.is_gap() and not explicit:
+        return None, f"gap:{gap.reason}"
 
     ctx = draft_ctx or build_image_draft_context(brand_id, item_id)
     size = ctx.aspect
@@ -1240,7 +1259,6 @@ def _process_image_row(
     )
 
     output_base = str(_data_dir() / "draft-assets" / "images")
-    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
     event_key = _event_key_from_calendar(calendar)
     pending_asset_id = f"draft-{uuid.uuid4().hex[:12]}"
     gen_kwargs: dict[str, Any] = {
@@ -1309,6 +1327,7 @@ def _process_image_row(
         except OSError:
             has_bytes = False
     image_url = image_url_for(brand_id, image_path_str) if has_bytes else None
+
     def _result_str(attr: str) -> str | None:
         val = getattr(result, attr, None)
         return val if isinstance(val, str) else None
@@ -1316,7 +1335,6 @@ def _process_image_row(
     primary_platform = primary_channel_for_item(brand_id, item_id, fallback="instagram")
     pj_raw = getattr(result, "provider_job_id", None)
     provider_job_id = pj_raw.strip() if isinstance(pj_raw, str) and pj_raw.strip() else None
-    sidecar_path = _result_str("saved_sidecar_path")
     if provider_job_id and not has_bytes:
         from . import image_jobs_state  # noqa: PLC0415
 
@@ -1410,6 +1428,8 @@ def _process_image_row(
             "router_sidecar_path": _result_str("saved_sidecar_path"),
             "caption_asset_id": caption_asset_id,
             "context_degraded": ctx.lineage.get("degraded") or [],
+            "photo_source": "generated",
+            "generated_image": True,
         },
     )
     if asset_id:
@@ -1572,6 +1592,41 @@ def run(brand: str | None = None) -> dict[str, Any]:
 
             if halted or stop_cap or stop_auth:
                 break
+
+            from _lib.visual_gate import (  # noqa: PLC0415
+                clear_gap_if_trusted,
+                decide,
+                park_image_queue_rows,
+                record_gap_for_moment,
+            )
+
+            from .create_photo_compose import row_allow_generate  # noqa: PLC0415
+
+            gap_decision = decide(brand_id, item_id)
+            explicit_gen = any(row_allow_generate(row, action) for row, action in rows_for_moment)
+            if gap_decision.is_gap():
+                record_gap_for_moment(brand_id, item_id, gap_decision, rows=rows)
+                if not explicit_gen:
+                    parked = park_image_queue_rows(rows, item_id=item_id, decision=gap_decision)
+                    for row, action in rows_for_moment:
+                        if action in ("draft_photo", "draft_image", "draft_gen_slots", "draft_oneshot", "compose_post"):
+                            if str(row.get("status") or "").lower() == "pending":
+                                row["status"] = "gap"
+                                row["note"] = gap_decision.label[:240]
+                    pending_caption = any(
+                        str(row.get("status") or "").lower() == "pending" and action in _CAPTION_QUEUE_ACTIONS
+                        for row, action in rows_for_moment
+                    )
+                    if not pending_caption:
+                        skipped += max(parked, 1)
+                        continue
+                else:
+                    for row, action in rows_for_moment:
+                        if action in ("draft_photo", "draft_image", "draft_gen_slots", "draft_oneshot", "compose_post"):
+                            if str(row.get("status") or "").lower() == "gap":
+                                row["status"] = "pending"
+                                row.pop("note", None)
+            clear_gap_if_trusted(brand_id, item_id, gap_decision)
 
             draft_ctx = build_image_draft_context(brand_id, item_id)
             keep_id = _caption_keep_asset_id(rows_for_moment)
@@ -1740,7 +1795,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
                     stop_cap, stop_auth = _apply_stop_error(err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth)
                     skipped += 1
                     if _is_row_soft_error(err):
-                        photo_row["status"] = "skipped"
+                        photo_row["status"] = "gap" if str(err).startswith("gap:") else "skipped"
                         photo_row["note"] = err[:240]
                     if stop_cap or stop_auth:
                         halted = True
@@ -1784,7 +1839,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 if err:
                     skipped += 1
                     if _is_row_soft_error(err):
-                        compose_row["status"] = "skipped"
+                        compose_row["status"] = "gap" if str(err).startswith("gap:") else "skipped"
                         compose_row["note"] = err[:240]
                 elif asset_id:
                     compose_row["status"] = "done"

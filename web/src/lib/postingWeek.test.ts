@@ -6,6 +6,9 @@ import {
   formatPostingDayHeader,
   linkForPostState,
   nextActionFromStages,
+  channelsPickedSummary,
+  deliveryChipLabel,
+  postFactLine,
   postingChannelLabel,
   POSTING_STAGE_ORDER,
   primaryStageFromStages,
@@ -119,6 +122,42 @@ describe('formatGoesOut', () => {
 describe('postingChannelLabel', () => {
   it('maps facebook to Facebook', () => {
     expect(postingChannelLabel('facebook')).toBe('Facebook')
+  })
+
+  it('maps gbp to Google Business', () => {
+    expect(postingChannelLabel('gbp')).toBe('Google Business')
+  })
+})
+
+describe('channelsPickedSummary', () => {
+  it('joins abbreviations', () => {
+    expect(channelsPickedSummary(['instagram', 'facebook'])).toBe('IG + FB')
+  })
+})
+
+describe('deliveryChipLabel', () => {
+  it('labels failed deliveries', () => {
+    expect(deliveryChipLabel('failed')).toBe('Failed')
+  })
+})
+
+describe('postFactLine', () => {
+  it('summarizes partly_posted from fixture-shaped deliveries', () => {
+    const line = postFactLine(
+      {
+        state: 'partly_posted',
+        deliveries: [
+          { channel: 'instagram', status: 'posted' },
+          { channel: 'facebook', status: 'failed', last_error: 'postiz create_post: 401' },
+        ],
+        delivery_summary: { picked: 2, posted: 1, failed: 1 },
+      },
+      '2026-10-16',
+      'Thu',
+      '2026-10-16T07:00:00Z',
+    )
+    expect(line).toContain('Posted to 1 of 2')
+    expect(line).toContain('401')
   })
 })
 

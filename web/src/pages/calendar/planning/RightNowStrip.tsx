@@ -1,4 +1,4 @@
-import { deadlineDayLabel, PIN_COLORS } from '../../../lib/planning'
+import { deadlineDayLabel, PIN_COLORS, tierLabel } from '../../../lib/planning'
 import type { PlanningRightNow, PlanningTimelineEvent } from '../../../lib/planningTypes'
 
 function ActivePinList({
@@ -19,7 +19,7 @@ function ActivePinList({
         return (
           <div key={ev.id} className="text-xs leading-snug">
             <span className="font-bold" style={{ color: c.fg }}>
-              {tier}
+              {tierLabel(tier)}
             </span>
             {' · '}
             <button
@@ -120,7 +120,7 @@ export function RightNowStrip({
       <div className="grid gap-4 md:grid-cols-3">
         <div>
           <p className="mb-2 text-[10px] font-bold tracking-widest text-tx3 uppercase">
-            Active A-PINs{' '}
+            Active Major{' '}
             <span className="ml-1 rounded-lg bg-yel/15 px-1.5 py-0.5 text-yel">
               {rightNow.active_a_count || 0}
             </span>
@@ -129,7 +129,7 @@ export function RightNowStrip({
         </div>
         <div>
           <p className="mb-2 text-[10px] font-bold tracking-widest text-tx3 uppercase">
-            Active B-PINs{' '}
+            Active Medium{' '}
             <span className="ml-1 rounded-lg bg-[#14b8a6]/15 px-1.5 py-0.5 text-[#14b8a6]">
               {rightNow.active_b_count || 0}
             </span>

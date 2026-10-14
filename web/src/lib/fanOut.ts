@@ -153,12 +153,35 @@ export function mergePostingWeekPayloads(
   }
   const undated = sortPostsByBrandThenTitle(undatedTagged, orderedBrandIds)
   const counts = sumCounts(okParts.map((p) => p.payload.counts))
+  const gapMap = new Map<string, { post_type?: string; label?: string; count: number; calendar_ids: string[] }>()
+  for (const { payload } of okParts) {
+    for (const row of payload.gaps || []) {
+      const postType = String(row.post_type ?? '')
+      const label = String(row.label ?? 'Gap')
+      const key = `${postType}\0${label}`
+      const bucket = gapMap.get(key) ?? {
+        post_type: postType,
+        label,
+        count: 0,
+        calendar_ids: [] as string[],
+      }
+      bucket.count += row.count ?? 0
+      for (const id of row.calendar_ids ?? []) {
+        if (id && !bucket.calendar_ids.includes(id)) bucket.calendar_ids.push(id)
+      }
+      gapMap.set(key, bucket)
+    }
+  }
+  const gaps = [...gapMap.values()].sort(
+    (a, b) => b.count - a.count || String(a.post_type).localeCompare(String(b.post_type)),
+  )
   return {
     ok: true,
     days_list,
     undated,
     undated_total,
     counts,
+    gaps,
   }
 }
 

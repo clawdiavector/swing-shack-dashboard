@@ -119,7 +119,7 @@ def test_process_image_row_writes_brief_json(l5_app, tmp_path):
     (cal_dir / "swing-shack.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
     item_id = "calendar_candidate:swing-shack:cal-trackman"
 
-    row = {"id": "q1", "action": "draft_image", "status": "pending"}
+    row = {"id": "q1", "action": "draft_image", "status": "pending", "allow_generate": True}
     mock_gen = MagicMock()
     png_path = tmp_path / "draft-assets" / "images" / "out.png"
     png_path.parent.mkdir(parents=True, exist_ok=True)

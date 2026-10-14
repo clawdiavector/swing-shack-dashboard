@@ -15,6 +15,7 @@ import {
   fetchInbox,
   inboxAction,
   inboxChannelLabel,
+  releaseMoment,
   inboxGoesOutIso,
   inboxItemThumbUrl,
   inboxMediaTag,
@@ -26,7 +27,7 @@ import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
 import { TemplateReferenceTag } from '../components/TemplateReferenceTag'
 import { templateMetaFromInbox } from '../lib/templateMeta'
-import { reviewType } from '../lib/reviewType'
+import { publishRequestListMeta, reviewType } from '../lib/reviewType'
 import { useLoadGate } from '../lib/useLoadGate'
 function itemType(item: InboxItem) {
   return (item.type || 'item').toLowerCase()
@@ -196,6 +197,27 @@ function ReviewInbox({
           regenerateTip={regenerateTip}
           busy={draftBusy || busy === firstDraft.id}
           onApprove={() => void act(firstDraft.id, 'approve')}
+          onApproveAndRelease={(channels) =>
+            void runDraftAction(async () => {
+              const calId = firstDraft.meta?.calendar_id
+              const brand = firstDraft.brand_id || brandId
+              if (!calId) {
+                setError('Missing calendar id — open this draft from the shelf.')
+                return false
+              }
+              const approve = await inboxAction(firstDraft.id, 'approve')
+              if (!approve.ok) {
+                setError(approve.error || 'Approve failed')
+                return false
+              }
+              const rel = await releaseMoment(brand, calId, 'christelle', channels)
+              if (!rel.data.ok) {
+                setError(rel.data.error || 'Release failed')
+                return false
+              }
+              return true
+            })
+          }
           onReject={(reason) => void act(firstDraft.id, 'reject', reason)}
           onRegenerate={(note) =>
             void runDraftAction(async () => {
@@ -261,8 +283,12 @@ function ReviewInbox({
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map((item) => {
             const thumb = inboxItemThumbUrl(item)
-            const kind = reviewType(item.type).label
-            const channel = inboxChannelLabel(item)
+            const kind =
+              itemType(item) === 'publish_request'
+                ? publishRequestListMeta(item)
+                : reviewType(item.type).label
+            const channel =
+              itemType(item) === 'publish_request' ? undefined : inboxChannelLabel(item)
             const goesOut = inboxGoesOutIso(item)
             const stateChip =
               item.sla_state === 'stale'

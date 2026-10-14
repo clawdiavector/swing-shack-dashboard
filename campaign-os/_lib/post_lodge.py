@@ -38,7 +38,7 @@ _TZ = ZoneInfo("Africa/Johannesburg")
 _IMAGE_FORMATS = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
 _CAPTION_MAX = 2200  # Instagram's limit; Facebook's is far higher
-_LOCKED_STATES = ("released", "posted")
+_LOCKED_STATES = ("released", "posted", "partly_posted", "send_failed")
 
 
 class LodgeError(ValueError):
@@ -136,6 +136,14 @@ def _validate(brand: str, slug: str, date_s: str, caption: str,
     if channels is not None and (not isinstance(channels, list)
                                  or not all(isinstance(c, str) and c for c in channels)):
         raise LodgeError("channels must be a list of channel names")
+    if channels is not None:
+        from _lib import onepost, publish_sandbox  # noqa: PLC0415
+
+        try:
+            onepost.normalize_picked_channels([str(c) for c in channels], brand)
+        except ValueError as exc:
+            raise LodgeError(str(exc)) from None
+        _ = publish_sandbox
     return day
 
 

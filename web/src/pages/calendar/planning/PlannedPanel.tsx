@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, Calendar, ChevronRight, CircleDot, Clock } from 'lucide-react'
+import { tierLabel } from '../../../lib/planning'
 
 type PlannedItem = {
   event_id?: string
@@ -235,7 +236,7 @@ export function PlannedPanel({
                         <span
                           className={`rounded px-1.5 py-0.5 text-[9px] font-bold tracking-wider uppercase ${tier.bg} ${tier.fg}`}
                         >
-                          {it.tier || '—'}
+                          {tierLabel(it.tier)}
                         </span>
                         <span className="text-[10px] text-tx3">{signedDays(it.days_to_peak)}</span>
                         <ChevronRight className="h-3 w-3 text-tx3" />

@@ -112,28 +112,69 @@ def _rule_matches(when: dict[str, Any], ctx: dict[str, Any]) -> bool:
     return True
 
 
-def select_archetype(brand_id: str, item_id: str) -> dict[str, Any]:
+def _overlay_moment_context(ctx: dict[str, Any], record: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(record, dict):
+        return ctx
+    out = dict(ctx)
+    pinned = str(record.get("template_id") or record.get("archetype_id") or "").strip()
+    if pinned:
+        out["template_id"] = pinned
+    post_type = str(record.get("post_type") or "").strip().lower()
+    if post_type:
+        out["post_type"] = post_type
+    pillars = record.get("pillars")
+    if isinstance(pillars, list) and pillars:
+        out["pillar_in"] = [str(p).strip() for p in pillars if str(p).strip()]
+    elif record.get("pillar_id") or record.get("pillar"):
+        pillar = str(record.get("pillar_id") or record.get("pillar") or "").strip()
+        if pillar:
+            out["pillar_in"] = [pillar]
+    subject = str(record.get("subject") or record.get("topic") or "").strip()
+    if subject:
+        out["subject"] = subject
+    products = record.get("product_ids") or record.get("products") or []
+    if products:
+        out["has_product_item"] = True
+    return out
+
+
+def select_archetype_explained(
+    brand_id: str,
+    item_id: str,
+    *,
+    record: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any] | None, str]:
+    """Return (archetype, how) with how in pinned, rule, default, none."""
     doc = load_archetypes_doc(brand_id)
     selection = doc.get("selection") if isinstance(doc.get("selection"), dict) else {}
-    ctx = _moment_context(brand_id, item_id)
+    ctx = _overlay_moment_context(_moment_context(brand_id, item_id), record)
     archetypes = doc.get("archetypes") or []
     pinned = str(ctx.get("template_id") or "")
     if pinned:
         for row in archetypes:
             if isinstance(row, dict) and str(row.get("id") or "") == pinned:
-                return row
+                return row, "pinned"
     chosen = str(selection.get("default") or "")
+    how = "default"
     for rule in selection.get("rules") or []:
         if not isinstance(rule, dict):
             continue
         when = rule.get("when") if isinstance(rule.get("when"), dict) else {}
         if _rule_matches(when, ctx):
             chosen = str(rule.get("use") or chosen)
+            how = "rule"
     for row in archetypes:
         if isinstance(row, dict) and str(row.get("id") or "") == chosen:
-            return row
+            return row, how
     if archetypes and isinstance(archetypes[0], dict):
-        return archetypes[0]
+        return archetypes[0], "none"
+    return None, "none"
+
+
+def select_archetype(brand_id: str, item_id: str, *, record: dict[str, Any] | None = None) -> dict[str, Any]:
+    archetype, _how = select_archetype_explained(brand_id, item_id, record=record)
+    if isinstance(archetype, dict):
+        return archetype
     return {"id": "", "applies_to": {"needs_photo": True}}
 
 

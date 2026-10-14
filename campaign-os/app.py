@@ -109,6 +109,9 @@ DUAL_AUTH_PATHS = frozenset({
     # Lodge a finished post from Claude Code on any machine (post_lodge.py).
     # Lands it on the shelf; Release stays a session click.
     '/api/posts/lodge',
+    '/api/posts/channels',
+    # Story reposts: Foreman adds links from Telegram with bearer only.
+    '/api/stories',
 })
 
 # Dynamic-segment dual-auth prefixes. Each MUST end in '/' — see _gate comment.
@@ -118,6 +121,7 @@ DUAL_AUTH_PREFIXES = (
     '/api/ops/images-today/',
     '/api/ops/moments/',
     '/api/drafts/',
+    '/api/stories/',
 )
 
 # L4 inbox item actions — approve/reject/edit only (not stub siblings).
@@ -343,6 +347,8 @@ def _is_job_authed():
 def _is_inbox_dual_auth_path(path: str) -> bool:
     """L4 unified inbox: list + lookup + per-item approve/reject/edit."""
     if path == '/api/inbox/unified':
+        return True
+    if path.startswith('/api/inbox/') and path.endswith('/recheck-visual'):
         return True
     if path.startswith('/api/inbox/unified/'):
         if path.endswith(_INBOX_DUAL_AUTH_SUFFIXES):
@@ -14682,6 +14688,50 @@ def publish_sandbox_enqueue_route():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@app.route('/api/stories', methods=['GET', 'POST'])
+def stories_route():
+    """GET lists open story reposts; POST {brand, url, note?, added_by?} adds one (session or job bearer)."""
+    from _lib import story_queue
+
+    if request.method == 'GET':
+        return jsonify({"ok": True, **story_queue.list_items(request.args.get('brand') or None)})
+    body = request.get_json(silent=True) or {}
+    try:
+        item, created = story_queue.add(
+            str(body.get('brand') or ''), str(body.get('url') or ''),
+            str(body.get('note') or ''), str(body.get('added_by') or ''))
+    except story_queue.StoryError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    return jsonify({"ok": True, "created": created, "item": item}), 201 if created else 200
+
+
+@app.route('/api/stories/suggestion', methods=['GET'])
+def stories_suggestion_route():
+    """GET /api/stories/suggestion?brand=<id> — today's story idea (Africa/Johannesburg date)."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from _lib import story_suggestion
+
+    brands = [request.args['brand']] if request.args.get('brand') else ['swing-shack', 'stick']
+    day = datetime.now(ZoneInfo('Africa/Johannesburg')).date()
+    out = [s for b in brands for s in story_suggestion.suggest(b, day)]
+    return jsonify({"ok": True, "suggestions": out})
+
+
+@app.route('/api/stories/<item_id>/<status>', methods=['POST'])
+def stories_status_route(item_id, status):
+    """POST /api/stories/<id>/done (or /open to undo)."""
+    from _lib import story_queue
+
+    try:
+        item = story_queue.set_status(item_id, status)
+    except story_queue.StoryError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except KeyError:
+        return jsonify({"ok": False, "error": "no such story"}), 404
+    return jsonify({"ok": True, "item": item})
+
+
 @app.route('/api/posts/lodge', methods=['POST'])
 def posts_lodge_route():
     """POST /api/posts/lodge — one finished post onto the shelf (session or job bearer).
@@ -14750,7 +14800,9 @@ def posts_lodge_route():
     except Exception as exc:
         _app_log.exception("posts lodge failed")
         return jsonify({"ok": False, "error": f"{type(exc).__name__}: {exc}"}), 500
-    base = request.host_url.rstrip('/')
+    # Railway terminates TLS at its proxy, so request.scheme reads http here.
+    scheme = (request.headers.get('X-Forwarded-Proto') or request.scheme).split(',')[0].strip()
+    base = f"{scheme}://{request.host}"
     result["links"] = {k: base + v for k, v in (result.get("links") or {}).items()}
     result["images"] = {k: base + v for k, v in (result.get("images") or {}).items()}
     return jsonify(result), 200
@@ -14773,11 +14825,15 @@ def publish_release_route():
         from _lib.publish_sandbox import release_moment
 
         brand_id = validate_brand_id(brand_id)
+        channels = body.get("channels")
+        if channels is not None and not isinstance(channels, list):
+            return jsonify({"ok": False, "error": "channels must be a list", "code": "bad_request"}), 400
         result = release_moment(
             brand_id=brand_id,
             calendar_id=calendar_id,
             editor=editor,
             dispatch=is_sandbox_mode(),
+            channels=channels,
         )
     except ValueError as exc:
         return jsonify({"ok": False, "error": str(exc), "code": "bad_request"}), 400
@@ -14793,6 +14849,66 @@ def publish_release_route():
         else:
             status = 400
         return jsonify(result), status
+    return jsonify(result), 200
+
+
+@app.route('/api/posts/channels', methods=['POST'])
+def posts_channels_route():
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or body.get("brand") or "").strip()
+    calendar_id = (body.get("calendar_id") or "").strip()
+    channels = body.get("channels")
+    if not brand_id or not calendar_id or not isinstance(channels, list):
+        return jsonify({"ok": False, "error": "brand_id, calendar_id and channels required", "code": "bad_request"}), 400
+    try:
+        from _lib.brand_validate import validate_brand_id
+        from _lib.publish_sandbox import set_post_channels
+
+        result = set_post_channels(
+            brand_id=validate_brand_id(brand_id),
+            calendar_id=calendar_id,
+            channels=[str(c) for c in channels],
+        )
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc), "code": "bad_request"}), 400
+    if not result.get("ok"):
+        code = str(result.get("code") or "failed")
+        status = 409 if code == "channels_locked" else 400
+        return jsonify(result), status
+    return jsonify(result), 200
+
+
+@app.route('/api/publish/retry', methods=['POST'])
+def publish_retry_route():
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or body.get("brand") or "").strip()
+    calendar_id = (body.get("calendar_id") or "").strip()
+    channel = (body.get("channel") or "").strip()
+    if not brand_id or not calendar_id or not channel:
+        return jsonify({"ok": False, "error": "brand_id, calendar_id and channel required", "code": "bad_request"}), 400
+    try:
+        from _lib.brand_validate import validate_brand_id
+        from _lib.publish_mode import is_sandbox_mode
+        from _lib.publish_sandbox import retry_delivery
+
+        brand_id = validate_brand_id(brand_id)
+        result = retry_delivery(brand_id=brand_id, calendar_id=calendar_id, channel=channel)
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc), "code": "bad_request"}), 400
+    if not result.get("ok"):
+        code = str(result.get("code") or "failed")
+        status = 404 if code == "not_found" else 409
+        return jsonify(result), status
+    if not is_sandbox_mode():
+        from _lib.publish_live import dispatch_now
+
+        key = str(result.get("idempotency_key") or "")
+        if key:
+            dispatch_now([key])
     return jsonify(result), 200
 
 
@@ -18331,10 +18447,10 @@ try:
         from _lib.jobs.publish_dispatch import run as _publish_dispatch_run
         return _publish_dispatch_run(brand=brand)
 
-    def _run_backfill_dual_channel_queue(brand=None):
-        from _lib.jobs.backfill_dual_channel_queue import run as _backfill_run
+    def _run_onepost_backfill(brand=None, apply=False):
+        from _lib.jobs.onepost_backfill import run as _onepost_backfill_run
 
-        return _backfill_run(brand=brand)
+        return _onepost_backfill_run(brand=brand, apply=bool(apply))
 
     def _run_auto_release_job(brand=None):
         from _lib.jobs.auto_release import run as _auto_release_run
@@ -18365,13 +18481,13 @@ try:
         requires_integrations=("postiz",),
     ))
     _register_job(_JobSpec(
-        name="backfill_dual_channel_queue",
-        fn=_run_backfill_dual_channel_queue,
+        name="onepost_backfill",
+        fn=_run_onepost_backfill,
         every_seconds=86400,
         timeout_seconds=180,
         criticality="LOW",
         best_effort=True,
-        writes=("publish-sandbox/",),
+        writes=("publish-sandbox/", "campaign-data.json"),
         brand_mode="global",
     ))
     _JOBS_AVAILABLE = True
@@ -18976,6 +19092,13 @@ def ops_queue_enqueue():
         if not brand_id:
             return jsonify({"ok": False, "error": "item has no brand_id"}), 400
 
+        if action in allowed_actions:
+            from _lib.visual_gate import decide, decision_for_api  # noqa: PLC0415
+
+            gap_decision = decide(brand_id, item_id)
+            if gap_decision.is_gap():
+                return jsonify({"ok": False, "gap": decision_for_api(gap_decision)}), 409
+
         cap_info = _ops_layers_mod.brand_images_today(brand_id)
         if cap_info.get("at_cap"):
             return jsonify({
@@ -19037,6 +19160,8 @@ def api_drafts_regenerate(draft_id: str):
         body = request.get_json(silent=True) or {}
         note = str(body.get("note") or "").strip()
         result = _draft_actions.regenerate_photo(draft_id, note=note)
+        if isinstance(result, dict) and result.get("gap"):
+            return jsonify({"ok": False, "gap": result.get("gap")}), 409
         if result.get("at_cap"):
             return jsonify(result), 409
         if not result.get("ok"):
@@ -19238,6 +19363,52 @@ def oneshot_day_enqueue():
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         _app_log.exception("oneshot_day_enqueue failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/<path:item_id>/recheck-visual', methods=['POST'])
+def inbox_recheck_visual(item_id: str):
+    """Re-run visual_gate.decide(); enqueue image phase when trusted."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+        from _lib.l5_create_enqueue import enqueue_create_actions
+        from _lib.visual_gate import clear_gap_if_trusted, decide, decision_for_api
+
+        item = _unified_inbox_mod.find_item(item_id)
+        if not item:
+            return jsonify({"ok": False, "error": "inbox item not found"}), 404
+        brand_id = str(item.get("brand_id") or "").strip()
+        if not brand_id:
+            return jsonify({"ok": False, "error": "item has no brand_id"}), 400
+
+        decision = decide(brand_id, item_id)
+        payload = {"ok": True, "decision": decision_for_api(decision), "enqueued": []}
+        if decision.is_gap():
+            return jsonify(payload), 200
+
+        clear_gap_if_trusted(brand_id, item_id, decision)
+        from pathlib import Path
+
+        from _lib.jobs.layer5.draft_assets import _read_queue, _write_queue
+
+        rows = _read_queue()
+        enqueued = enqueue_create_actions(
+            item_id=item_id,
+            brand_id=brand_id,
+            reason="recheck-visual",
+            rows=rows,
+            phase="image",
+        )
+        if rows:
+            _write_queue(rows)
+        payload["enqueued"] = enqueued
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_recheck_visual failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -45303,6 +45474,21 @@ def planning_timeline(brand_id):
             # encounters an unserialisable object, the catch returns a
             # traceback via stderr + degraded payload so the SPA still
             # renders the spine.
+            # The operator's own important dates and the golf-moments list:
+            # until now only the Month grid read them.
+            notes_to_show = []
+            try:
+                from _lib.plan_extras import dates_to_note as _dates_to_note
+                note_rows = []
+                for yr in years:
+                    note_rows.extend(_filter_demo_out(_read_important_dates(yr)))
+                    note_rows.extend(_read_golf_moments(yr))
+                notes_to_show = _dates_to_note(
+                    brand_id, note_rows, start_d, end_d,
+                    already_named=[e.get("name") or e.get("title") for e in ordered],
+                )
+            except Exception as note_err:
+                print(f"[timeline] dates_to_note EXC: {type(note_err).__name__}: {note_err}", file=_sys_main.stderr, flush=True)
             try:
                 normalised = _normalize_for_json({
                     "ok": True,
@@ -45312,6 +45498,7 @@ def planning_timeline(brand_id):
                     "years": years,
                     "always_on_pillars": seed_always_on,
                     "events": ordered,
+                    "dates_to_note": notes_to_show,
                     "tier_counts": counts,
                     "source": sources[0] if sources else None,
                     "sources": sources,
@@ -45666,14 +45853,22 @@ def planning_waiting(brand_id):
     What the operator suggested and has not yet added to the Main Calendar,
     soonest first. Read-only; the Plan page lists these at the top so a new
     suggestion does not have to be found through Search Dates. Candidates
-    written by automation stay in Search Dates and are not listed here.
+    written by automation are listed apart, as scout_suggestions: the
+    soonest few with a real date, with probe and test rows left out.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in ("swing-shack", "stick", "bag-drop"):
         return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+    from zoneinfo import ZoneInfo
+    from _lib.plan_extras import scout_suggestions as _scout_suggestions
+    pending = _operator_pending_suggestions(brand_id)
+    scout_picks, scout_count = _scout_suggestions(
+        [r for r in pending if not _typed_by_operator(r)],
+        _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date(),
+    )
     suggestions = []
-    for r in _operator_pending_suggestions(brand_id):
+    for r in pending:
         if not _typed_by_operator(r):
             continue
         suggestions.append({
@@ -45692,6 +45887,8 @@ def planning_waiting(brand_id):
         "brand_id": brand_id,
         "count": len(suggestions),
         "suggestions": suggestions,
+        "scout_suggestions": scout_picks,
+        "scout_count": scout_count,
     }), 200
 
 

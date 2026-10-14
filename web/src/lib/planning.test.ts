@@ -5,6 +5,7 @@ import {
   filterMonthItemsByLane,
   formatLocalIso,
   formatTimelineWindowLabel,
+  laneLabel,
   localTodayIso,
   monthlyThemeLabel,
   shiftPlanningTimelineYear,
@@ -136,3 +137,21 @@ describe('shiftPlanningTimelineYear', () => {
     expect(clampPlanningTimelineYear(2026)).toBe(2026)
   })
 })
+
+describe('laneLabel', () => {
+  it("keeps Stick's series names on Stick", () => {
+    expect(laneLabel('coaching', 'STICK')).toBe('COACHING · Ask Stick')
+    expect(laneLabel('workshop', 'Stick')).toBe('WORKSHOP · Built At Stick')
+  })
+
+  it("drops Stick's series names on other brands", () => {
+    expect(laneLabel('coaching', 'SWING SHACK')).toBe('COACHING')
+    expect(laneLabel('product', 'Bag Drop')).toBe('PRODUCT')
+    expect(laneLabel('paid', 'SWING SHACK')).toBe('PAID')
+  })
+
+  it('falls back to the lane id', () => {
+    expect(laneLabel('unknown-lane', 'STICK')).toBe('unknown-lane')
+  })
+})
+

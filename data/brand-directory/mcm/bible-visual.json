@@ -1,0 +1,16 @@
+{
+  "_schema": "https://campaign-os/brand-directory/bible-visual/v1",
+  "brand_id": "mcm",
+  "version": "0.0-skeleton",
+  "updated": "2026-10-12T00:00:00Z",
+  "confidence": "pending",
+  "voice": "TODO: QUESTION 4 — visual tone (not caption voice)",
+  "philosophy": "TODO: QUESTION 5 — brand visual philosophy",
+  "visual_philosophy": "TODO: QUESTION 5 — colour and layout philosophy (no hex until measured in palette/brand.json)",
+  "composition_rules": [],
+  "anti_patterns": [],
+  "people_policy": "TODO: QUESTION 5 — people / lifestyle / dealership photography policy",
+  "text_policy": "TODO: QUESTION 5 — no model-rendered text / overlay rules",
+  "look_and_feel_keywords": [],
+  "negative_prompts": []
+}

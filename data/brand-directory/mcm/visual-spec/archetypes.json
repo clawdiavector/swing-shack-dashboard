@@ -1,0 +1,43 @@
+{
+  "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
+  "brand_id": "mcm",
+  "version": "0.0-skeleton",
+  "updated": "2026-10-12T00:00:00Z",
+  "source": "TODO: QUESTION 5 — measured from reference posts (campaign-os-template); not invented.",
+  "measured_from": [],
+  "canvases": {
+    "ig_post": {
+      "w": 1080,
+      "h": 1350,
+      "aspect": "4:5",
+      "channels": ["instagram"],
+      "safe_zone": { "x0": 0.05, "y0": 0.04, "x1": 0.95, "y1": 0.96 }
+    },
+    "ig_story": {
+      "w": 1080,
+      "h": 1920,
+      "aspect": "9:16",
+      "channels": ["instagram_story"],
+      "safe_zone": { "x0": 0.05, "y0": 0.16, "x1": 0.95, "y1": 0.84 }
+    },
+    "fb_post": {
+      "w": 1200,
+      "h": 630,
+      "aspect": "1.91:1",
+      "channels": ["facebook"],
+      "safe_zone": { "x0": 0.05, "y0": 0.08, "x1": 0.95, "y1": 0.92 }
+    },
+    "gbp_post": {
+      "w": 1200,
+      "h": 900,
+      "aspect": "4:3",
+      "channels": ["gbp"],
+      "safe_zone": { "x0": 0.06, "y0": 0.06, "x1": 0.94, "y1": 0.94 }
+    }
+  },
+  "archetypes": [],
+  "_archetypes_todo": "TODO: QUESTION 5 — Add measured archetypes under templates/<name>/ then mirror specs here.",
+  "selection": {
+    "rules": []
+  }
+}

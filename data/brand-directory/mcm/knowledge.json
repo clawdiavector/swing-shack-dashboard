@@ -1,0 +1,73 @@
+{
+  "schema_version": "p11c-v2",
+  "brand_id": "mcm",
+  "product_brands": {},
+  "products": [],
+  "visual_references": [],
+  "services": [],
+  "voice_rules": {
+    "source": "TODO: QUESTION 4 — data/brand-directory/mcm/voice/*.md once written",
+    "source_class": "pending_operator",
+    "authority_level": "none",
+    "do_say": [],
+    "dont_say": []
+  },
+  "cta_rules": {
+    "source": "TODO: QUESTION 4 — data/brand-directory/mcm/copy/ctas.md",
+    "source_class": "pending_operator",
+    "authority_level": "none",
+    "default_cta": "TODO: QUESTION 4 — default CTA with URL",
+    "hard_ctas": [],
+    "soft_ctas": []
+  },
+  "verified_facts": {
+    "_todo_audience": {
+      "value": "TODO: QUESTION 1 — verified audience statement",
+      "source": "TODO",
+      "source_path": "data/brand-directory/mcm/README.md",
+      "verified_status": "pending",
+      "confidence": "none"
+    },
+    "_todo_client_relationship": {
+      "value": "TODO: QUESTION 6 — client vs Five Friday ownership and approval chain",
+      "source": "TODO",
+      "verified_status": "pending",
+      "confidence": "none"
+    },
+    "_todo_booking_or_app_url": {
+      "value": "TODO: QUESTION 3 — canonical app / site / lead URL",
+      "source": "TODO",
+      "verified_status": "pending",
+      "confidence": "none"
+    },
+    "banned_fabrications": {
+      "value": "TODO: QUESTION 7 — list banned claim types (rates, approvals, savings guarantees, etc.)",
+      "source": "TODO: QUESTION 7 — compliance doc or operator directive",
+      "verified_status": "pending",
+      "confidence": "none"
+    },
+    "voice_constraints": {
+      "value": "TODO: QUESTION 4 — punctuation, disclaimer, and tone constraints",
+      "source": "data/brand-directory/mcm/voice/",
+      "verified_status": "pending",
+      "confidence": "none"
+    },
+    "tone": {
+      "value": "TODO: QUESTION 4 — one-line tone summary",
+      "source": "TODO",
+      "verified_status": "pending",
+      "confidence": "none"
+    }
+  },
+  "bible_sources": {
+    "mcm_brand_bible": "data/brand-directory/mcm/bible-source.txt",
+    "mcm_commercial_strategy": "data/brand-directory/mcm/strategy-source.txt"
+  },
+  "rules": {
+    "exact_only": "TODO: QUESTION 7 — Only facts in verified_facts can appear in copy until expanded.",
+    "no_fabrication": "TODO: QUESTION 7 — Never invent stats, rates, approvals, or savings without verified source.",
+    "voice_only": "TODO: QUESTION 4 — Voice rules apply to all channels.",
+    "respect_the_reader": "TODO: QUESTION 4 + 7 — No misleading financial or automotive claims."
+  },
+  "verified_at": null
+}

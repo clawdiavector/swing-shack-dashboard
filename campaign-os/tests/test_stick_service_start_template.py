@@ -17,6 +17,7 @@ from _lib.compose_visual_copy import visual_copy_for_archetype
 
 ROOT = Path(__file__).resolve().parents[2]
 PACK = ROOT / "data/brand-directory/stick/templates/service-start"
+REF_PHOTO = PACK / "references" / "ref-01.jpg"
 BRAND = "stick"
 MINT = np.array([0x24, 0xFF, 0xAF])
 NAVY = np.array([0x07, 0x3C, 0x52])
@@ -36,12 +37,13 @@ def _fields(**extra: str) -> dict[str, str]:
 
 
 def _render(arch: dict, channels: list[str], **fields: str) -> dict[str, Image.Image]:
+    photo_bytes = REF_PHOTO.read_bytes() if REF_PHOTO.is_file() else None
     out = compose_post_for_channels(
         brand_id=BRAND,
         archetype=arch,
         channels=channels,
         fields=_fields(**fields),
-        photo_bytes=None,
+        photo_bytes=photo_bytes,
     )
     return {k: Image.open(io.BytesIO(v)).convert("RGB") for k, v in out.items()}
 
@@ -86,11 +88,12 @@ def test_service_word_not_clipped_right(start_arch: dict):
 
 def test_deterministic_render(start_arch: dict):
     f = _fields()
+    photo_bytes = REF_PHOTO.read_bytes() if REF_PHOTO.is_file() else None
     a = compose_post_for_channels(
-        brand_id=BRAND, archetype=start_arch, channels=["instagram"], fields=f, photo_bytes=None
+        brand_id=BRAND, archetype=start_arch, channels=["instagram"], fields=f, photo_bytes=photo_bytes
     )["instagram"]
     b = compose_post_for_channels(
-        brand_id=BRAND, archetype=start_arch, channels=["instagram"], fields=f, photo_bytes=None
+        brand_id=BRAND, archetype=start_arch, channels=["instagram"], fields=f, photo_bytes=photo_bytes
     )["instagram"]
     assert a == b
 
@@ -133,11 +136,12 @@ def test_pack_cases_match_archetype(start_arch: dict):
     cases = json.loads((PACK / "cases.json").read_text(encoding="utf-8"))
     assert len(cases) >= 2
     for case in cases[:2]:
+        photo_bytes = REF_PHOTO.read_bytes() if REF_PHOTO.is_file() else None
         out = compose_post_for_channels(
             brand_id=BRAND,
             archetype=start_arch,
             channels=["instagram"],
             fields=case,
-            photo_bytes=None,
+            photo_bytes=photo_bytes,
         )
         assert out.get("instagram")

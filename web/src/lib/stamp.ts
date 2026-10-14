@@ -110,9 +110,13 @@ export function dayInMonth(raw: string | null | undefined, year: number, month0:
   return d.getDate()
 }
 
-export function stampLabel(kind?: string) {
+/** `raw` is the date being labelled: a "goes out" date already past reads "Was due". */
+export function stampLabel(kind?: string, raw?: string | null) {
   if (kind === 'created') return 'Landed'
-  if (kind === 'goes_out') return 'Goes out'
+  if (kind === 'goes_out') {
+    const d = parseDate(raw)
+    return d && isoDate(d) < isoDate(new Date()) ? 'Was due' : 'Goes out'
+  }
   if (kind === 'scheduled') return 'Goes live'
   if (kind === 'holiday') return 'Public holiday'
   if (kind === 'moment') return 'On the calendar'

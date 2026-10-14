@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any
+from typing import Any, Callable
 
 PHOTO_EQUIV = frozenset({"draft_photo", "draft_image"})
 
@@ -37,7 +37,6 @@ def create_actions_for_moment(
     record: dict[str, Any] | None = None,
 ) -> list[str]:
     """``lodge``: caption (+ gbp) only; ``image``: gen/photo + compose; ``all``: full pipeline."""
-    from _lib.archetypes import select_archetype
     from _lib.publish_sandbox import intended_publish_channels
     from _lib.template_recipe import load_recipe_for_moment
 
@@ -47,10 +46,21 @@ def create_actions_for_moment(
             actions.append("draft_gbp")
         return actions
 
+    cal_record = record if record is not None else _calendar_record_from_item(brand_id, item_id)
+    if phase in ("image", "all"):
+        from _lib.visual_gate import decide  # noqa: PLC0415
+
+        if decide(brand_id, item_id, record=cal_record).is_gap():
+            if phase == "image":
+                return []
+            actions = ["draft_caption"]
+            if "gbp" in intended_publish_channels(brand_id):
+                actions.append("draft_gbp")
+            return actions
+
     image_actions: list[str] = []
     from _lib.marketing_calendar import render_mode_for_record  # noqa: PLC0415
 
-    cal_record = record if record is not None else _calendar_record_from_item(brand_id, item_id)
     if phase in ("image", "all") and render_mode_for_record(cal_record or {}) == "oneshot":
         if phase == "image":
             return ["draft_oneshot"]
@@ -64,14 +74,15 @@ def create_actions_for_moment(
     if isinstance(gen_slots, list) and gen_slots:
         image_actions.append("draft_gen_slots")
     else:
-        archetype = select_archetype(brand_id, item_id)
-        needs_photo = archetype.get("applies_to", {}).get("needs_photo", True)
-        bg = archetype.get("background") if isinstance(archetype.get("background"), dict) else {}
-        template_library = (
-            bg.get("kind") == "photo_full_bleed" and bool(str(bg.get("library") or "").strip())
-        )
-        if needs_photo and not template_library:
+        from _lib.visual_gate import decide  # noqa: PLC0415
+
+        decision = decide(brand_id, item_id, record=cal_record)
+        if decision.background == "real_photo" and decision.photo is not None:
             image_actions.append("draft_photo")
+        elif decision.background == "none":
+            pass
+        elif decision.background == "generated_background":
+            image_actions.append("draft_gen_slots")
     image_actions.append("compose_post")
 
     if phase == "image":
@@ -90,6 +101,7 @@ def enqueue_create_actions(
     reason: str,
     rows: list[dict[str, Any]] | None = None,
     phase: str = "all",
+    on_gap: Callable[..., Any] | None = None,
 ) -> list[str]:
     from _lib import ops_agents
     from _lib.campaigns import provenance_for_inbox_item, write_create_payload  # noqa: PLC0415
@@ -108,7 +120,17 @@ def enqueue_create_actions(
                 continue
             existing.add((str(row.get("action") or ""), str(row.get("status") or "").lower()))
 
-    for action in create_actions_for_moment(brand_id, item_id, phase=phase):
+    cal_record = _calendar_record_from_item(brand_id, item_id)
+    if phase in ("image", "all"):
+        from _lib.visual_gate import decide, record_gap_for_moment  # noqa: PLC0415
+
+        gap_decision = decide(brand_id, item_id, record=cal_record)
+        if gap_decision.is_gap():
+            record_gap_for_moment(brand_id, item_id, gap_decision, rows=rows)
+            if on_gap:
+                on_gap(gap_decision)
+
+    for action in create_actions_for_moment(brand_id, item_id, phase=phase, record=cal_record):
         if already_queued(existing, action):
             continue
         if action == "draft_photo":

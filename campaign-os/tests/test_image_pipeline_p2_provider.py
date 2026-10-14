@@ -218,7 +218,7 @@ def test_cap_reached_skips_provider_http(tmp_path, monkeypatch):
     from _lib.jobs.layer5.image_draft_context import ImageDraftContext
 
     ctx = ImageDraftContext(job="test job", aspect="1024x1024", lineage={"calendar": {"type": "moment"}})
-    row = {"id": "q-cap", "action": "draft_image", "status": "pending"}
+    row = {"id": "q-cap", "action": "draft_image", "status": "pending", "allow_generate": True}
 
     with patch("urllib.request.urlopen", side_effect=_fake_urlopen), patch(
         "_lib.llm_spend.check", return_value=(True, "")

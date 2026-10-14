@@ -1,0 +1,9 @@
+{
+  "schema": "https://campaign-os/ads-video-ideas/v1",
+  "brand_id": "mcm",
+  "status": "skeleton",
+  "written": "2026-10-12",
+  "note": "TODO: QUESTION 4 + 7 — Ideas must be filmable; numbers only if in knowledge.json verified_facts or read on screen during shoot.",
+  "sign_off": "TODO: QUESTION 4 — approved sign-off line if any",
+  "ideas": []
+}

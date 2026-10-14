@@ -1,0 +1,28 @@
+{
+  "post_id": "asset-demo-1",
+  "channels_available": ["instagram", "facebook", "gbp"],
+  "channels_coming": ["youtube", "tiktok"],
+  "channels_picked": ["instagram", "facebook"],
+  "channels_locked": false,
+  "deliveries": [
+    {
+      "channel": "instagram",
+      "status": "posted",
+      "idempotency_key": "qc-asset-demo-1-instagram",
+      "would_publish_at": "2026-10-16T07:00:00Z",
+      "dispatched_at": "2026-10-16T07:01:00Z",
+      "external_id": "pz-ig-1",
+      "attempts": 1,
+      "last_error": null
+    },
+    {
+      "channel": "facebook",
+      "status": "failed",
+      "idempotency_key": "qc-asset-demo-1-facebook",
+      "would_publish_at": "2026-10-16T07:00:00Z",
+      "attempts": 3,
+      "last_error": "postiz create_post: 401 unauthorized"
+    }
+  ],
+  "delivery_summary": { "picked": 2, "posted": 1, "failed": 1, "queued": 0 }
+}
