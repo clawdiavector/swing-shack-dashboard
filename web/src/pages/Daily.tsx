@@ -281,8 +281,10 @@ export function Daily() {
   const mascotLine =
     data && inboxItems
       ? waitingTotal === 0
-        ? 'Desk is clear. Nice.'
-        : `${waitingTotal} thing${waitingTotal === 1 ? '' : 's'} want${waitingTotal === 1 ? 's' : ''} a yes or no.`
+        ? 'Desk is clear. Go get a coffee!'
+        : waitingTotal <= 3
+          ? `Just ${waitingTotal} to go. Easy.`
+          : `${waitingTotal} things want a yes or no. You've got this!`
       : 'Warming up…'
   const tickerItems = (inboxItems || []).slice(0, 7)
   const igWorkedPosts = posts.slice(0, 3)
@@ -404,8 +406,8 @@ export function Daily() {
         <div className="fun-cleared" role="status">
           <Mascot tone="green" />
           <div>
-            <strong>Desk cleared</strong>
-            <span>Nothing is waiting on you. Open Studio if you want to make something.</span>
+            <strong>Desk cleared. Look at you!</strong>
+            <span>Nothing is waiting on you. Open Studio if you feel like making something.</span>
           </div>
         </div>
       ) : null}
@@ -590,7 +592,7 @@ export function Daily() {
             {inboxItems && tickerItems.length === 0 ? (
               <li className="fun-empty">
                 <Mascot tone="blue" />
-                <span>Nothing else waiting. Go to Studio if you want a new draft.</span>
+                <span>All caught up. Fancy making something new? Studio is that way.</span>
               </li>
             ) : null}
             {inboxItems === null && !error ? (

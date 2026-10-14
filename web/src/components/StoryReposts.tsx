@@ -177,13 +177,13 @@ export function StoryReposts({
       {nothing ? (
         <p className="fun-empty" role="status">
           <Mascot tone="blue" />
-          <span>Nothing on the shelf yet. Drop an Instagram or Facebook link above.</span>
+          <span>The shelf is empty and I’m hungry. Feed me a link above.</span>
         </p>
       ) : null}
       {!failed && !openRows.length && doneRows.length ? (
         <p className="fun-empty" role="status">
           <Mascot tone="green" />
-          <span>All shared. Nice work. New links from Foreman will land here.</span>
+          <span>All shared. You’re on fire! New links from Foreman will land here.</span>
         </p>
       ) : null}
     </section>

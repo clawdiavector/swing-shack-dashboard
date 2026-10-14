@@ -13,18 +13,29 @@ const TONE_MAP = { gold: 'gold', green: 'green', blue: 'blue', red: 'violet' } a
 const HOSTS = ['instagram.com', 'instagr.am', 'facebook.com', 'fb.com', 'fb.watch', 'fb.me']
 
 /** Mirrors the server's rule so the chomper can say no before asking. */
+function pick<T>(list: T[]): T {
+  return list[Math.floor(Math.random() * list.length)]
+}
+
+const CHOMPS = [
+  (b: string) => `Chomp! Safe on the ${b} shelf.`,
+  (b: string) => `Nom nom. That's on the ${b} shelf now.`,
+  (b: string) => `Delicious. ${b} shelf, sorted.`,
+  (b: string) => `Gulp. Tucked onto the ${b} shelf.`,
+]
+
 function linkProblem(raw: string): string {
   const text = raw.trim()
-  if (!text) return 'Paste a link first.'
+  if (!text) return 'I’m hungry. Paste a link first.'
   let host = ''
   try {
     host = new URL(text.includes('://') ? text : `https://${text}`).hostname.toLowerCase()
   } catch {
-    return 'That doesn’t look like a link.'
+    return 'Mmm, that doesn’t taste like a link.'
   }
   return HOSTS.some((h) => host === h || host.endsWith(`.${h}`))
     ? ''
-    : 'Only Instagram and Facebook links go on the shelf.'
+    : 'I only eat Instagram and Facebook links. Picky, I know.'
 }
 
 export function Stories() {
@@ -89,28 +100,28 @@ export function Stories() {
     if (busy) return
     const problem = linkProblem(url)
     if (problem) return refuse(problem)
-    if (!brand) return refuse('Pick a brand first.')
+    if (!brand) return refuse('Who’s this one for? Pick a brand.')
     setBusy(true)
     setMsg(null)
     setState('hungry')
     try {
       const res = await addStoryRepost({ brand, url: url.trim(), note: note.trim() })
-      if (!res.ok) return refuse(res.error || 'Couldn’t add that link.')
+      if (!res.ok) return refuse(res.error || 'I choked on that one. Try again?')
       const label = choices.find((c) => c.id === brand)?.label || brand
       if (res.created) {
         setState('munch')
         const r = mouthRef.current?.getBoundingClientRect()
         if (r) burstConfetti(r.left + r.width * 0.12, r.top + r.height / 2, 60)
-        say('ok', `Chomp. On the ${label} shelf.`)
+        say('ok', pick(CHOMPS)(label))
         setUrl('')
         setNote('')
         setRefresh((n) => n + 1)
         setTimeout(() => setState('idle'), 1300)
       } else {
-        refuse(`That link is already on the ${label} shelf.`)
+        refuse(`Burp. I already ate that one. It’s on the ${label} shelf.`)
       }
     } catch {
-      refuse('Couldn’t reach the server. Try again in a minute.')
+      refuse('I choked. Give me a minute and try again.')
     } finally {
       setBusy(false)
     }
@@ -129,7 +140,7 @@ export function Stories() {
   return (
     <div className="space-y-6">
       <PageIntro here="/stories" title="Stories">
-        Found a good post? Drop the link here and it goes on the shelf, ready to share to Stories.
+        Found a good post? Feed me the link and it’s on the shelf, ready to share to Stories.
       </PageIntro>
 
       <div
@@ -150,7 +161,7 @@ export function Stories() {
       >
         <Chomper state={state} />
         <form onSubmit={feed} noValidate>
-          <h2>Drop a link, I’ll put it on the shelf</h2>
+          <h2>Drop a link. I’ll eat it up.</h2>
           <div className="fun-mouth__row">
             <input
               ref={inputRef}
@@ -158,7 +169,7 @@ export function Stories() {
               type="url"
               inputMode="url"
               autoComplete="off"
-              placeholder="https://www.instagram.com/p/…"
+              placeholder="Paste an Instagram or Facebook link"
               aria-label="Instagram or Facebook link"
               value={url}
               onChange={(e) => {
@@ -169,11 +180,11 @@ export function Stories() {
               onBlur={() => setState((s) => (s === 'hungry' ? 'idle' : s))}
             />
             <button className="fun-mouth__go" type="submit" disabled={busy}>
-              {busy ? 'Chewing…' : 'Add to shelf'}
+              {busy ? 'Chewing…' : 'Feed it'}
             </button>
           </div>
           <div className="fun-pick" role="group" aria-label="Which brand is this for?">
-            <span>For</span>
+            <span>Who’s it for?</span>
             {choices.map((c) => (
               <button
                 key={c.id}
@@ -195,14 +206,14 @@ export function Stories() {
               type="text"
               maxLength={280}
               autoComplete="off"
-              placeholder="A note for whoever shares it (optional)"
+              placeholder="Tell whoever shares it what to look for (optional)"
               aria-label="Note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
           </div>
           <p className="fun-mouth__msg" data-kind={msg?.kind} role="status">
-            {msg?.text ?? 'Instagram and Facebook links only. You can also paste anywhere on this page.'}
+            {msg?.text ?? 'Instagram and Facebook only, I’m picky. Paste anywhere on this page and I’ll find it.'}
           </p>
         </form>
       </div>

@@ -46,6 +46,18 @@ const SCHEDULE_BRAND_LABEL: Record<string, string> = {
   stick: 'Stick',
 }
 
+const QUIET_LINES = [
+  'Nothing going out. Room for something fun?',
+  'A blank slate. Fill me up!',
+  'Quiet one. Got a good idea for this day?',
+]
+
+function emptyDayLine(day: PostingWeekDay): string {
+  if (['sat', 'sun'].includes(day.weekday.slice(0, 3).toLowerCase())) return 'Weekend. Nobody posts on weekends, right?'
+  const n = Number(day.date.slice(8, 10)) || 0
+  return QUIET_LINES[n % QUIET_LINES.length]
+}
+
 function DaySection({
   day,
   waitForReads,
@@ -82,7 +94,7 @@ function DaySection({
       {day.posts.length === 0 ? (
         <div className="fun-day-empty space-y-3 text-tx3">
           <Mascot tone="blue" />
-          <p className="font-semibold text-tx2">Nothing going out. Open slot.</p>
+          <p className="font-semibold text-tx2">{emptyDayLine(day)}</p>
           {editable && scheduleBrandIds?.length ? (
             <>
               <p className="text-xs">Adds candidate cards — nothing generates.</p>
