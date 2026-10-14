@@ -195,7 +195,7 @@ export function BrandVisualsLayout({
             {platforms.length > 1 ? (
               <FilterChips options={platformOptions} value={platform} onChange={onPlatformChange} />
             ) : null}
-            {loading ? <p className="text-sm text-tx3">Loading visuals…</p> : null}
+            {loading ? <p className="text-sm text-tx3">Fetching the pictures…</p> : null}
             {!loading && social.length === 0 ? (
               <div className="glass rounded-2xl border border-dashed border-white/15 p-8 text-center">
                 <p className="text-sm text-tx2">Run social ingest to pull the last posts for {brandLabel}.</p>
@@ -419,7 +419,7 @@ export function BrandVisuals() {
   return (
     <div className="space-y-6">
       <PageIntro icon={Images} here="/brand/visuals" title="Brand visuals">
-        Social history, Drive assets, and curated references for one brand at a time.
+        What a brand has posted, what’s in Drive, and the pictures we hold up as the standard. One brand at a time.
       </PageIntro>
       <BrandVisualsLayout
         brandLabel={brandLabel || brandId || 'brand'}

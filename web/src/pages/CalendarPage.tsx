@@ -479,7 +479,7 @@ export function CalendarPage() {
   return (
     <div className="space-y-6">
       <PageIntro icon={CalendarDays} badge="Schedule" here="/calendar" title={monthLabel}>
-        Click a day to see what’s parked, or park a draft on an empty one.
+        Tap a day to see what’s parked there, or park a draft on an empty one.
       </PageIntro>
 
       <div className="flex flex-wrap items-center gap-2">

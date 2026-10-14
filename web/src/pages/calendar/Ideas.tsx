@@ -159,7 +159,7 @@ export function Ideas() {
   return (
     <div className="space-y-6">
       <PageIntro icon={Lightbulb} badge="Backlog" here="/calendar" title="Ideas">
-        Park an idea onto a day — it lands on the calendar grid.
+        Got an idea? Park it on a day and it lands on the calendar.
       </PageIntro>
 
       <HeroPanel
@@ -202,7 +202,7 @@ export function Ideas() {
       ) : null}
 
       {loading ? (
-        <p className="text-sm text-tx3">Loading ideas…</p>
+        <p className="text-sm text-tx3">Rummaging for ideas…</p>
       ) : (
         <ul className="space-y-2">
           {rows.map((row, i) => {

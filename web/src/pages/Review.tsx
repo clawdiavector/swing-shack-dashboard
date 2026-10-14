@@ -375,7 +375,7 @@ export function Review() {
           </Button>
         }
       >
-        Draft-ready posts on your desk. Candidates live on{' '}
+        Posts waiting for your yes or no. Dates to decide live in{' '}
         <Link to="/inbox" className="font-semibold text-ac hover:underline">
           Inbox
         </Link>

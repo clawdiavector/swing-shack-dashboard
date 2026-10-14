@@ -387,7 +387,7 @@ export function Daily() {
           </a>
         }
       >
-        {summary || 'Loading your decisions for today…'}
+        {summary || 'Pulling together today’s decisions…'}
       </PageIntro>
 
       <StoryReposts brandIds={isAll ? undefined : brandIds} />
@@ -476,7 +476,7 @@ export function Daily() {
                 })
               : inboxFailed
                 ? 'Today’s counts did not load.'
-                : 'Loading today’s desk…'
+                : 'Setting out today’s desk…'
           }
           meta={asOf ? `As of ${formatStamp(asOf)}` : undefined}
           art={
