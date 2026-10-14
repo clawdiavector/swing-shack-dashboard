@@ -1222,6 +1222,8 @@ def propose_product_calendar(
         stock = p.get("stock_quantity", 0)
         if stock <= 2:
             score += 20  # scarce — feature before sold-out
+        # Weekly stock list: still / heavy / new stock earns feed time, thin stock loses it
+        score += p.get("feed_boost", 0)
         # Lower price point gets a small boost for accessibility
         price = p.get("price", 0)
         if 0 < price < 100:
