@@ -14718,6 +14718,17 @@ def stories_suggestion_route():
     return jsonify({"ok": True, "suggestions": out})
 
 
+@app.route('/api/stories/candidates', methods=['GET'])
+def stories_candidates_route():
+    """GET /api/stories/candidates?brand=<id>[&refresh=1] — specific recent posts worth reposting."""
+    from _lib import story_scout
+
+    brand = request.args.get('brand') or ''
+    if not brand:
+        return jsonify({"ok": False, "error": "brand is required"}), 400
+    return jsonify({"ok": True, **story_scout.candidates(brand, refresh=request.args.get('refresh') == '1')})
+
+
 @app.route('/api/stories/<item_id>/<status>', methods=['POST'])
 def stories_status_route(item_id, status):
     """POST /api/stories/<id>/done (or /open to undo)."""
