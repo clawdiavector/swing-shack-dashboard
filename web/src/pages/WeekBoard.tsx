@@ -164,6 +164,9 @@ export function WeekBoard() {
   const load = useCallback(() => {
     const run = async (): Promise<void> => {
       setFailures([])
+      // The brand list loads after first paint. Fetching with no brands merges nothing
+      // and flashed "Failed to load week" until the real load landed.
+      if (isAll && brandIds.length === 0) return
       if (isAll) {
         const { payloads, failures: fails } = await fanOutPayloads(brandIds, (brandId) =>
           fetchPostingWeek(brandId, weekFetchOpts),

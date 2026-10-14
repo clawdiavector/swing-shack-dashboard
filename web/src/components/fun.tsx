@@ -10,10 +10,10 @@ export type FunTone = 'gold' | 'green' | 'blue' | 'violet'
 /** Friendly blob that lives in the corner of Today. Colour follows the tone. */
 export function Mascot({ tone = 'gold', className = '' }: { tone?: FunTone; className?: string }) {
   const fill = {
-    gold: 'var(--color-yel)',
-    green: 'var(--color-ac)',
-    blue: 'var(--color-blu)',
-    violet: 'var(--color-lane-paid)',
+    gold: 'var(--play-gold, var(--color-yel))',
+    green: 'var(--play-green, var(--color-ac))',
+    blue: 'var(--play-blue, var(--color-blu))',
+    violet: 'var(--play-violet, var(--color-lane-paid))',
   }[tone]
   return (
     <svg className={`fun-mascot ${className}`} viewBox="0 0 120 120" aria-hidden>
