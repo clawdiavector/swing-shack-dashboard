@@ -240,6 +240,34 @@
 }
 .fun-day-empty .fun-mascot { width: 3.2rem; }
 
+/* Stories to share */
+.fun-stories { border-radius: 1.6rem; border: 2px solid var(--color-bd); background: var(--color-bg2); padding: 1rem 1.1rem; }
+.fun-stories__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.fun-stories__title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; }
+.fun-stories__count { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: 700; color: var(--color-tx2); }
+.fun-stories__count .fun-dots { margin: 0; }
+.fun-stories__count .fun-dots i { --tone: var(--color-ac); width: 8px; height: 8px; }
+.fun-story, .fun-idea {
+  --tone: var(--color-tx3);
+  border-radius: 1.2rem;
+  border: 2px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  background: color-mix(in srgb, var(--tone) 13%, var(--color-bg2));
+  padding: 0.6rem 0.8rem;
+  transition: transform 0.28s cubic-bezier(0.3, 1.7, 0.5, 1), opacity 0.28s ease, border-color 0.18s ease;
+}
+.fun-story[data-tone='gold'], .fun-idea[data-tone='gold'] { --tone: var(--color-yel); }
+.fun-story[data-tone='green'], .fun-idea[data-tone='green'] { --tone: var(--color-ac); }
+.fun-story[data-tone='blue'], .fun-idea[data-tone='blue'] { --tone: var(--color-blu); }
+.fun-story[data-tone='violet'], .fun-idea[data-tone='violet'] { --tone: var(--color-lane-paid); }
+.fun-idea { border-style: dashed; }
+.fun-story:hover { transform: translateY(-2px) rotate(-0.3deg); border-color: var(--tone); }
+.fun-story[data-leaving='true'] { transform: scale(0.9) rotate(3deg); opacity: 0; }
+.fun-story--done { border-style: dotted; background: transparent; }
+.fun-story--done:hover { transform: none; }
+.fun-story__done { background: var(--tone); color: var(--color-bg); transition: transform 0.2s cubic-bezier(0.3, 1.7, 0.5, 1); }
+.fun-story__done:hover { transform: scale(1.07) rotate(-2deg); }
+.fun-story__done:active { transform: scale(0.94); }
+
 @keyframes fun-pop { from { transform: scale(0.6); opacity: 0; } }
 @keyframes fun-bob { 50% { transform: translateY(-5px) rotate(2deg); } }
 @keyframes fun-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
@@ -261,11 +289,16 @@
   .fun-ticker > *,
   .fun-shortcuts > *,
   .fun-cleared,
+  .fun-story,
+  .fun-idea,
+  .fun-story__done,
   .fun-day-pill,
   .fun-gap-chips > li {
     animation: none !important;
     transition: none !important;
   }
+  .fun-story:hover,
+  .fun-story__done:hover,
   .fun-day-pill:hover,
   .fun-gap-chips > li:hover,
   .fun-tile:hover,

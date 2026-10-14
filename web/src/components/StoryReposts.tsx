@@ -1,5 +1,10 @@
 import { CheckCircle2, ExternalLink, Undo2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import '../fun.css'
+import { burstConfetti } from '../lib/confetti'
+import { toneFor } from '../lib/brandTone'
+import { Mascot, type FunTone } from './fun'
+import { useBrand } from './BrandSwitch'
 import {
   fetchStoryReposts,
   fetchStorySuggestions,
@@ -9,12 +14,20 @@ import {
 } from '../lib/api'
 import { BrandChip } from './BrandChip'
 
+const TONE_MAP = { gold: 'gold', green: 'green', blue: 'blue', red: 'violet' } as const
+
 /** Links people sent Foreman to share to Stories. Tap, use the app's own "Share to story", tick off. */
 export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
   const [open, setOpen] = useState<StoryRepost[]>([])
   const [done, setDone] = useState<StoryRepost[]>([])
   const [ideas, setIdeas] = useState<StorySuggestion[]>([])
   const [failed, setFailed] = useState(false)
+  const [leaving, setLeaving] = useState<string | null>(null)
+  const { brands } = useBrand()
+  const toneOf = (brandId: string): FunTone => {
+    const row = brands.find((b) => b.id === brandId)
+    return TONE_MAP[row?.tone ?? toneFor(brandId, row?.label || brandId, 0)]
+  }
 
   const load = useCallback(() => {
     fetchStoryReposts()
@@ -37,10 +50,16 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
   const doneRows = done.filter(keep)
   const ideaRows = ideas.filter((i) => !brandIds?.length || brandIds.includes(i.brand))
 
-  async function mark(id: string, status: 'open' | 'done') {
+  async function mark(id: string, status: 'open' | 'done', at?: { x: number; y: number }) {
+    if (status === 'done') {
+      if (at) burstConfetti(at.x, at.y, 45)
+      setLeaving(id)
+      await new Promise((r) => setTimeout(r, 280))
+    }
     try {
       await setStoryRepostStatus(id, status)
     } finally {
+      setLeaving(null)
       load()
     }
   }
@@ -49,16 +68,33 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
 
   return (
     <section
-      className="space-y-3 rounded-2xl border border-bd bg-surface/40 px-4 py-3"
+      className="fun-stories space-y-3"
       aria-label="Stories to share"
       data-testid="story-reposts"
     >
-      <p className="text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">Stories to share</p>
+      <div className="fun-stories__head">
+        <p className="fun-stories__title">Stories to share</p>
+        {openRows.length + doneRows.length > 0 ? (
+          <span className="fun-stories__count" aria-label={`${doneRows.length} shared today, ${openRows.length} to go`}>
+            {doneRows.length} shared
+            <span aria-hidden className="fun-dots">
+              {[...doneRows.map(() => true), ...openRows.map(() => false)].slice(0, 10).map((on, i) => (
+                <i key={i} data-on={on} />
+              ))}
+            </span>
+            {openRows.length} to go
+          </span>
+        ) : null}
+      </div>
       {failed ? <p className="text-sm text-tx2">Couldn’t load the story list. Try again in a minute.</p> : null}
       {ideaRows.length ? (
         <ul className="space-y-2" aria-label="Today's idea">
           {ideaRows.map((i) => (
-            <li key={`${i.brand}-${i.kind}`} className="flex flex-wrap items-center gap-2 text-sm text-tx2">
+            <li
+              key={`${i.brand}-${i.kind}`}
+              className="fun-idea flex flex-wrap items-center gap-2 text-sm text-tx2"
+              data-tone={toneOf(i.brand)}
+            >
               <BrandChip brandId={i.brand} />
               <span className="font-semibold text-tx">
                 {i.kind === 'moment' ? 'Golf moment' : i.kind === 'service' ? 'Service' : 'Retail'}: {i.feature}
@@ -81,7 +117,12 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
       ) : null}
       <ul className="space-y-2">
         {openRows.map((r) => (
-          <li key={r.id} className="flex flex-wrap items-center gap-2">
+          <li
+            key={r.id}
+            className="fun-story flex flex-wrap items-center gap-2"
+            data-tone={toneOf(r.brand)}
+            data-leaving={leaving === r.id ? 'true' : undefined}
+          >
             <BrandChip brandId={r.brand} />
             <a
               href={r.url}
@@ -95,8 +136,11 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
             {r.added_by ? <span className="text-xs text-tx3">from {r.added_by}</span> : null}
             <button
               type="button"
-              onClick={() => mark(r.id, 'done')}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-sm font-semibold text-tx2 hover:border-ac hover:text-ac"
+              onClick={(e) => {
+                const b = e.currentTarget.getBoundingClientRect()
+                void mark(r.id, 'done', { x: b.left + b.width / 2, y: b.top + b.height / 2 })
+              }}
+              className="fun-story__done ml-auto inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-bold"
             >
               <CheckCircle2 className="h-4 w-4" />
               Shared
@@ -104,7 +148,7 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
           </li>
         ))}
         {doneRows.map((r) => (
-          <li key={r.id} className="flex flex-wrap items-center gap-2 text-tx3 line-through">
+          <li key={r.id} className="fun-story fun-story--done flex flex-wrap items-center gap-2 text-tx3 line-through">
             <BrandChip brandId={r.brand} />
             <span className="text-sm">{r.note || r.url}</span>
             <button
@@ -119,6 +163,12 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
           </li>
         ))}
       </ul>
+      {!failed && !openRows.length && doneRows.length ? (
+        <p className="fun-empty" role="status">
+          <Mascot tone="green" />
+          <span>All shared. Nice work. New links from Foreman will land here.</span>
+        </p>
+      ) : null}
     </section>
   )
 }
