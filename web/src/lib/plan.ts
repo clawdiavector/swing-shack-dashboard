@@ -43,6 +43,8 @@ export type Plan = {
   status: 'proposed' | 'approved' | 'superseded'
   /** The shape chosen for this kind of date, and why. */
   profile?: PlanProfile
+  /** The kind of date, whatever shape the plan was given. */
+  event_kind?: string
   profile_label?: string
   profile_reason?: string
   approved_at?: string | null
@@ -146,6 +148,15 @@ export const approvePlan = (brand: string, planId: string) =>
 const NAME_KEY = 'cos_actor_name'
 
 /** The calendar books a slot only for a named person. Ask once, remember it. */
+/** The name already given, without asking for it. */
+export function savedActorName(): string {
+  try {
+    return window.localStorage.getItem(NAME_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+
 export function actorName(ask: (q: string) => string | null = (q) => window.prompt(q)): string {
   try {
     const saved = window.localStorage.getItem(NAME_KEY)

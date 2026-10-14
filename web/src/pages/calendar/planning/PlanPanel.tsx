@@ -1,5 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import { EventTypeIcon } from '../../../components/EventTypeIcon'
+import { MessageComposer } from './MessageComposer'
+import { shootRequest, shootSteps, signOffMessage } from '../../../lib/planMessages'
 import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { useCallback, useEffect, useState } from 'react'
 import {
@@ -19,6 +21,7 @@ import {
   formatDay as formatPlanDate,
   findPlan,
   proposePlan,
+  savedActorName,
   reopenPlan,
   splitItems,
   todayIso,
@@ -41,11 +44,14 @@ function ItemRow({
   today,
   locked,
   onSave,
+  onCopyRequest,
 }: {
   item: PlanItem
   today: string
   locked: boolean
   onSave: (patch: PlanItemPatch) => Promise<string | null>
+  /** Shoot steps only: open the message to whoever is doing the shoot. */
+  onCopyRequest?: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(item.title)
@@ -158,6 +164,11 @@ function ItemRow({
         {err ? <p className="text-xs text-red">{err}</p> : null}
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-1 text-xs">
+        {onCopyRequest ? (
+          <button type="button" className={btnQuiet} onClick={onCopyRequest} data-testid="plan-step-copy-request">
+            Copy request
+          </button>
+        ) : null}
         {locked ? (
           <button
             type="button"
@@ -256,6 +267,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [composer, setComposer] = useState<{ kind: 'shoot'; stepIds: string[] } | { kind: 'signoff' } | null>(null)
   const today = todayIso()
 
   const take = useCallback((r: PlanResult): string | null => {
@@ -379,6 +391,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
             today={today}
             locked={approved}
             onSave={async (patch) => take(await editPlanItem(brandId, plan.plan_id, it.item_id, patch))}
+            onCopyRequest={it.kind === 'shoot' ? () => setComposer({ kind: 'shoot', stepIds: [it.item_id] }) : undefined}
           />
         ))}
       </ul>
@@ -508,6 +521,24 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
             </select>
           </>
         )}
+        {shootSteps(plan).length ? (
+          <button
+            type="button"
+            className={btnQuiet}
+            onClick={() => setComposer({ kind: 'shoot', stepIds: shootSteps(plan).map((i) => i.item_id) })}
+            data-testid="plan-copy-shoot"
+          >
+            Copy shoot request
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={btnQuiet}
+          onClick={() => setComposer({ kind: 'signoff' })}
+          data-testid="plan-copy-signoff"
+        >
+          Copy for sign-off
+        </button>
         {!approved && blocker ? (
           <span className="text-xs text-tx3" data-testid="plan-blocker">
             {blocker}
@@ -515,6 +546,38 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
         ) : null}
         {error ? <span className="text-xs text-red">{error}</span> : null}
       </div>
+
+      {composer?.kind === 'shoot' ? (
+        <MessageComposer
+          key={`shoot-${composer.stepIds.join(',')}`}
+          title="Shoot request"
+          intro="For whoever is shooting: the venue, the shop or the facility. Change anything, then copy it. Nothing is sent from here."
+          fields={[
+            { key: 'facility', label: 'Who is it for?', placeholder: 'e.g. Pieter' },
+            { key: 'sendTo', label: 'Where should they send it?', placeholder: 'e.g. Christelle on WhatsApp', remember: true },
+          ]}
+          build={(v) =>
+            shootRequest({
+              plan,
+              steps: plan.items.filter((i) => composer.stepIds.includes(i.item_id)),
+              facility: v.facility,
+              sendTo: v.sendTo,
+              today,
+            })
+          }
+          onClose={() => setComposer(null)}
+        />
+      ) : null}
+      {composer?.kind === 'signoff' ? (
+        <MessageComposer
+          key="signoff"
+          title="Plan for sign-off"
+          intro="The whole plan, written out for someone to read and approve. Change anything, then copy it. Nothing is sent from here."
+          fields={[{ key: 'to', label: 'Who is it for?', placeholder: 'e.g. Kyle' }]}
+          build={(v) => signOffMessage({ plan, to: v.to, from: savedActorName(), today })}
+          onClose={() => setComposer(null)}
+        />
+      ) : null}
     </div>
   )
 }
