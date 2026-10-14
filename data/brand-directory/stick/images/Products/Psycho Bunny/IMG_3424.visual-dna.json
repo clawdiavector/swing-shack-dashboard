@@ -1,0 +1,10 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/stick/images/IMG_3424.HEIC",
+  "error": "cannot identify image file 'C:\\\\Users\\\\Juan\\\\swing-shack-dashboard\\\\data\\\\brand-directory\\\\stick\\\\images\\\\IMG_3424.HEIC'",
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}
