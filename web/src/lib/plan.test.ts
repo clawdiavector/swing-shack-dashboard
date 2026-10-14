@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { approveBlocker, dueLabel, splitItems, type Plan, type PlanItem } from './plan'
+import { approveBlocker, boostBudget, dueLabel, formatRand, splitItems, type Plan, type PlanItem } from './plan'
 
 const item = (over: Partial<PlanItem>): PlanItem => ({
   item_id: 'it-1',
@@ -74,5 +74,25 @@ describe('approveBlocker', () => {
   })
   it('blocks an empty plan', () => {
     expect(approveBlocker(plan([item({ status: 'removed' })]))).toMatch(/removed/)
+  })
+})
+
+describe('boost budget', () => {
+  it('formats rand with gaps between thousands', () => {
+    expect(formatRand(0)).toBe('R0')
+    expect(formatRand(250)).toBe('R250')
+    expect(formatRand(1500)).toBe('R1 500')
+    expect(formatRand(1234567)).toBe('R1 234 567')
+    expect(formatRand(250.5)).toBe('R250.5')
+  })
+  it('adds up the live boosts and counts those with no budget', () => {
+    const items = [
+      item({ item_id: 'a', kind: 'boost', budget: 1000 }),
+      item({ item_id: 'b', kind: 'boost' }),
+      item({ item_id: 'c', kind: 'boost', budget: 500, status: 'removed' }),
+      item({ item_id: 'd', kind: 'post', budget: 99 }),
+    ]
+    expect(boostBudget(items)).toEqual({ total: 1000, boosts: 2, missing: 1 })
+    expect(boostBudget([item({ kind: 'post' })])).toEqual({ total: 0, boosts: 0, missing: 0 })
   })
 })

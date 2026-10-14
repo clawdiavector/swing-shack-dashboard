@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { planStatusLine, stepChipLabel, stepWhen, stepsByDay, type PlanStep } from './planSteps'
+import { planStatusLine, stepChipLabel, stepEditable, stepWhen, stepsByDay, type PlanStep } from './planSteps'
 
 const s = (key: string, date: string, over: Partial<PlanStep> = {}): PlanStep => ({
   key,
@@ -33,5 +33,12 @@ describe('labels', () => {
   it('says where the plan has got to', () => {
     expect(planStatusLine(s('a', '2027-02-02'))).toMatch(/Draft plan/)
     expect(planStatusLine(s('a', '2027-02-02', { plan_status: 'approved' }))).toMatch(/not on the calendar yet/)
+  })
+})
+
+describe('stepEditable', () => {
+  it('lets a draft plan be changed from the grid, and no other', () => {
+    expect(stepEditable(s('a', '2027-02-02'))).toBe(true)
+    expect(stepEditable(s('a', '2027-02-02', { plan_status: 'approved' }))).toBe(false)
   })
 })

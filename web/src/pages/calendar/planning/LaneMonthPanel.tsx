@@ -442,7 +442,7 @@ export function LaneMonthPanel({
                     <LaneChip key={`${it.title}-${idx}`} lane={it.lane} title={it.title} status={it.status} kind={it.kind} />
                   ))}
                   {steps.map((st) => (
-                    <PlanStepChip key={st.key} s={st} />
+                    <PlanStepChip key={st.key} s={st} brandId={brandId} />
                   ))}
                   {ghosts.map((g) => (
                     <GhostChip

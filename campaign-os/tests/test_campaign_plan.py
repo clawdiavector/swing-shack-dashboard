@@ -241,3 +241,34 @@ def test_late_is_worked_out_when_read_not_frozen_at_creation(monkeypatch):
     # the month list uses the same rule
     steps = cp.month_steps("stick", date(2026, 11, 1), date(2026, 12, 31))
     assert any(s["late"] for s in steps)
+
+
+def test_a_boost_can_carry_a_planned_budget_and_nothing_else_can():
+    p = cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY)["plan"]
+    boost = next(i for i in p["items"] if i["kind"] == "boost")
+    post = next(i for i in p["items"] if i["kind"] == "post")
+    ok = cp.edit_item("stick", p["plan_id"], boost["item_id"], {"budget": "1,500"})
+    assert ok["ok"] and ok["item"]["budget"] == 1500
+    assert cp.edit_item("stick", p["plan_id"], boost["item_id"], {"budget": "R 250.50"})["item"]["budget"] == 250.5
+    for bad in ("lots", -5, "NaN", 2_000_000):
+        assert not cp.edit_item("stick", p["plan_id"], boost["item_id"], {"budget": bad})["ok"]
+    assert not cp.edit_item("stick", p["plan_id"], post["item_id"], {"budget": 100})["ok"]
+    cleared = cp.edit_item("stick", p["plan_id"], boost["item_id"], {"budget": ""})
+    assert cleared["ok"] and cleared["item"]["budget"] is None
+    added = cp.add_item("stick", p["plan_id"], {"title": "Second boost", "due": "2026-12-08", "kind": "boost", "budget": 800})
+    assert added["ok"] and added["item"]["budget"] == 800
+    assert not cp.add_item("stick", p["plan_id"], {"title": "A post", "due": "2026-12-08", "kind": "post", "budget": 800})["ok"]
+
+
+def test_the_budget_goes_onto_the_calendar_entry_and_the_month_steps():
+    p = cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY)["plan"]
+    boost = next(i for i in p["items"] if i["kind"] == "boost")
+    cp.edit_item("stick", p["plan_id"], boost["item_id"], {"budget": 1200})
+    steps = cp.month_steps("stick", date(2026, 11, 1), date(2026, 12, 31))
+    assert [s["budget"] for s in steps if s["step"] == "boost"] == [1200]
+    cp.approve_plan("stick", p["plan_id"])
+    rows = []
+    cp.place_on_calendar("stick", p["plan_id"],
+                         add_record=lambda b, r, s: rows.append(r) or dict(r, calendar_id=f"c{len(rows)}"))
+    boost_row = next(r for r in rows if r["plan_item_kind"] == "boost")
+    assert boost_row["planned_budget_zar"] == 1200 and "R1,200" in boost_row["angle"]

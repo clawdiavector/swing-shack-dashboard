@@ -38,7 +38,24 @@ ITEM_KINDS = ("research", "decide", "shoot", "edit", "review", "post",
               "story", "boost")
 ITEM_STATUSES = ("proposed", "kept", "removed", "done")
 KIND_RANK = {k: i for i, k in enumerate(ITEM_KINDS)}
-EDITABLE_ITEM_FIELDS = ("title", "due", "kind", "channel", "note", "owner")
+EDITABLE_ITEM_FIELDS = ("title", "due", "kind", "channel", "note", "owner", "budget")
+
+# A boost's planned budget, in rand. A plan only records the number: nothing is
+# spent, and nothing is sent to Meta, from here.
+MAX_BUDGET = 1_000_000
+
+
+def parse_budget(v):
+    """(ok, value, error). Empty clears the budget; otherwise a number from 0 up."""
+    if v is None or (isinstance(v, str) and not v.strip()):
+        return True, None, ""
+    try:
+        n = float(str(v).replace(",", "").replace("R", "").strip())
+    except ValueError:
+        return False, None, "budget must be a number of rand"
+    if n != n or n < 0 or n > MAX_BUDGET:   # n != n catches NaN
+        return False, None, f"budget must be between 0 and {MAX_BUDGET:,}"
+    return True, (int(n) if n == int(n) else round(n, 2)), ""
 
 
 
@@ -265,6 +282,7 @@ def month_steps(brand_id: str, first: date, last: date) -> list[dict]:
             if i.get("status") == "removed" or not due or not first <= due <= last:
                 continue
             out.append({
+                "budget": i.get("budget"),
                 "key": f"{p['plan_id']}:{i['item_id']}",
                 "plan_id": p["plan_id"],
                 "item_id": i["item_id"],
@@ -343,6 +361,12 @@ def edit_item(brand_id: str, plan_id: str, item_id: str, patch: dict,
             if not d:
                 return {"ok": False, "error": "due must be YYYY-MM-DD"}
             v = d.isoformat()
+        elif k == "budget":
+            ok, v, why = parse_budget(v)
+            if not ok:
+                return {"ok": False, "error": why}
+            if v is not None and item["kind"] != "boost":
+                return {"ok": False, "error": "only a boost carries a budget"}
         elif k not in EDITABLE_ITEM_FIELDS:
             return {"ok": False, "error": f"cannot edit field: {k}"}
         if item.get(k) != v:
@@ -375,6 +399,11 @@ def add_item(brand_id: str, plan_id: str, item: dict,
         return {"ok": False, "error": "title and due (YYYY-MM-DD) required"}
     if kind not in ITEM_KINDS:
         return {"ok": False, "error": f"invalid kind: {kind}"}
+    ok, budget, why = parse_budget(item.get("budget"))
+    if not ok:
+        return {"ok": False, "error": why}
+    if budget is not None and kind != "boost":
+        return {"ok": False, "error": "only a boost carries a budget"}
     ev = _parse_date(plan["event_date"])
     new = {
         "item_id": "it-" + uuid.uuid4().hex[:8],
@@ -390,6 +419,8 @@ def add_item(brand_id: str, plan_id: str, item: dict,
         "status": "kept",
         "source": "operator",
     }
+    if budget is not None:
+        new["budget"] = budget
     plan["items"].append(new)
     plan["items"].sort(key=lambda i: (i["due"], i["kind"]))
     _log(plan, actor, "added item", new["item_id"])
@@ -464,7 +495,9 @@ def _calendar_record(plan: dict, item: dict) -> dict:
         "event_start": item["due"],
         "event_end": item["due"],
         "primary_channel": item.get("channel") or "",
-        "angle": item.get("note") or "",
+        "angle": (item.get("note") or "")
+        + (f" Planned budget: R{item['budget']:,}." if item.get("budget") else ""),
+        "planned_budget_zar": item.get("budget"),
         "source_type": "operator",
         "created_by": "plan:" + plan["plan_id"],
         "plan_id": plan["plan_id"],

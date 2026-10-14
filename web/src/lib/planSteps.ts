@@ -16,6 +16,8 @@ export type PlanStep = {
   event_date: string
   event_kind: string
   plan_status: 'proposed' | 'approved'
+  /** A boost's planned budget in rand. */
+  budget?: number | null
 }
 
 export async function fetchPlanSteps(brand: string, month: string): Promise<PlanStep[]> {
@@ -48,6 +50,11 @@ export function planStatusLine(s: PlanStep): string {
   return s.plan_status === 'approved'
     ? 'Plan approved, not on the calendar yet.'
     : 'Draft plan. Nothing is scheduled.'
+}
+
+/** Whether a step can be changed from the grid: only while its plan is a draft. */
+export function stepEditable(s: PlanStep): boolean {
+  return s.plan_status === 'proposed'
 }
 
 export function stepWhen(s: PlanStep): string {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 export const CARD_W = 256
@@ -37,20 +37,35 @@ export function HoverChip({
 }) {
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
   const chipRef = useRef<HTMLSpanElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   const timer = useRef<number | undefined>(undefined)
   const open = pos !== null
+
+  // The visual viewport is what the person sees; it is narrower than the
+  // layout viewport when the page overflows sideways.
+  const viewport = () => {
+    const vv = window.visualViewport
+    return vv
+      ? { w: vv.width, h: vv.height, x: vv.offsetLeft }
+      : { w: window.innerWidth, h: window.innerHeight }
+  }
 
   const show = () => {
     window.clearTimeout(timer.current)
     const r = chipRef.current?.getBoundingClientRect()
-    // The visual viewport is what the person sees; it is narrower than the
-    // layout viewport when the page overflows sideways.
-    const vv = window.visualViewport
-    const view = vv
-      ? { w: vv.width, h: vv.height, x: vv.offsetLeft }
-      : { w: window.innerWidth, h: window.innerHeight }
-    if (r) setPos(cardPosition(r, view))
+    if (r) setPos(cardPosition(r, viewport()))
   }
+
+  // Cards differ in height (the plan step card has an edit section), so once one
+  // is drawn, place it again using its real height.
+  const shown = pos !== null
+  useLayoutEffect(() => {
+    const card = cardRef.current
+    const r = chipRef.current?.getBoundingClientRect()
+    if (!shown || !card || !r) return
+    const next = cardPosition(r, viewport(), card.offsetHeight)
+    setPos((cur) => (cur && (Math.abs(cur.top - next.top) > 2 || Math.abs(cur.left - next.left) > 2) ? next : cur))
+  }, [shown])
   const hideSoon = () => {
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => setPos(null), 180)
@@ -98,6 +113,7 @@ export function HoverChip({
       {pos
         ? createPortal(
             <div
+              ref={cardRef}
               role="dialog"
               aria-label={cardLabel}
               data-testid={cardTestId}

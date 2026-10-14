@@ -26,6 +26,8 @@ export type PlanItem = {
   needs_real_video: boolean
   late: boolean
   status: PlanItemStatus
+  /** A boost's planned budget in rand. Only a number here: nothing is spent from the plan. */
+  budget?: number | null
   /** Set once the step is on the Main Calendar; '' otherwise. */
   calendar_id?: string
   source: 'template' | 'operator'
@@ -126,7 +128,10 @@ export async function findPlan(brand: string, briefId: string): Promise<PlanResu
 export const proposePlan = (brand: string, briefId: string, force = false, profile?: PlanProfile) =>
   call('POST', `${base(brand)}/propose`, { brief_id: briefId, force, ...(profile ? { profile } : {}) })
 
-export const editPlanItem = (brand: string, planId: string, itemId: string, patch: Partial<PlanItem>) =>
+/** What can be changed on a step. A budget may be typed ("1,500"); the server reads it. */
+export type PlanItemPatch = Partial<Omit<PlanItem, 'budget'>> & { budget?: number | string | null }
+
+export const editPlanItem = (brand: string, planId: string, itemId: string, patch: PlanItemPatch) =>
   call('PATCH', `${base(brand)}/${encodeURIComponent(planId)}/item/${encodeURIComponent(itemId)}`, patch)
 
 export const addPlanItem = (
@@ -206,6 +211,23 @@ export function approveBlocker(plan: Plan): string {
     return 'A boost needs real video with a person on camera. Add a video shoot or remove the boost.'
   }
   return ''
+}
+
+/** "R1 500", with a thin gap between thousands. */
+export function formatRand(n: number): string {
+  const [whole, cents] = String(n).split('.')
+  return `R${whole.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')}${cents ? `.${cents}` : ''}`
+}
+
+/** What the plan's boosts add up to, and how many have no budget yet. Removed
+ *  steps do not count. */
+export function boostBudget(items: PlanItem[]): { total: number; boosts: number; missing: number } {
+  const live = items.filter((i) => i.kind === 'boost' && i.status !== 'removed')
+  return {
+    total: live.reduce((sum, i) => sum + (i.budget || 0), 0),
+    boosts: live.length,
+    missing: live.filter((i) => !i.budget).length,
+  }
 }
 
 export function todayIso(now: Date = new Date()): string {

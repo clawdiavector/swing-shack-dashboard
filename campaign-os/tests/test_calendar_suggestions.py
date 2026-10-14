@@ -102,3 +102,26 @@ def test_an_agent_find_already_on_the_calendar_is_hidden_but_an_operators_stays(
             row("c2", "Black Friday 2027 push", "2026-11-11", created_by="operator")]
     out = items(pending=rows, names=["Black Friday 2027 push"])
     assert [i["calendar_id"] for i in out] == ["c2"]
+
+
+def test_a_transition_starts_from_the_newest_row_so_later_edits_survive(tmp_path, monkeypatch):
+    import importlib
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    from _lib import marketing_calendar as mc
+
+    monkeypatch.setattr(mc, "_CALENDAR_DIR", tmp_path / "cal")
+    monkeypatch.setattr(mc, "_CALENDAR_DIR_READY", False)
+    cid = mc.add_candidate("stick", {"type": "campaign", "title": "Idea", "event_start": "2027-03-10",
+                                     "event_end": "2027-03-10", "created_by": "operator"})["calendar_id"]
+    mc.set_pillars("stick", cid, ["stick-retail"])
+    moved = mc.transition_status("stick", cid, "ignored", reason="no")
+    assert moved["pillars"] == ["stick-retail"] and moved["previous_status"] == "candidate"
+    assert moved["revision"] == 3                                    # create, pillars, transition
+    back = mc.transition_status("stick", cid, "candidate")
+    assert back["previous_status"] == "ignored" and back["pillars"] == ["stick-retail"]
+    # the current row wins even when a record moves between the two files
+    mc.transition_status("stick", cid, "watchlist")
+    mc.transition_status("stick", cid, "candidate")
+    cur = [r for r in mc.latest_revisions(mc.list_records("stick")) if r.get("calendar_id") == cid]
+    assert len(cur) == 1 and cur[0]["status"] == "candidate" and cur[0]["revision"] == 6

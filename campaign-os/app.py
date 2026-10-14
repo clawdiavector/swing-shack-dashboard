@@ -46315,6 +46315,12 @@ def calendar_suggestions_approve(brand_id):
     actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
     cid, made = item.get("calendar_id"), False
     pillars = [p for p in (body.get("pillars") or []) if isinstance(p, str) and p]
+    if item["source"] != "date" and pillars and not item.get("pillars"):
+        # A row with no pillar can still be approved, but could never get a brief.
+        try:
+            mc.set_pillars(brand_id, cid, pillars, reason=f"pillar chosen when approved by {actor}")
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
     if item["source"] == "date":
         why = item.get("why") or ""
         try:
@@ -46908,7 +46914,7 @@ def planning_approve_candidate(brand_id, candidate_id):
     if not candidate and not research_lead:
         try:
             from _lib import marketing_calendar as _mc_approve_lookup
-            _records = _mc_approve_lookup.list_records(brand_id) or []
+            _records = _mc_approve_lookup.latest_revisions(_mc_approve_lookup.list_records(brand_id) or [])
             for r in _records:
                 if r.get("calendar_id") == candidate_id or r.get("event_key") == candidate_id:
                     # Found in the operator-store. Already approved? Idempotent noop.

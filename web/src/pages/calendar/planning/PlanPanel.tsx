@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   KIND_LABEL,
   KIND_ORDER,
+  boostBudget,
+  formatRand,
   PROFILE_OPTIONS,
   actorName,
   addPlanItem,
@@ -23,6 +25,7 @@ import {
   type Plan,
   type PlanItem,
   type PlanItemKind,
+  type PlanItemPatch,
   type PlanProfile,
   type PlanResult,
 } from '../../../lib/plan'
@@ -42,16 +45,17 @@ function ItemRow({
   item: PlanItem
   today: string
   locked: boolean
-  onSave: (patch: Partial<PlanItem>) => Promise<string | null>
+  onSave: (patch: PlanItemPatch) => Promise<string | null>
 }) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(item.title)
   const [due, setDue] = useState(item.due)
   const [note, setNote] = useState(item.note)
+  const [budget, setBudget] = useState(item.budget ? String(item.budget) : '')
   const [err, setErr] = useState<string | null>(null)
   const done = item.status === 'done'
 
-  async function save(patch: Partial<PlanItem>) {
+  async function save(patch: PlanItemPatch) {
     setErr(null)
     const e = await onSave(patch)
     if (e) setErr(e)
@@ -83,12 +87,31 @@ function ItemRow({
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
+        {item.kind === 'boost' ? (
+          <label className="block text-xs text-tx2">
+            Planned budget (rand)
+            <input
+              aria-label="Planned budget in rand"
+              data-testid="plan-budget-input"
+              inputMode="decimal"
+              placeholder="e.g. 1500"
+              className={`${field} mt-1 block w-40`}
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+            />
+            <span className="mt-1 block text-[11px] text-tx3">
+              A number for the plan. Nothing is spent or sent to Meta from here.
+            </span>
+          </label>
+        ) : null}
         <div className="flex items-center gap-2">
           <button
             type="button"
             className={btnYel}
             disabled={!title.trim() || !due}
-            onClick={() => void save({ title: title.trim(), due, note })}
+            onClick={() =>
+              void save({ title: title.trim(), due, note, ...(item.kind === 'boost' ? { budget } : {}) })
+            }
           >
             Save
           </button>
@@ -126,6 +149,11 @@ function ItemRow({
         {item.note ? <p className="text-xs text-tx3">{item.note}</p> : null}
         {item.needs_real_video ? (
           <p className="text-[11px] text-tx3">Real video with a person on camera.</p>
+        ) : null}
+        {item.kind === 'boost' ? (
+          <p className={`text-[11px] ${item.budget ? 'text-tx2' : 'text-yel'}`} data-testid="plan-budget-line">
+            {item.budget ? `Planned budget ${formatRand(item.budget)}. Nothing is spent from here.` : 'No budget set yet.'}
+          </p>
         ) : null}
         {err ? <p className="text-xs text-red">{err}</p> : null}
       </div>
@@ -294,6 +322,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
   const approved = plan.status === 'approved'
   const { active, removed } = splitItems(plan.items)
   const blocker = approveBlocker(plan)
+  const boosts = boostBudget(plan.items)
   const late = active.filter((i) => i.late && i.status !== 'done').length
 
   return (
@@ -322,6 +351,16 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
         <p className="text-xs text-tx3" data-testid="plan-shape">
           <EventTypeIcon kind={plan.profile} size="sm" className="mr-1.5 align-middle" />
           Shaped as <b className="text-tx2">{plan.profile_label}</b>. {plan.profile_reason}
+        </p>
+      ) : null}
+
+      {boosts.boosts ? (
+        <p className="text-xs text-tx3" data-testid="plan-budget-total">
+          Boost budget: <b className="text-tx2">{boosts.total ? formatRand(boosts.total) : 'none set'}</b>
+          {boosts.missing && boosts.total
+            ? ` (${boosts.missing} boost${boosts.missing === 1 ? ' has' : 's have'} no budget yet)`
+            : ''}
+          . A plan only, nothing is spent or sent to Meta from here.
         </p>
       ) : null}
 

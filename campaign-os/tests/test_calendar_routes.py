@@ -186,3 +186,49 @@ def test_a_failed_read_is_not_kept(env, monkeypatch):
     assert app_module._brief_ids_by_event("stick") == {}
     monkeypatch.setattr(cb, "_read_brief", real)
     assert app_module._brief_ids_by_event("stick") == {"ev-one": "brf-bbbb0001"}   # recovered, not stuck
+
+
+def _operator_row(title="Winter fitting weekend", day="2027-03-10", pillars=None):
+    from _lib import marketing_calendar as mc
+
+    rec = {"type": "campaign", "title": title, "event_start": day, "event_end": day, "public_peak": day,
+           "created_by": "operator", "is_suggested": True, "summary": "A fitting weekend idea"}
+    if pillars:
+        rec["pillars"] = pillars
+    return mc.add_candidate("stick", rec, initial_status="candidate")["calendar_id"]
+
+
+def test_a_suggestion_with_no_pillar_is_given_one_when_approved(env):
+    client, _, _ = env
+    from _lib import marketing_calendar as mc
+
+    cid = _operator_row()
+    ghost = [i for i in _ghosts(client) if i["calendar_id"] == cid][0]
+    assert ghost["pillars"] == []                               # the card will ask for one
+    r = _approve(client, ghost["key"], pillars=("stick-fitting",))
+    assert r.status_code == 200
+    approved = [x for x in mc.latest_revisions(mc.list_records("stick"))
+                if x.get("status") == "approved" and x.get("title") == "Winter fitting weekend"]
+    assert approved and all(x.get("pillars") == ["stick-fitting"] for x in approved)
+
+
+def test_a_suggestion_that_already_has_a_pillar_keeps_it(env):
+    client, _, _ = env
+    from _lib import marketing_calendar as mc
+
+    cid = _operator_row("Coaching push", pillars=["stick-coaching"])
+    ghost = [i for i in _ghosts(client) if i["calendar_id"] == cid][0]
+    assert ghost["pillars"] == ["stick-coaching"]
+    _approve(client, ghost["key"], pillars=("stick-retail",))   # a stray choice does not overwrite it
+    approved = [x for x in mc.latest_revisions(mc.list_records("stick"))
+                if x.get("status") == "approved" and x.get("title") == "Coaching push"]
+    assert approved and all(x.get("pillars") == ["stick-coaching"] for x in approved)
+
+
+def test_set_pillars_needs_a_pillar_and_a_real_record(env):
+    from _lib import marketing_calendar as mc
+
+    cid = _operator_row()
+    with pytest.raises(ValueError):
+        mc.set_pillars("stick", cid, [])
+    assert mc.set_pillars("stick", "cal-missing", ["stick-retail"]) is None

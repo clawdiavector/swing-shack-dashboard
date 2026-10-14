@@ -660,12 +660,30 @@ def latest_revisions(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     def ident(r: Dict[str, Any]) -> Optional[str]:
         return r.get("calendar_id") or r.get("event_key")
 
-    newest: Dict[str, int] = {}
+    # Newest = highest revision; among equals, the one written last. Position alone
+    # is not enough: the calendar and watchlist files are read one after the other,
+    # so a record moved from the watchlist back to the calendar comes first.
+    newest: Dict[str, tuple] = {}
     for i, r in enumerate(records):
-        if ident(r):
-            newest[ident(r)] = i
+        k = ident(r)
+        if k:
+            rank = (int(r.get("revision") or 1), i)
+            if k not in newest or rank > newest[k]:
+                newest[k] = rank
     return [r for i, r in enumerate(records)
-            if not ident(r) or newest[ident(r)] == i]
+            if not ident(r) or newest[ident(r)][1] == i]
+
+
+def _newest_row(brand_id: str, calendar_id: str) -> Optional[Dict[str, Any]]:
+    """The current revision of a record: a transition or an edit must start from
+    it, not from the first row ever written, or it would undo later changes."""
+    best, best_rank = None, None
+    for i, r in enumerate(list_records(brand_id)):
+        if r.get("calendar_id") == calendar_id or r.get("event_key") == calendar_id:
+            rank = (int(r.get("revision") or 1), i)
+            if best_rank is None or rank > best_rank:
+                best, best_rank = r, rank
+    return best
 
 
 def transition_status(
@@ -680,14 +698,7 @@ def transition_status(
     """
     if new_status not in VALID_STATUSES:
         raise ValueError(f"status '{new_status}' invalid. Valid: {VALID_STATUSES}")
-    all_records = list_records(brand_id)
-    target = next(
-        (
-            r for r in all_records
-            if r.get("calendar_id") == calendar_id or r.get("event_key") == calendar_id
-        ),
-        None,
-    )
+    target = _newest_row(brand_id, calendar_id)
     if not target:
         return None
     prev = target.get("status")
@@ -786,6 +797,29 @@ def set_fields(
         else _calendar_path(brand_id)
     )
     with target_path.open("a") as f:
+        f.write(json.dumps(updated, ensure_ascii=False) + "\n")
+    return updated
+
+
+def set_pillars(brand_id: str, calendar_id: str, pillars: List[str], *, reason: str = "") -> Optional[Dict[str, Any]]:
+    """Append a revision that gives a record its pillars (a brief cannot be written
+    without one). Only the pillars change. Returns None when the record is not found."""
+    if brand_id not in VALID_BRAND_IDS:
+        raise ValueError(f"brand_id '{brand_id}' is not an operating brand")
+    clean = [p for p in (pillars or []) if isinstance(p, str) and p.strip()]
+    if not clean:
+        raise ValueError("at least one pillar is needed")
+    target = _newest_row(brand_id, calendar_id)
+    if not target:
+        return None
+    updated = dict(target)
+    updated["pillars"] = clean
+    if reason:
+        updated["edit_reason"] = reason
+    updated["revision"] = int(target.get("revision") or 1) + 1
+    updated["last_verified"] = _now_iso()
+    path = _watchlist_path(brand_id) if str(updated.get("status") or "") == "watchlist" else _calendar_path(brand_id)
+    with path.open("a") as f:
         f.write(json.dumps(updated, ensure_ascii=False) + "\n")
     return updated
 

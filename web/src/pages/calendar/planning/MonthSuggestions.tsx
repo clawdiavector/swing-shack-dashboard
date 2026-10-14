@@ -152,9 +152,9 @@ export function GhostChip({
   onReject: () => void
 }) {
   const [pillar, setPillar] = useState('')
-  // An important date has no pillar of its own, and without one it can never
-  // get a brief, so it is asked for here. Entries that already carry one skip it.
-  const needsPillar = !(s.pillars && s.pillars.length) && s.source === 'date' && pillars.length > 0
+  // Without a pillar a date can never get a brief, so it is asked for here. An
+  // important date never has one; a suggestion may. Entries that carry one skip this.
+  const needsPillar = !(s.pillars && s.pillars.length) && pillars.length > 0
   return (
     <HoverChip
       chipTestId="ghost-chip"
