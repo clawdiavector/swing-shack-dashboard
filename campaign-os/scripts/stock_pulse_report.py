@@ -75,7 +75,7 @@ def main() -> int:
         say("- None yet." + (" The first list is the baseline, so nothing can be called new until the next one." if len(snaps) < 2 else ""))
 
     say("\n## Balls: each model on its own, and what it is known for")
-    say("(Both shops offer ball fittings, so every ball is a model with a story, never just 'balls'. "
+    say("(The shops offer ball fittings, so every ball is a model with a story, never just 'balls'. "
         "Wording is a paraphrase of the maker's page, a draft for approval.)")
     for r in sorted((r for r in results if r["category"] == "ball" and not r["not_for_feed"]
                      and r["status"] not in ("out", "error")), key=lambda r: r["name"]):

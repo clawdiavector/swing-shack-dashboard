@@ -233,7 +233,7 @@ def _ball_idea(name: str) -> str:
     prof = ball_profile(name)
     if prof and prof["known_for"]:
         return (f"Show it as the {prof['model']}: {prof['known_for']} Tie in with a ball fitting "
-                "(both shops offer them) to find the right one.")
+                "(the shop offers them) to find the right one.")
     return "Ball model: no maker wording on file yet, add a sourced 'known for' line before writing about it."
 
 

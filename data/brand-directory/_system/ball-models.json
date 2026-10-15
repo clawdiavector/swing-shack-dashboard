@@ -1,6 +1,6 @@
 {
   "status": "draft",
-  "note": "Each ball is a model with its own story, never just 'balls'. Swing Shack and Stick both offer ball fittings. known_for is a paraphrase of the maker's own description, drawn 2026-10-15 for Christelle to approve before any of it is used in a caption. An empty known_for means no maker wording was found: do not write one from memory.",
+  "note": "Each ball is a model with its own story, never just 'balls'. Each shop offers ball fittings. known_for is a paraphrase of the maker's own description, drawn 2026-10-15 for Christelle to approve before any of it is used in a caption. An empty known_for means no maker wording was found: do not write one from memory.",
   "models": [
     {"match": "pro v1 ?x.*left dash", "model": "Titleist Pro V1x Left Dash", "known_for": "Flight between Pro V1 and Pro V1x, very low long-game spin, firmer feel.", "source": "https://www.titleist.com/golf-balls/inside-the-titleist-golf-ball-lineup"},
     {"match": "pro v1 ?x", "model": "Titleist Pro V1x", "known_for": "Higher flight and a firmer feel than Pro V1, dual core, a little more spin into and around the greens.", "source": "https://www.titleist.com/2025-pro-v1-pro-v1x/comparing-prov1-and-prov1x"},
