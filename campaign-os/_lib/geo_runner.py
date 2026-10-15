@@ -457,7 +457,7 @@ def run_one_query(
 
 
 def _is_own_domain(url: str, brand: str) -> bool:
-    """Own-domain detection: stickgolf.co.za, swingshack.co.za, bag-drop links."""
+    """Own-domain detection: stickgolf.co.za, swingshack.co.za, thebagdrop.co.za."""
     if not url:
         return False
     lower = url.lower()
@@ -466,7 +466,8 @@ def _is_own_domain(url: str, brand: str) -> bool:
     if brand == "swing-shack":
         return "swingshack.co.za" in lower
     if brand == "bag-drop":
-        return "swingshack.co.za" in lower or "bag-drop" in lower
+        # Bag Drop is its own business; Swing Shack links are not its own.
+        return "thebagdrop.co.za" in lower or "bag-drop" in lower
     return False
 
 
