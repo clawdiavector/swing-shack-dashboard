@@ -1913,6 +1913,18 @@ export type GmbDraft = {
   brand?: string
   status?: 'draft' | 'approved' | 'published'
   approvedAt?: string
+  targetQuery?: string
+}
+
+export type GmbSearchTerms = {
+  ok: boolean
+  reason?: string
+  updated?: string
+  terms: { query: string; impressions: number; clicks: number; position?: number }[]
+}
+
+export function fetchGmbSearchTerms(brandId: string) {
+  return getJson<GmbSearchTerms>(`/api/intel/gmb/search-terms?brand_id=${encodeURIComponent(brandId)}`)
 }
 
 export function fetchGmbDrafts() {

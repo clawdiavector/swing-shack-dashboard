@@ -16466,6 +16466,7 @@ def gmb_create_draft():
         "cta": cta,
         "link": link,
         "imageUrl": image_url,
+        "targetQuery": (body.get('targetQuery') or '').strip()[:100],
         "brand": brand,
         "status": "draft",
         "createdAt": _now_iso(),
@@ -16491,7 +16492,7 @@ def gmb_edit_draft(draft_id):
     except Exception as exc:
         return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
     body = request.get_json(silent=True) or {}
-    for field in ('title', 'body', 'cta', 'link', 'imageUrl'):
+    for field in ('title', 'body', 'cta', 'link', 'imageUrl', 'targetQuery'):
         if field in body:
             draft[field] = body[field]
     # An edited draft has not been re-reviewed, so it goes back to draft.
@@ -16624,6 +16625,17 @@ def gmb_approve_draft(draft_id):
 
 def brand_id_of(draft):
     return (draft.get("brand") or "swing-shack").strip().lower()
+
+
+@app.route('/api/intel/gmb/search-terms', methods=['GET'])
+def gmb_search_terms():
+    """Top Search Console queries for a brand, to choose a draft's target term from."""
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip().lower()
+    return jsonify(_gdp.search_terms(brand_id)), 200
 
 
 @app.route('/api/intel/gmb/draft/<draft_id>/photo', methods=['POST'])

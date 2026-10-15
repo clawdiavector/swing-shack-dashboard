@@ -665,6 +665,7 @@ def draft_post(draft: dict) -> dict:
         "cta": (draft.get("cta") or "").strip(),
         "cta_url": (draft.get("link") or "").strip() or None,
         "image_url": (draft.get("imageUrl") or "").strip() or None,
+        "target_query": (draft.get("targetQuery") or "").strip() or None,
         "hashtags": [],
     }
     ok, violations = integrity_check(post, brand_id)
@@ -689,8 +690,44 @@ def review_problems(draft: dict) -> list[str]:
         problems.append("link_not_brand_domain")
     if not (draft.get("imageUrl") or "").strip():
         problems.append("photo_missing")
+    target = (draft.get("targetQuery") or "").strip().lower()
+    if target and target not in (draft.get("body") or "").lower():
+        problems.append("target_query_not_in_body")
     problems.extend(draft_post(draft)["integrity_violations"])
     return problems
+
+
+def search_terms(brand_id: str, *, limit: int = 12, payload: Optional[dict] = None) -> dict:
+    """Top Search Console queries for a brand, to pick a post's target term from.
+
+    Only a live Search Console file for this brand's own site counts. Anything
+    else returns ok=False with a reason and no terms.
+    """
+    profile = BRAND_PROFILES.get(brand_id)
+    if not profile:
+        return {"ok": False, "reason": "unknown_brand", "terms": []}
+    if payload is None:
+        from _lib.brand_data_paths import read_brand_data_json  # noqa: PLC0415
+        payload = read_brand_data_json("search-console.json", brand_id)
+    if not isinstance(payload, dict) or payload.get("source") != "google_search_console_api":
+        return {"ok": False, "reason": "no_search_console_data", "terms": []}
+    if profile["domain"] not in (payload.get("site_url") or ""):
+        return {"ok": False, "reason": "search_console_site_is_not_this_brand", "terms": []}
+    rows = sorted(
+        (r for r in payload.get("queries") or [] if r.get("key")),
+        key=lambda r: int(r.get("impressions") or 0),
+        reverse=True,
+    )[:limit]
+    terms = [
+        {
+            "query": r["key"],
+            "impressions": int(r.get("impressions") or 0),
+            "clicks": int(r.get("clicks") or 0),
+            "position": r.get("position"),
+        }
+        for r in rows
+    ]
+    return {"ok": True, "updated": payload.get("updated"), "data_window": payload.get("data_window"), "terms": terms}
 
 
 def set_draft_status(

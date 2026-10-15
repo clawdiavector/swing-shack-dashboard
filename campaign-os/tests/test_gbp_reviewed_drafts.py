@@ -180,6 +180,47 @@ class RebuildPlanTests(unittest.TestCase):
         self.assertEqual(plan["publish"], previous["publish"])
 
 
+class SearchTermTests(unittest.TestCase):
+    def _gsc(self, **over):
+        payload = {
+            "source": "google_search_console_api",
+            "site_url": "sc-domain:swingshack.co.za",
+            "updated": "2026-10-15T06:00:00Z",
+            "data_window": {"start": "2026-09-17", "end": "2026-10-14"},
+            "queries": [
+                {"key": "golf simulator johannesburg", "impressions": 40, "clicks": 2, "position": 8.1},
+                {"key": "club fitting randburg", "impressions": 310, "clicks": 9, "position": 4.2},
+                {"key": "", "impressions": 999},
+                {"key": "indoor golf", "impressions": 120, "clicks": 4, "position": 6.0},
+            ],
+        }
+        payload.update(over)
+        return payload
+
+    def test_terms_are_sorted_by_impressions_and_blank_keys_dropped(self):
+        out = gbp.search_terms("swing-shack", payload=self._gsc())
+        self.assertTrue(out["ok"])
+        self.assertEqual([t["query"] for t in out["terms"]],
+                         ["club fitting randburg", "indoor golf", "golf simulator johannesburg"])
+
+    def test_no_live_file_gives_a_reason_not_guesses(self):
+        out = gbp.search_terms("swing-shack", payload=None)
+        self.assertFalse(out["ok"])
+        self.assertEqual(out["reason"], "no_search_console_data")
+        self.assertEqual(out["terms"], [])
+
+    def test_search_console_for_another_site_is_refused(self):
+        out = gbp.search_terms("stick", payload=self._gsc())
+        self.assertFalse(out["ok"])
+        self.assertEqual(out["reason"], "search_console_site_is_not_this_brand")
+
+    def test_target_term_must_appear_in_the_text(self):
+        draft = _draft("t", targetQuery="club fitting randburg")
+        self.assertIn("target_query_not_in_body", gbp.review_problems(draft))
+        draft = _draft("t", targetQuery="Club Fitting", body="Club fitting in Randburg, booked online.")
+        self.assertNotIn("target_query_not_in_body", gbp.review_problems(draft))
+
+
 class DraftRouteTests(unittest.TestCase):
     """Approve, photo upload and dismiss through the Flask routes, on temp folders."""
 

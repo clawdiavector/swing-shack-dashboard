@@ -16,6 +16,7 @@ import {
   fetchGbpStatus,
   fetchGbpSuggestions,
   fetchGmbDrafts,
+  fetchGmbSearchTerms,
   approveGmbDraft,
   previewGbpDailyPlan,
   unapproveGmbDraft,
@@ -23,6 +24,7 @@ import {
   scheduleGmbDraft,
   updateGmbDraft,
   type GmbDraft,
+  type GmbSearchTerms,
   type GbpPlan,
 } from '../../lib/api'
 import { formatStamp } from '../../lib/stamp'
@@ -96,6 +98,7 @@ export function Gbp() {
   const [liveAction, setLiveAction] = useState<{ draftId: string } | null>(null)
   const [draftForm, setDraftForm] = useState<GmbDraft>({ title: '', body: '', brand: scopeBrand })
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [searchTerms, setSearchTerms] = useState<GmbSearchTerms | null>(null)
 
   const setTab = useCallback(
     (id: string) => {
@@ -130,6 +133,11 @@ export function Gbp() {
       .then((r) => setDrafts(r.drafts || []))
       .catch(() => setDrafts([]))
   }, [])
+
+  useEffect(() => {
+    if (tab !== 'drafts') return
+    fetchGmbSearchTerms(scopeBrand).then(setSearchTerms).catch(() => setSearchTerms(null))
+  }, [tab, scopeBrand])
 
   useEffect(() => {
     if (tab === 'plans') loadPlans()
@@ -327,6 +335,24 @@ export function Gbp() {
               value={draftForm.body || ''}
               onChange={(e) => setDraftForm({ ...draftForm, body: e.target.value })}
             />
+            <input
+              className={inputCls}
+              placeholder="Search term this post targets (optional)"
+              list="gmb-search-terms"
+              maxLength={100}
+              value={draftForm.targetQuery || ''}
+              onChange={(e) => setDraftForm({ ...draftForm, targetQuery: e.target.value })}
+            />
+            <datalist id="gmb-search-terms">
+              {(searchTerms?.terms ?? []).map((t) => (
+                <option key={t.query} value={t.query}>{`${t.impressions} impressions`}</option>
+              ))}
+            </datalist>
+            {searchTerms && !searchTerms.ok ? (
+              <p className="text-xs text-tx3">
+                No Search Console data for this brand yet ({searchTerms.reason}). Terms will appear here once it is pulled.
+              </p>
+            ) : null}
             <input
               className={inputCls}
               placeholder="Link (300)"

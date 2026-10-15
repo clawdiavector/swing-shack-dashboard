@@ -46,6 +46,10 @@ No real Swing Shack photo is in the repo. The `oneshots` images look generated (
 
 Every claim above comes from `knowledge.json` → `verified_facts` for each brand: the Stick fitting service, the Swing Shack setup (four bays, Zen Swing Stage), the venue address, the membership benefits and the brand promise. The three Stick drafts close with "Better begins here.", which the Stick feed uses on most captions. It is not in the brand bible, so it is worth confirming you want it here.
 
+## Search terms
+
+Each draft can name one target search term, picked from the brand's top Search Console queries. Approval checks the term appears in the text. Until the Search Console file is pulled for the brand, the field has no suggestions and the page says why.
+
 ## Open before any of this goes live
 
 - **Attach each photo with Attach photo on the draft.** The app saves it on the server, so the publish step can read it. A draft with a local path from this PC will fail safely with `image_upload_failed`, not post text alone.
