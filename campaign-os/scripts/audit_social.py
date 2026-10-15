@@ -142,9 +142,6 @@ def download_images(posts: list[dict], out_dir: Path) -> int:
 
 
 def main() -> None:
-    # Captions carry emoji; the Windows console codepage cannot print them.
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(errors="replace")
     ap = argparse.ArgumentParser()
     ap.add_argument("brand")
     ap.add_argument("--max-pages", type=int, default=50)
