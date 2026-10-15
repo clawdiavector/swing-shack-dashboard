@@ -14,7 +14,7 @@ import {
   type Undo,
 } from '../../../lib/calendarSuggestions'
 import { actorName } from '../../../lib/plan'
-import { tierLabel } from '../../../lib/planning'
+import { plainCategory, plainNotes, tierLabel } from '../../../lib/planning'
 
 type Done = { item: Suggestion; undo: Undo; what: string }
 
@@ -165,13 +165,13 @@ export function TriagePanel({
                 {tierLabel(current.tier)}
               </span>
             ) : null}
-            {current.category ? <span className="text-xs text-tx3">{current.category}</span> : null}
+            {plainCategory(current.category) ? <span className="text-xs text-tx3">{plainCategory(current.category)}</span> : null}
           </p>
           <p className="font-display text-2xl leading-tight font-semibold text-tx" data-testid="triage-title">
             {current.title}
           </p>
           <p className="text-sm text-tx2">{spanLabel(current.date, current.end)}</p>
-          {current.why ? <p className="max-w-2xl text-sm text-tx3">{current.why}</p> : null}
+          {current.why ? <p className="max-w-2xl text-sm text-tx3">{plainNotes(current.why)}</p> : null}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <span className="text-xs text-tx3">Add it to the calendar as</span>
             {pillars.map((p, i) => (

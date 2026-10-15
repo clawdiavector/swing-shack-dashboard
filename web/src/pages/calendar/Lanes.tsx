@@ -379,8 +379,7 @@ export function Lanes() {
           ) : null}
           {strategyEmpty ? (
             <p className="text-sm text-tx3">
-              No strategic calendar data for {brandLabel}. Stick has the live event spine; other
-              brands show empty states until spine files land.
+              There are no planned dates for {brandLabel} yet.
             </p>
           ) : null}
           <PlanningHero brand={scopeBrand} bigIdea={bigIdea} />

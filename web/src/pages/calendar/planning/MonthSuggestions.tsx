@@ -17,7 +17,7 @@ import { EventTypeIcon, EventTypeLegend } from '../../../components/EventTypeIco
 import { HoverChip } from './HoverChip'
 import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { actorName, planFromEvent } from '../../../lib/plan'
-import { tierLabel } from '../../../lib/planning'
+import { plainCategory, plainNotes, tierLabel } from '../../../lib/planning'
 
 export type Decided = { undo: Undo; title: string }
 
@@ -189,9 +189,9 @@ export function GhostChip({
         {s.tier ? (
           <span className="rounded bg-bg px-1.5 py-0.5 text-[10px] font-bold tracking-wider">{tierLabel(s.tier)}</span>
         ) : null}
-        {s.category ? <span className="text-tx3">{s.category}</span> : null}
+        {plainCategory(s.category) ? <span className="text-tx3">{plainCategory(s.category)}</span> : null}
       </p>
-      {s.why ? <p className="line-clamp-4 text-xs text-tx3">{s.why}</p> : null}
+      {s.why ? <p className="line-clamp-4 text-xs text-tx3">{plainNotes(s.why)}</p> : null}
       {needsPillar ? (
         <label className="block text-xs text-tx2">
           What is it for?
