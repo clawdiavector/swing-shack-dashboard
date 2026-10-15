@@ -203,6 +203,12 @@ class PhotoTests(unittest.TestCase):
         self.assertEqual(m["exact"], [])
         self.assertEqual(m["match"], "candidate")
 
+    def test_model_named_photo_without_the_make_is_only_a_candidate(self):
+        (self.dir / "genesonic1.jpg").write_bytes(b"x")
+        m = sp.match_photos("Mileseey GeneSonic Pro", self.dir)
+        self.assertEqual(m["exact"], [])
+        self.assertEqual([Path(c).name for c in m["candidates"]], ["genesonic1.jpg"])
+
     def test_maker_only_photo_is_none(self):
         self.assertEqual(sp.match_photos("Srixon Soft Feel 14", self.dir)["match"], "none")
 

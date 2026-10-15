@@ -44,7 +44,7 @@ EXCLUDED = [
     ("drink or food", re.compile(
         r"\bfull swing\b|\b(still|sparkling) water\b|\b(water|drink|soda|cola|juice|coffee|beer|"
         r"snack|biltong|chips|biscuit|chocolate|sandwich|toastie|food)\b", re.I)),
-    ("fitting component", re.compile(r"\bdriver shafts?\b|\b(tensei|speeder)\b", re.I)),
+    ("fitting component", re.compile(r"\bdriver shafts?\b|\b(tensei|speeder|kbs|dynamic gold)\b", re.I)),
 ]
 
 
@@ -64,8 +64,8 @@ CATEGORY_RULES = [
     ("towel", r"towel"),
     ("glove", r"glove|cabretta|perma soft|stasof|weathersoft|raingrip|sofjoy|sciflex|hyper flex|all weather"),
     ("ferrule", r"ferrule"),
-    ("grip", r"grip|pride|lamkin"),
-    ("ball", r"titleist (tru feel|tour soft|pro v1|velocity|avx)|srixon (z|q|soft)|chrome|quantum"),
+    ("grip", r"grip|pride|lamkin|tour velvet"),
+    ("ball", r"titleist (tru feel|tour soft|pro v1|velocity|avx)|srixon (z|q|soft)|chrome|quantum|vice (pro|drive|tour)"),
 ]
 
 PUSH_IDEAS = {
@@ -86,7 +86,8 @@ PUSH_IDEAS = {
 # available at ..."), never one colourway at a time.
 RANGE_CATEGORIES = {"grip": "grips", "ferrule": "ferrules", "towel": "towels"}
 RANGE_BRANDS = [
-    ("GripDrip", r"^gripdrip|^tropical vibes"),
+    ("GripDrip", r"^grip ?drip|^tropical vibes"),
+    ("RipIt", r"^rip ?it"),
     ("Golf Pride", r"^golf pride"),
     ("AJM GripCo", r"^ajm"),
     ("Lamkin", r"^lamkin"),
@@ -122,6 +123,20 @@ def _int(v: Any) -> Optional[int]:
         return None
 
 
+SIZE_VARIANT = re.compile(
+    r"^(xxs|xs|s|m|l|xl|xxl|xxxl|m/l|o/s|os|pw|sw|aw|gw|lw|standard|midsize|small|medium|large|"
+    r"extra large|medium large|\d{1,2}t?|\d{1,2}/\d{1,2}|[sml]/\d|xl/\d)$", re.I)
+
+
+def product_key(name: str, variant: str) -> str:
+    """A size or colour-and-size variant belongs to its product. Any other variant is a
+    different model ("Callaway Chrome Tour" / "Chrome Tour Triple Diamond"), kept apart."""
+    v = (variant or "").strip()
+    if not v or ";" in v or SIZE_VARIANT.match(v):
+        return name
+    return f"{name} ({v})"
+
+
 def parse_stock_csv(text: str) -> List[Dict[str, Any]]:
     """Canonical stock export -> [{sku, name, variant, qty, alert}]."""
     reader = csv.DictReader(io.StringIO(strip_excel_sep(text)))
@@ -132,7 +147,7 @@ def parse_stock_csv(text: str) -> List[Dict[str, Any]]:
             continue
         out.append({
             "sku": (row.get("SKU") or "").strip(),
-            "name": name,
+            "name": product_key(name, row.get("Variant Choices") or ""),
             "variant": (row.get("Variant Choices") or "").strip(),
             "qty": _int(row.get("Quantity")) or 0,
             "alert": _int(row.get("Alert Level")),
@@ -346,6 +361,10 @@ def data_problems(results: List[Dict[str, Any]], rows: List[Dict[str, Any]]) -> 
         if r["sku"] and r["sku"] in sku_seen and sku_seen[r["sku"]] != r["name"]:
             out.append(f"SKU {r['sku']} is on both '{sku_seen[r['sku']]}' and '{r['name']}'")
         sku_seen.setdefault(r["sku"], r["name"])
+    blank = [r["name"] for r in rows if not r["sku"]]
+    if blank:
+        out.append(f"{len(blank)} line(s) have no SKU, so they cannot be matched week to week or stamped: "
+                   + ", ".join(blank[:4]))
     odd = [r["sku"] for r in rows if r["sku"] and not re.fullmatch(r"[A-Za-z0-9\-_]+", r["sku"])]
     if odd:
         out.append(f"{len(odd)} SKUs contain odd characters ({', '.join(odd[:4])}...)")
@@ -427,6 +446,10 @@ def match_photos(product_name: str, images_dir: Path) -> Dict[str, Any]:
         words = set(re.findall(r"[a-z0-9]+", _norm(f.stem)))
         compact = re.sub(r"[^a-z0-9]", "", _norm(f.stem))
         if maker not in words and maker not in compact:
+            # Photos are often named for the model alone (genesonic1.jpg). Never exact
+            # without the make, but worth a person's look.
+            if any(len(t) >= 4 and t in compact for t in model):
+                partial.append((0, str(f)))
             continue
 
         def has(t: str) -> bool:
