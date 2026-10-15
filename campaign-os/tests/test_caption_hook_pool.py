@@ -124,3 +124,46 @@ def test_every_mechanism_uses_the_whole_hook(voice, repo_data, monkeypatch):
         assert core in v["body"], f"{v['mechanism']} dropped the hook: {v['body']}"
         assert not re.search(r"about (The|Why|What)\b", v["body"]), v["body"]
         assert not re.search(r"[.?!]\s*[.?]", v["body"].replace("...", "")), f"{v['mechanism']}: {v['body']}"
+
+
+# ── 2026-10-15, round two ───────────────────────────────────────────────
+
+def test_hooks_read_the_live_data_disk_first(tmp_path, monkeypatch):
+    """On Railway DATA_DIR (env) is the live disk; the module DATA_DIR is the
+    bundled snapshot. Jobs write to the live disk, so hooks must read it."""
+    (tmp_path / "reddit-opportunities.json").write_text(
+        json.dumps({"opportunities": [{"suggested_angle": "RUNTIMEMARKER live angle"}]}), encoding="utf-8")
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    hooks = " | ".join(h["hook"] for h in intelligence.generate_hooks(20, _skip_dedup=True, brand="swing-shack")["generated"])
+    assert "RUNTIMEMARKER" in hooks
+
+
+def test_hooks_fall_back_to_bundled_data_when_the_live_file_is_missing(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))  # empty live disk
+    hooks = " | ".join(h["hook"] for h in intelligence.generate_hooks(20, _skip_dedup=True, brand="swing-shack")["generated"])
+    assert "TrackMan numbers" in hooks  # from the bundled reddit-opportunities.json
+
+
+@pytest.mark.parametrize("brand", sorted(intelligence._EVERGREEN_HOOKS))
+def test_evergreen_hooks_make_no_unsourced_statistics(brand):
+    assert [h for h in intelligence._EVERGREEN_HOOKS[brand] if re.search(r"\d+\s*%|per ?cent", h, re.I)] == []
+
+
+# Frames generate_hooks puts around a raw signal for the Hooks tab.
+HOOK_FRAMES = re.compile(r"nobody tells you:|while everyone is talking about", re.I)
+
+
+@pytest.mark.parametrize("voice", VOICES)
+def test_captions_frame_the_hook_once(voice, repo_data):
+    result = intelligence.generate_captions(n=20, voice=voice)
+    assert result["variants"]
+    bad = [v["body"] for v in result["variants"] if HOOK_FRAMES.search(v["body"])]
+    assert bad == []
+
+
+def test_hook_generator_keeps_the_raw_angle_beside_the_framed_hook(repo_data):
+    hooks = intelligence.generate_hooks(20, _skip_dedup=True, brand="swing-shack")["generated"]
+    framed = [h for h in hooks if HOOK_FRAMES.search(h["hook"])]
+    assert framed, "expected framed signal hooks for the Hooks tab"
+    for h in framed:
+        assert h.get("angle") and h["angle"] in h["hook"] and not HOOK_FRAMES.search(h["angle"])
