@@ -79,7 +79,7 @@ export function SandboxPreview() {
         here="/publish"
         title={row ? sandboxTitle(row) : missReason === 'loading' ? 'Opening…' : 'Sandbox preview'}
       >
-        Mock only — image and caption as queued. Nothing goes live from this page.
+        Just a mock of how it will look. Nothing goes live from here.
       </PageIntro>
 
       <Tip text="Back to Publish.">

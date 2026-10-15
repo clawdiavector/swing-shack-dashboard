@@ -1,9 +1,13 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { BrandProvider, BrandSwitch } from './BrandSwitch'
+import { PlanAlertDot } from './PlanAlertDot'
 import { PressIcon, Tip } from './ui'
 import { formatStamp } from '../lib/stamp'
 import { RAIL, SETTINGS, sectionFor, type RailItem } from '../lib/nav'
 import { TOOL_BY_SLUG, parentLabel } from '../lib/tools'
+import { useTheme } from '../lib/theme'
+
+const PLAN_PATH = '/calendar/lanes'
 
 const RAIL_ON =
   'bg-yel/12 text-yel shadow-[inset_0_0_0_1.5px_rgba(251,191,36,.85)]'
@@ -22,8 +26,9 @@ function RailLink({ item, on }: { item: RailItem; on: boolean }) {
           on ? RAIL_ON : 'text-tx2 hover:bg-white/5 hover:text-tx',
         ].join(' ')}
       >
-        <span className="glass-pill grid shrink-0 place-items-center rounded-md p-1.5">
+        <span className="glass-pill relative grid shrink-0 place-items-center rounded-md p-1.5">
           <PressIcon icon={Icon} className="h-4 w-4" tone={on ? 'on' : 'mute'} />
+          {item.to === PLAN_PATH ? <PlanAlertDot className="-top-1.5 -right-1.5" /> : null}
         </span>
         <span className="min-w-0">
           <span className="block font-semibold">{item.label}</span>
@@ -36,6 +41,7 @@ function RailLink({ item, on }: { item: RailItem; on: boolean }) {
 
 export function Shell() {
   const loc = useLocation()
+  const [theme, toggleTheme] = useTheme()
   const toolSlug = loc.pathname.startsWith('/tool/') ? loc.pathname.split('/')[2] : ''
   const tool = toolSlug ? TOOL_BY_SLUG[toolSlug] : undefined
   // A classic tool belongs to the section it was opened from.
@@ -95,7 +101,18 @@ export function Shell() {
               <p className="text-[13px] text-tx3">{formatStamp()}</p>
             </div>
           </div>
-          <BrandSwitch variant="bar" />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={theme === 'play' ? 'Switch to the classic dark desk' : 'Switch to the playful look'}
+              aria-label={theme === 'play' ? 'Switch to the classic dark desk' : 'Switch to the playful look'}
+              className="glass-pill rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-tx2 hover:text-tx"
+            >
+              {theme === 'play' ? 'Classic look' : 'Playful look'}
+            </button>
+            <BrandSwitch variant="bar" />
+          </div>
         </header>
         <main
           className={
@@ -126,7 +143,10 @@ export function Shell() {
                 on ? RAIL_ON : 'text-tx3',
               ].join(' ')}
             >
-              <PressIcon icon={Icon} className="h-4 w-4" tone={on ? 'on' : 'mute'} />
+              <span className="relative">
+                <PressIcon icon={Icon} className="h-4 w-4" tone={on ? 'on' : 'mute'} />
+                {item.to === PLAN_PATH ? <PlanAlertDot className="-top-1.5 -right-2.5" /> : null}
+              </span>
               {item.label}
             </Link>
           )
