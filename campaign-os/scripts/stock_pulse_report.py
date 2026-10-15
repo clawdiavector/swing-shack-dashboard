@@ -14,6 +14,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 
+from _lib import photo_map as pm  # noqa: E402
 from _lib import stock_pulse as sp  # noqa: E402
 
 
@@ -102,16 +103,19 @@ def main() -> int:
         say(f"- {line}")
 
     say("\n## Real photos")
-    counts = {"exact": 0, "candidate": 0, "none": 0}
+    counts = {"approved": 0, "exact": 0, "candidate": 0, "none": 0}
+    entries = pm.load(a.brand)
     need = []
     for r in results:
         if r["status"] in ("out", "error") or r["not_for_feed"] or r.get("folded_into_range"):
             continue
         m = sp.match_photos(r["name"], images)
-        counts[m["match"]] += 1
-        if m["match"] != "exact":
+        m["map"] = pm.status_for(entries, r["skus"])
+        counts["approved" if m["map"] == "approved" else m["match"]] += 1
+        if m["map"] != "approved" and m["match"] != "exact":
             need.append((r, m))
-    say(f"{counts['exact']} products have a photo whose filename carries the full make and model, "
+    say(f"{counts['approved']} products have an approved real photo. "
+        f"{counts['exact']} have a photo whose filename carries the full make and model, "
           f"{counts['candidate']} have only a maker-level candidate, {counts['none']} have nothing.\n")
     say("Needing a photo, pushes and heavy shelves first:")
     priority = {"new": 0, "back": 0, "stuck": 1, "still": 1, "heavy": 2}
@@ -123,12 +127,13 @@ def main() -> int:
         import csv
         with open(a.gaps_csv, "w", newline="", encoding="utf-8-sig") as fh:
             w = csv.writer(fh)
-            w.writerow(["Product", "Units in stock", "Status", "Photo on file", "Files to check by eye", "Why it matters"])
+            w.writerow(["Product", "Units in stock", "Status", "Photo on file", "Files to check by eye", "Why it matters", "Save the new photo as"])
             for r, m in need:
                 why = r["reason"] or ("Brand range post" if r.get("is_range") else "")
                 w.writerow([r["name"], r["qty"], r["status"],
-                            "Candidate only" if m["candidates"] else "None",
-                            "; ".join(Path(c).name for c in m["candidates"]), why])
+                            "Waiting for your check" if m["map"] == "needs-check"
+                            else ("Candidate only" if m["candidates"] else "None"),
+                            "; ".join(Path(c).name for c in m["candidates"]), why, pm.shot_name(r["skus"])])
     if a.out:
         Path(a.out).write_text("\n".join(LINES) + "\n", encoding="utf-8")
     return 0

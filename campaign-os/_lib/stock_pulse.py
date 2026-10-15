@@ -428,7 +428,12 @@ def record_and_stamp(brand_id: str, csv_text: str, products: List[Dict[str, Any]
             p["not_for_feed"] = r["not_for_feed"]
             p["range_name"] = r["name"] if r.get("is_range") else ""
             stamped += 1
-    return {"snapshots": len(load_snapshots(brand_id)), "stamped": stamped,
+    try:
+        from _lib.photo_map import stamp_catalog
+        photos = stamp_catalog(brand_id, products)
+    except Exception:
+        photos = 0
+    return {"snapshots": len(load_snapshots(brand_id)), "stamped": stamped, "with_approved_photo": photos,
             "push": [r["name"] for r in push_list(results)]}
 
 
