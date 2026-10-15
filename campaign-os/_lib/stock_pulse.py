@@ -26,6 +26,8 @@ STUCK_DAYS = 28
 HEAVY_ALERT_MULTIPLE = 3
 # With no alert level to compare against, this many units is a heavy shelf.
 HEAVY_NO_ALERT_UNITS = 15
+# ...and never fewer than this many units.
+HEAVY_MIN_UNITS = 6
 
 # Added to the planner's priority score (marketing_lanes.propose_product_calendar).
 FEED_BOOST = {
@@ -33,8 +35,22 @@ FEED_BOOST = {
     "selling": 0, "steady": 0, "low": -20, "out": 0, "error": 0,
 }
 
-# Lines that are not golf product and never belong in the feed.
-NOT_FEED = re.compile(r"\b(still water|sparkling water)\b", re.I)
+# The list is for things sold as they are. Drinks, snacks and food are never
+# promoted, and fitting components (shafts, ferrules) are mentioned in fitting
+# content, never pushed one by one. Add a pattern when a new line turns up.
+EXCLUDED = [
+    ("drink or food", re.compile(
+        r"\bfull swing\b|\b(still|sparkling) water\b|\b(water|drink|soda|cola|juice|coffee|beer|"
+        r"snack|biltong|chips|biscuit|chocolate|sandwich|toastie|food)\b", re.I)),
+    ("fitting component", re.compile(r"\bferrules?\b|\bdriver shafts?\b|\b(tensei|speeder)\b", re.I)),
+]
+
+
+def excluded_reason(name: str) -> str:
+    for reason, pattern in EXCLUDED:
+        if pattern.search(name):
+            return reason
+    return ""
 
 CATEGORY_RULES = [
     ("rangefinder", r"rangefinder"),
@@ -46,7 +62,7 @@ CATEGORY_RULES = [
     ("towel", r"towel"),
     ("glove", r"glove|cabretta|perma soft|stasof|weathersoft|raingrip|sofjoy|sciflex|hyper flex|all weather"),
     ("grip", r"grip|ferrule|pride|lamkin|star grip"),
-    ("ball", r"titleist (tru feel|tour soft|pro v1|velocity|avx)|srixon (z|q|soft)|chrome|full swing|quantum"),
+    ("ball", r"titleist (tru feel|tour soft|pro v1|velocity|avx)|srixon (z|q|soft)|chrome|quantum"),
 ]
 
 PUSH_IDEAS = {
@@ -185,7 +201,7 @@ def analyse(snapshots: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             status, reason = "new", "First time on the stocklist"
         elif prev_qty is not None and qty < prev_qty:
             status, reason = "selling", f"Down {prev_qty - qty} since the last list"
-        elif (alert and qty >= alert * HEAVY_ALERT_MULTIPLE) or (not alert and qty >= HEAVY_NO_ALERT_UNITS):
+        elif (alert and qty >= max(alert * HEAVY_ALERT_MULTIPLE, HEAVY_MIN_UNITS)) or (not alert and qty >= HEAVY_NO_ALERT_UNITS):
             status = "heavy"
             reason = (f"{qty} on the shelf against an alert level of {alert}" if alert
                       else f"{qty} on the shelf")
@@ -193,15 +209,16 @@ def analyse(snapshots: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             status, reason = "steady", ""
 
         # Heavy applies on top of selling/steady: a deep shelf that is moving still has a lot to move.
-        deep = bool((alert and qty >= alert * HEAVY_ALERT_MULTIPLE) or (not alert and qty >= HEAVY_NO_ALERT_UNITS))
+        deep = bool((alert and qty >= max(alert * HEAVY_ALERT_MULTIPLE, HEAVY_MIN_UNITS)) or (not alert and qty >= HEAVY_NO_ALERT_UNITS))
         cat = categorise(name)
         results.append({
             "name": name, "category": cat, "qty": qty, "alert": alert,
             "prev_qty": prev_qty, "days_still": days_still, "status": status,
             "deep_shelf": deep, "reason": reason, "skus": now["skus"],
             "thin_variants": thin_variants,
-            "feed_boost": 0 if NOT_FEED.search(name) else FEED_BOOST[status],
-            "not_for_feed": bool(NOT_FEED.search(name)),
+            "feed_boost": 0 if excluded_reason(name) else FEED_BOOST[status],
+            "not_for_feed": bool(excluded_reason(name)),
+            "excluded_reason": excluded_reason(name),
             "idea": PUSH_IDEAS.get(cat, "") if status in ("stuck", "still", "heavy") else "",
             "snapshots_seen": len(history),
         })
@@ -262,6 +279,7 @@ def record_and_stamp(brand_id: str, csv_text: str, products: List[Dict[str, Any]
             p["days_still"] = r["days_still"]
             p["feed_boost"] = r["feed_boost"]
             p["push_reason"] = r["reason"]
+            p["not_for_feed"] = r["not_for_feed"]
             stamped += 1
     return {"snapshots": len(load_snapshots(brand_id)), "stamped": stamped,
             "push": [r["name"] for r in push_list(results)]}

@@ -1177,7 +1177,7 @@ def propose_product_calendar(
         }
 
     # Filter out of stock
-    in_stock = [p for p in products if p.get("stock_quantity", 0) > 0]
+    in_stock = [p for p in products if p.get("stock_quantity", 0) > 0 and not p.get("not_for_feed")]
     skipped_stock = [p for p in products if p.get("stock_quantity", 0) <= 0]
 
     # Filter categories if specified

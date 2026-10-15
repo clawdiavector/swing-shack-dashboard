@@ -104,6 +104,25 @@ class StampTests(unittest.TestCase):
         self.assertNotIn("feed_boost", products[1])
 
 
+class ExclusionTests(unittest.TestCase):
+    def test_drinks_food_and_fitting_parts_are_left_out(self):
+        for name in ["Full Swing Cherry Pop", "SS Still water", "Mitsubishi Tensei White",
+                     "Fujikura speeder Driver Shafts", "BB&F Co ferrules set", "Biltong Pack"]:
+            self.assertTrue(sp.excluded_reason(name), name)
+
+    def test_sold_as_is_stays_in_including_putters_with_a_shaft_name(self):
+        for name in ["L.A.B Putter: Link 2.2 Accra Shaft", "Srixon Z- Star XV", "GripDrip Zen Swing Grip - Sky"]:
+            self.assertEqual(sp.excluded_reason(name), "", name)
+
+    def test_excluded_never_pushed_or_boosted(self):
+        history = [snap("2026-09-16", row("Full Swing Cherry Pop", "D1", 20, 6)),
+                   snap("2026-10-14", row("Full Swing Cherry Pop", "D1", 20, 6))]
+        res = sp.analyse(history)
+        self.assertEqual(sp.push_list(res), [])
+        self.assertEqual(res[0]["feed_boost"], 0)
+        self.assertEqual(sp.heavy_shelf(res), [])
+
+
 class PhotoTests(unittest.TestCase):
     def setUp(self):
         self.dir = Path(tempfile.mkdtemp(prefix="cos-photos-"))
