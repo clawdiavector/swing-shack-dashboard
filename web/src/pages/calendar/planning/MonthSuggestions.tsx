@@ -82,23 +82,34 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
     setPlanNote(null)
     setDecided({ undo: r.undo, title: s.title })
     settle()
+    // An approved date nearly always needs a plan, so make it now. If it cannot be
+    // made (no pillar, or the brief is refused) the reason shows and Make a plan stays.
+    if (verb === 'approve' && r.undo.event_key) void runPlan(r.undo)
   }
 
-  /** From the approved date straight to a brief and a draft plan. */
-  async function makePlan() {
-    const key = decided?.undo.event_key
-    if (!key) return
+  /** From an approved date straight to a brief and a draft plan. */
+  async function runPlan(undo: Undo) {
+    if (!undo.event_key) return
     setPlanBusy(true)
     setError(null)
-    const r = await planFromEvent(brandId, key)
+    const r = await planFromEvent(brandId, undo.event_key)
     setPlanBusy(false)
     if (!r.ok) {
       setError(r.error || 'Could not make the plan.')
       return
     }
-    setPlanNote('Brief and draft plan made. Find it under Plan, then List, to check and approve.')
+    const plan = r.plan
+    setPlanNote(
+      `Plan drafted${plan?.profile_label ? ` (${plan.profile_label}, ${plan.items.length} steps)` : ''}. Check it under Plan, then List.`,
+    )
+    // Remember the plan on the undo, so undoing the approval retires it too.
+    if (plan) setDecided((d) => (d && d.undo.key === undo.key ? { ...d, undo: { ...d.undo, plan_id: plan.plan_id } } : d))
     notifyAlertsChanged()
     onChanged()
+  }
+
+  async function makePlan() {
+    if (decided) await runPlan(decided.undo)
   }
 
   async function undo() {
@@ -304,7 +315,7 @@ export function SuggestionBar({
           {planNote ? <span className="text-tx2">{planNote}</span> : null}
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || planBusy}
             onClick={onUndo}
             data-testid="undo-button"
             className="font-bold text-yel hover:underline disabled:opacity-60"

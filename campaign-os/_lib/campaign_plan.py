@@ -322,6 +322,18 @@ def month_steps(brand_id: str, first: date, last: date) -> list[dict]:
     return out
 
 
+def supersede_plan(brand_id: str, plan_id: str) -> bool:
+    """Retire a draft plan nobody has acted on (not approved, not on the calendar),
+    so it no longer lists or alerts. Returns whether it was retired."""
+    plan = get_plan(brand_id, plan_id)
+    if not plan or plan.get("status") != PLAN_PROPOSED or plan.get("placed_at"):
+        return False
+    plan["status"] = PLAN_SUPERSEDED
+    _log(plan, "operator", "retired with the approval it was made for")
+    _write_plan(plan)
+    return True
+
+
 def get_plan(brand_id: str, plan_id: str) -> Optional[dict]:
     return refresh_late(_read_json(_plan_path(brand_id, plan_id)))
 

@@ -29,6 +29,8 @@ export type Undo = {
   month?: string
   /** Issued by the server; undo works from this, once, for a day. */
   token?: string
+  /** The draft plan made for this approval; undoing the approval retires it. */
+  plan_id?: string
 }
 
 type Result = { ok: boolean; error?: string; items?: Suggestion[]; undo?: Undo }

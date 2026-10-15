@@ -46478,7 +46478,21 @@ def calendar_suggestions_undo(brand_id):
         if source == "date":
             cs.clear_decision(brand_id, key)
     cs.drop_undo(brand_id, token)
-    return jsonify({"ok": True}), 200
+    # A draft plan made when this date was approved goes with it. The id comes from
+    # the browser, so it only counts if the plan belongs to this very date and is
+    # still an untouched draft.
+    retired = False
+    plan_id = sent.get("plan_id")
+    if kind == "approve" and plan_id and event_key:
+        try:
+            from _lib import campaign_plan as cp
+            plan = cp.get_plan(brand_id, str(plan_id))
+            brief = _cb_import()._read_brief(brand_id, plan["brief_id"]) if plan else None
+            if brief and (brief.get("source_opportunity") or {}).get("event_key") == event_key:
+                retired = cp.supersede_plan(brand_id, str(plan_id))
+        except (ValueError, KeyError, TypeError):
+            retired = False
+    return jsonify({"ok": True, "plan_retired": retired}), 200
 
 
 @app.route("/api/planning/<brand_id>/waiting", methods=["GET"])

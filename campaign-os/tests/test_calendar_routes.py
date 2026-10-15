@@ -284,3 +284,40 @@ def test_the_morning_message_is_plain_text_readable_with_the_job_token(env, monk
     assert d["text"].startswith("Good morning. Calendar check,")
     assert isinstance(d["overdue"], int) and isinstance(d["due_today"], int) and isinstance(d["screaming"], int)
     assert client.get("/api/jobs/morning-message?brand=nope").status_code == 400
+
+
+def _brief_for(tmp_path, brief_id, event_key, day="2027-03-14"):
+    d = tmp_path / "briefs" / "stick"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"{brief_id}.json").write_text(json.dumps({
+        "brief_id": brief_id, "brand_id": "stick", "status": "approved", "revision": 1,
+        "source_opportunity": {"event_key": event_key, "name": "Cape Town Cycle Tour", "date": day}}), encoding="utf-8")
+
+
+def test_undoing_an_approval_retires_the_draft_plan_made_with_it(env):
+    client, _, tmp_path = env
+    undo = _approve(client).get_json()["undo"]
+    _brief_for(tmp_path, "brf-undo0001", undo["event_key"])
+    plan = client.post("/api/plan/v1/stick/propose", json={"brief_id": "brf-undo0001"}).get_json()["plan"]
+    r = client.post("/api/calendar-suggestions/stick/undo", json={"undo": dict(undo, plan_id=plan["plan_id"])})
+    assert r.status_code == 200 and r.get_json()["plan_retired"] is True
+    assert client.get(f"/api/plan/v1/stick/{plan['plan_id']}").get_json()["plan"]["status"] == "superseded"
+    assert not [p for p in client.get("/api/plan-todo?brand=stick").get_json()["steps"] if p["plan_id"] == plan["plan_id"]]
+
+
+def test_undo_will_not_retire_a_plan_for_another_date_or_one_that_was_acted_on(env):
+    client, _, tmp_path = env
+    undo = _approve(client).get_json()["undo"]
+    _brief_for(tmp_path, "brf-other001", "stick:some-other-event:2027-03-14")
+    other = client.post("/api/plan/v1/stick/propose", json={"brief_id": "brf-other001"}).get_json()["plan"]
+    r = client.post("/api/calendar-suggestions/stick/undo", json={"undo": dict(undo, plan_id=other["plan_id"])})
+    assert r.status_code == 200 and r.get_json()["plan_retired"] is False
+    assert client.get(f"/api/plan/v1/stick/{other['plan_id']}").get_json()["plan"]["status"] == "proposed"
+    # a plan that has been approved is not a throwaway draft
+    undo2 = _approve(client).get_json()["undo"]
+    _brief_for(tmp_path, "brf-acted001", undo2["event_key"])
+    mine = client.post("/api/plan/v1/stick/propose", json={"brief_id": "brf-acted001"}).get_json()["plan"]
+    assert client.post(f"/api/plan/v1/stick/{mine['plan_id']}/approve", json={}).status_code == 200
+    r2 = client.post("/api/calendar-suggestions/stick/undo", json={"undo": dict(undo2, plan_id=mine["plan_id"])})
+    assert r2.get_json()["plan_retired"] is False
+    assert client.get(f"/api/plan/v1/stick/{mine['plan_id']}").get_json()["plan"]["status"] == "approved"
