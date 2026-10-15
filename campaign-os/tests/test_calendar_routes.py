@@ -321,3 +321,26 @@ def test_undo_will_not_retire_a_plan_for_another_date_or_one_that_was_acted_on(e
     r2 = client.post("/api/calendar-suggestions/stick/undo", json={"undo": dict(undo2, plan_id=mine["plan_id"])})
     assert r2.get_json()["plan_retired"] is False
     assert client.get(f"/api/plan/v1/stick/{mine['plan_id']}").get_json()["plan"]["status"] == "approved"
+
+
+def test_triage_sorts_dates_and_not_now_and_undo_work(env):
+    client, _, _ = env
+    d = client.get("/api/calendar-suggestions/stick/triage").get_json()
+    assert d["ok"] and d["count"] >= 1 and all(i["source"] == "date" for i in d["items"])
+    first = d["items"][0]
+    month = first["date"][:7]
+    r = client.post("/api/calendar-suggestions/stick/later", headers=NAMED, json={"month": month, "key": first["key"]})
+    assert r.status_code == 200 and r.get_json()["undo"]["kind"] == "later"
+    after = client.get("/api/calendar-suggestions/stick/triage").get_json()["items"]
+    assert first["key"] not in [i["key"] for i in after]                                    # out of the queue
+    assert any(i["key"] == first["key"] for i in client.get(f"/api/calendar-suggestions/stick?month={month}").get_json()["items"])
+    undone = client.post("/api/calendar-suggestions/stick/undo", json={"undo": r.get_json()["undo"]})
+    assert undone.status_code == 200
+    assert first["key"] in [i["key"] for i in client.get("/api/calendar-suggestions/stick/triage").get_json()["items"]]
+
+
+def test_triage_checks_the_login_and_the_brand(env):
+    client, app_module, _ = env
+    assert client.get("/api/calendar-suggestions/nope/triage").status_code == 400
+    assert app_module.app.test_client(cos_anon=True).get("/api/calendar-suggestions/stick/triage").status_code == 401
+    assert client.post("/api/calendar-suggestions/stick/later", json={"month": "2027-03", "key": "note:x:2027-03-01"}).status_code == 404

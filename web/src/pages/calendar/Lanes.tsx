@@ -25,6 +25,8 @@ import type {
   PlanningTimeline,
 } from '../../lib/planningTypes'
 import { AlertBanner } from './planning/AlertBanner'
+import { TriagePanel } from './planning/TriagePanel'
+import { fetchTriage } from '../../lib/calendarSuggestions'
 import { LaneMonthPanel } from './planning/LaneMonthPanel'
 import { PlanList } from './planning/PlanList'
 import { PlanningCandidatesPanel } from './planning/PlanningCandidatesPanel'
@@ -94,6 +96,8 @@ export function Lanes() {
   // submission so the new candidate appears immediately.
   const [searchRefreshKey, setSearchRefreshKey] = useState(0)
   const [showSuggestDate, setShowSuggestDate] = useState(false)
+  const [showTriage, setShowTriage] = useState(false)
+  const [triageCount, setTriageCount] = useState<number | null>(null)
   // V2.11 — Month-tab add-to-main-calendar shortcut. Clicking the "+"
   // on a day cell opens the SuggestDateModal pre-filled with that date.
   const [suggestDateInitial, setSuggestDateInitial] = useState<string | undefined>(undefined)
@@ -224,6 +228,18 @@ export function Lanes() {
 
   const closeEvent = useCallback(() => setEventDetail(null), [])
 
+  // How many important dates are waiting for a yes or no, for the Sort dates button.
+  useEffect(() => {
+    if (!scopeBrand) return
+    let cancelled = false
+    void fetchTriage(scopeBrand).then((r) => {
+      if (!cancelled) setTriageCount(r.ok ? (r.items || []).length : null)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [scopeBrand, refreshKey])
+
   const strategyEmpty = panelFailed(bigIdea) && panelFailed(rightNow)
   const brandLabel = scopeBrand || 'brand'
 
@@ -264,6 +280,16 @@ export function Lanes() {
             ))}
           </span>
         </div>
+        {scopeBrand && triageCount ? (
+          <button
+            type="button"
+            onClick={() => setShowTriage((v) => !v)}
+            data-testid="plan-triage-open"
+            className="inline-flex items-center gap-1.5 rounded-full border border-yel/40 px-4 py-2 text-sm font-semibold text-yel hover:bg-yel/10"
+          >
+            Sort dates · {triageCount}
+          </button>
+        ) : null}
         {scopeBrand ? (
           <button
             type="button"
@@ -278,6 +304,14 @@ export function Lanes() {
       </div>
 
       <AlertBanner brandId={scopeBrand || ''} refreshKey={refreshKey} />
+
+      {showTriage && scopeBrand ? (
+        <TriagePanel
+          brandId={scopeBrand}
+          onClose={() => setShowTriage(false)}
+          onChanged={() => setRefreshKey((k) => k + 1)}
+        />
+      ) : null}
 
       {!scopeBrand ? <p className="text-sm text-tx3">Pick a brand to load its plan.</p> : null}
 
