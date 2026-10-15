@@ -103,6 +103,21 @@ def scan(brand_id: str, sku_to_product: Dict[str, str], images: Optional[Path] =
     return {"added": added, "unknown": unknown, "ambiguous": ambiguous, "total": len(entries)}
 
 
+def add_entry(brand_id: str, file: str, sku: str, product: str, view: str, source: str = "instore",
+              **extra: Any) -> Dict[str, Any]:
+    """Register a photo that was saved by a tool (the image scout). Waits for a check like any other."""
+    entries = load(brand_id)
+    for e in entries:
+        if e["file"] == file:
+            return e
+    entry = {"file": file, "sku": sku, "product": product, "view": view, "source": source,
+             "status": "needs-check", "viewable": not file.lower().endswith(".heic"),
+             "added": datetime.now(timezone.utc).isoformat(), **extra}
+    entries.append(entry)
+    _save(brand_id, entries)
+    return entry
+
+
 def set_status(brand_id: str, file: str, status: str, by: str = "christelle") -> bool:
     if status not in STATUSES:
         raise ValueError(f"status must be one of {STATUSES}")
@@ -146,6 +161,10 @@ def stamp_catalog(brand_id: str, products: List[Dict[str, Any]]) -> int:
 
 
 def shot_name(skus: List[str], view: str = "front") -> str:
-    """The filename to save a photo of this product under."""
-    clean = next((s for s in skus if re.fullmatch(r"[A-Za-z0-9\-_]+", s or "")), "")
-    return f"{clean}{SEP}{view}.jpg" if clean else "(add a clean SKU in the stock system first)"
+    """The filename to save a photo of this product under. Symbols a filename cannot hold
+    are dropped (ZD3(001 -> ZD3001); matching ignores punctuation, so it still finds the SKU)."""
+    for s in skus:
+        clean = re.sub(r"[^A-Za-z0-9\-_]", "", s or "")
+        if clean:
+            return f"{clean}{SEP}{view}.jpg"
+    return "(add a SKU in the stock system first)"

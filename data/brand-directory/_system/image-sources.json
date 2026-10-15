@@ -1,0 +1,23 @@
+{
+  "note": "Where each stocked brand's official product images live and how to get them. Learned 2026-10-15 by scouting both shops' stock lists. Update when a site changes.",
+  "rules": [
+    "Official brand image first. Never a retailer's copy, never anything generated or redrawn.",
+    "Look at the picture (contact sheet) before trusting a page title: Callaway's titles and headings disagree.",
+    "A standard model image for a custom build is saved with exact_build=false and shown as 'standard image'.",
+    "Nothing reaches the feed until a person approves it on the photo map."
+  ],
+  "brands": {
+    "Titleist": {"site": "https://www.titleist.com", "method": "browser pane", "images": "https://www.titleist.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-titleist-master/default/<hash>/<code>_01.png?sw=2000&sh=2000&sm=fit&sfrm=png (2000px)", "blocked": "The image server returns 403 to anything but a real browser page. Found and checked in the browser, cannot be downloaded by a script. Needs a manual save or a different route."},
+    "Srixon": {"site": "https://ca.dunlopsports.com", "method": "Shopify /collections/<name>/products.json", "images": "870px packshots (SX25-Balls-*)", "note": "srixon.com US now errors; the Dunlop Sports Canada store carries Srixon's own images. 870px: run the faithful Topaz upscale before use."},
+    "Callaway": {"site": "https://www.callawaygolf.com", "method": "image path pattern", "images": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792042806975/sits/balls-<year>-<model>/balls-<year>-<model>_2___1.jpg?sw=2000&q=90&bgcolor=F7F7F7&sfrm=png", "note": "Listing pages hang a hidden browser pane; open product pages in a fresh tab. Titles and headings can disagree. 2026 images exist for chrome-tour, chrome-tour-x, chrome-tour-td, chrome-soft; confirm the stock generation."},
+    "Vice Golf": {"site": "https://www.vicegolf.com", "method": "page scrape (no /products.json)", "images": "cdn.shopify.com dozen-box shots, full size when the width parameter is dropped", "note": "Balls found. Clubs, bags and junior sets not found yet. Stock is sleeves; the site shows dozen boxes."},
+    "Takomo": {"site": "https://takomogolf.com", "method": "Shopify products.json", "images": "transparent PNG, 1200px", "note": "301 CB, MB and Combo are separate products; the stock just says '301'."},
+    "L.A.B. Golf": {"site": "https://labgolf.com", "method": "Shopify products.json", "images": "1800px head shots on black", "note": "Standard black models only. Custom shaft and colour builds are not online."},
+    "Vessel": {"site": "https://vesselgolf.com", "method": "Shopify /products.json", "images": "2048px", "note": "Full current catalogue incl. Player V Stand and Prime 2.0 Staff."},
+    "Mileseey": {"site": "https://www.mileseeygolf.com", "method": "browser pane", "note": "Plain fetch gets 403. Not scouted yet."},
+    "Golf Pride": {"site": "https://www.golfpride.com", "method": "browser pane", "note": "Plain fetch gets 403. Not scouted yet."},
+    "GripDrip": {"site": "none found", "note": "gripdrip.com is a parked domain. Only a New Zealand retailer lists Par 3, Chevron and Zen. No towels found."},
+    "RipIt": {"site": "https://ripitgrips.com", "note": "Did not open in a plain fetch. Squiggle confirmed by reviews; Flower of Life and Marilyn not confirmed."},
+    "Not scouted yet": ["FootJoy", "Odyssey", "TaylorMade", "Ping", "LA Golf", "Herschel", "Jordan", "Psycho Bunny", "Lamkin", "AJM GripCo", "Callaway Quantum Mini (retailer pages only)", "Titleist gloves, Vokey SM10, Scotty Cameron"]
+  }
+}

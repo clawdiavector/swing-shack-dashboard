@@ -81,9 +81,15 @@ class PhotoMapTests(unittest.TestCase):
         pm.set_status(self.brand, "TS001__front.jpg", "rejected")
         self.assertEqual(pm.status_for(pm.load(self.brand), ["TS001"]), "")
 
-    def test_shot_name_skips_skus_a_filename_cannot_hold(self):
-        self.assertEqual(pm.shot_name(["LO|HCA(P001", "LOHCAP002"]), "LOHCAP002__front.jpg")
-        self.assertIn("clean SKU", pm.shot_name(["SP?001"]))
+    def test_shot_name_drops_symbols_a_filename_cannot_hold(self):
+        self.assertEqual(pm.shot_name(["ZD3(001"]), "ZD3001__front.jpg")
+        self.assertEqual(pm.shot_name(["LO|HCA(P001"]), "LOHCAP001__front.jpg")
+        self.assertIn("add a SKU", pm.shot_name(["?", ""]))
+
+    def test_dropped_symbols_still_match_the_stock_sku(self):
+        index = pm.sku_index(results(("Srixon Z-Star Diamond 3 - White", "ZD3(001", 24)))
+        self.drop("ZD3001__front.jpg")
+        self.assertEqual(pm.scan(self.brand, index, self.dir)["added"], ["ZD3001__front.jpg"])
 
 
 if __name__ == "__main__":

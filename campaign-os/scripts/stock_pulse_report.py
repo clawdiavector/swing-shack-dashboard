@@ -26,6 +26,15 @@ def say(text: str = "") -> None:
     print(text)
 
 
+def photo_state(entries, skus):
+    """Plain-language state of a photo that is on the map but not yet approved."""
+    mine = [e for e in entries if e.get("sku") in set(skus) and e.get("status") == "needs-check"]
+    if mine and all(not e.get("exact_build", True) for e in mine):
+        return "Online image found, not certain it is the exact item: check it, or shoot it"
+    src = "found online" if any(e.get("source") == "official-site" for e in mine) else "in store"
+    return f"Photo {src}, waiting for your check"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("csv")
@@ -131,7 +140,7 @@ def main() -> int:
             for r, m in need:
                 why = r["reason"] or ("Brand range post" if r.get("is_range") else "")
                 w.writerow([r["name"], r["qty"], r["status"],
-                            "Waiting for your check" if m["map"] == "needs-check"
+                            photo_state(entries, r["skus"]) if m["map"] == "needs-check"
                             else ("Candidate only" if m["candidates"] else "None"),
                             "; ".join(Path(c).name for c in m["candidates"]), why, pm.shot_name(r["skus"])])
     if a.out:
