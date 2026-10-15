@@ -1911,6 +1911,8 @@ export type GmbDraft = {
   link?: string
   imageUrl?: string
   brand?: string
+  status?: 'draft' | 'approved' | 'published'
+  approvedAt?: string
 }
 
 export function fetchGmbDrafts() {
@@ -2018,6 +2020,30 @@ export async function deleteGmbDraft(id: string) {
     throw new Error('auth required')
   }
   return res.json() as Promise<{ ok?: boolean; deleted?: boolean }>
+}
+
+export type GmbReviewResult = { ok?: boolean; error?: string; problems?: string[] }
+
+async function postGmbReview(id: string, action: 'approve' | 'unapprove'): Promise<GmbReviewResult> {
+  const res = await fetch(`/api/intel/gmb/draft/${encodeURIComponent(id)}/${action}`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return (await res.json().catch(() => ({ ok: false }))) as GmbReviewResult
+}
+
+export function approveGmbDraft(id: string) {
+  return postGmbReview(id, 'approve')
+}
+
+export function unapproveGmbDraft(id: string) {
+  return postGmbReview(id, 'unapprove')
 }
 
 export async function scheduleGmbDraft(id: string) {

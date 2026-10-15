@@ -15989,6 +15989,8 @@ def gbp_daily_poster_approve_route():
     except Exception as exc:
         result = {"ok": False, "error": f"publish failed: {exc}",
                   "post_status": "ERROR"}
+    if result.get("ok") and target.get("draft_id"):
+        _gdp.set_draft_status(target["draft_id"], "published", drafts_dir=GMB_DRAFTS_DIR)
     # Update the plan file with the publish result.
     target["post_status"] = result.get("post_status", "ERROR")
     target["publish_result"] = result
@@ -16138,6 +16140,8 @@ def _gbp_daily_publish(*, brand: str | None = None):
     except Exception as exc:
         result = {"ok": False, "error": f"publish failed: {exc}",
                   "post_status": "ERROR"}
+    if result.get("ok") and post.get("draft_id"):
+        _gdp.set_draft_status(post["draft_id"], "published", drafts_dir=GMB_DRAFTS_DIR)
     # 4. Update the plan file with the publish result so the UI shows
     # "published 9:01 SAST" or "removed: integrity_violation".
     pub_log = plan.setdefault("publish", {})
@@ -16485,9 +16489,13 @@ def gmb_edit_draft(draft_id):
     except Exception as exc:
         return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
     body = request.get_json(silent=True) or {}
-    for field in ('title', 'body', 'cta', 'link', 'imageUrl', 'status'):
+    for field in ('title', 'body', 'cta', 'link', 'imageUrl'):
         if field in body:
             draft[field] = body[field]
+    # An edited draft has not been re-reviewed, so it goes back to draft.
+    if draft.get('status') == 'approved':
+        draft['status'] = 'draft'
+        draft.pop('approvedAt', None)
     draft['updatedAt'] = _now_iso()
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(draft, f, indent=2, ensure_ascii=False)
@@ -16505,6 +16513,9 @@ def gmb_schedule_draft(draft_id):
             draft = json.load(f)
     except Exception as exc:
         return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
+    if draft.get('status') != 'approved':
+        return jsonify({"ok": False, "error": "draft must be approved before it is published",
+                        "status": draft.get('status')}), 409
     postiz_id = None
     err = None
     if not _POSTIZ_CLIENT_AVAILABLE:
@@ -16535,7 +16546,7 @@ def gmb_schedule_draft(draft_id):
                      "Connect GBP inside Postiz and retry, or pass integration_id in body.",
         }), 400
     # Build the post payload. GBP allows ~1500 char body, optional image.
-    text = (draft.get('body') or draft.get('title') or '')[:1500]
+    text = _gdp.gbp_post_text(_gdp.draft_post({**draft, "id": draft_id}))
     media_ids: list[str] = []
     image_url = draft.get('imageUrl') or draft.get('image')
     if image_url:
@@ -16574,6 +16585,44 @@ def gmb_schedule_draft(draft_id):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(draft, f, indent=2, ensure_ascii=False)
     return jsonify({"ok": True, "draft": draft, "postizId": postiz_id}), 200
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/approve', methods=['POST'])
+def gmb_approve_draft(draft_id):
+    """Approve a GBP draft so the daily plan can use it.
+
+    Refused with 409 and the list of problems until the draft has a body, a
+    link on its brand's site, a photo, and passes the text gate.
+    """
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            draft = json.load(f)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
+    problems = _gdp.review_problems({**draft, "id": draft_id})
+    if problems:
+        return jsonify({"ok": False, "error": "draft is not ready to approve", "problems": problems}), 409
+    _gdp.set_draft_status(draft_id, "approved", drafts_dir=GMB_DRAFTS_DIR)
+    return jsonify({"ok": True, "draft_id": draft_id, "status": "approved"}), 200
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/unapprove', methods=['POST'])
+def gmb_unapprove_draft(draft_id):
+    """Take a GBP draft back out of the daily plan queue."""
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _gdp.set_draft_status(draft_id, "draft", drafts_dir=GMB_DRAFTS_DIR):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    return jsonify({"ok": True, "draft_id": draft_id, "status": "draft"}), 200
 
 
 @app.route('/api/intel/gmb/draft/<draft_id>', methods=['DELETE'])

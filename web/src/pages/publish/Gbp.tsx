@@ -16,8 +16,9 @@ import {
   fetchGbpStatus,
   fetchGbpSuggestions,
   fetchGmbDrafts,
+  approveGmbDraft,
   previewGbpDailyPlan,
-  publishGbpDailyPlan,
+  unapproveGmbDraft,
   scheduleGmbDraft,
   updateGmbDraft,
   type GmbDraft,
@@ -91,7 +92,7 @@ export function Gbp() {
   const [drafts, setDrafts] = useState<GmbDraft[]>([])
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
   const [msg, setMsg] = useState('')
-  const [liveAction, setLiveAction] = useState<'daily' | { draftId: string } | null>(null)
+  const [liveAction, setLiveAction] = useState<{ draftId: string } | null>(null)
   const [draftForm, setDraftForm] = useState<GmbDraft>({ title: '', body: '', brand: scopeBrand })
   const [editingId, setEditingId] = useState<string | null>(null)
 
@@ -155,15 +156,23 @@ export function Gbp() {
     }
   }
 
-  async function handleDailyPublish() {
+  async function handleReview(id: string, approve: boolean) {
     setMsg('')
     try {
-      await publishGbpDailyPlan({ brand_id: scopeBrand, days: 7, posts_per_day: 1 })
-      setMsg('Daily plan publish submitted.')
-      setLiveAction(null)
-      loadPlans()
+      if (approve) {
+        const res = await approveGmbDraft(id)
+        if (!res.ok) {
+          setMsg(`Not ready to approve: ${(res.problems?.length ? res.problems : [res.error ?? 'unknown']).join(', ')}`)
+          return
+        }
+        setMsg('Draft approved. It can now go into the daily plan.')
+      } else {
+        await unapproveGmbDraft(id)
+        setMsg('Draft back in review.')
+      }
+      loadDrafts()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : 'Publish failed')
+      setMsg(e instanceof Error ? e.message : 'Review failed')
     }
   }
 
@@ -247,20 +256,7 @@ export function Gbp() {
                 Preview plan
               </button>
             </Tip>
-            <Tip text="Live outbound publish to GBP.">
-              <button type="button" className={primaryBtn} onClick={() => setLiveAction('daily')}>
-                Publish to GBP (live)
-              </button>
-            </Tip>
           </div>
-          {liveAction === 'daily' ? (
-            <BrandLiveConfirm
-              brandId={scopeBrand}
-              label="Publish daily poster plan to GBP (live)"
-              onCancel={() => setLiveAction(null)}
-              onConfirm={handleDailyPublish}
-            />
-          ) : null}
           {preview ? (
             <div className="glass max-h-96 overflow-auto rounded-2xl border border-white/10 p-4 text-xs">
               <pre>{JSON.stringify(preview, null, 2)}</pre>
@@ -338,6 +334,15 @@ export function Gbp() {
               <li key={d.id} className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm">
                 <p className="font-medium">{d.title || '(untitled)'}</p>
                 <p className="mt-1 line-clamp-2 text-tx3">{d.body}</p>
+                <p className="mt-1 text-xs text-tx3">
+                  {d.status === 'approved'
+                    ? 'Approved, in the daily plan queue'
+                    : d.status === 'published'
+                      ? 'Published'
+                      : 'Needs review'}
+                  {d.imageUrl ? '' : ' · no photo'}
+                  {d.link ? '' : ' · no link'}
+                </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -360,13 +365,25 @@ export function Gbp() {
                   >
                     Delete
                   </button>
-                  <button
-                    type="button"
-                    className={primaryBtn}
-                    onClick={() => d.id && setLiveAction({ draftId: d.id })}
-                  >
-                    Publish to GBP via Postiz (live)
-                  </button>
+                  {d.status === 'approved' ? (
+                    <button type="button" className={actionBtn} onClick={() => d.id && handleReview(d.id, false)}>
+                      Take back to review
+                    </button>
+                  ) : (
+                    <button type="button" className={primaryBtn} onClick={() => d.id && handleReview(d.id, true)}>
+                      Approve
+                    </button>
+                  )}
+                  <Tip text="Only approved drafts can be published.">
+                    <button
+                      type="button"
+                      className={actionBtn}
+                      disabled={d.status !== 'approved'}
+                      onClick={() => d.id && setLiveAction({ draftId: d.id })}
+                    >
+                      Publish to GBP via Postiz (live)
+                    </button>
+                  </Tip>
                 </div>
                 {liveAction && typeof liveAction === 'object' && liveAction.draftId === d.id ? (
                   <div className="mt-3">
