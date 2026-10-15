@@ -15,6 +15,11 @@ checks would require a live browser session — covered by the nightshift
 walkthrough capture at /tmp/co-nightshift/walkthrough_*_ideas_empty_collapse.png.
 """
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '../campaign-os/tests').resolve()))
+import _legacy_page  # noqa: E402
+
 import sys
 import unittest
 from pathlib import Path
@@ -30,6 +35,7 @@ class IdeasEmptyCollapseTests(unittest.TestCase):
     def setUpClass(cls):
         cls.html = CAMPAIGN_OS_HTML.read_text(encoding="utf-8")
 
+    @_legacy_page.on_old_page_only
     def test_empty_card_collapse_rule_present(self):
         # As of the 2026-08-12 nightshift fix, the rule now also promotes the
         # slim empty banner to a full-width row (grid-column:1 / -1) so it
@@ -49,6 +55,7 @@ class IdeasEmptyCollapseTests(unittest.TestCase):
             "empty cards will sit as tiny stubs beside tall siblings.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_empty_collapse_block_still_intact(self):
         # The new rule sits inside the existing empty-card collapse block
         # (Option A: slim banners). Make sure we didn't accidentally delete

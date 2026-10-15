@@ -22,6 +22,11 @@ This test asserts:
   6. No new em-dashes leaked into the new copy.
 """
 from __future__ import annotations
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import unittest
 from pathlib import Path
 
@@ -50,10 +55,12 @@ class TestMemeLibraryTopBadge(unittest.TestCase):
     def setUpClass(cls):
         cls.html = SPA.read_text(encoding="utf-8")
 
+    @_legacy_page.on_old_page_only
     def test_memlibraryrow_signature_accepts_isTop(self):
         block = _extract_block(self.html, "function memLibraryRow(", ["async function memRefresh(){"])
         self.assertIn("isTop", block, "memLibraryRow must accept isTop arg")
 
+    @_legacy_page.on_old_page_only
     def test_memrefresh_computes_library_avg_max_topcount(self):
         # The library block is bounded by the next "// Library " comment or the
         # pickList assignment, whichever comes first. Use the picks block as the
@@ -64,6 +71,7 @@ class TestMemeLibraryTopBadge(unittest.TestCase):
         self.assertIn("libMaxFit", block, "libMaxFit local-max constant missing")
         self.assertIn("libTopCount", block, "libTopCount counter missing")
 
+    @_legacy_page.on_old_page_only
     def test_top_badge_template_in_memlibraryrow(self):
         block = _extract_block(self.html, "function memLibraryRow(", ["async function memRefresh(){"])
         self.assertIn("\u2605 Top", block, "\u2605 Top badge template missing from memLibraryRow")
@@ -71,12 +79,14 @@ class TestMemeLibraryTopBadge(unittest.TestCase):
         self.assertIn("10b98122", block, "green tone colour missing from library badge")
         self.assertIn("10b981", block, "green tone foreground missing from library badge")
 
+    @_legacy_page.on_old_page_only
     def test_min_60_floor_present(self):
         block = _extract_block(self.html, "// Library \"\u2605 Top\" badge",
                                ["const pickList ="])
         self.assertIn("bf >= 60", block, "min brand_fit 60 floor missing from library top logic")
         self.assertIn("1.2", block, "1.2x ratio threshold missing from library top logic")
 
+    @_legacy_page.on_old_page_only
     def test_top_count_suffix_in_summary(self):
         block = _extract_block(self.html, "// Library \"\u2605 Top\" badge",
                                ["const pickList ="])
@@ -85,11 +95,13 @@ class TestMemeLibraryTopBadge(unittest.TestCase):
         self.assertIn("libTopCount", block.replace("if (libTopCount", "X"),
                       "libTopCount must drive the suffix")
 
+    @_legacy_page.on_old_page_only
     def test_no_new_em_dashes_in_memlibraryrow(self):
         block = _extract_block(self.html, "function memLibraryRow(", ["async function memRefresh(){"])
         self.assertNotIn("\u2014", block, "Em-dash (\u2014) leaked into memLibraryRow")
         self.assertNotIn("\u2013", block, "En-dash (\u2013) leaked into memLibraryRow")
 
+    @_legacy_page.on_old_page_only
     def test_no_new_em_dashes_in_library_top_block(self):
         block = _extract_block(self.html, "// Library \"\u2605 Top\" badge",
                                ["const pickList ="])

@@ -52,7 +52,7 @@ export function Results() {
   return (
     <div className="space-y-6">
       <PageIntro icon={Activity} badge="What worked" here="/results" title="Results">
-        Reports and outcomes for {brand}. Daily already shows the headline numbers.
+        How {brand} is doing. Today already shows the headline numbers.
       </PageIntro>
 
       <div className="grid gap-3 sm:grid-cols-3">

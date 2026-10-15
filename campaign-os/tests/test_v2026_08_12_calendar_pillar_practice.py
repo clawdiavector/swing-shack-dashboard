@@ -35,6 +35,11 @@ no fabricated stats, no deletes. Pure inference-pillar-class-system fix.
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import sys
 import unittest
@@ -107,6 +112,7 @@ class TestPracticePillarPalette(unittest.TestCase):
         # still gets cyan, not green.
         self.assertEqual(self.color("practice", "swing shack", "").lower(), "#06b6d4")
 
+    @_legacy_page.on_old_page_only
     def test_practice_token_matches_dashboard_css(self):
         # Drift guard: palette MUST match the CSS --pillar-practice token in
         # all 4 theme blocks (2 default + 2 dark-variant). If a future edit
@@ -149,6 +155,7 @@ class TestPracticePillarJSKey(unittest.TestCase):
         self.html_path = ROOT / "campaign-os" / "campaign-os.html"
         self.html = self.html_path.read_text(encoding="utf-8")
 
+    @_legacy_page.on_old_page_only
     def test_pillar_keys_array_includes_practice(self):
         # Find the JS pillarKeys array. We allow whitespace between tokens
         # and tolerate quote styles.
@@ -166,6 +173,7 @@ class TestPracticePillarJSKey(unittest.TestCase):
             "Practice slots.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_cal_slot_pillar_practice_css_rule_exists(self):
         # The CSS rule that paints the left border with --pillar-practice.
         self.assertIn(

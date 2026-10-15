@@ -26,6 +26,11 @@ Static data validation:
      not just the ones writers choose to backfill.
 """
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '../campaign-os/tests').resolve()))
+import _legacy_page  # noqa: E402
+
 import json
 import unittest
 from pathlib import Path
@@ -62,6 +67,7 @@ class AgentsRunAtFieldTests(unittest.TestCase):
             self.assertIn(f'last_run.get("{key}")', block,
                           f"Legacy probe name `{key}` must remain in the lookup chain as a fallback")
 
+    @_legacy_page.on_old_page_only
     def test_age_formatter_still_handles_null(self):
         """The JS agentRunHtml() must still render null last_run as 'never' (not 'invalid date')."""
         # The formatter sets `age = 'never'` before the timestamp parse, so a

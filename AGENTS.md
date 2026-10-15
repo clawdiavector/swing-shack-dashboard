@@ -146,6 +146,37 @@ cd campaign-os && python3 -m pytest --collect-only -q
 
 Count it; do not quote a stale number. There is no CI merge gate today (t28 adds one in P1).
 
+### 12a. Done means `./check` passes
+
+```bash
+./check            # or: python3 check
+```
+
+One command decides "done": lib modules, pytest over `tests/ci-allowlist.txt`, and
+tracked `data/` left untouched. CI runs the same command. Its last line is
+`CHECK: PASS` or `CHECK: FAIL`.
+
+- **Bug:** first write a test that reproduces it. Run it and confirm it FAILS. Commit
+  that test on its own. Then fix the code. Do not edit that test afterwards.
+- **Feature:** turn the acceptance criteria into tests first, commit them, then implement.
+- **Refactor / upgrade / performance:** existing tests must not change. If one has to,
+  stop and explain why in your final message.
+- You are done when `./check` passes, not before. Paste its last lines in your final
+  message. If it is too slow to run where you are, say so plainly — do not claim a pass.
+- Never delete, skip, weaken or re-record a test to make `./check` pass, and never add
+  a line to `tests/check-known-failures.txt`. If you believe a check is wrong, stop and
+  explain. A person decides.
+
+`tests/check-known-failures.txt` lists the allowlisted tests that were already red on
+`main` when this landed (CI had not been green since 2026-09-17). `./check` ignores
+those and fails on anything else, so green means "nothing new broke". The list may
+only shrink: fix a test, delete its line.
+
+Hooks in `.claude/settings.json` and `.cursor/hooks.json` enforce the two rules an
+agent is most likely to bend — they refuse edits to locked checks and send the agent
+back while `./check` fails. How they work, the knobs, and what is not covered:
+[`docs/dev/verified-done.md`](docs/dev/verified-done.md).
+
 ## 13. Where the plan lives
 
 agent-control: `manifests/campaign-os-master-plan-20260910.yaml` (ordered task list) and

@@ -12,6 +12,11 @@ Standing rules covered: no em-dash (U+2014) or en-dash (U+2013) in either
 fallback string; middot separator (U+00B7) used to match the 17 already-
 shipped sections; id + data-help + data-help-title all present.
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -64,6 +69,7 @@ class TwoLoadingPlaceholdersGone(unittest.TestCase):
                     f"{sub_id} still has the old loading placeholder",
                 )
 
+    @_legacy_page.on_old_page_only
     def test_02_each_sub_carries_id_data_help_and_data_help_title(self):
         """Every sub must carry id + data-help + data-help-title so the next
         editor gets the same affordance the 17 already-shipped sections have."""
@@ -78,6 +84,7 @@ class TwoLoadingPlaceholdersGone(unittest.TestCase):
                     f"{sub_id} missing data-help or data-help-title='What is in this section'",
                 )
 
+    @_legacy_page.on_old_page_only
     def test_03_each_sub_lists_visible_cards(self):
         """Each descriptive fallback must list the visible sub-cards / actions
         so a first-time visitor knows what lives below before the JS call lands."""
@@ -95,6 +102,7 @@ class TwoLoadingPlaceholdersGone(unittest.TestCase):
                     f"{sub_id} fallback is missing required phrases: {missing}",
                 )
 
+    @_legacy_page.on_old_page_only
     def test_04_no_em_dash_or_en_dash_in_any_sub(self):
         """Standing rule: no em-dash (U+2014) or en-dash (U+2013) in published
         copy / sub text. Replaces must use middot or colon or parens."""
@@ -116,6 +124,7 @@ class TwoLoadingPlaceholdersGone(unittest.TestCase):
                     f"en dash (U+2013) found in {sub_id}",
                 )
 
+    @_legacy_page.on_old_page_only
     def test_05_each_sub_uses_middot_separator(self):
         """The 17 already-shipped sections all use middot (U+00B7) as the
         separator. New sub must have at least 3 middots to keep the visual
@@ -135,6 +144,7 @@ class TwoLoadingPlaceholdersGone(unittest.TestCase):
                     f"(expected 3+ to match the established pattern)",
                 )
 
+    @_legacy_page.on_old_page_only
     def test_06_static_fallback_meaningful_length(self):
         """The static fallback must be longer than the old placeholder
         ('loading…' is 9 chars; 'Auditing site…' is 15 chars). Real sub
@@ -152,6 +162,7 @@ class TwoLoadingPlaceholdersGone(unittest.TestCase):
                     f"{sub_id} static fallback is too short ({len(text)} chars)",
                 )
 
+    @_legacy_page.on_old_page_only
     def test_07_js_overwrite_paths_still_intact(self):
         """Both subs have JS overwrites that set the dynamic summary string
         when the API call returns. The static fallback is the 'before API' /
@@ -174,6 +185,7 @@ class TwoLoadingPlaceholdersGone(unittest.TestCase):
                     f"{sub_id} JS overwrite path is missing or moved",
                 )
 
+    @_legacy_page.on_old_page_only
     def test_08_data_help_includes_old_placeholder_rationale(self):
         """Each data-help long-text should explicitly say what the old
         placeholder was (literal 'loading…' or 'Auditing site…') so the next

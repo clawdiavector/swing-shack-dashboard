@@ -5,7 +5,7 @@
   "updated": "2026-09-27T00:00:00Z",
   "primary": {
     "family": "Montserrat Italic",
-    "source": "Google Fonts OFL (vendored static cuts) \u2014 matched to Content Bank did-you-know posts (cf1\u2013cf6)",
+    "source": "Google Fonts OFL (vendored static cuts) — matched to Content Bank did-you-know posts (cf1–cf6)",
     "weights_available": [
       100,
       200,
@@ -129,5 +129,22 @@
       ]
     }
   ],
-  "source": "roles measured 2026-09-27 from Content Bank Services/cf*.jpg; scale rows are the older best-guess (no files)"
+  "source": "roles measured 2026-09-27 from Content Bank Services/cf*.jpg; scale rows are the older best-guess (no files)",
+  "brand_guide": {
+    "source": "Swing Shack branding document (designer), brand-guide/swingshack-branding-document.pdf, page 2 'Typography'",
+    "logo_wordmark": {
+      "SWING": "Aktiv Grotesk XBold Italic",
+      "SHACK": "Calgary Script OT, -25 tracking"
+    },
+    "social": [
+      "Avenir Next Heavy Italic",
+      "Avenir Next Italic",
+      "Aktiv Grotesk XBold Italic"
+    ],
+    "website": {
+      "headers": "Poppins Bold",
+      "body": "Roboto Regular"
+    },
+    "note": "Avenir Next, Aktiv Grotesk and Calgary Script are commercial fonts and are not in this repo. The vendored Montserrat Italic is a free stand-in chosen to match Content Bank posts; it is not in the branding document. Replace it once licensed font files are supplied."
+  }
 }

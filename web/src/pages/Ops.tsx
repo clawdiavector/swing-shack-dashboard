@@ -768,8 +768,7 @@ export function Ops() {
   return (
     <div className="space-y-6">
       <PageIntro here="/ops" title="Ops">
-        Jobs, agents, connected accounts, and stored campaigns — native Heroes, same APIs as
-        Classic. The fleet is shared; accounts and per-brand job rows follow the brand switch.
+        Jobs, agents, connected accounts and saved campaigns, all in one place. The fleet is shared; accounts and job rows follow the brand you pick.
       </PageIntro>
 
       <LayerRibbon layers={layers} onSelectTab={setTab} />

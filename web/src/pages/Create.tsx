@@ -55,7 +55,7 @@ export function Create() {
   return (
     <div className="space-y-6">
       <PageIntro icon={Sparkles} badge="Studio" here="/create" title="Make a draft">
-        One studio. Copy, stills, and memes stay where they are — they open from here.
+        One studio for everything you make. Captions, images and memes all open from here.
         <span className="mt-2 block">
           <ClassicLink href="/?page=buildpost" label="Build a post (classic)" />
         </span>

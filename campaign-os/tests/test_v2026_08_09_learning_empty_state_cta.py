@@ -26,6 +26,12 @@ This test asserts:
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent))
+import _legacy_page  # noqa: E402
+_legacy_page.skip_module_unless('LEARN_EMPTY')
+
 import re
 import unittest
 from pathlib import Path

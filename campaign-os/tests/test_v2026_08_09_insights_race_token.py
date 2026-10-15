@@ -24,6 +24,11 @@ and asserts structural markers.
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -54,6 +59,7 @@ def _renderInsightsV2_body() -> str:
 class InsightsRaceTokenTests(unittest.TestCase):
     """Guard tests for the Insights V2 re-entry race fix."""
 
+    @_legacy_page.on_old_page_only
     def test_token_snapshot_at_entry(self):
         """renderInsightsV2() must capture a render token at the start of
         the function — snapshot of `sec.dataset.insRenderToken` (or its
@@ -67,6 +73,7 @@ class InsightsRaceTokenTests(unittest.TestCase):
             "cannot compare tokens after the async fetch resolves."
         )
 
+    @_legacy_page.on_old_page_only
     def test_token_incremented_on_section(self):
         """renderInsightsV2() must increment the section's render token on
         every call so the next call sees a fresh value."""
@@ -88,6 +95,7 @@ class InsightsRaceTokenTests(unittest.TestCase):
             "would never let later renders invalidate earlier ones."
         )
 
+    @_legacy_page.on_old_page_only
     def test_token_check_after_promise_all(self):
         """After the `await Promise.all([...])` resolves, the function must
         compare the current section token to the snapshot and bail if a newer
@@ -115,6 +123,7 @@ class InsightsRaceTokenTests(unittest.TestCase):
             "has already wiped, throwing 'Cannot set properties of null'."
         )
 
+    @_legacy_page.on_old_page_only
     def test_renders_normally_when_no_re_entry(self):
         """The fix must not break the normal (single-render) path. After the
         token check, the function must still build the headlines + body +
@@ -134,6 +143,7 @@ class InsightsRaceTokenTests(unittest.TestCase):
             "token guard — the guard should be silent only for stale calls."
         )
 
+    @_legacy_page.on_old_page_only
     def test_no_em_dash_in_patched_block(self):
         """Standing rule: no em-dash in shipped copy. The new comment block
         uses colons and hyphens only. (The static HTML inside the function

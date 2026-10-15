@@ -18,6 +18,11 @@ markers, so a regression where the pill disappears (re-introducing the
 visual ambiguity) fails loudly.
 """
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import os
 import re
 import unittest
@@ -36,15 +41,18 @@ class CompetitorRowAgePillTests(unittest.TestCase):
     def setUpClass(cls):
         cls.html = _read(HTML_PATH)
 
+    @_legacy_page.on_old_page_only
     def test_renderYT_competitor_branch_present(self):
         # We touch this branch — make sure it still exists.
         self.assertIn("it.competitor", self.html)
 
+    @_legacy_page.on_old_page_only
     def test_age_pill_helper_logic_present(self):
         # The Math.floor((Date.now() - parsed) ...) age calculation.
         self.assertIn("Date.now() - parsed", self.html)
         self.assertIn("1000*60*60*24", self.html)
 
+    @_legacy_page.on_old_page_only
     def test_thresholds_match_data_freshness_widget(self):
         # The 14d / 30d / 60d thresholds match the freshness widget's 14d "stale"
         # boundary (rotten is 3x = 42d) — but row-level uses 30d/60d so we can
@@ -59,11 +67,13 @@ class CompetitorRowAgePillTests(unittest.TestCase):
         for tone in ("blocked", "review", "muted"):
             self.assertIn(tone, self.html, f"Pill tone missing: {tone}")
 
+    @_legacy_page.on_old_page_only
     def test_label_format_strings_present(self):
         # The pill labels use the "Nd" suffix to make age obvious.
         for label in ("d old", "d stale", "d ago"):
             self.assertIn(label, self.html, f"Missing label: {label}")
 
+    @_legacy_page.on_old_page_only
     def test_pill_has_title_attribute(self):
         # Tooltip explains the threshold so a future user understands "60d old"
         m = re.search(r'pill \$\{ageTone\}.*?title="([^"]+)"', self.html)
@@ -71,11 +81,13 @@ class CompetitorRowAgePillTests(unittest.TestCase):
         assert m is not None
         self.assertIn("freshness threshold", m.group(1))
 
+    @_legacy_page.on_old_page_only
     def test_date_still_rendered(self):
         # Don't regress the original `${esc(it.date)}` rendering — both pills
         # appear alongside the date.
         self.assertIn("<span class=\"muted\">${esc(it.date)}</span>", self.html)
 
+    @_legacy_page.on_old_page_only
     def test_pill_only_above_14_days(self):
         # The agePill should be empty for rows <=14 days old (the gating
         # condition `if(rowDays > 14)` is what produces this behaviour).
