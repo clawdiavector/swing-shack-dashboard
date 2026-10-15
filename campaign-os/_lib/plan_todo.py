@@ -77,6 +77,8 @@ def todo_steps(brand_id: str, plans: Iterable[Dict[str, Any]], today: _dt.date) 
                 needs.append("nobody asked yet")
             if kind == "boost" and not i.get("budget"):
                 needs.append("no budget yet")
+            if kind == "post" and p.get("status") == "approved" and i.get("calendar_id") and not i.get("draft"):
+                needs.append("no draft yet")
             out.append({
                 "key": f"{p['plan_id']}:{i['item_id']}",
                 "brand_id": brand_id,
@@ -92,6 +94,7 @@ def todo_steps(brand_id: str, plans: Iterable[Dict[str, Any]], today: _dt.date) 
                 "event_kind": p.get("event_kind") or p.get("profile") or "standard",
                 "plan_status": p.get("status"),
                 "asked": i.get("asked"),
+                "draft": i.get("draft"),
                 "needs": needs,
             })
     out.sort(key=lambda s: (BUCKETS.index(s["bucket"]), s["due"], s["event_name"], s["title"]))

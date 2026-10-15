@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { approveBlocker, boostBudget, dueLabel, formatRand, splitItems, type Plan, type PlanItem } from './plan'
+import { approveBlocker, boostBudget, draftState, dueLabel, formatRand, splitItems, type Plan, type PlanItem } from './plan'
 
 const item = (over: Partial<PlanItem>): PlanItem => ({
   item_id: 'it-1',
@@ -94,5 +94,24 @@ describe('boost budget', () => {
     ]
     expect(boostBudget(items)).toEqual({ total: 1000, boosts: 2, missing: 1 })
     expect(boostBudget([item({ kind: 'post' })])).toEqual({ total: 0, boosts: 0, missing: 0 })
+  })
+})
+
+describe('draftState', () => {
+  const post = (over: Partial<PlanItem> = {}) => item({ kind: 'post', calendar_id: 'cal-1', ...over })
+  it('only a live post step has a draft to make', () => {
+    expect(draftState(item({ kind: 'story' }), true).kind).toBe('none')
+    expect(draftState(post({ status: 'removed' }), true).kind).toBe('none')
+    expect(draftState(post({ status: 'done' }), true).kind).toBe('none')
+  })
+  it('says what is missing before it can be made, in the order the person does it', () => {
+    expect(draftState(post(), false)).toEqual({ kind: 'wait', text: 'Approve the plan, and put it on the calendar, to make the draft.' })
+    expect(draftState(post({ calendar_id: '' }), true)).toEqual({ kind: 'wait', text: 'Put the plan on the calendar to make the draft.' })
+    expect(draftState(post(), true)).toEqual({ kind: 'ready' })
+  })
+  it('after it is asked for, says so and where it will appear', () => {
+    const s = draftState(post({ draft: { requested_at: '2026-10-15T07:00:00+00:00', by: 'C', moment: 'm', queued: ['draft_caption'] } }), true)
+    expect(s.kind).toBe('asked')
+    expect(s.kind === 'asked' && s.text).toBe('Draft asked for on 15 Oct 2026. It appears in Approve drafts once the caption is written.')
   })
 })

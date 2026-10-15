@@ -373,11 +373,10 @@ export function SearchPanel({
         <div>
           <h2 className="font-display text-lg font-semibold">Search Dates</h2>
           <p className="mt-0.5 text-[11px] text-tx3">
-            Find opportunities in {brandDisplayName(brand)}'s calendar, candidates, watchlist,
-            research leads, and strategic moments.
+            Search {brandDisplayName(brand)}'s calendar, suggestions, ideas and important dates.
           </p>
         </div>
-        <Tip text="V2.9 §5 — your suggestion becomes a Candidate, not an approved event.">
+        <Tip text="Your suggestion is added to your suggestions. It is not on the calendar until you approve it.">
           <button
             type="button"
             onClick={onOpenSuggestDateModal}
@@ -464,8 +463,7 @@ export function SearchPanel({
               <p>No matches yet. Try another word.</p>
               {data.search_more_available ? (
                 <p className="mt-1 text-[11px] text-tx2">
-                  No adequate result exists — you can ask Scout to research more via the existing
-                  research path.
+                  Nothing found. You can ask the scout to research it.
                 </p>
               ) : null}
             </div>
@@ -499,7 +497,7 @@ export function SearchPanel({
           {data.search_more_available ? (
             <div className="rounded-lg border border-dashed border-bd bg-bg2/40 p-3 text-center text-[11px] text-tx3">
               <p>
-                Need more results? Ask Scout to research more via the existing research path.
+                Need more results? Ask the scout to research it.
               </p>
               <a
                 href="/app/desk?tool=scout"

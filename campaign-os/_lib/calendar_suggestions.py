@@ -104,7 +104,10 @@ def month_items(
 
     taken = list(approved) + [_key(i["title"]) for i in out]
     for n in dates_to_note(brand_id, note_rows, first, last, already_named=taken):
-        if n["id"] in decisions or not first <= _parse(n["start"]) <= last:
+        # Approved and rejected dates are done with. "Not now" keeps a date on the grid.
+        if (decisions.get(n["id"]) or {}).get("decision") in ("approved", "rejected"):
+            continue
+        if not first <= _parse(n["start"]) <= last:
             continue
         if any(_same_event(_key(n["name"]), t) for t in taken):
             continue
@@ -123,6 +126,42 @@ def month_items(
                                 "start": n["start"], "end": n["end"]}),
         })
 
+    out.sort(key=lambda i: (i["date"], i["title"]))
+    return out
+
+
+LATER_DAYS = 14
+
+
+def triage_items(
+    brand_id: str,
+    today: _dt.date,
+    note_rows: Iterable[Dict[str, Any]],
+    approved_names: Iterable[str],
+    decisions: Dict[str, Any],
+    months: int = 13,
+) -> List[Dict[str, Any]]:
+    """Important dates still waiting for a decision, soonest first, for the
+    next `months` months. A date put off with "not now" is left out of this
+    list until its two weeks are up, but stays on the month grid."""
+    notes = list(note_rows)
+    names = list(approved_names)
+    out: List[Dict[str, Any]] = []
+    seen = set()
+    y, m = today.year, today.month
+    for _ in range(months):
+        for i in month_items(brand_id, f"{y:04d}-{m:02d}", [], lambda r: False, notes, decisions, names, today):
+            if i["source"] != "date" or i["key"] in seen:
+                continue
+            d = _parse(i["date"])
+            if not d or d < today:
+                continue
+            later = decisions.get(i["key"]) or {}
+            if later.get("decision") == "later" and str(later.get("until") or "") > today.isoformat():
+                continue
+            seen.add(i["key"])
+            out.append(i)
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
     out.sort(key=lambda i: (i["date"], i["title"]))
     return out
 

@@ -95,3 +95,16 @@ def test_several_brands_get_their_own_heading_and_one_brand_does_not():
     both = pt.morning_text({"stick": {"alerts": [], "steps": s}, "swing-shack": {"alerts": [], "steps": s}}, TODAY)
     assert "— Stick —" in both and "— Swing Shack —" in both
     assert "— Stick —" not in pt.morning_text({"stick": {"alerts": [], "steps": s}}, TODAY)
+
+
+def test_an_approved_placed_post_with_no_draft_says_so_until_one_is_asked_for():
+    base = {"plan_id": "pln-1", "status": "approved", "event_name": "X", "event_date": "2027-02-14", "items": [
+        item("a", "post", "2026-10-15", "Teaser", calendar_id="cal-1"),
+        item("b", "post", "2026-10-16", "Reminder", calendar_id="cal-2", draft={"requested_at": "x"}),
+        item("c", "post", "2026-10-17", "Not placed yet"),
+        item("d", "story", "2026-10-18", "A story", calendar_id="cal-4"),
+    ]}
+    by = {s["item_id"]: s["needs"] for s in pt.todo_steps("stick", [base], TODAY)}
+    assert by["a"] == ["no draft yet"] and by["b"] == [] and by["c"] == [] and by["d"] == []
+    draft_plan = dict(base, status="proposed")
+    assert all(s["needs"] == [] for s in pt.todo_steps("stick", [draft_plan], TODAY))
