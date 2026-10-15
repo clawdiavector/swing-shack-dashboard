@@ -30,6 +30,7 @@ Campaign OS is a Flask marketing cockpit on Railway: registered batch **jobs** (
 | [`how-to.md`](how-to.md) | Implement recipes |
 | [`state-of-play.md`](state-of-play.md) | Branch snapshot (not a roadmap) |
 | [`conventions.md`](conventions.md) | Branches, secrets, tests, land |
+| [`verified-done.md`](verified-done.md) | `./check`, the known-failures list, agent hooks, the CI guard |
 
 ## History — not implement contracts
 
