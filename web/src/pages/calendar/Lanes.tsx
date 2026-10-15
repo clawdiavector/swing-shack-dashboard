@@ -1,5 +1,7 @@
 import { Plus } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import '../../fun.css'
+import { FunTile } from '../../components/fun'
 import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { PageIntro } from '../../components/chrome'
@@ -242,6 +244,19 @@ export function Lanes() {
 
   const strategyEmpty = panelFailed(bigIdea) && panelFailed(rightNow)
   const brandLabel = scopeBrand || 'brand'
+  const soonCount = useMemo(() => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const iso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    const from = new Date()
+    const to = new Date()
+    to.setDate(to.getDate() + 30)
+    const a = iso(from)
+    const b = iso(to)
+    return (withDatesToNote?.events || []).filter((ev) => {
+      const s = (ev.start || ev.public_peak || ev.planning_start || '').slice(0, 10)
+      return s >= a && s <= b
+    }).length
+  }, [withDatesToNote])
 
   const openSuggestDate = (iso?: string) => {
     setSuggestDateInitial(iso)
@@ -254,10 +269,29 @@ export function Lanes() {
         What’s coming up, soonest first. Anything you’ve suggested waits at the top until you put it on the calendar.
       </PageIntro>
 
+      {scopeBrand && timeline ? (
+        <div className="fun-grid3 grid grid-cols-3 gap-2 sm:gap-3">
+          <FunTile
+            label="Next 30 days"
+            value={soonCount}
+            hint={soonCount === 1 ? 'Thing on the calendar' : 'Things on the calendar'}
+            tone="gold"
+            dots={{ on: Math.min(soonCount, 7) }}
+          />
+          <FunTile
+            label="Ideas to review"
+            value={candidates ? candidates.candidate_count || 0 : '—'}
+            hint="Found by research"
+            tone="violet"
+          />
+          <FunTile label="Dates to sort" value={triageCount ?? 0} hint="Waiting for a decision" tone="blue" />
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <span
-            className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-bg1 p-1"
+            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-bg1 p-1"
             role="tablist"
             aria-label="Calendar view"
           >
@@ -270,7 +304,7 @@ export function Lanes() {
                 title={opt.hint}
                 onClick={() => setTab(opt.id)}
                 data-testid={`plan-view-${opt.id}`}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`fun-btn rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                   tab === opt.id ? 'bg-yel text-bg' : 'text-tx2 hover:text-tx'
                 }`}
               >
@@ -284,7 +318,7 @@ export function Lanes() {
             type="button"
             onClick={() => setShowTriage((v) => !v)}
             data-testid="plan-triage-open"
-            className="inline-flex items-center gap-1.5 rounded-full border border-yel/40 px-4 py-2 text-sm font-semibold text-yel hover:bg-yel/10"
+            className="fun-btn inline-flex items-center gap-1.5 rounded-full border border-yel/40 px-4 py-2 text-sm font-semibold text-yel hover:bg-yel/10"
           >
             Sort dates · {triageCount}
           </button>
@@ -294,7 +328,7 @@ export function Lanes() {
             type="button"
             onClick={() => openSuggestDate()}
             data-testid="plan-new"
-            className="inline-flex items-center gap-1.5 rounded-full bg-yel px-4 py-2 text-sm font-semibold text-bg hover:bg-yel/90"
+            className="fun-btn inline-flex items-center gap-1.5 rounded-full bg-yel px-4 py-2 text-sm font-semibold text-bg hover:bg-yel/90"
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
             New date or campaign

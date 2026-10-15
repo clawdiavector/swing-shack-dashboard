@@ -26,6 +26,7 @@
 .fun-tile[data-tone='green'] { --tone: var(--color-ac); }
 .fun-tile[data-tone='blue'] { --tone: var(--color-blu); }
 .fun-tile[data-tone='violet'] { --tone: var(--color-lane-paid); }
+.fun-tile[data-tone='red'] { --tone: var(--color-red); }
 
 .fun-tile::after {
   content: '';
@@ -345,6 +346,60 @@
 @keyframes fun-wiggle { 50% { transform: rotate(-5deg) scale(1.05); } }
 @keyframes fun-munch { 50% { transform: scale(1.12, 0.9); } }
 @keyframes fun-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+/* Cheers, lifted cards, bouncy buttons */
+.fun-cheer {
+  display: inline-block;
+  border-radius: 999px;
+  background: var(--color-tx);
+  color: var(--color-bg);
+  padding: 0.5rem 1.1rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  animation: fun-drop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.fun-lift { transition: transform 0.25s cubic-bezier(0.3, 1.7, 0.5, 1); }
+.fun-lift:hover { transform: translateY(-2px) rotate(-0.2deg); }
+.fun-btn { transition: transform 0.2s cubic-bezier(0.3, 1.7, 0.5, 1); }
+.fun-btn:hover:not(:disabled) { transform: scale(1.07) rotate(-1.5deg); }
+.fun-btn:active:not(:disabled) { transform: scale(0.94); }
+
+/* Plan */
+@media (max-width: 560px) {
+  .fun-grid3 .fun-tile { padding: 0.65rem 0.6rem 0.7rem; border-radius: 1.1rem; }
+  .fun-grid3 .fun-tile__label { font-size: 0.62rem; letter-spacing: 0.06em; }
+  .fun-grid3 .fun-tile__value { font-size: 2.2rem; }
+  .fun-grid3 .fun-tile__hint, .fun-grid3 .fun-dots { display: none; }
+  .fun-grid3 .fun-tile::after { display: none; }
+}
+.fun-when {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ac);
+}
+.fun-when[data-past='true'] { color: var(--color-tx3); }
+.fun-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--color-tx);
+  color: var(--color-bg);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.fun-mascot.\!w-9 { width: 2.25rem; animation: none; }
+
+/* Links inside a tile keep the tile's ink. */
+.fun-tile a { color: inherit; text-decoration: underline; font-weight: 700; }
+.fun-tile .inline-flex { color: inherit; }
+
 @keyframes fun-pop { from { transform: scale(0.6); opacity: 0; } }
 @keyframes fun-bob { 50% { transform: translateY(-5px) rotate(2deg); } }
 @keyframes fun-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
@@ -366,6 +421,9 @@
   .fun-ticker > *,
   .fun-shortcuts > *,
   .fun-cleared,
+  .fun-cheer,
+  .fun-lift,
+  .fun-btn,
   .fun-mouth,
   .fun-chomper,
   .fun-chomper__lid,
@@ -382,6 +440,8 @@
   }
   .fun-story:hover,
   .fun-story__done:hover,
+  .fun-lift:hover,
+  .fun-btn:hover,
   .fun-day-pill:hover,
   .fun-gap-chips > li:hover,
   .fun-tile:hover,

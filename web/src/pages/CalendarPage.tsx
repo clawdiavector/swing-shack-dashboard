@@ -2,8 +2,10 @@ import { CalendarDays, ChevronLeft, ChevronRight, Lightbulb, Map, Send } from 'l
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../components/BrandSwitch'
+import '../fun.css'
+import { FunTile } from '../components/fun'
 import { HeroPanel, MonthGrid, PageIntro } from '../components/chrome'
-import { Badge, Button, ClassicLink, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
+import { Badge, Button, ClassicLink, IconTile, QueueItem, Tip } from '../components/ui'
 import {
   duplicateScheduledAsset,
   fetchCalendarMonth,
@@ -516,30 +518,28 @@ export function CalendarPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard
-          icon={Send}
+        <FunTile
           label="Today"
           value={data ? scheduled : '—'}
           hint="Scheduled to go live"
           tone="gold"
+          dots={data ? { on: Math.min(scheduled, 7) } : undefined}
           stamp={data?.ts}
           stampKind="as_of"
         />
-        <StatCard
+        <FunTile
           to={`/calendar/lanes?date=${selectedIso}`}
-          icon={Map}
           label="Lanes"
           value="Open"
           hint="Themes and planning"
-          tone="mute"
+          tone="blue"
         />
-        <StatCard
+        <FunTile
           to={`/calendar/ideas?date=${selectedIso}`}
-          icon={Lightbulb}
           label="Ideas"
           value="Open"
           hint="Backlog to park"
-          tone="mute"
+          tone="violet"
         />
       </div>
 
