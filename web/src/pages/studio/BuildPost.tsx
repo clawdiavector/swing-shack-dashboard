@@ -375,7 +375,7 @@ export function BuildPost() {
         </span>
       </PageIntro>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <HeroPanel
           icon={Hammer}
           kicker="Studio"

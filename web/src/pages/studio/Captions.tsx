@@ -104,7 +104,7 @@ export function Captions() {
         <ClassicLink href="/?page=captions" label="Captions" />
       </PageIntro>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <HeroPanel icon={MessageSquareText} kicker="Studio" title="Brief → survivors">
           <textarea
             className={`${inputCls} mt-3 min-h-[100px]`}

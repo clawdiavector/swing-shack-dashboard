@@ -109,7 +109,7 @@ export function Shell() {
               aria-label={theme === 'play' ? 'Switch to the classic dark desk' : 'Switch to the playful look'}
               className="glass-pill rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-tx2 hover:text-tx"
             >
-              {theme === 'play' ? 'Classic look' : 'Playful look'}
+              {theme === 'play' ? 'Classic' : 'Playful'}
             </button>
             <BrandSwitch variant="bar" />
           </div>
@@ -118,7 +118,7 @@ export function Shell() {
           className={
             isDesk
               ? 'flex min-h-0 flex-1 flex-col overflow-hidden'
-              : 'mx-auto w-full max-w-[1680px] min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-8 md:py-8'
+              : 'mx-auto w-full max-w-[1680px] min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-5 md:px-8 md:py-8'
           }
         >
           <Outlet />

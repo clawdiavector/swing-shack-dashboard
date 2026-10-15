@@ -169,7 +169,7 @@ export function Stories() {
               type="url"
               inputMode="url"
               autoComplete="off"
-              placeholder="Paste an Instagram or Facebook link"
+              placeholder="Paste a link here"
               aria-label="Instagram or Facebook link"
               value={url}
               onChange={(e) => {
@@ -206,7 +206,7 @@ export function Stories() {
               type="text"
               maxLength={280}
               autoComplete="off"
-              placeholder="Tell whoever shares it what to look for (optional)"
+              placeholder="A note for the sharer (optional)"
               aria-label="Note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
