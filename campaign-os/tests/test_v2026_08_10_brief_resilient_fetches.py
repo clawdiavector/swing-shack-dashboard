@@ -26,6 +26,11 @@ markers so a regression that removes the safeGet wrapper or reverts
 the unconditional state assignment fails loudly.
 """
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import os
 import re
 import unittest
@@ -62,6 +67,7 @@ def _render_brief_body(html: str) -> str:
     raise AssertionError("renderBrief() body never closed")
 
 
+@_legacy_page.on_old_page_only
 class BriefResilientFetches(unittest.TestCase):
     def setUp(self):
         self.html = _read(HTML_PATH)

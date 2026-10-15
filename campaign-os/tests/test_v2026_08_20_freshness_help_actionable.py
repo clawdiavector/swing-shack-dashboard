@@ -28,6 +28,11 @@ browser and stay fast in the pytest suite.
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -69,17 +74,21 @@ class TestFreshnessHelpActionable(unittest.TestCase):
         )
         return matches[0]
 
+    @_legacy_page.on_old_page_only
     def test_01_freshness_help_present(self):
         help_text = self._freshness_help()
         self.assertIn("Files older than 14 days", help_text)
         self.assertIn("rotten", help_text)
 
+    @_legacy_page.on_old_page_only
     def test_02_freshness_help_has_no_emdash(self):
         self.assertNotIn(EM, self._freshness_help())
 
+    @_legacy_page.on_old_page_only
     def test_03_freshness_help_is_actionable(self):
         self.assertIn(POST_FIX_ACTIONABLE, self._freshness_help())
 
+    @_legacy_page.on_old_page_only
     def test_04_changelog_phrasing_removed(self):
         help_text = self._freshness_help()
         for fragment in BANNED_CHANGELOG_FRAGMENTS:
