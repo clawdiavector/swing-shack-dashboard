@@ -4759,6 +4759,14 @@ def _cluster_ig_captions(this_week, prev_week):
 
 
 
+def _captions_for_active_brand() -> Dict[str, Any]:
+    """Captions in the active brand's voice; refuses when there is none."""
+    brand = get_request_brand()
+    if brand not in (_load_voice_bible().get("voices") or {}):
+        return {"ok": False, "error": f"No caption voice for brand {brand!r}", "variants": []}
+    return generate_captions(None, 5, voice=brand)
+
+
 # ─── INDEX ─────────────────────────────────────────────────────────────
 
 INTELLIGENCE_FUNCS = {
@@ -4772,7 +4780,7 @@ INTELLIGENCE_FUNCS = {
     "performance": performance_view,
     "learning": learning_view,
     "hooks_generate": lambda: generate_hooks(10),
-    "captions_generate": lambda: generate_captions(None, 5),
+    "captions_generate": _captions_for_active_brand,
     "ctas_generate": lambda: generate_ctas(5),
     "headlines_generate": lambda: generate_headlines(5),
     "reddit_outreach": reddit_outreach,

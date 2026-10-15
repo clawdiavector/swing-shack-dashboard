@@ -240,7 +240,7 @@
       "fact_id": "ss-product-retail-clubs",
       "type": "product",
       "subject": "retail club brands",
-      "value": "Swing Shack retails clubs from multiple brands (Titleist, Sub 70, Vice, Mileseey, Takomo via Stick)",
+      "value": "Swing Shack retails clubs from multiple brands (Titleist, Sub 70, Vice, Mileseey, Takomo)",
       "source": "data/brand-directory/swing-shack/voice/do-say-dont-say.md + examples",
       "source_path": "data/brand-directory/swing-shack/voice/do-say-dont-say.md",
       "source_class": "approved_internal",
@@ -311,7 +311,7 @@
       "confidence": "high"
     },
     "verified_owners": {
-      "value": "Hermanus Kriel (co-owner, Stick Golf Group)",
+      "value": "Hermanus Kriel (co-owner)",
       "source": "Campaign OS Brand Bible Workbook section A",
       "source_path": "data/brand-directory/swing-shack/bible-source.txt",
       "verified_status": "verified_current",

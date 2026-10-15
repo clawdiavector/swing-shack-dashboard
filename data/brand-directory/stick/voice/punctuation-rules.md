@@ -1,7 +1,7 @@
 # Stick | Punctuation Rules
 
 The voice is **sarcastic, golf insider, calling out bad habits, meme-aware**. Stick
-is the meme side of Swing Shack. Punctuation does a lot of comic timing work here:
+is the meme side of golf. Punctuation does a lot of comic timing work here:
 the rhythm of the sentence is the punchline. Below is how punctuation lands (and
 gets weaponised) for Stick specifically.
 

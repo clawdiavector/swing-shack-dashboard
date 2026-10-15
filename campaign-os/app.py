@@ -20130,6 +20130,15 @@ def intel_generate_image():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+# Every caption runs through a brand: without one the generator falls back to
+# Swing Shack wording for whoever asked.
+_CAPTIONS_NEED_BRAND = {
+    "ok": False,
+    "error": "Pick a brand first: voice must be swing-shack, stick or bag-drop.",
+    "variants": [],
+}
+
+
 @app.route('/api/intel/generate/captions/<asset_id>', methods=['POST', 'GET'])
 def intel_generate_captions(asset_id):
     """POST/GET /api/intel/generate/captions/<assetId> — generate voice-aware caption variants.
@@ -20152,6 +20161,8 @@ def intel_generate_captions(asset_id):
         voice = str(body.get('voice', '') or '').strip() or None
         tone = str(body.get('tone', '') or '').strip() or None
         result = generate_captions(asset_id, n, voice=voice, tone=tone)
+        if not result.get('_voice'):
+            return jsonify(_CAPTIONS_NEED_BRAND), 400
         return jsonify(result), 200
     except Exception as exc:
         _app_log.exception("caption generate failed")
@@ -20187,6 +20198,8 @@ def api_captions_generate():
         if brief and not asset_id:
             asset_id = f"__brief__:{brief[:60]}"
         result = generate_captions(asset_id, n, voice=voice, tone=tone)
+        if not result.get('_voice'):
+            return jsonify(_CAPTIONS_NEED_BRAND), 400
         if brief:
             result['_brief'] = brief
         return jsonify(result), 200

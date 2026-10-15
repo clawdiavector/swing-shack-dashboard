@@ -196,20 +196,21 @@
     {
       "fact_id": "stick-service-fitting",
       "type": "service",
-      "subject": "fitting (cross-reference to swing-shack)",
-      "value": "Fittings are delivered via Swing Shack's TrackMan bay. Stick writes the voice; Swing Shack operates the service.",
+      "subject": "fitting",
+      "value": "Stick runs its own fittings at its studio in Paarl. Book at stickgolf.co.za/bookings/.",
       "source": "data/brand-directory/stick/README.md",
       "source_path": "data/brand-directory/stick/README.md",
       "source_class": "official_business",
       "authority_level": "high",
       "confidence": "high",
-      "valid_from": "2026-09-10",
+      "valid_from": "2026-10-15",
       "valid_to": null,
       "status": "active",
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-10-15",
       "details": {
-        "operated_by": "swing-shack",
-        "written_by": "stick"
+        "operated_by": "stick",
+        "booking_url": "stickgolf.co.za/bookings/",
+        "confirmed_by": "Christelle, 2026-10-15: Stick is its own company in Paarl and does only Stick"
       }
     },
     {
@@ -229,7 +230,7 @@
       "details": {
         "product": "Takomo 101T",
         "uses_trackman": true,
-        "booking_url": "swingshack.co.za"
+        "booking_url": "stickgolf.co.za/bookings/"
       }
     }
   ],
@@ -288,7 +289,7 @@
       "confidence": "high"
     },
     "verified_not_sub_brand": {
-      "value": "Stick is a sister brand to Swing Shack under Stick Golf Group (Hermanus Kriel co-owner). NOT a sub-brand. Stick has its own studio, its own brand identity, its own product curation.",
+      "value": "Stick is its own company, NOT a sub-brand of anything. It has its own studio in Paarl, its own brand identity and its own product curation. Public copy never mentions a link to any other business.",
       "source": "Stick Brand Bible section 1 + Strategy section 1",
       "verified_status": "verified_current"
     },
