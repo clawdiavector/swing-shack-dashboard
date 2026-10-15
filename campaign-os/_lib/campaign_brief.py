@@ -919,6 +919,39 @@ def _resolve_opportunity(brand_id: str, opportunity_id: str) -> dict:
         if opp.get("event_key") == opportunity_id \
                 or opp.get("id") == opportunity_id:
             return opp
+    return _resolve_spine_opportunity(brand_id, opportunity_id)
+
+
+def _resolve_spine_opportunity(brand_id: str, opportunity_id: str) -> dict:
+    """Fallback: a date on the yearly event spine
+    (data/brand-planning/<brand>-events-<year>.json) with no saved Calendar
+    record yet. The Plan alerts list these dates, so a plan must be makeable
+    from them. The spine is audited, so its date is trusted as MEDIUM (a LOW
+    date is a hard gate failure)."""
+    if not opportunity_id:
+        return {}
+    m = re.search(r"(20\d\d)$", opportunity_id)
+    year = m.group(1) if m else str(datetime.now(timezone.utc).year)
+    spine = _read_json(f"brand-planning/{brand_id}-events-{year}.json") or {}
+    for e in spine.get("events") or []:
+        if e.get("id") != opportunity_id:
+            continue
+        start = e.get("start") or e.get("public_peak") or ""
+        opp = _map_canonical_to_opportunity({
+            "event_key": opportunity_id,
+            "brand_id": brand_id,
+            "title": e.get("name") or e.get("title") or "",
+            "event_start": start,
+            "event_end": e.get("end") or "",
+            "pillars": list((e.get("pillars") or {}).keys()),
+            "lanes": e.get("lanes") or {},
+            "source_origin": "internal_strategy",
+            "status": "approved",
+            "purpose": e.get("commercial_push") or "",
+        }, "spine")
+        if opp.get("date_confidence") == "LOW" and start:
+            opp["date_confidence"] = "MEDIUM"
+        return opp
     return {}
 
 
