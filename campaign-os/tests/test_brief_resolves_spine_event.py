@@ -18,7 +18,9 @@ DATA = Path(__file__).resolve().parents[2] / "data"
 class SpineResolve(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        os.symlink(DATA / "brand-planning", Path(self.tmp.name) / "brand-planning")
+        # Production: the volume holds a brand-planning/ with no events files in
+        # it; the events live in the copy baked into the image (repo data/).
+        os.makedirs(Path(self.tmp.name) / "brand-planning")
         self.patches = [
             patch.object(cb, "DATA_DIR_DEFAULT", self.tmp.name),
             patch.object(cb, "get_brief_opportunities", return_value=[]),

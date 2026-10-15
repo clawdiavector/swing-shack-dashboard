@@ -932,7 +932,18 @@ def _resolve_spine_opportunity(brand_id: str, opportunity_id: str) -> dict:
         return {}
     m = re.search(r"(20\d\d)$", opportunity_id)
     year = m.group(1) if m else str(datetime.now(timezone.utc).year)
-    spine = _read_json(f"brand-planning/{brand_id}-events-{year}.json") or {}
+    # Same search as the alerts route: the data dir (Railway volume) first, then
+    # the copy baked into the image. The volume may hold brand-planning/ without
+    # the events files, so a single-root lookup misses them.
+    here = os.path.dirname(os.path.abspath(__file__))
+    name = f"{brand_id}-events-{year}.json"
+    spine = {}
+    for base in (os.path.join(DATA_DIR_DEFAULT, "brand-planning"),
+                 os.path.join(here, "..", "..", "data", "brand-planning"),
+                 "/app/data/brand-planning"):
+        spine = _read_json(os.path.join(os.path.abspath(base), name)) or {}
+        if spine:
+            break
     for e in spine.get("events") or []:
         if e.get("id") != opportunity_id:
             continue
