@@ -385,7 +385,7 @@ export function Socials() {
           )}
           <h3 className="pt-2 font-semibold text-tx">Brand wiring ({brandId})</h3>
           {!accounts ? (
-            <p className="text-sm text-tx3">Loading accounts…</p>
+            <p className="text-sm text-tx3">Finding your accounts…</p>
           ) : (
             <p className="text-sm text-tx2">
               Meta / Instagram:{' '}

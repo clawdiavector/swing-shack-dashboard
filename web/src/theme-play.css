@@ -1,0 +1,191 @@
+/* Playful look: the light, colourful desk. Switched on with data-theme="play" on the html element.
+   Classic (the original dark desk) is simply this file not applying.
+   Everything here re-points the existing tokens, so pages keep their own classes. */
+
+html[data-theme='play'] {
+  --color-bg: #f3f0ea;
+  --color-bg2: #ffffff;
+  --color-bg3: #ebe7dd;
+  --color-bd: #ddd7ca;
+  --color-tx: #1b1a22;
+  --color-tx2: #45424f;
+  --color-tx3: #5e5b68;
+  --color-ac: #1b7f55;
+  --color-yel: #a35c00;
+  --color-red: #c2362f;
+  --color-blu: #2b62c9;
+  --color-lane-paid: #7c3aed;
+  --font-sans: 'DM Sans', Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Arial Black', ui-sans-serif, sans-serif;
+
+  /* Playful fills, one per tone, each with its readable ink. */
+  --play-gold: #ff8a3d;
+  --play-gold-ink: #4a2000;
+  --play-green: #c6f23a;
+  --play-green-ink: #27330a;
+  --play-blue: #b7a6ff;
+  --play-blue-ink: #2a1c66;
+  --play-violet: #ff9ec0;
+  --play-violet-ink: #5a1030;
+}
+
+html[data-theme='play'] body {
+  background-color: var(--color-bg);
+  background-image: radial-gradient(rgba(27, 26, 34, 0.07) 1px, transparent 1.2px);
+  background-size: 20px 20px;
+  background-attachment: fixed;
+  color: var(--color-tx);
+}
+
+html[data-theme='play'] :focus-visible {
+  outline: 3px solid #ff5c8a;
+}
+
+/* Headings get the chunky face. */
+html[data-theme='play'] h1,
+html[data-theme='play'] h2,
+html[data-theme='play'] .font-display {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Frosted glass becomes solid white cards with a visible edge. */
+html[data-theme='play'] .glass {
+  background: var(--color-bg2);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: 0 2px 0 rgba(27, 26, 34, 0.06);
+}
+html[data-theme='play'] .glass-pill {
+  background: var(--color-bg2);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+html[data-theme='play'] aside.glass,
+html[data-theme='play'] header.glass,
+html[data-theme='play'] nav.glass {
+  background: var(--color-bg);
+}
+
+/* Hard-coded white hairlines and washes were written for a dark page. */
+html[data-theme='play'] [class*='border-white/'] {
+  border-color: var(--color-bd);
+}
+html[data-theme='play'] [class*='bg-white/'] {
+  background-color: rgba(27, 26, 34, 0.05);
+}
+html[data-theme='play'] [class*='hover:bg-white/']:hover {
+  background-color: rgba(27, 26, 34, 0.08);
+}
+html[data-theme='play'] .text-white {
+  color: var(--color-tx);
+}
+
+/* Icons: the dark theme fakes an embossed press with three layers. Flat ink instead. */
+html[data-theme='play'] .icon-press-shade,
+html[data-theme='play'] .icon-press-hi {
+  display: none;
+}
+html[data-theme='play'] .icon-press-ink { color: var(--color-tx3); }
+html[data-theme='play'] .icon-press-gold .icon-press-ink,
+html[data-theme='play'] .icon-press-on .icon-press-ink { color: var(--color-yel); }
+html[data-theme='play'] .icon-press-green .icon-press-ink { color: var(--color-ac); }
+
+/* Current rail item gets a solid orange chip. */
+html[data-theme='play'] aside a[aria-current='page'],
+html[data-theme='play'] nav a[aria-current='page'] {
+  background: var(--play-gold);
+  color: var(--play-gold-ink);
+  box-shadow: none;
+}
+html[data-theme='play'] aside a[aria-current='page'] span,
+html[data-theme='play'] nav a[aria-current='page'] span {
+  color: var(--play-gold-ink);
+}
+html[data-theme='play'] aside a[aria-current='page'] .icon-press-ink,
+html[data-theme='play'] nav a[aria-current='page'] .icon-press-ink {
+  color: var(--play-gold-ink);
+}
+
+/* Tooltips flip to ink on cream. */
+html[data-theme='play'] .cos-tip-bubble {
+  background: var(--color-tx);
+  color: var(--color-bg);
+  border-color: transparent;
+}
+
+/* Primary buttons: orange or lime fill with dark ink. */
+html[data-theme='play'] .bg-yel.text-bg {
+  background-color: var(--play-gold);
+  color: var(--play-gold-ink);
+}
+html[data-theme='play'] .bg-ac.text-bg {
+  background-color: var(--play-green);
+  color: var(--play-green-ink);
+}
+
+/* Fun tiles and cards take the playful fills. */
+html[data-theme='play'] .fun-tile,
+html[data-theme='play'] .fun-day-pill,
+html[data-theme='play'] .fun-story,
+html[data-theme='play'] .fun-idea {
+  --fill: var(--play-gold);
+  --ink: var(--play-gold-ink);
+  background: var(--fill);
+  border-color: transparent;
+  color: var(--ink);
+}
+html[data-theme='play'] [data-tone='gold'] { --fill: var(--play-gold); --ink: var(--play-gold-ink); }
+html[data-theme='play'] [data-tone='green'] { --fill: var(--play-green); --ink: var(--play-green-ink); }
+html[data-theme='play'] [data-tone='blue'] { --fill: var(--play-blue); --ink: var(--play-blue-ink); }
+html[data-theme='play'] [data-tone='violet'] { --fill: var(--play-violet); --ink: var(--play-violet-ink); }
+html[data-theme='play'] .fun-tile::after { background: rgba(255, 255, 255, 0.4); }
+html[data-theme='play'] .fun-tile__label,
+html[data-theme='play'] .fun-tile__value,
+html[data-theme='play'] .fun-tile__hint,
+html[data-theme='play'] .fun-tile__stamp,
+html[data-theme='play'] .fun-day-pill__wd,
+html[data-theme='play'] .fun-day-pill__dd,
+html[data-theme='play'] .fun-day-pill__n {
+  color: var(--ink);
+}
+html[data-theme='play'] .fun-dots i { background: var(--ink); }
+html[data-theme='play'] .fun-day-pill[data-empty='true'] {
+  background: var(--color-bg2);
+  border: 2px dashed var(--color-bd);
+  color: var(--color-tx3);
+}
+html[data-theme='play'] .fun-day-pill[data-empty='true'] .fun-day-pill__wd,
+html[data-theme='play'] .fun-day-pill[data-empty='true'] .fun-day-pill__dd,
+html[data-theme='play'] .fun-day-pill[data-empty='true'] .fun-day-pill__n { color: var(--color-tx3); }
+html[data-theme='play'] .fun-day-pill[data-empty='true'] .fun-dots i { background: var(--color-tx3); }
+html[data-theme='play'] .fun-day-pill[data-today='true'] { box-shadow: 0 0 0 3px var(--color-tx); }
+html[data-theme='play'] .fun-story--done { background: transparent; border: 2px dotted var(--color-bd); color: var(--color-tx3); }
+html[data-theme='play'] .fun-idea { border: 2px dashed var(--ink); }
+html[data-theme='play'] .fun-story__done { background: var(--ink); color: var(--fill); }
+html[data-theme='play'] .fun-stories { background: var(--color-bg2); border-color: var(--color-bd); }
+html[data-theme='play'] .fun-stories__count .fun-dots i { background: var(--color-ac); }
+html[data-theme='play'] .fun-bubble { background: var(--color-tx); color: var(--color-bg); }
+html[data-theme='play'] .fun-cleared {
+  background: var(--play-green);
+  border-color: transparent;
+  color: var(--play-green-ink);
+}
+html[data-theme='play'] .fun-cleared span,
+html[data-theme='play'] .fun-cleared strong { color: var(--play-green-ink); }
+html[data-theme='play'] .fun-empty,
+html[data-theme='play'] .fun-day-empty { border-color: var(--color-bd); color: var(--color-tx2); background: var(--color-bg2); }
+html[data-theme='play'] .fun-ring circle:first-child { stroke: var(--color-bd); }
+
+/* Brand chips were dark pills; make them playful fills. */
+html[data-theme='play'] [class*='bg-[#2a2210]'] { background: var(--play-gold); color: var(--play-gold-ink); box-shadow: none; }
+html[data-theme='play'] [class*='bg-[#0f2a22]'] { background: var(--play-green); color: var(--play-green-ink); box-shadow: none; }
+html[data-theme='play'] [class*='bg-[#132033]'] { background: var(--play-blue); color: var(--play-blue-ink); box-shadow: none; }
+html[data-theme='play'] [class*='bg-[#2a1518]'] { background: var(--play-violet); color: var(--play-violet-ink); box-shadow: none; }
+html[data-theme='play'] [class*='bg-[#2a2210]'] span,
+html[data-theme='play'] [class*='bg-[#0f2a22]'] span,
+html[data-theme='play'] [class*='bg-[#132033]'] span,
+html[data-theme='play'] [class*='bg-[#2a1518]'] span { background-color: currentColor; }
+/* The bottom phone bar: round the current item instead of a full-width block. */
+html[data-theme='play'] nav.glass a[aria-current='page'] { border-radius: 1.1rem; margin: 0.25rem; }

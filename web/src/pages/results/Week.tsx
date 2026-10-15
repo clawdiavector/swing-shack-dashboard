@@ -384,8 +384,7 @@ export function Week() {
   return (
     <div className="space-y-6">
       <PageIntro icon={LineChart} here="/results/week" title="This week">
-        Brand-true KPIs from <code className="text-xs">/api/weekly-report</code> plus portfolio-wide
-        detail from <code className="text-xs">/api/intel/weekly_report</code> for {brandLabel || brandId}.
+        How {brandLabel || brandId} did this week: the numbers that matter, plus the wider picture across brands.
       </PageIntro>
 
       {loading ? <SkeletonBars n={5} /> : null}
@@ -412,7 +411,7 @@ export function Week() {
               ))}
             </div>
           ) : (
-            <p className="mt-2 text-sm text-tx3">No metrics yet — run the weekly pipeline or open Classic.</p>
+            <p className="mt-2 text-sm text-tx3">No numbers yet. Run the weekly report or open Classic.</p>
           )}
         </section>
       ) : null}
@@ -461,7 +460,7 @@ export function Week() {
                 dangerouslySetInnerHTML={{ __html: fullReportHtml }}
               />
             ) : (
-              <p className="mt-3 text-sm text-tx3">Loading brand-styled report…</p>
+              <p className="mt-3 text-sm text-tx3">Dressing up the report…</p>
             )
           ) : null}
         </section>
@@ -557,7 +556,7 @@ export function Week() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-tx3">No agent runs recorded this week.</p>
+            <p className="text-sm text-tx3">No agent runs this week. Quiet fleet.</p>
           )}
         </div>
       ) : null}

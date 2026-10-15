@@ -235,8 +235,7 @@ export function Lanes() {
   return (
     <div className="space-y-6">
       <PageIntro badge="Planning" here="/calendar/lanes" title="Plan">
-        Everything coming up, soonest first. What you have suggested sits at the top until you add
-        it to the calendar.
+        What’s coming up, soonest first. Anything you’ve suggested waits at the top until you put it on the calendar.
       </PageIntro>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -290,7 +289,7 @@ export function Lanes() {
         />
       ) : null}
 
-      {loading ? <p className="text-sm text-tx3">Loading planning…</p> : null}
+      {loading ? <p className="text-sm text-tx3">Unrolling the calendar…</p> : null}
 
       {tab === 'list' && scopeBrand && timeline ? (
         <PlanList

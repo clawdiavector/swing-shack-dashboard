@@ -66,6 +66,7 @@ export function HeroPanel({
   kicker,
   title,
   meta,
+  art,
   children,
   extra,
 }: {
@@ -73,6 +74,8 @@ export function HeroPanel({
   kicker: string
   title: string
   meta?: string
+  /** Optional illustration row (mascot, ring) shown under the title. */
+  art?: ReactNode
   children?: ReactNode
   extra?: ReactNode
 }) {
@@ -90,6 +93,7 @@ export function HeroPanel({
       </div>
       <p className="mt-4 font-display text-2xl leading-snug font-medium md:text-3xl">{title}</p>
       {meta ? <p className="mt-2 text-sm text-tx3">{meta}</p> : null}
+      {art ? <div className="mt-4">{art}</div> : null}
       {children ? <div className="mt-5 flex flex-wrap gap-2">{children}</div> : null}
       {extra ? <div className="mt-5 min-h-0 flex-1">{extra}</div> : null}
     </section>

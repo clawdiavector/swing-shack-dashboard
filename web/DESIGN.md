@@ -26,6 +26,20 @@ Kyle preferred the old desk. Heroes reuses those tokens, not a beige admin theme
 Accent is brass only on primary actions, current nav, and waiting counts.
 No full-saturation fills on idle chrome.
 
+## Looks: Playful (default) and Classic
+
+`<html data-theme="play">` is the light, colourful desk: cream page, solid white cards, chunky
+Bricolage Grotesque headings, DM Sans body, and playful fills per tone (orange = gold,
+lime = green, lilac = blue, pink = violet). `data-theme="classic"` is the original dark desk
+described below. The header button switches between them and remembers the choice in
+`localStorage` (`cos-theme`). All of Playful lives in `src/theme-play.css` and re-points the
+existing tokens, so removing that import returns the app to Classic. The playful fills are UI
+tones, not confirmed brand colours; do not quote them as the brand palette.
+
+Playful bends two Classic rules on purpose: motion is allowed (bounce on tiles, pills and
+buttons, a mascot, confetti when the desk clears or a story is shared) and primary actions
+are orange or lime, not brass. Everything moves only when `prefers-reduced-motion` allows it.
+
 ## Type
 
 - UI: `"Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif` (self-hosted in the Vite bundle for production CSP)

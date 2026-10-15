@@ -103,7 +103,7 @@ function DayDrawer({
           </button>
         </div>
         {items.length === 0 ? (
-          <p className="text-sm text-tx3">No items scheduled for this day.</p>
+          <p className="text-sm text-tx3">Nothing scheduled for this day. A clear one!</p>
         ) : (
           <ul className="space-y-4">
             {items.map((it, i) => {

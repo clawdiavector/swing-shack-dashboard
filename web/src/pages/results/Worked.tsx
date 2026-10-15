@@ -164,7 +164,7 @@ export function Worked() {
   return (
     <div className="space-y-6">
       <PageIntro icon={Sparkles} here="/results/worked" title="What worked">
-        Instagram posts for {brandLabel || brandId} plus portfolio learnings from flat files.
+        Which Instagram posts for {brandLabel || brandId} did well, and what we’ve learned from them.
       </PageIntro>
 
       {loading ? <SkeletonBars n={5} /> : null}

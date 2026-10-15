@@ -352,7 +352,7 @@ export default function GEO() {
       {loading && !scorecard && (
         <div className="flex items-center justify-center py-16">
           <RefreshCw className="h-6 w-6 text-yel animate-spin" />
-          <span className="ml-3 text-tx3">Loading GEO data…</span>
+          <span className="ml-3 text-tx3">Counting citations…</span>
         </div>
       )}
 

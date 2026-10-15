@@ -135,7 +135,7 @@ export function Queue() {
   return (
     <div className="space-y-6">
       <PageIntro icon={Send} here="/publish/queue" title="Publish queue">
-        All brands — this queue is not brand-scoped. Rows come from flat publish files, not BrandSwitch.
+        Every brand’s posts in one queue. It ignores the brand switch.
       </PageIntro>
 
       <p className="rounded-2xl border border-bd/60 bg-bg2/40 px-4 py-3 text-sm text-tx2">

@@ -380,8 +380,7 @@ export function Templates() {
         here="/results/templates"
         title="Templates"
       >
-        Brand bible and compose templates for {brandLabel || brandId}. Read-only reference for
-        operators.
+        The brand bible and the layouts we can render for {brandLabel || brandId}. Look, don’t touch.
       </PageIntro>
 
       {loading ? (

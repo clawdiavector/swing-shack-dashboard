@@ -73,7 +73,7 @@ export function Shelf() {
           </div>
         }
       >
-        Approved posts with a go-live date — release when ready. Sandbox only until Kyle enables live.
+        Approved posts with a go-live date. Release them when you’re ready. Sandbox (practice mode) only until Kyle switches on live.
       </PageIntro>
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />
