@@ -39,6 +39,7 @@ ITEM_KINDS = ("research", "decide", "shoot", "edit", "review", "post",
 ITEM_STATUSES = ("proposed", "kept", "removed", "done")
 KIND_RANK = {k: i for i, k in enumerate(ITEM_KINDS)}
 EDITABLE_ITEM_FIELDS = ("title", "due", "kind", "channel", "note", "owner", "budget", "shots", "asked")
+# (a post step also carries `draft`: set only by request_draft, never edited by hand)
 
 # What to capture on a shoot step: the exact shots, one per line, as the person
 # who will shoot should read them. And who has been asked, and when, so a plan
@@ -536,7 +537,21 @@ def reopen_plan(brand_id: str, plan_id: str, actor: str = "operator") -> dict:
 # is published and no image is generated. "Taking it off" marks the entries
 # ignored (the calendar store is append-only, so nothing is deleted).
 
-_CALENDAR_TYPE = {"post": "content", "story": "content"}
+# A post step is a real calendar moment, so the existing Create pipeline can draft it
+# (caption now, image after) and it shows on This week. Stories stay plain entries.
+_CALENDAR_TYPE = {"post": "moment", "story": "content"}
+
+
+def post_brief(plan: dict, item: dict) -> str:
+    """What the caption writer is told about a planned post. Only what the plan
+    knows: which date it is for, which step this is, and the step's own note. No
+    offers, prices or claims are invented here."""
+    bits = [f"{item['title']} for {plan['event_name']} ({plan['event_date']})."]
+    if item.get("note"):
+        bits.append(str(item["note"]).strip())
+    if plan.get("profile_label"):
+        bits.append(f"Part of a {plan['profile_label'].lower()} plan.")
+    return " ".join(bits)
 
 
 def _calendar_record(plan: dict, item: dict) -> dict:
@@ -548,7 +563,7 @@ def _calendar_record(plan: dict, item: dict) -> dict:
         "event_start": item["due"],
         "event_end": item["due"],
         "primary_channel": item.get("channel") or "",
-        "angle": (item.get("note") or "")
+        "angle": (post_brief(plan, item) if item["kind"] == "post" else (item.get("note") or ""))
         + (f" Planned budget: R{item['budget']:,}." if item.get("budget") else ""),
         "planned_budget_zar": item.get("budget"),
         "source_type": "operator",
@@ -594,6 +609,50 @@ def place_on_calendar(brand_id: str, plan_id: str, actor: str = "operator",
     if failed:
         out["error"] = f"{len(failed)} steps could not be placed"
     return out
+
+
+def request_draft(brand_id: str, plan_id: str, item_id: str, actor: str = "operator",
+                  enqueue=None) -> dict:
+    """Ask the existing Create pipeline for a caption draft of a post step.
+
+    The step must be a post, in an approved plan, already on the calendar (that is
+    where its moment lives). This queues the same caption draft that approving a
+    suggestion queues; the drafting job writes it, and it appears in Approve
+    drafts for a person to approve. Nothing is posted and nothing is written here.
+    `enqueue(item_id, brand, reason)` is injectable for tests."""
+    plan = get_plan(brand_id, plan_id)
+    if not plan:
+        return {"ok": False, "error": "plan not found"}
+    item = next((i for i in plan["items"] if i["item_id"] == item_id), None)
+    if not item:
+        return {"ok": False, "error": "step not found"}
+    if item["kind"] != "post":
+        return {"ok": False, "error": "only a post step can be drafted"}
+    if item["status"] in ("removed", "done"):
+        return {"ok": False, "error": "this step is already " + item["status"]}
+    if plan.get("status") != PLAN_APPROVED:
+        return {"ok": False, "error": "approve the plan first"}
+    cal_id = item.get("calendar_id")
+    if not cal_id:
+        return {"ok": False, "error": "put the plan on the calendar first"}
+    moment = f"calendar_candidate:{brand_id}:{cal_id}"
+    if enqueue is None:
+        from _lib import unified_inbox  # noqa: PLC0415
+        from _lib.l5_create_enqueue import enqueue_create_actions  # noqa: PLC0415
+
+        if unified_inbox._l5_enqueue_suppressed():  # noqa: SLF001
+            return {"ok": False, "error": "drafting is switched off on this server"}
+
+        def enqueue(item_id_, brand_, reason_):
+            return enqueue_create_actions(item_id=item_id_, brand_id=brand_, reason=reason_, phase="lodge")
+    try:
+        actions = list(enqueue(moment, brand_id, "plan-step"))
+    except Exception as e:  # the pipeline's own failure, reported as it is
+        return {"ok": False, "error": f"could not queue the draft: {e}"}
+    item["draft"] = {"requested_at": _now_iso(), "by": actor, "moment": moment, "queued": actions}
+    _log(plan, actor, "asked for a draft", item_id)
+    _write_plan(plan)
+    return {"ok": True, "plan": plan, "item": item, "queued": actions}
 
 
 def take_off_calendar(brand_id: str, plan_id: str, actor: str = "operator",

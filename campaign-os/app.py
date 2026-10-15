@@ -25391,6 +25391,22 @@ def plan_v1_unplace(brand_id, plan_id):
     return jsonify(r), (200 if r.get("ok") else 400)
 
 
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/item/<item_id>/draft', methods=['POST'])
+def plan_v1_draft(brand_id, plan_id, item_id):
+    """Ask the Create pipeline for a caption draft of a post step. The draft lands in
+    Approve drafts for a person to approve; nothing is posted."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    actor = (request.headers.get('X-Actor-Display-Name') or body.get("actor") or "operator")
+    try:
+        r = _plan_import().request_draft(brand_id, plan_id, item_id, str(actor).strip() or "operator")
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
 @app.route('/api/plan/v1/<brand_id>/<plan_id>/reopen', methods=['POST'])
 def plan_v1_reopen(brand_id, plan_id):
     bad = _plan_guard(brand_id)
@@ -46317,7 +46333,9 @@ def _cs_inputs(brand_id, years):
         except Exception:
             pass
     for r in mc.latest_revisions(mc.list_records(brand_id) or []):
-        if r.get("status") == "approved":
+        # Steps a plan put on the calendar ("Teaser post, Valentine's Day") are not the
+        # event itself, and would hide the event's own date if counted.
+        if r.get("status") == "approved" and not r.get("plan_id"):
             names.append(r.get("title") or r.get("name") or "")
     return note_rows, names
 

@@ -32,6 +32,8 @@ export type PlanItem = {
   shots?: string[]
   /** A shoot step: who has been asked to shoot it, and when. */
   asked?: { to: string; at: string } | null
+  /** A post step: set once a caption draft has been asked for. */
+  draft?: { requested_at: string; by: string; moment: string; queued: string[] } | null
   /** Set once the step is on the Main Calendar; '' otherwise. */
   calendar_id?: string
   source: 'template' | 'operator'
@@ -151,6 +153,30 @@ export const addPlanItem = (
   planId: string,
   item: { title: string; due: string; kind: PlanItemKind; note?: string },
 ) => call('POST', `${base(brand)}/${encodeURIComponent(planId)}/item`, item)
+
+/** Ask the Create pipeline for a caption draft of a post step. The draft arrives in
+ *  Approve drafts; nothing is posted. */
+export const requestDraft = (brand: string, planId: string, itemId: string, name: string) =>
+  call('POST', `${base(brand)}/${encodeURIComponent(planId)}/item/${encodeURIComponent(itemId)}/draft`, {}, {
+    'X-Actor-Display-Name': name,
+  })
+
+/** What a post step shows about its draft: the button, or what happened. */
+export function draftState(
+  item: PlanItem,
+  planApproved: boolean,
+): { kind: 'asked'; text: string } | { kind: 'ready' } | { kind: 'wait'; text: string } | { kind: 'none' } {
+  if (item.kind !== 'post' || item.status === 'removed' || item.status === 'done') return { kind: 'none' }
+  if (item.draft) {
+    return {
+      kind: 'asked',
+      text: `Draft asked for on ${formatDay(item.draft.requested_at)}. It appears in Approve drafts once the caption is written.`,
+    }
+  }
+  if (!planApproved) return { kind: 'wait', text: 'Approve the plan, and put it on the calendar, to make the draft.' }
+  if (!item.calendar_id) return { kind: 'wait', text: 'Put the plan on the calendar to make the draft.' }
+  return { kind: 'ready' }
+}
 
 export const approvePlan = (brand: string, planId: string) =>
   call('POST', `${base(brand)}/${encodeURIComponent(planId)}/approve`, {})

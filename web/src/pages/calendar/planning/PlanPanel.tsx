@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { EventTypeIcon } from '../../../components/EventTypeIcon'
 import { MessageComposer } from './MessageComposer'
 import { defaultShots, shootRequest, shootSteps, signOffMessage, stepsWithoutShots } from '../../../lib/planMessages'
@@ -21,6 +22,8 @@ import {
   formatDay as formatPlanDate,
   findPlan,
   proposePlan,
+  requestDraft,
+  draftState,
   savedActorName,
   reopenPlan,
   splitItems,
@@ -46,10 +49,15 @@ function ItemRow({
   onSave,
   onCopyRequest,
   eventKind,
+  planApproved,
+  onDraft,
 }: {
   item: PlanItem
   /** The kind of date, for suggested shots. */
   eventKind?: string
+  planApproved?: boolean
+  /** A post step: ask for a caption draft. Resolves to an error message, or null. */
+  onDraft?: () => Promise<string | null>
   today: string
   locked: boolean
   onSave: (patch: PlanItemPatch) => Promise<string | null>
@@ -63,7 +71,9 @@ function ItemRow({
   const [budget, setBudget] = useState(item.budget ? String(item.budget) : '')
   const [shots, setShots] = useState((item.shots && item.shots.length ? item.shots : defaultShots(eventKind, !!item.needs_real_video)).join('\n'))
   const [err, setErr] = useState<string | null>(null)
+  const [drafting, setDrafting] = useState(false)
   const done = item.status === 'done'
+  const draft = draftState(item, !!planApproved)
 
   async function save(patch: PlanItemPatch) {
     setErr(null)
@@ -181,6 +191,35 @@ function ItemRow({
         {item.note ? <p className="text-xs text-tx3">{item.note}</p> : null}
         {item.needs_real_video ? (
           <p className="text-[11px] text-tx3">Real video with a person on camera.</p>
+        ) : null}
+        {draft.kind !== 'none' ? (
+          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px]" data-testid="plan-draft-info">
+            {draft.kind === 'ready' ? (
+              <button
+                type="button"
+                disabled={drafting}
+                data-testid="plan-make-draft"
+                onClick={async () => {
+                  setDrafting(true)
+                  setErr(null)
+                  const e = onDraft ? await onDraft() : 'Not available here.'
+                  setDrafting(false)
+                  if (e) setErr(e)
+                }}
+                className={`${btnYel} !px-2.5 !py-1`}
+              >
+                {drafting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                Make the draft
+              </button>
+            ) : (
+              <span className={draft.kind === 'asked' ? 'text-emerald-400' : 'text-tx3'}>{draft.text}</span>
+            )}
+            {draft.kind === 'asked' ? (
+              <Link to="/review" className="font-semibold text-yel hover:underline" data-testid="plan-draft-link">
+                Open Approve drafts
+              </Link>
+            ) : null}
+          </div>
         ) : null}
         {item.kind === 'shoot' ? (
           <div className="mt-0.5 space-y-0.5" data-testid="plan-shoot-info">
@@ -443,6 +482,20 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
             locked={approved}
             onSave={async (patch) => take(await editPlanItem(brandId, plan.plan_id, it.item_id, patch))}
             eventKind={plan.event_kind || plan.profile}
+            planApproved={approved}
+            onDraft={
+              it.kind === 'post'
+                ? async () => {
+                    const name = actorName()
+                    if (!name) return 'A name is needed so the calendar knows who asked.'
+                    const r = await requestDraft(brandId, plan.plan_id, it.item_id, name)
+                    if (!r.ok) return r.error || 'Could not ask for the draft.'
+                    if (r.plan) setPlan(r.plan)
+                    notifyAlertsChanged()
+                    return null
+                  }
+                : undefined
+            }
             onCopyRequest={it.kind === 'shoot' ? () => setComposer({ kind: 'shoot', stepIds: [it.item_id] }) : undefined}
           />
         ))}

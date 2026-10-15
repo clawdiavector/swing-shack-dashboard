@@ -344,3 +344,62 @@ def test_triage_checks_the_login_and_the_brand(env):
     assert client.get("/api/calendar-suggestions/nope/triage").status_code == 400
     assert app_module.app.test_client(cos_anon=True).get("/api/calendar-suggestions/stick/triage").status_code == 401
     assert client.post("/api/calendar-suggestions/stick/later", json={"month": "2027-03", "key": "note:x:2027-03-01"}).status_code == 404
+
+
+def _approved_placed_plan(client, tmp_path, days_out=20):
+    plan = _plan_for_soon(client, tmp_path, days_out=days_out)
+    assert client.post(f"/api/plan/v1/stick/{plan['plan_id']}/approve", json={}).status_code == 200
+    placed = client.post(f"/api/plan/v1/stick/{plan['plan_id']}/place", headers=NAMED, json={})
+    assert placed.status_code == 200, placed.get_json()
+    return client.get(f"/api/plan/v1/stick/{plan['plan_id']}").get_json()["plan"]
+
+
+def test_asking_for_a_draft_queues_the_caption_in_the_real_create_pipeline(env):
+    client, _, tmp_path = env
+    plan = _approved_placed_plan(client, tmp_path)
+    post = next(i for i in plan["items"] if i["kind"] == "post")
+    r = client.post(f"/api/plan/v1/stick/{plan['plan_id']}/item/{post['item_id']}/draft", headers=NAMED, json={})
+    d = r.get_json()
+    assert r.status_code == 200 and d["ok"] and "draft_caption" in d["queued"]
+    rows = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))["rows"]
+    mine = [x for x in rows if x["action"] == "draft_caption"]
+    assert mine and mine[0]["agent"] == "cos-caption" and mine[0]["brand"] == "stick"
+    assert mine[0]["payload_ref"] == f"inbox/calendar_candidate:stick:{post['calendar_id']}"
+    # the moment the pipeline will read carries what the plan knows, as a real moment
+    from _lib import marketing_calendar as mc
+    rec = next(x for x in mc.latest_revisions(mc.list_records("stick")) if x.get("calendar_id") == post["calendar_id"])
+    assert rec["type"] == "moment" and rec["status"] == "approved" and post["title"] in rec["angle"]
+    # and it is a moment the drafting job accepts: approved, found by its calendar id
+    from _lib.jobs.layer5 import draft_assets
+    assert draft_assets._is_inbox_item_approved(f"calendar_candidate:stick:{post['calendar_id']}")
+    # the plan remembers it, and the to-do list stops saying "no draft yet"
+    again = client.get(f"/api/plan/v1/stick/{plan['plan_id']}").get_json()["plan"]
+    assert next(i for i in again["items"] if i["item_id"] == post["item_id"])["draft"]["queued"]
+    todo = client.get("/api/plan-todo?brand=stick").get_json()["steps"]
+    assert "no draft yet" not in next(s for s in todo if s["item_id"] == post["item_id"])["needs"]
+
+
+def test_asking_for_a_draft_twice_does_not_queue_it_twice(env):
+    client, _, tmp_path = env
+    plan = _approved_placed_plan(client, tmp_path)
+    post = next(i for i in plan["items"] if i["kind"] == "post")
+    url = f"/api/plan/v1/stick/{plan['plan_id']}/item/{post['item_id']}/draft"
+    assert client.post(url, headers=NAMED, json={}).status_code == 200
+    assert client.post(url, headers=NAMED, json={}).status_code == 200
+    rows = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))["rows"]
+    assert len([x for x in rows if x["action"] == "draft_caption" and x["payload_ref"].endswith(post["calendar_id"])]) == 1
+
+
+def test_a_draft_cannot_be_asked_for_before_the_plan_is_ready_or_when_drafting_is_off(env, monkeypatch):
+    client, _, tmp_path = env
+    plan = _plan_for_soon(client, tmp_path)
+    post = next(i for i in plan["items"] if i["kind"] == "post")
+    url = f"/api/plan/v1/stick/{plan['plan_id']}/item/{post['item_id']}/draft"
+    r = client.post(url, headers=NAMED, json={})
+    assert r.status_code == 400 and "approve the plan" in r.get_json()["error"]
+    ready = _approved_placed_plan(client, tmp_path, days_out=21)
+    mine = next(i for i in ready["items"] if i["kind"] == "post")
+    monkeypatch.setenv("CAMPAIGN_OS_L5_ENQUEUE", "0")
+    off = client.post(f"/api/plan/v1/stick/{ready['plan_id']}/item/{mine['item_id']}/draft", headers=NAMED, json={})
+    assert off.status_code == 400 and "switched off" in off.get_json()["error"]
+    assert client.post("/api/plan/v1/nope/x/item/y/draft", json={}).status_code == 400
