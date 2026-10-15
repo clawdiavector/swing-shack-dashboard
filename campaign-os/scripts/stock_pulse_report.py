@@ -71,6 +71,11 @@ def main() -> int:
         if r["status"] == "out":
             say(f"- {r['name']}")
 
+    say("\n## Left out on purpose (not sold-as-is product)")
+    for r in results:
+        if r["not_for_feed"]:
+            say(f"- {r['name']}: {r['excluded_reason']}")
+
     say("\n## Check the file")
     for line in sp.data_problems(results, rows):
         say(f"- {line}")
