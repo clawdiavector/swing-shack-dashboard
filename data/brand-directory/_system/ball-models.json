@@ -1,0 +1,28 @@
+{
+  "status": "draft",
+  "note": "Each ball is a model with its own story, never just 'balls'. Swing Shack and Stick both offer ball fittings. known_for is a paraphrase of the maker's own description, drawn 2026-10-15 for Christelle to approve before any of it is used in a caption. An empty known_for means no maker wording was found: do not write one from memory.",
+  "models": [
+    {"match": "pro v1 ?x.*left dash", "model": "Titleist Pro V1x Left Dash", "known_for": "Flight between Pro V1 and Pro V1x, very low long-game spin, firmer feel.", "source": "https://www.titleist.com/golf-balls/inside-the-titleist-golf-ball-lineup"},
+    {"match": "pro v1 ?x", "model": "Titleist Pro V1x", "known_for": "Higher flight and a firmer feel than Pro V1, dual core, a little more spin into and around the greens.", "source": "https://www.titleist.com/2025-pro-v1-pro-v1x/comparing-prov1-and-prov1x"},
+    {"match": "pro v1", "model": "Titleist Pro V1", "known_for": "Mid flight and a softer feel, solid core with a soft urethane cover.", "source": "https://www.titleist.com/2025-pro-v1-pro-v1x/comparing-prov1-and-prov1x"},
+    {"match": "titleist avx", "model": "Titleist AVX", "known_for": "Titleist's lowest-spinning urethane ball: very soft, lower flight.", "source": "https://www.titleist.com/golf-balls/inside-the-titleist-golf-ball-lineup"},
+    {"match": "titleist tour soft", "model": "Titleist Tour Soft", "known_for": "Two-piece ball for distance, stopping power into the green and a soft feel.", "source": "https://www.titleist.com/golf-balls/inside-the-titleist-golf-ball-lineup"},
+    {"match": "titleist velocity", "model": "Titleist Velocity", "known_for": "Firmer, higher flight, for golfers who put distance and durability first.", "source": "https://www.titleist.com/golf-balls/inside-the-titleist-golf-ball-lineup"},
+    {"match": "titleist tru ?feel", "model": "Titleist Tru Feel", "known_for": "The softest ball in the Titleist line, with a lower, penetrating flight.", "source": "https://www.titleist.com/golf-balls/inside-the-titleist-golf-ball-lineup"},
+    {"match": "z[- ]*star xv", "model": "Srixon Z-Star XV", "known_for": "The distance option in the Z-Star range: four-piece urethane, soft feel, high greenside spin.", "source": "https://srixon.com/en/zstar-balls.html"},
+    {"match": "z[- ]*star diamond", "model": "Srixon Z-Star Diamond", "known_for": "Greenside control with long-game distance and extra spin on mid and long irons; firmer compression (102).", "source": "https://www.srixon.com/en/balls/golf-balls/z-star-diamond/z-star-%E2%99%A6-diamond-golf-balls/MZSTARD.html"},
+    {"match": "z[- ]*star", "model": "Srixon Z-Star", "known_for": "Maximum greenside spin with ample distance and a very soft feel, three-piece urethane.", "source": "https://www.srixon.com/us/balls/golf-balls/z-star-golf-balls/MZSTAR21.html"},
+    {"match": "q[- ]*star", "model": "Srixon Q-Star", "known_for": "The distance-minded Srixon: two-piece with an ionomer cover. Generation not confirmed from the stock name.", "source": "https://srixon.com/us/q-star-tour.html"},
+    {"match": "soft feel", "model": "Srixon Soft Feel", "known_for": "Soft (compression 60) two-piece with a soft centre and firm edge for distance off the tee.", "source": "https://srixon.com/en/softfeel-balls.html"},
+    {"match": "chrome tour triple diamond", "model": "Callaway Chrome Tour Triple Diamond", "known_for": "For faster swingers: penetrating flight, slightly firmer feel, lower spin on full shots.", "source": "https://www.callawaygolf.com/balls/chrome-tour-td-balls/balls-2025-chrome-tour-td.html"},
+    {"match": "chrome tour x", "model": "Callaway Chrome Tour X", "known_for": "Maximum speed and the most short-game spin of the Chrome Tour family, firmest feel.", "source": "https://www.callawaygolf.com/press/callaway-golf-announces-new-chrome-tour-golf-balls"},
+    {"match": "chrome tour", "model": "Callaway Chrome Tour", "known_for": "Speed and distance off the tee with a mid-spin profile and consistent flight.", "source": "https://www.callawaygolf.com/press/callaway-golf-announces-new-chrome-tour-golf-balls"},
+    {"match": "chrome soft", "model": "Callaway Chrome Soft", "known_for": "Premium feel with all-round performance: touch without giving up distance.", "source": "https://www.callawaygolf.com/golf-balls/chrome-soft"},
+    {"match": "vice pro (\\+ |plus )?(drip|neon|tracer)|vice pro tracer", "model": "Vice Pro finish", "known_for": "", "source": ""},
+    {"match": "vice pro (\\+|plus)", "model": "Vice Pro Plus", "known_for": "Four-piece cast urethane for ball speed and control.", "source": "https://www.vicegolf.com/collections/golf-balls"},
+    {"match": "vice pro air", "model": "Vice Pro Air", "known_for": "Soft feel with enough greenside spin, tuned for high launch and easy distance.", "source": "https://www.vicegolf.com/collections/golf-balls"},
+    {"match": "vice pro", "model": "Vice Pro", "known_for": "A balance of spin and distance with a pure feel.", "source": "https://www.vicegolf.com/collections/golf-balls"},
+    {"match": "vice tour", "model": "Vice Tour", "known_for": "Versatile all-rounder with a durable Surlyn cover.", "source": "https://www.vicegolf.com/collections/golf-balls"},
+    {"match": "vice drive", "model": "Vice Drive", "known_for": "Fun and long off the tee, lower spin to help find fairways.", "source": "https://www.vicegolf.com/collections/golf-balls"}
+  ]
+}

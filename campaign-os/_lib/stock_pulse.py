@@ -132,6 +132,9 @@ def product_key(name: str, variant: str) -> str:
     """A size or colour-and-size variant belongs to its product. Any other variant is a
     different model ("Callaway Chrome Tour" / "Chrome Tour Triple Diamond"), kept apart."""
     v = (variant or "").strip()
+    if categorise(name) == "ball":
+        # Colours of one ball model are one entry; each model stays its own.
+        name = re.sub(rf"\s+-\s+({BALL_COLOURS})$", "", name.strip(), flags=re.I)
     if not v or ";" in v or SIZE_VARIANT.match(v):
         return name
     return f"{name} ({v})"
@@ -153,6 +156,25 @@ def parse_stock_csv(text: str) -> List[Dict[str, Any]]:
             "alert": _int(row.get("Alert Level")),
         })
     return out
+
+
+_BALL_MODELS: Optional[List[Dict[str, Any]]] = None
+BALL_COLOURS = r"white|yellow|blue|green|pink|red|orange|purple|black|grey|lime|neon|drip"
+
+
+def ball_profile(name: str) -> Optional[Dict[str, Any]]:
+    """The ball model a stock line belongs to, with what the maker says it is known for."""
+    global _BALL_MODELS
+    if _BALL_MODELS is None:
+        f = Path(__file__).resolve().parents[2] / "data" / "brand-directory" / "_system" / "ball-models.json"
+        try:
+            _BALL_MODELS = json.loads(f.read_text(encoding="utf-8"))["models"]
+        except Exception:
+            _BALL_MODELS = []
+    for m in _BALL_MODELS:
+        if re.search(m["match"], name, re.I):
+            return m
+    return None
 
 
 def categorise(name: str) -> str:
@@ -205,6 +227,14 @@ def _by_product(rows: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
 
 def _days(a: str, b: str) -> int:
     return (datetime.fromisoformat(b[:10]) - datetime.fromisoformat(a[:10])).days
+
+
+def _ball_idea(name: str) -> str:
+    prof = ball_profile(name)
+    if prof and prof["known_for"]:
+        return (f"Show it as the {prof['model']}: {prof['known_for']} Tie in with a ball fitting "
+                "(both shops offer them) to find the right one.")
+    return "Ball model: no maker wording on file yet, add a sourced 'known for' line before writing about it."
 
 
 def _item_results(snapshots: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -266,7 +296,10 @@ def _item_results(snapshots: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "feed_boost": 0 if excluded_reason(name) else FEED_BOOST[status],
             "not_for_feed": bool(excluded_reason(name)),
             "excluded_reason": excluded_reason(name),
-            "idea": PUSH_IDEAS.get(cat, "") if status in ("stuck", "still", "heavy") else "",
+            "idea": (_ball_idea(name) if cat == "ball" else PUSH_IDEAS.get(cat, ""))
+                    if status in ("stuck", "still", "heavy", "new", "back") else "",
+            "ball_model": (ball_profile(name) or {}).get("model", "") if cat == "ball" else "",
+            "known_for": (ball_profile(name) or {}).get("known_for", "") if cat == "ball" else "",
             "range_name": range_name_for(name, cat),
             "first_seen": first_seen,
             "snapshots_seen": len(history),

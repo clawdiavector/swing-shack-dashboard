@@ -31,6 +31,7 @@ def main() -> int:
     ap.add_argument("--brand", required=True)
     ap.add_argument("--date", default=date.today().isoformat())
     ap.add_argument("--out", help="also write the report to this markdown file")
+    ap.add_argument("--gaps-csv", help="write every in-stock product with no exact-model photo to this CSV")
     ap.add_argument("--save", action="store_true")
     ap.add_argument("--images", help="folder of product photos (default: the brand's images folder)")
     a = ap.parse_args()
@@ -62,6 +63,14 @@ def main() -> int:
         say(f"- {r['name']}: {r['reason']}")
     if not arrivals:
         say("- None yet." + (" The first list is the baseline, so nothing can be called new until the next one." if len(snaps) < 2 else ""))
+
+    say("\n## Balls: each model on its own, and what it is known for")
+    say("(Both shops offer ball fittings, so every ball is a model with a story, never just 'balls'. "
+        "Wording is a paraphrase of the maker's page, a draft for approval.)")
+    for r in sorted((r for r in results if r["category"] == "ball" and not r["not_for_feed"]
+                     and r["status"] not in ("out", "error")), key=lambda r: r["name"]):
+        kf = r["known_for"] or "NO MAKER WORDING ON FILE YET"
+        say(f"- {r['name']} [{r['qty']}, {r['status']}]: {kf}")
 
     say("\n## Brand ranges (promoted as one post, not per colour)")
     for r in results:
@@ -110,6 +119,16 @@ def main() -> int:
     for r, m in need:
         cand = f" (candidates to check by eye: {', '.join(Path(c).name for c in m['candidates'])})" if m["candidates"] else ""
         say(f"- {r['name']} [{r['qty']}]{cand}")
+    if a.gaps_csv:
+        import csv
+        with open(a.gaps_csv, "w", newline="", encoding="utf-8-sig") as fh:
+            w = csv.writer(fh)
+            w.writerow(["Product", "Units in stock", "Status", "Photo on file", "Files to check by eye", "Why it matters"])
+            for r, m in need:
+                why = r["reason"] or ("Brand range post" if r.get("is_range") else "")
+                w.writerow([r["name"], r["qty"], r["status"],
+                            "Candidate only" if m["candidates"] else "None",
+                            "; ".join(Path(c).name for c in m["candidates"]), why])
     if a.out:
         Path(a.out).write_text("\n".join(LINES) + "\n", encoding="utf-8")
     return 0

@@ -185,6 +185,46 @@ class RangeAndNewTests(unittest.TestCase):
         self.assertTrue(all(p["range_name"] == "GripDrip grips" for p in products))
 
 
+class BallModelTests(unittest.TestCase):
+    def test_colours_of_one_model_are_one_entry_models_stay_apart(self):
+        res = by_name(sp.analyse([snap(
+            "2026-10-14",
+            row("Titleist Tour Soft 2025 - White", "A", 22, 8),
+            row("Titleist Tour Soft 2025 - Yellow", "B", 15, 8),
+            row("Titleist Tour Soft 2026 - White", "C", 20, 8),
+            row("Titleist Velocity 2025 - White", "D", 16, 8),
+        )]))
+        self.assertEqual(res["Titleist Tour Soft 2025"]["qty"], 37)
+        self.assertIn("Titleist Tour Soft 2026", res)
+        self.assertIn("Titleist Velocity 2025", res)
+
+    def test_each_model_gets_its_own_known_for(self):
+        for name, model in [
+            ("Titleist Pro V1x - Left Dash White", "Titleist Pro V1x Left Dash"),
+            ("Titleist Pro V1 X 2025 - Yellow", "Titleist Pro V1x"),
+            ("Titleist Pro V1 2025 - White", "Titleist Pro V1"),
+            ("Srixon Z- Star XV", "Srixon Z-Star XV"),
+            ("Srixon Z-Star Diamond 3 - White", "Srixon Z-Star Diamond"),
+            ("Srixon Z star 9 - White", "Srixon Z-Star"),
+            ("Callaway Chrome Tour (Chrome Tour Triple Diamond)", "Callaway Chrome Tour Triple Diamond"),
+            ("Callaway Chrome Tour (Chrome Tour X)", "Callaway Chrome Tour X"),
+            ("Callaway Chrome Tour (Chrome Tour)", "Callaway Chrome Tour"),
+            ("Vice Pro + White Sleeve", "Vice Pro Plus"),
+            ("Vice Pro Air White Sleeve", "Vice Pro Air"),
+        ]:
+            self.assertEqual(sp.ball_profile(name)["model"], model, name)
+
+    def test_unsourced_model_has_no_claim(self):
+        self.assertEqual(sp.ball_profile("Vice Pro Tracer White Sleeve")["known_for"], "")
+        res = sp.analyse([snap("2026-10-14", row("Vice Pro Tracer White Sleeve", "V1", 40, 12))])
+        self.assertIn("no maker wording", res[0]["idea"])
+
+    def test_ball_idea_names_the_fitting(self):
+        res = sp.analyse([snap("2026-10-14", row("Titleist Velocity 2025 - White", "D", 16, 4))])
+        self.assertIn("ball fitting", res[0]["idea"])
+        self.assertIn("firmer", res[0]["idea"].lower())
+
+
 class PhotoTests(unittest.TestCase):
     def setUp(self):
         self.dir = Path(tempfile.mkdtemp(prefix="cos-photos-"))
