@@ -19,15 +19,6 @@ interface CitationEntry {
   added_at: string
 }
 
-interface Scorecard {
-  total_queries: number
-  citation_rate: number | null
-  url_citation_rate: number | null
-  weekly_delta: number | null
-  top_models: { model: string; count: number }[]
-  recent: CitationEntry[]
-}
-
 interface WatchlistEntry {
   query: string
   region?: string

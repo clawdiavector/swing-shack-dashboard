@@ -34,13 +34,17 @@ _BRAND_DISPLAY = {
     "bag-drop": "Bag Drop",
 }
 
+# Bag Drop has no confirmed website yet (see geo_audit._BRAND_DOMAINS).
 _BRAND_DOMAINS = {
     "swing-shack": "https://swingshack.co.za",
     "stick": "https://stickgolf.co.za",
-    "bag-drop": "https://swingshack.co.za",
+    "bag-drop": "",
 }
 
-# Default watchlist queries (seeded if file is empty)
+# Default watchlist queries (seeded only when the brand's watchlist file is
+# empty, so changing these does not touch a list that already exists).
+# Extra terms come from the Ubersuggest ZA keyword cache (volume in brackets
+# where it was reported; 0 means "not reported", not "nobody searches this").
 _DEFAULT_WATCHLIST = {
     "swing-shack": [
         "best indoor golf Johannesburg",
@@ -48,6 +52,23 @@ _DEFAULT_WATCHLIST = {
         "golf coaching JHB",
         "club fitting Johannesburg",
         "swing analysis Johannesburg",
+        # from the Ubersuggest cache
+        "golf simulator near me",  # 165000 (looks high for ZA, verify)
+        "golf fitting near me",  # 12100
+        "club fitting near me",
+        "golf lessons Johannesburg",  # 170
+        "indoor golf practice",
+        "indoor golf Johannesburg",  # 90
+        "indoor golf Randburg",
+        "golf simulator Parkview",
+        "golf simulator Linden",
+        "golf lessons Parkview",
+        "trackman simulator Johannesburg",
+        "trackman rental Johannesburg",
+        "what is a trackman simulator",
+        "is indoor golf worth it",
+        "how long does club fitting take",  # 20
+        "takomo fitter Johannesburg",
     ],
     "stick": [
         "TrackMan fitting Paarl",
@@ -55,6 +76,21 @@ _DEFAULT_WATCHLIST = {
         "golf coaching Paarl",
         "Vice Golf South Africa",
         "golf lessons for beginners South Africa",
+        # from the Ubersuggest cache
+        "mallet putter vs blade",  # 6600
+        "how to fit a putter",  # 70
+        "best putter for slow greens",  # 40
+        "putter fitting South Africa",
+        "what does putter fitting actually do",
+        "what to look for in putter fitting",
+        "stick putter fitting review",
+        "regripping putter cost",
+        "how often to regrip golf clubs",  # 210
+        "vice golf balls South Africa",  # 50
+        "golf gifts for him South Africa",  # 50
+        "personalised golf gifts South Africa",  # 40
+        "golf rain jacket South Africa",  # 30
+        "polyester golf shirts South Africa",  # 20
     ],
     "bag-drop": [],
 }

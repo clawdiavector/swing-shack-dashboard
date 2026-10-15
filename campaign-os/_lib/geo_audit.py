@@ -28,10 +28,13 @@ BUNDLED_DATA_DIR = os.environ.get(
 )
 DATA_DIR = os.environ.get("DATA_DIR", "/data/campaign-os")
 
+# Bag Drop's own website is not recorded anywhere in the repo yet. Left empty
+# on purpose so the audit reports "no website set" instead of checking the
+# Swing Shack site. Fill in once the real domain is confirmed.
 _BRAND_DOMAINS = {
     "swing-shack": "https://swingshack.co.za",
     "stick":      "https://stickgolf.co.za",
-    "bag-drop":   "https://swingshack.co.za",
+    "bag-drop":   "",
 }
 
 # ── Cache helpers ────────────────────────────────────────────────────────────
@@ -802,6 +805,8 @@ def run_geo_audit(brand: str, force_refresh: bool = False) -> Dict[str, Any]:
     """
     if brand not in _BRAND_DOMAINS:
         return {"ok": False, "error": f"unknown brand: {brand}"}
+    if not _BRAND_DOMAINS[brand]:
+        return {"ok": False, "brand": brand, "error": "no website set for this brand yet"}
 
     if force_refresh:
         # V1.1: flush per-check cache so V1.1 calibration is not masked by

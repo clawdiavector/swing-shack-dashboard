@@ -466,7 +466,8 @@ def _is_own_domain(url: str, brand: str) -> bool:
     if brand == "swing-shack":
         return "swingshack.co.za" in lower
     if brand == "bag-drop":
-        return "swingshack.co.za" in lower or "bag-drop" in lower
+        # Bag Drop is its own business; Swing Shack links are not its own.
+        return "bag-drop" in lower
     return False
 
 
