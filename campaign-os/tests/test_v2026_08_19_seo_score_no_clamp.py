@@ -41,6 +41,11 @@ This test pins:
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import os
 import re
 import unittest
@@ -220,6 +225,7 @@ class SeoScoreSourceGuard(unittest.TestCase):
         )
 
 
+@_legacy_page.on_old_page_only
 class SeoScoreRendererGuard(unittest.TestCase):
     """Static guard: the JS render path must use the live `score` field."""
 

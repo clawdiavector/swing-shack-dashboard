@@ -18,6 +18,7 @@ import { BrandChip } from '../components/BrandChip'
 import { BrandSwitch, useBrand, useBrandScope } from '../components/BrandSwitch'
 import { DailyBrandSocials } from '../components/DailyBrandSocials'
 import { StoryReposts } from '../components/StoryReposts'
+import { AlertBanner } from './calendar/planning/AlertBanner'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { InsightPostThumb, insightPostThumbSrc } from '../components/InsightPostThumb'
@@ -389,6 +390,8 @@ export function Daily() {
       >
         {summary || 'Pulling together today’s decisions…'}
       </PageIntro>
+
+      <AlertBanner brandId={isAll ? '' : focusBrandId || ''} />
 
       <StoryReposts brandIds={isAll ? undefined : brandIds} />
 

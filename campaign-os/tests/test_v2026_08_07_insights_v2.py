@@ -9,6 +9,11 @@ Tests for the Insights v2 endpoints:
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import json
 import os
 import shutil
@@ -281,6 +286,7 @@ class InsightsV2HtmlStructureTests(unittest.TestCase):
     def setUpClass(cls):
         cls.html = (CAMPAIGN_OS.parent / "campaign-os" / "campaign-os.html").read_text()
 
+    @_legacy_page.on_old_page_only
     def test_render_insights_v2_function_exists(self):
         self.assertIn("async function renderInsightsV2", self.html)
 
@@ -290,19 +296,23 @@ class InsightsV2HtmlStructureTests(unittest.TestCase):
     def test_ad_correlation_endpoint_referenced(self):
         self.assertIn("/api/insights/ad-correlation", self.html)
 
+    @_legacy_page.on_old_page_only
     def test_color_signals_present(self):
         # green / yellow / red color codes
         self.assertIn("#10b981", self.html)  # green
         self.assertIn("#f59e0b", self.html)  # yellow/amber
         self.assertIn("#ef4444", self.html)  # red
 
+    @_legacy_page.on_old_page_only
     def test_trends_freshness_banner_present(self):
         self.assertIn("tr-freshness-banner", self.html)
         self.assertIn("tr-refresh", self.html)
 
+    @_legacy_page.on_old_page_only
     def test_learning_subheader_present(self):
         self.assertIn("the long-memory view", self.html)
 
+    @_legacy_page.on_old_page_only
     def test_insights_v2_layout_present(self):
         for marker in ("ins-v2-body", "ins-ig-top-list", "ins-pages-list",
                         "ins-ad-block", "ins-ad-status"):

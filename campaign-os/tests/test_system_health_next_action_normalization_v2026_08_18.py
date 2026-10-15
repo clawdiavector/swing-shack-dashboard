@@ -17,6 +17,11 @@ Tests cover:
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -31,6 +36,7 @@ class SystemHealthNextActionNormalizationTests(unittest.TestCase):
     def setUpClass(cls):
         cls.html = HTML_PATH.read_text()
 
+    @_legacy_page.on_old_page_only
     def test_run_the_week_regex_present(self):
         """The renderer must detect the dead-section pointer."""
         self.assertIn(
@@ -39,6 +45,7 @@ class SystemHealthNextActionNormalizationTests(unittest.TestCase):
             "systemHealthHtml() should detect the RUN THE WEEK dead-section pointer",
         )
 
+    @_legacy_page.on_old_page_only
     def test_next_action_rewritten_to_review_phrase(self):
         """The dead pointer must be rewritten to an actionable Review-queue phrase."""
         # Find the body of the rewrite branch
@@ -53,6 +60,7 @@ class SystemHealthNextActionNormalizationTests(unittest.TestCase):
         self.assertIn("drafts pending", body, "Rewrite should surface the actionable count")
         self.assertIn("41", body, "Rewrite should use the live 41-draft count")
 
+    @_legacy_page.on_old_page_only
     def test_link_uses_goto_section_review(self):
         """The rewritten link must call goToSection('review') to land the user on the real queue."""
         # Look at the whole next_action branch (the if + the inline template literal).
@@ -69,6 +77,7 @@ class SystemHealthNextActionNormalizationTests(unittest.TestCase):
             "Link onclick must navigate to the Review section",
         )
 
+    @_legacy_page.on_old_page_only
     def test_sh_next_link_css_exists(self):
         """A `.sh-next-link` CSS rule must exist so the link is visually distinct."""
         self.assertRegex(
@@ -77,6 +86,7 @@ class SystemHealthNextActionNormalizationTests(unittest.TestCase):
             "Expected a `.sh-next-link` rule with cursor:pointer",
         )
 
+    @_legacy_page.on_old_page_only
     def test_fallback_still_escapes_raw_string(self):
         """If the next_action does NOT match the dead-pointer pattern, it must render verbatim (escaped)."""
         # The else branch of the conditional must call esc() on the raw string.

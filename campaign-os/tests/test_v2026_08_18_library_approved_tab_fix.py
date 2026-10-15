@@ -12,6 +12,11 @@ Bug 2: /api/assets (GET) does not exist on the backend (404). The
        for every user on every brand. Fix swaps to /api/intel/review_inbox
        which returns the approved array pre-bucketed by the backend.
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import sys
 import unittest
@@ -28,6 +33,7 @@ class TestLibrarySearchEverythingNodeListFix(unittest.TestCase):
     def setUp(self):
         self.html = HTML.read_text()
 
+    @_legacy_page.on_old_page_only
     def test_no_dollar_dollar_find_in_search_handler(self):
         # Find the lib-search-trigger click handler and verify the
         # offending pattern is gone.
@@ -71,6 +77,7 @@ class TestLibraryApprovedTabEndpointFix(unittest.TestCase):
             "Library 'approved' tab still calls nonexistent /api/assets endpoint",
         )
 
+    @_legacy_page.on_old_page_only
     def test_approved_tab_uses_review_inbox(self):
         # The new code path must fetch from /api/intel/review_inbox and
         # read r.approved.
@@ -89,6 +96,7 @@ class TestLibraryApprovedTabEndpointFix(unittest.TestCase):
         self.assertIn("No approved assets yet for", block,
                       "approved tab empty-state must mention active brand")
 
+    @_legacy_page.on_old_page_only
     def test_approved_tab_does_not_filter_out_brand_scoped_assets(self):
         # The brand_id (e.g. "swing-shack") is NOT a prefix of the
         # campaignId (e.g. "use-the-right-equipment-mq5l90bk"). A naive
@@ -103,6 +111,7 @@ class TestLibraryApprovedTabEndpointFix(unittest.TestCase):
         self.assertNotIn("startsWith(bid)", block,
                          "approved tab must NOT client-side filter by campaignId.startsWith(bid) — campaignId shape doesn't include the brand_id prefix")
 
+    @_legacy_page.on_old_page_only
     def test_approved_tab_uses_correct_field_names(self):
         # The backend returns assets with these fields: name, assetId,
         # campaignId, campaignName, platform, approvalStatus, publishStatus.

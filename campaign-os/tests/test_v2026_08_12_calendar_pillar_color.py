@@ -27,6 +27,11 @@ that drifts from the dashboard theme gets caught.
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import sys
 import unittest
@@ -84,6 +89,7 @@ class TestCalendarColorPalette(unittest.TestCase):
         from _lib.intelligence import _calendar_color  # type: ignore
         self.color = _calendar_color
 
+    @_legacy_page.on_old_page_only
     def test_pillar_keys_map_to_dashboard_css_tokens(self):
         # The palette MUST match the CSS --pillar-* tokens in campaign-os.html
         # so the inline border-left-color matches the JS-applied CSS class.

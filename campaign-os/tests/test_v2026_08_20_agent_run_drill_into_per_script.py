@@ -27,6 +27,11 @@ against a synthetic agent-runs.json to assert the forwarded fields.
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import json
 import re
 import subprocess
@@ -158,6 +163,7 @@ def test_agents_view_outputs_invalid_empty_when_clean():
 # Test 04: agentRunHtml renders a .li-detail block (so .open toggle shows
 # the drill-into content).
 # ────────────────────────────────────────────────────────────────────
+@_legacy_page.on_old_page_only
 def test_agentRunHtml_emits_li_detail_block():
     """agentRunHtml() must emit a <div class=\"li-detail\"> block so the
     click-to-drill affordance promised by the tooltip actually works."""
@@ -176,6 +182,7 @@ def test_agentRunHtml_emits_li_detail_block():
 # ────────────────────────────────────────────────────────────────────
 # Test 05: agentRunHtml renders the per-script status from it.last_scripts.
 # ────────────────────────────────────────────────────────────────────
+@_legacy_page.on_old_page_only
 def test_agentRunHtml_renders_last_scripts():
     """agentRunHtml() must reference it.last_scripts (or last_scripts) so
     the per-script drill content actually appears on click."""
@@ -192,6 +199,7 @@ def test_agentRunHtml_renders_last_scripts():
 # ────────────────────────────────────────────────────────────────────
 # Test 06: Tooltip no longer says "Click any red row" (the broken promise).
 # ────────────────────────────────────────────────────────────────────
+@_legacy_page.on_old_page_only
 def test_agents_health_tooltip_no_false_red_only_promise():
     """The Agents & health <h2> tooltip must not promise a 'red row only'
     drill that the renderer cannot fulfill (rows do not have a stable

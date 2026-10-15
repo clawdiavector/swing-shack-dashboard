@@ -223,7 +223,9 @@ class TestBriefPriority2RepostHeadlineFromNestedItem(unittest.TestCase):
              patch.object(intelligence, "_read_json", side_effect=_rj), \
              patch.object(intelligence, "_filter_fresh_ideas", return_value=[]), \
              patch.object(intelligence, "_enrich_do_first_where", side_effect=lambda x: x), \
-             patch.object(intelligence, "_runtime_data_file", return_value="/dev/null"):
+             patch.object(intelligence, "_runtime_data_file", side_effect=lambda name: name):
+            # morning_brief reads recommendation-scores.json through
+            # _runtime_data_file, so pass the name through for _rj to match.
             return morning_brief()
 
     def test_post_slot_recommendation_pulls_headline_from_item_hook(self):

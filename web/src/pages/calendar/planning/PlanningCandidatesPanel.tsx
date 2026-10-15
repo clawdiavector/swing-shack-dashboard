@@ -237,15 +237,15 @@ export function PlanningCandidatesPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-lg font-semibold">
-            Intelligence · candidates
+            Ideas found for you
             <span className="ml-2 text-xs font-bold tracking-wider text-tx3 uppercase">
-              (rolling {horizon.start} → {horizon.end})
+              ({horizon.start} to {horizon.end})
             </span>
           </h2>
           <p className="mt-1 text-xs text-tx3">
-            {candidateCount} candidates · {counts.high} high · {counts.medium} medium · {counts.low} low.
+            {candidateCount} {candidateCount === 1 ? 'idea' : 'ideas'} · {counts.high} strong · {counts.medium} maybe · {counts.low} weak.
             <span className="ml-1 text-[10px] tracking-wider text-purple-400 uppercase">
-              Not on the approved spine — Christelle decides what enters.
+              Not on the calendar. You decide which ones go on.
             </span>
           </p>
         </div>
@@ -463,7 +463,7 @@ export function PlanningCandidatesPanel({
         })}
         {filtered.length === 0 ? (
           <li className="rounded-lg border border-bd bg-bg2/60 px-3 py-6 text-center text-sm text-tx3">
-            No candidates match this filter.
+            Nothing matches that filter.
           </li>
         ) : null}
       </ul>
@@ -478,7 +478,7 @@ export function PlanningCandidatesPanel({
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-[10px] font-bold tracking-widest text-tx3 uppercase">
-                Needs Verification · Research leads
+                Dates to check first
               </p>
               <p className="mt-0.5 text-[10px] text-tx3">
                 {researchLeadCount} leads · no confirmed dates ·{' '}
