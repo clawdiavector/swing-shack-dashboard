@@ -1741,7 +1741,6 @@ def generate_captions(
             {"hook": "Custom fitting changes the game."},
             {"hook": "Get the data, then make the call."},
             {"hook": "Why guess when you can measure?"},
-            {"hook": "Swing Shack makes improvement measurable."},
         ]
     # Shuffle the pool with the seeded RNG so order varies per call.
     shuffled_pool = list(pool_raw)
@@ -1787,7 +1786,8 @@ def generate_captions(
 
     def _voice_cta(vid, idx=0):
         alts = voices.get(vid, {}).get("cta_alternatives", [])
-        cta_default = voices.get(vid, {}).get("cta_default", "Book a session → swingshack.co.za")
+        # No default: a missing CTA must not borrow another brand's website.
+        cta_default = voices.get(vid, {}).get("cta_default", "")
         if alts and idx < len(alts):
             return alts[idx]
         return cta_default
@@ -1800,7 +1800,8 @@ def generate_captions(
         if mechanism == "problem-first":
             body = f"{prefix} The problem nobody talks about: {hook_text}. {suffix} {cta}"
         elif mechanism == "story":
-            body = f"{prefix} A golfer walked into Swing Shack and said: {hook_text}. {suffix} {cta}"
+            # Brand-neutral: this template runs for every voice.
+            body = f"{prefix} A golfer told us: {hook_text}. {suffix} {cta}"
         elif mechanism == "contrarian":
             body = f"{prefix} Forget what you heard about {hook_text.split()[0] if hook_text else 'that'}. Here's the truth. {suffix} {cta}"
         elif mechanism == "listicle":
@@ -4758,6 +4759,14 @@ def _cluster_ig_captions(this_week, prev_week):
 
 
 
+def _captions_for_active_brand() -> Dict[str, Any]:
+    """Captions in the active brand's voice; refuses when there is none."""
+    brand = get_request_brand()
+    if brand not in (_load_voice_bible().get("voices") or {}):
+        return {"ok": False, "error": f"No caption voice for brand {brand!r}", "variants": []}
+    return generate_captions(None, 5, voice=brand)
+
+
 # ─── INDEX ─────────────────────────────────────────────────────────────
 
 INTELLIGENCE_FUNCS = {
@@ -4771,7 +4780,7 @@ INTELLIGENCE_FUNCS = {
     "performance": performance_view,
     "learning": learning_view,
     "hooks_generate": lambda: generate_hooks(10),
-    "captions_generate": lambda: generate_captions(None, 5),
+    "captions_generate": _captions_for_active_brand,
     "ctas_generate": lambda: generate_ctas(5),
     "headlines_generate": lambda: generate_headlines(5),
     "reddit_outreach": reddit_outreach,
