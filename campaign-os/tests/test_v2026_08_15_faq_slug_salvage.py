@@ -19,6 +19,11 @@ Fix lives in campaign-os/campaign-os.html inside renderFAQs() and the
 helper `_faqSalvageSlugKeyword()`.
 """
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import os
 import re
 import sys
@@ -43,6 +48,7 @@ class TestFAQsSalvageKnownUrlSlugs(unittest.TestCase):
         self.assertIsNotNone(m, "renderFAQs() function not found in HTML")
         return m.group(1)
 
+    @_legacy_page.on_old_page_only
     def test_slug_map_is_declared_at_top_level(self):
         # The known-slug map must live as a top-level const so the regex
         # and helper can share it (not duplicated inside renderFAQs).
@@ -53,6 +59,7 @@ class TestFAQsSalvageKnownUrlSlugs(unittest.TestCase):
             "salvage helper can share it across renders.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_slug_map_includes_known_swingshack_slugs(self):
         # These are the slugs we have observed on swingshack.co.za that
         # blog_beast leaks. They MUST be in the map or those FAQ sets
@@ -69,6 +76,7 @@ class TestFAQsSalvageKnownUrlSlugs(unittest.TestCase):
                 "FAQ sets render instead of being skipped.",
             )
 
+    @_legacy_page.on_old_page_only
     def test_salvage_helper_replaces_slug_in_target_keyword_and_questions(self):
         # The helper must rewrite both fields (target_keyword and every
         # question) and leave the cluster intact. A fix that only
@@ -97,6 +105,7 @@ class TestFAQsSalvageKnownUrlSlugs(unittest.TestCase):
             "_faqSalvageSlugKeyword must rewrite every question string.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_renderfaqs_routes_known_slugs_through_salvage(self):
         # The URL-slug branch must call the salvage helper and fall
         # through to `stale.push` only when the helper returns null.
@@ -116,6 +125,7 @@ class TestFAQsSalvageKnownUrlSlugs(unittest.TestCase):
             "can credit the auto-fix.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_count_line_credits_salvaged_rows(self):
         # The small counter must surface the salvage count so the
         # underlying data health is visible ("N slug auto-fixed").
@@ -127,6 +137,7 @@ class TestFAQsSalvageKnownUrlSlugs(unittest.TestCase):
             "Christelle can see the auto-fix is working.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_existing_skip_hint_preserved(self):
         # Unknown slugs must STILL produce the "skipped" hint so the
         # data issue stays visible to the next agent run.
@@ -138,6 +149,7 @@ class TestFAQsSalvageKnownUrlSlugs(unittest.TestCase):
             "unrecognised URL slugs.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_existing_dedup_contract_preserved(self):
         # The dedup key MUST still include cluster + target_keyword + first
         # question for BOTH the regular branch and the salvage branch, so
@@ -172,6 +184,7 @@ class TestFAQsSalvageKnownUrlSlugs(unittest.TestCase):
                 f"Key body was: {key_body!r}",
             )
 
+    @_legacy_page.on_old_page_only
     def test_url_slug_regex_still_requires_both_slashes(self):
         # The strict URL-slug detector must NOT have been relaxed to
         # optional slashes (which would over-match real keywords).

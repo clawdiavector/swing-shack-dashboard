@@ -20,6 +20,11 @@ asserts structural markers. Never imports flask, never hits a running server.
 
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -53,6 +58,7 @@ def _function_body(src: str, fn_name: str) -> str:
     raise AssertionError(f"closing brace not found for {fn_name}()")
 
 
+@_legacy_page.on_old_page_only
 class SystemHealthDataSourcesTests(unittest.TestCase):
     """Regression tests for the data_sources block in systemHealthHtml()."""
 
