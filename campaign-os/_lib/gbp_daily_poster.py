@@ -59,8 +59,8 @@ BRAND_PROFILES = {
         "voice_id": "swing-shack",
         "domain": "swingshack.co.za",
         "bookings_url": "https://swingshack.co.za/bookings/",
-        "primary_color": "#0F766E",
-        "accent_color": "#F59E0B",
+        "primary_color": "#1C1C1C",
+        "accent_color": "#74CC46",
         "verified_address": "Old Parktonian Sports Club, 1 Garden Rd, Bordeaux, Randburg, Johannesburg",
         "verified_phone": "066 542 1522",
         "voice": (
