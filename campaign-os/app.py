@@ -16053,6 +16053,8 @@ def gbp_daily_poster_dismiss_route():
         return jsonify({"ok": False, "brand_id": brand_id,
                         "error": "all_actioned"}), 409
     target["post_status"] = "REMOVED"
+    if target.get("draft_id"):
+        _gdp.set_draft_status(target["draft_id"], "draft", drafts_dir=GMB_DRAFTS_DIR)
     target["publish_result"] = {"ok": False, "post_status": "REMOVED",
                                  "reason": "operator_dismissed"}
     try:
@@ -16610,7 +16612,58 @@ def gmb_approve_draft(draft_id):
     if problems:
         return jsonify({"ok": False, "error": "draft is not ready to approve", "problems": problems}), 409
     _gdp.set_draft_status(draft_id, "approved", drafts_dir=GMB_DRAFTS_DIR)
-    return jsonify({"ok": True, "draft_id": draft_id, "status": "approved"}), 200
+    # Rebuild the plan now so the approval reaches the Today card without waiting for 06:00.
+    rebuilt = False
+    try:
+        _gdp.save_plan(_gdp.rebuild_plan(brand_id_of(draft), previous=_gdp.latest_plan(brand_id_of(draft)), drafts_dir=GMB_DRAFTS_DIR))
+        rebuilt = True
+    except Exception as exc:
+        _app_log.warning("gbp approve: plan rebuild failed: %s", exc)
+    return jsonify({"ok": True, "draft_id": draft_id, "status": "approved", "plan_rebuilt": rebuilt}), 200
+
+
+def brand_id_of(draft):
+    return (draft.get("brand") or "swing-shack").strip().lower()
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/photo', methods=['POST'])
+def gmb_upload_draft_photo(draft_id):
+    """Attach a photo to a GBP draft. Saved where the publish step can read it.
+
+    Changing the photo sends the draft back to review, like any edit.
+    """
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    f = request.files.get('file')
+    if not f or not f.filename:
+        return jsonify({"ok": False, "error": "no photo in form"}), 400
+    ext = os.path.splitext(f.filename)[1].lower()
+    if ext not in _gdp.PHOTO_EXTENSIONS:
+        return jsonify({"ok": False, "error": "photo must be a jpg, png or webp"}), 400
+    data = f.read(_gdp.PHOTO_MAX_BYTES + 1)
+    if len(data) > _gdp.PHOTO_MAX_BYTES:
+        return jsonify({"ok": False, "error": "photo is over 8 MB"}), 413
+    if not _gdp.looks_like_photo(data, ext):
+        return jsonify({"ok": False, "error": "file is not a real jpg, png or webp"}), 400
+    os.makedirs(ASSET_MEDIA_DIR, exist_ok=True)
+    out_path = os.path.join(ASSET_MEDIA_DIR, f"gbp-{secure_filename(draft_id)}-{int(time.time())}{ext}")
+    with open(out_path, 'wb') as fh:
+        fh.write(data)
+    with open(path, 'r', encoding='utf-8') as fh:
+        draft = json.load(fh)
+    draft['imageUrl'] = out_path
+    if draft.get('status') == 'approved':
+        draft['status'] = 'draft'
+        draft.pop('approvedAt', None)
+    draft['updatedAt'] = _now_iso()
+    with open(path, 'w', encoding='utf-8') as fh:
+        json.dump(draft, fh, indent=2, ensure_ascii=False)
+    return jsonify({"ok": True, "draft": draft}), 200
 
 
 @app.route('/api/intel/gmb/draft/<draft_id>/unapprove', methods=['POST'])

@@ -151,5 +151,98 @@ class PublishPostTests(unittest.TestCase):
         cp.assert_not_called()
 
 
+class PhotoCheckTests(unittest.TestCase):
+    def test_real_image_bytes_match_their_extension(self):
+        self.assertTrue(gbp.looks_like_photo(b"\xff\xd8\xff\xe0rest", ".jpg"))
+        self.assertTrue(gbp.looks_like_photo(b"\x89PNG\r\n\x1a\nrest", ".png"))
+        self.assertTrue(gbp.looks_like_photo(b"RIFF\x00\x00\x00\x00WEBPrest", ".webp"))
+
+    def test_text_renamed_to_jpg_is_refused(self):
+        self.assertFalse(gbp.looks_like_photo(b"not a picture", ".jpg"))
+        self.assertFalse(gbp.looks_like_photo(b"\x89PNG\r\n\x1a\n", ".jpg"))
+        self.assertFalse(gbp.looks_like_photo(b"\xff\xd8\xff", ".gif"))
+
+
+class RebuildPlanTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_rebuild_includes_new_approval_and_keeps_publish_log(self):
+        _write(self.root, _draft("first", status="approved", approvedAt="2026-10-15T10:00:00Z"))
+        _write(self.root, _draft("second", status="approved", approvedAt="2026-10-15T11:00:00Z"))
+        previous = {"publish": {"posts": [{"status": "scheduled"}], "scheduled_count": 1}}
+        plan = gbp.rebuild_plan("swing-shack", previous=previous, drafts_dir=self.root)
+        self.assertEqual([p["draft_id"] for p in plan["posts"]], ["first", "second"])
+        self.assertEqual(plan["publish"], previous["publish"])
+
+
+class DraftRouteTests(unittest.TestCase):
+    """Approve, photo upload and dismiss through the Flask routes, on temp folders."""
+
+    def setUp(self):
+        import app as app_module  # noqa: PLC0415
+
+        self.app_module = app_module
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name) / "gmb-drafts"
+        self.media = Path(self._tmp.name) / "media"
+        self.root.mkdir()
+        self.media.mkdir()
+        self._patches = [
+            mock.patch.object(app_module, "GMB_DRAFTS_DIR", str(self.root)),
+            mock.patch.object(app_module, "ASSET_MEDIA_DIR", str(self.media)),
+            mock.patch.object(app_module._gdp, "GMB_DRAFTS_DIR", self.root),
+            mock.patch.object(app_module._gdp, "save_plan", return_value=Path("x.json")),
+        ]
+        for p in self._patches:
+            p.start()
+        self.client = app_module.app.test_client()
+
+    def tearDown(self):
+        for p in self._patches:
+            p.stop()
+        self._tmp.cleanup()
+
+    def _save(self, **over):
+        draft = _draft("route-draft", imageUrl="", **over)
+        _write(self.root, draft)
+        return draft
+
+    def test_approve_refused_until_photo_is_attached(self):
+        self._save()
+        res = self.client.post("/api/intel/gmb/draft/route-draft/approve")
+        self.assertEqual(res.status_code, 409)
+        self.assertIn("photo_missing", res.get_json()["problems"])
+
+    def test_photo_upload_then_approve_works_and_rebuilds_plan(self):
+        self._save()
+        jpg = b"\xff\xd8\xff\xe0" + b"0" * 64
+        res = self.client.post(
+            "/api/intel/gmb/draft/route-draft/photo",
+            data={"file": (__import__("io").BytesIO(jpg), "fitting.jpg")},
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(res.status_code, 200, res.get_json())
+        saved_path = res.get_json()["draft"]["imageUrl"]
+        self.assertTrue(Path(saved_path).is_file())
+        res = self.client.post("/api/intel/gmb/draft/route-draft/approve")
+        self.assertEqual(res.status_code, 200, res.get_json())
+        self.assertTrue(res.get_json()["plan_rebuilt"])
+
+    def test_photo_that_is_not_an_image_is_refused(self):
+        self._save()
+        res = self.client.post(
+            "/api/intel/gmb/draft/route-draft/photo",
+            data={"file": (__import__("io").BytesIO(b"hello"), "fitting.jpg")},
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(list(self.media.iterdir()), [])
+
+
 if __name__ == "__main__":
     unittest.main()

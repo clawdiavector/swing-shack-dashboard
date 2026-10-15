@@ -19,6 +19,7 @@ import {
   approveGmbDraft,
   previewGbpDailyPlan,
   unapproveGmbDraft,
+  uploadGmbDraftPhoto,
   scheduleGmbDraft,
   updateGmbDraft,
   type GmbDraft,
@@ -153,6 +154,21 @@ export function Gbp() {
       setPreview(data)
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Preview failed')
+    }
+  }
+
+  async function handlePhoto(id: string, file: File) {
+    setMsg('')
+    try {
+      const res = await uploadGmbDraftPhoto(id, file)
+      if (!res.ok) {
+        setMsg(res.error ?? 'Photo upload failed')
+        return
+      }
+      setMsg('Photo attached. Draft is back in review.')
+      loadDrafts()
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Photo upload failed')
     }
   }
 
@@ -343,6 +359,19 @@ export function Gbp() {
                   {d.imageUrl ? '' : ' · no photo'}
                   {d.link ? '' : ' · no link'}
                 </p>
+                <label className={`${actionBtn} mt-2 inline-block cursor-pointer`}>
+                  {d.imageUrl ? 'Replace photo' : 'Attach photo'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      e.target.value = ''
+                      if (file && d.id) handlePhoto(d.id, file)
+                    }}
+                  />
+                </label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button
                     type="button"

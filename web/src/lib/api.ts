@@ -2038,6 +2038,24 @@ async function postGmbReview(id: string, action: 'approve' | 'unapprove'): Promi
   return (await res.json().catch(() => ({ ok: false }))) as GmbReviewResult
 }
 
+export async function uploadGmbDraftPhoto(id: string, file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`/api/intel/gmb/draft/${encodeURIComponent(id)}/photo`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: form,
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return (await res.json().catch(() => ({ ok: false, error: `upload failed (${res.status})` }))) as {
+    ok?: boolean
+    error?: string
+  }
+}
+
 export function approveGmbDraft(id: string) {
   return postGmbReview(id, 'approve')
 }

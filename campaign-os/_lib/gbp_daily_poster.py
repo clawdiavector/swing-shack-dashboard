@@ -719,7 +719,35 @@ def set_draft_status(
     return True
 
 
+PHOTO_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
+PHOTO_MAX_BYTES = 8 * 1024 * 1024
+
+
+def looks_like_photo(data: bytes, ext: str) -> bool:
+    """True if the bytes start like the image type the extension names."""
+    ext = ext.lower()
+    if ext in (".jpg", ".jpeg"):
+        return data[:3] == b"\xff\xd8\xff"
+    if ext == ".png":
+        return data[:8] == b"\x89PNG\r\n\x1a\n"
+    if ext == ".webp":
+        return data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+    return False
+
+
 # ── Plan builder ────────────────────────────────────────────────────
+
+
+def rebuild_plan(brand_id: str, *, previous: Optional[dict] = None, drafts_dir: Optional[Path] = None) -> dict:
+    """Rebuild the plan from the approved drafts as they stand now.
+
+    `previous` is the plan being replaced. Its publish log is carried over, so
+    a post already sent today is not sent again by the 06:30 job.
+    """
+    plan = build_daily_plan(brand_id, days=7, posts_per_day=1, drafts_dir=drafts_dir)
+    if previous and previous.get("publish"):
+        plan["publish"] = previous["publish"]
+    return plan
 
 
 def build_daily_plan(

@@ -6,7 +6,7 @@ Each draft passes the same checks the Approve button runs: body present, link on
 
 ## Stick (3 drafts, pass the checks)
 
-Photo for all three: a real Stick photo of iron sets, `stick/images/Location/Photos of iron sets/` (DJI, 5 Oct 2026). Please pick the one you want and upload it through the app, because the photo has to be reachable from the live site to be posted.
+Suggested photo for all three: a real Stick photo of iron sets, `stick/images/Location/Photos of iron sets/` (DJI, 5 Oct 2026). Pick one and use Attach photo on each draft. Uploads must be jpg, png or webp, under 8 MB.
 
 ### 1. Iron fitting in Paarl
 - **Body:** Irons should be fitted before you buy them. We run TrackMan fittings on any brand, then match the shaft and head to what your swing is doing. Book a fitting and see the numbers. Better begins here.
@@ -25,7 +25,7 @@ Photo for all three: a real Stick photo of iron sets, `stick/images/Location/Pho
 
 ## Swing Shack (3 drafts, blocked until each has a photo)
 
-No real Swing Shack photo is in the repo. The `oneshots` images look generated (`spoon-v1…` names), so I did not use them. Each draft shows `photo_missing` until you attach one of the club's own photos.
+No real Swing Shack photo is in the repo. The `oneshots` images look generated (`spoon-v1…` names), so I did not use them. Each draft shows `photo_missing` until you attach one of the club's own photos with Attach photo.
 
 ### 4. Real golf, indoors
 - **Body:** South Africa's first and only true indoor golf club. Four TrackMan bays and a Zen Swing Stage, at Old Parktonian Sports Club in Bordeaux, Randburg.
@@ -48,6 +48,6 @@ Every claim above comes from `knowledge.json` → `verified_facts` for each bran
 
 ## Open before any of this goes live
 
-- **Photos must be reachable from the live site.** A local file path only works on this machine. The publish step fails safely with `image_upload_failed` rather than posting text alone.
+- **Attach each photo with Attach photo on the draft.** The app saves it on the server, so the publish step can read it. A draft with a local path from this PC will fail safely with `image_upload_failed`, not post text alone.
 - **Swing Shack needs a Postiz GBP channel.** As of the 9 Oct audit, Swing Shack had none, so its Approve on Today cannot publish yet.
 - **Test the live path once** on a single approved draft before turning on the daily job.
