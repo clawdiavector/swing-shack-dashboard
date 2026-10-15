@@ -1438,16 +1438,19 @@ def _signal_pool(brand: Optional[str] = None) -> Dict[str, List[Any]]:
     The flat data/<file> signals were written for the default brand (Swing
     Shack: TrackMan, bookings, its own web pages). Another brand reads only
     brands/<brand>/<file>, so its hooks never carry Swing Shack's angles.
-    brand=None keeps the old unscoped read of the flat files.
+    brand=None reads the flat files, unscoped.
+
+    The live disk (DATA_DIR env, where the jobs write on Railway) is read
+    before the bundled snapshot (module DATA_DIR).
     """
     scoped = bool(brand) and brand != _default_brand_id()
+    roots = [r for r in (os.environ.get("DATA_DIR"), DATA_DIR) if r]
+    rels = [("brands", brand)] if scoped else ([("brands", brand), ()] if brand else [()])
 
     def _signal_path(filename):
-        if not scoped:
-            return os.path.join(DATA_DIR, filename)
-        for root in (os.environ.get("DATA_DIR"), DATA_DIR):
-            if root:
-                cand = os.path.join(root, "brands", brand, filename)
+        for root in roots:
+            for rel in rels:
+                cand = os.path.join(root, *rel, filename)
                 if os.path.isfile(cand):
                     return cand
         return None
@@ -1581,7 +1584,6 @@ _EVERGREEN_HOOKS: Dict[str, List[str]] = {
         "The real reason your iron shots fly short",
         "How Johannesburg weather affects your swing speed",
         "Why indoor practice beats range sessions",
-        "The mistake 80% of golfers make on the downswing",
         "What fitting actually fixes (it's not the club)",
     ],
     "stick": [
@@ -1669,11 +1671,19 @@ def generate_hooks(
             # Keep cache bounded.
             recent[:] = recent[-200:]
 
-    def _add(h: str, source: str, kind: str):
-        """Add a hook dict to the output list, once, unless it is a to-do."""
+    def _add(h: str, source: str, kind: str, angle: Optional[str] = None):
+        """Add a hook dict to the output list, once, unless it is a to-do.
+
+        `angle` is the raw signal inside a framed hook ("The golf truth
+        nobody tells you: <angle>"). Captions use it, because their own
+        templates add a frame and two read badly.
+        """
         if _is_recommendation(h) or any(o["hook"].lower() == h.lower() for o in out):
             return
-        out.append({"hook": h, "source": source, "kind": kind})
+        item = {"hook": h, "source": source, "kind": kind}
+        if angle:
+            item["angle"] = angle
+        out.append(item)
 
     # Mechanism prefixes — use a seeded shuffle so order varies per call.
     seed_str = f"{today}|{n}|{brand or ''}"
@@ -1698,10 +1708,11 @@ def generate_hooks(
             continue
         ang = r.get("suggested_angle") or r.get("angle") or r.get("title") or r.get("pain_point") or r.get("trend_pain_point") or r.get("thread_topic") or ""
         if isinstance(ang, str) and ang and not _is_recommendation(ang):
-            hook = f"The golf truth nobody tells you: {_clip(ang, 80)}"
+            angle = _clip(ang, 80)
+            hook = f"The golf truth nobody tells you: {angle}"
             if _is_fresh(hook):
                 _push(hook)
-                _add(hook, "reddit", "pain-point")
+                _add(hook, "reddit", "pain-point", angle)
 
     # From golf news.
     if len(out) < n:
@@ -1712,10 +1723,11 @@ def generate_hooks(
                 continue
             t = n_.get("title") or n_.get("headline") or n_.get("name") or n_.get("summary") or ""
             if isinstance(t, str) and t and not _is_recommendation(t):
-                hook = f"While everyone is talking about {_clip(t, 60)}..."
+                angle = _clip(t, 60)
+                hook = f"While everyone is talking about {angle}..."
                 if _is_fresh(hook):
                     _push(hook)
-                    _add(hook, "golf-news", "trend-jack")
+                    _add(hook, "golf-news", "trend-jack", angle)
 
     # From missed opportunities. Only a row's own hook or title can be a
     # hook; its suggested_fix / suggestion / issue fields are to-do text.
@@ -1756,6 +1768,8 @@ def generate_hooks(
             if issues:
                 sa_issues.extend(issues)
                 h["hook"] = new_text
+            if isinstance(h.get("angle"), str):
+                h["angle"] = _sa_sanitize(h["angle"])[0]
 
     return {
         "ok": True,
@@ -1920,7 +1934,8 @@ def generate_captions(
         if i >= len(shuffled_pool):
             break
         hook = shuffled_pool[i]
-        title = (hook.get("hook", "") or "") if isinstance(hook, dict) else ""
+        # The raw angle, not the framed hook: the templates below add a frame.
+        title = (hook.get("angle") or hook.get("hook", "") or "") if isinstance(hook, dict) else ""
         if not title:
             continue
 
