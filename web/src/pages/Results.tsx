@@ -22,7 +22,7 @@ const TABS: { href: string; label: string; hint: string; icon: LucideIcon }[] = 
   { href: '/?page=performance', label: 'Reach', hint: 'Performance', icon: Activity },
   { href: '/results/worked?tab=recipes', label: 'Learnings', hint: 'Recipes', icon: BookOpen },
   { href: '/?page=trends', label: 'Trends', hint: 'What is moving', icon: TrendingUp },
-  { href: '/?page=seo', label: 'SEO', hint: 'Rankings and audit', icon: Search },
+  { href: '/results/seo', label: 'SEO', hint: 'Rankings and audit', icon: Search },
 ]
 
 export function Results() {
@@ -70,7 +70,7 @@ export function Results() {
           <p className="fun-tile__value">Weekly</p>
           <p className="fun-tile__hint">Full weekly report</p>
         </a>
-        <FunTile href="/?page=seo" label="SEO" value="Audit" hint="Rankings and gaps" tone="violet" />
+        <FunTile href="/results/seo" label="SEO" value="Audit" hint="Rankings and gaps" tone="violet" />
         <a href="/geo" className="fun-tile" data-tone="blue" title="Open GEO & AI Citation Health.">
           <p className="fun-tile__label">Open</p>
           <p className="fun-tile__value">GEO</p>
