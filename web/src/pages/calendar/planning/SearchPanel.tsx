@@ -460,7 +460,7 @@ export function SearchPanel({
 
           {results.length === 0 ? (
             <div className="rounded-lg border border-bd bg-bg2/60 px-3 py-6 text-center text-sm text-tx3">
-              <p>No matches yet.</p>
+              <p>No matches yet. Try another word.</p>
               {data.search_more_available ? (
                 <p className="mt-1 text-[11px] text-tx2">
                   Nothing found. You can ask the scout to research it.

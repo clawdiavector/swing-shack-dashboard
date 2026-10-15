@@ -22440,7 +22440,7 @@ def load_brands_registry():
                 "voice_id": "swing-shack", "icon": "⛳",
                 "active": True, "order": 1, "short_label": "SS",
                 "tagline": "Johannesburg's home of better golf.",
-                "primary_color": "#0F766E", "accent_color": "#F59E0B",
+                "primary_color": "#1C1C1C", "accent_color": "#74CC46",
             }
         }
     }

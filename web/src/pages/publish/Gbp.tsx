@@ -207,8 +207,7 @@ export function Gbp() {
   return (
     <div className="space-y-6">
       <PageIntro icon={MapPin} here="/publish/gbp" title="Google Business Profile">
-        Daily poster plans and GMB drafts for <span className="text-yel">{scopeBrand}</span>. Suggestions are
-        all brands.
+        Daily poster plans and Google drafts for <span className="text-yel">{scopeBrand}</span>. Suggestions cover every brand.
       </PageIntro>
 
       <FilterChips options={TAB_OPTIONS} value={tab} onChange={setTab} />
@@ -232,7 +231,7 @@ export function Gbp() {
               </pre>
             </div>
           ) : (
-            <p className="text-sm text-tx3">No plan yet for this brand — normal starting state.</p>
+            <p className="text-sm text-tx3">No plan yet for this brand. That’s normal at the start.</p>
           )}
           <ul className="space-y-2 text-sm">
             {plans.map((plan, i) => (
@@ -382,7 +381,7 @@ export function Gbp() {
               </li>
             ))}
             {!brandDrafts.length ? (
-              <li className="text-sm text-tx3">No drafts for this brand.</li>
+              <li className="text-sm text-tx3">No drafts for this brand yet.</li>
             ) : null}
           </ul>
         </div>
