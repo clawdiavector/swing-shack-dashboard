@@ -1,26 +1,28 @@
 import {
-  CalendarDays,
   CheckCircle2,
   ChevronRight,
   Inbox,
   MapPin,
   Megaphone,
   Rocket,
-  Send,
   Share2,
   Sparkles,
   Sun,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import '../fun.css'
+import { DeskRing, FunTile, Mascot } from '../components/fun'
+import { burstConfetti } from '../lib/confetti'
 import { Link } from 'react-router-dom'
 import { BrandChip } from '../components/BrandChip'
 import { BrandSwitch, useBrand, useBrandScope } from '../components/BrandSwitch'
 import { DailyBrandSocials } from '../components/DailyBrandSocials'
 import { StoryReposts } from '../components/StoryReposts'
+import { AlertBanner } from './calendar/planning/AlertBanner'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { InsightPostThumb, insightPostThumbSrc } from '../components/InsightPostThumb'
-import { Badge, Button, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
+import { Badge, Button, IconTile, QueueItem, Tip } from '../components/ui'
 import {
   fetchInbox,
   fetchLayers,
@@ -262,6 +264,29 @@ export function Daily() {
     data && inboxItems
       ? `${draftsWaiting} draft${draftsWaiting === 1 ? '' : 's'} to approve. ${candidatesWaiting} date${candidatesWaiting === 1 ? '' : 's'} to decide in Inbox. ${approvedReady} ready to publish.`
       : data?.summary || ''
+  const waitingTotal = (draftsWaiting || 0) + (candidatesWaiting || 0)
+  const deskClear = Boolean(data && inboxItems && waitingTotal === 0)
+  const celebrated = useRef(false)
+  useEffect(() => {
+    if (!deskClear || celebrated.current) return
+    celebrated.current = true
+    let seen = false
+    try {
+      seen = sessionStorage.getItem('cos-desk-cleared') === '1'
+      sessionStorage.setItem('cos-desk-cleared', '1')
+    } catch {
+      // Private window: celebrate once per page load instead.
+    }
+    if (!seen) burstConfetti(window.innerWidth / 2, window.innerHeight / 3, 140)
+  }, [deskClear])
+  const mascotLine =
+    data && inboxItems
+      ? waitingTotal === 0
+        ? 'Desk is clear. Go get a coffee!'
+        : waitingTotal <= 3
+          ? `Just ${waitingTotal} to go. Easy.`
+          : `${waitingTotal} things want a yes or no. You've got this!`
+      : 'Warming up…'
   const tickerItems = (inboxItems || []).slice(0, 7)
   const igWorkedPosts = posts.slice(0, 3)
   const igWithImmediateThumb = igWorkedPosts.filter((p) => Boolean(insightPostThumbSrc(p)))
@@ -363,8 +388,10 @@ export function Daily() {
           </a>
         }
       >
-        {summary || 'Loading your decisions for today…'}
+        {summary || 'Pulling together today’s decisions…'}
       </PageIntro>
+
+      <AlertBanner brandId={isAll ? '' : focusBrandId || ''} />
 
       <StoryReposts brandIds={isAll ? undefined : brandIds} />
 
@@ -378,10 +405,19 @@ export function Daily() {
         </p>
       ) : null}
 
-      <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard
+      {deskClear ? (
+        <div className="fun-cleared" role="status">
+          <Mascot tone="green" />
+          <div>
+            <strong>Desk cleared. Look at you!</strong>
+            <span>Nothing is waiting on you. Open Studio if you feel like making something.</span>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <FunTile
           to="/inbox"
-          icon={Inbox}
           label="Candidates"
           value={candidatesWaiting ?? '—'}
           hint="Lodge or book moments"
@@ -389,43 +425,40 @@ export function Daily() {
           stamp={asOf}
           stampKind="as_of"
         />
-        <StatCard
+        <FunTile
           to="/review"
-          icon={Inbox}
           label="Drafts waiting"
           value={draftsWaiting ?? '—'}
           hint="Approve draft-ready posts"
-          tone="mute"
+          tone="violet"
           stamp={asOf}
           stampKind="as_of"
         />
-        <StatCard
+        <FunTile
           to="/shelf"
-          icon={CalendarDays}
           label="Today"
           value={data ? (counts?.scheduled ?? 0) : '—'}
           hint="Scheduled to go live"
-          tone="mute"
+          tone="blue"
           stamp={asOf}
           stampKind="as_of"
         />
-        <StatCard
+        <FunTile
           to="/publish"
-          icon={Send}
           label="Ready"
           value={data ? (counts?.approved ?? 0) : '—'}
           hint="Approved · queued to ship"
-          tone="mute"
+          tone="green"
           stamp={asOf}
           stampKind="as_of"
         />
-        <StatCard
+        <FunTile
           to="/results"
-          icon={CheckCircle2}
           label="This week"
           value={data ? (counts?.published ?? 0) : '—'}
           hint="Shipped · outcomes in Results"
           tone="green"
+          dots={data ? { on: Math.min(counts?.published ?? 0, 7) } : undefined}
           stamp={asOf}
           stampKind="as_of"
         />
@@ -446,9 +479,18 @@ export function Daily() {
                 })
               : inboxFailed
                 ? 'Today’s counts did not load.'
-                : 'Loading today’s desk…'
+                : 'Setting out today’s desk…'
           }
           meta={asOf ? `As of ${formatStamp(asOf)}` : undefined}
+          art={
+            <div className="fun-art">
+              <Mascot tone={waitingTotal === 0 && inboxItems ? 'green' : 'gold'} />
+              <span className="fun-bubble">{mascotLine}</span>
+              {data && inboxItems ? (
+                <DeskRing ready={approvedReady} waiting={waitingTotal} />
+              ) : null}
+            </div>
+          }
           extra={
             <div className="border-t border-bd pt-4">
               <p className="mb-2 text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">
@@ -519,7 +561,7 @@ export function Daily() {
             </Link>
             </Tip>
           </div>
-          <ul className="space-y-2">
+          <ul className="fun-ticker space-y-2">
             {tickerItems.map((item) => {
               const thumb = inboxItemThumbUrl(item)
               const media = inboxMediaTag(item)
@@ -551,8 +593,9 @@ export function Daily() {
               )
             })}
             {inboxItems && tickerItems.length === 0 ? (
-              <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-                Nothing else waiting — go to Studio if you want a new draft.
+              <li className="fun-empty">
+                <Mascot tone="blue" />
+                <span>All caught up. Fancy making something new? Studio is that way.</span>
               </li>
             ) : null}
             {inboxItems === null && !error ? (
@@ -623,7 +666,7 @@ export function Daily() {
 
       <section>
         <h2 className="mb-3 font-display text-xl font-semibold">Shortcuts</h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="fun-shortcuts grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <IconTile to="/publish/socials" icon={Share2} label="Socials" hint="What’s live for this brand" />
           <IconTile to="/publish/gbp" icon={MapPin} label="GBP" hint="Google Business Profile" />
           <IconTile to="/create/post" icon={Sparkles} label="Build a post" hint="Jump straight into studio" />

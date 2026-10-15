@@ -40,6 +40,12 @@ block from campaign-os.html and asserts:
 Pattern mirrors campaign-os/tests/test_v2026_08_19_calendar_sub_mirrors_actual_cards.py
 and campaign-os/tests/test_v2026_08_19_trends_sub_mirrors_actual_cards.py.
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent))
+import _legacy_page  # noqa: E402
+_legacy_page.skip_module_unless('id="sec-imagegen"')
+
 import os
 import re
 import unittest

@@ -1,5 +1,8 @@
 import { Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import '../../../fun.css'
+import { Mascot } from '../../../components/fun'
+import { burstAtPointer, burstConfetti } from '../../../lib/confetti'
 import { fetchPlanningWaiting } from '../../../lib/api'
 import type { PlanningWaiting, PlanningWaitingSuggestion } from '../../../lib/planningTypes'
 import { formatPlanDate } from './PlanList'
@@ -41,6 +44,8 @@ export function WaitingForYou({
   const [showAllScout, setShowAllScout] = useState(false)
   const [addingId, setAddingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const hadItems = useRef(false)
+  const celebrated = useRef(false)
 
   useEffect(() => {
     if (!brandId) return
@@ -62,6 +67,15 @@ export function WaitingForYou({
     }
   }, [brandId, refreshKey])
 
+  useEffect(() => {
+    if (!items) return
+    if (items.length > 0) hadItems.current = true
+    else if (hadItems.current && !celebrated.current) {
+      celebrated.current = true
+      burstConfetti(window.innerWidth / 2, window.innerHeight / 3, 120)
+    }
+  }, [items])
+
   if (!items) return null
 
   const scoutShown = showAllScout ? scout.picks : scout.picks.slice(0, 5)
@@ -72,7 +86,7 @@ export function WaitingForYou({
     return (
       <li
         key={s.candidate_id}
-        className="flex flex-wrap items-center gap-3 rounded-md bg-bg2 px-3 py-2"
+        className="fun-lift flex flex-wrap items-center gap-3 rounded-2xl border border-bd bg-bg2 px-3 py-2.5"
         data-testid={testId}
       >
         <div className="min-w-0 flex-1">
@@ -91,7 +105,7 @@ export function WaitingForYou({
         <button
           type="button"
           onClick={() => onOpenDetails(s.candidate_id)}
-          className="shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-tx2 hover:border-yel/60 hover:text-yel"
+          className="fun-btn shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-tx2 hover:border-yel/60 hover:text-yel"
         >
           Details
         </button>
@@ -104,12 +118,13 @@ export function WaitingForYou({
             setError(null)
             try {
               const r = await onApprove(s.candidate_id)
-              if (!r.ok) setError(r.error || `Could not add "${s.title}" to the calendar.`)
+              if (r.ok) burstAtPointer(60)
+              else setError(r.error || `Could not add "${s.title}" to the calendar.`)
             } finally {
               setAddingId(null)
             }
           }}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-yel px-3 py-1.5 text-xs font-semibold text-bg hover:bg-yel/90 disabled:opacity-60"
+          className="fun-btn inline-flex shrink-0 items-center gap-1.5 rounded-full bg-yel px-3 py-1.5 text-xs font-semibold text-bg hover:bg-yel/90 disabled:opacity-60"
         >
           {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
           {adding ? 'Adding…' : 'Add to calendar'}
@@ -126,8 +141,9 @@ export function WaitingForYou({
           className="space-y-2 rounded-2xl border-[1.5px] border-yel/40 bg-yel/5 p-4"
           data-testid="waiting-for-you"
         >
-          <h2 className="font-display text-lg font-semibold">
-            Waiting for you <span className="text-tx3">· {items.length}</span>
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+            <Mascot tone="gold" className="!w-9" />
+            Waiting for you <span className="fun-count">{items.length}</span>
           </h2>
           <p className="text-xs text-tx3">
             You suggested {items.length === 1 ? 'this' : 'these'}. Nothing is on the calendar until
@@ -136,8 +152,9 @@ export function WaitingForYou({
           <ul className="space-y-1">{items.map((s) => row(s, 'waiting-row'))}</ul>
         </section>
       ) : (
-        <p className="text-sm text-tx3" data-testid="waiting-empty">
-          Nothing waiting for you. Dates and campaigns you suggest will show here first.
+        <p className="fun-empty" data-testid="waiting-empty">
+          <Mascot tone="green" />
+          <span>Nothing waiting for you. Dates and campaigns you suggest will show here first.</span>
         </p>
       )}
       {scout.picks.length ? (

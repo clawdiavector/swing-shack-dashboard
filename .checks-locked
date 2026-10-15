@@ -1,0 +1,6 @@
+# Paths agents may not edit, on top of what the hooks always lock (committed
+# snapshots, and tests committed on the current branch). Glob per line; `*` crosses
+# directories. To lock every test during a refactor, add e.g. campaign-os/tests/*
+check
+.checks-locked
+scripts/agent-hooks/*

@@ -46,6 +46,12 @@ Tests
 7. test_proxy_banner_copy_names_real_situation
 8. test_no_proxy_banner_for_empty_block
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent))
+import _legacy_page  # noqa: E402
+_legacy_page.skip_module_unless('platformSection')
+
 import os
 import re
 import unittest

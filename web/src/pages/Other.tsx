@@ -19,8 +19,7 @@ export function Other() {
   return (
     <div className="space-y-6">
       <PageIntro icon={MoreHorizontal} badge="Leftovers" here="/other" title="Everything else">
-        Brand settings, labs and older tools. Nothing here is deleted. Jobs, agents and accounts are
-        under Ops.
+        Brand settings, labs and older tools. Nothing here is deleted, it just lives down here. Jobs, agents and accounts are under Ops.
       </PageIntro>
 
       <label className="glass flex items-center gap-3 rounded-2xl border-[1.5px] border-white/10 px-4 py-3 backdrop-blur-xl">

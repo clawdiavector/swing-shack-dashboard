@@ -54,7 +54,7 @@ export function PostizPage() {
   return (
     <div className="space-y-6">
       <PageIntro icon={Rocket} here="/publish/postiz" title="Postiz">
-        Credentials and connected channels. Connect OAuth on{' '}
+        Logins and connected channels. Connect your accounts on{' '}
         <Link to="/ops?tab=accounts" className="text-ac underline">
           Accounts
         </Link>
@@ -119,7 +119,7 @@ export function PostizPage() {
           <p className="text-xs text-tx3">Loaded once when you open this page.</p>
         </Tip>
         {!channels ? (
-          <p className="text-sm text-tx3">Loading channels…</p>
+          <p className="text-sm text-tx3">Finding your channels…</p>
         ) : channels.httpStatus === 503 ? (
           <p className="text-sm text-yel">No API key — channels not available.</p>
         ) : channels.httpStatus === 502 ? (

@@ -4,15 +4,16 @@ import {
   Laugh,
   Library,
   Megaphone,
-  PenLine,
   Sparkles,
   Type,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
+import '../fun.css'
+import { FunTile } from '../components/fun'
 import { FilterChips, HeroPanel, PageIntro } from '../components/chrome'
-import { Button, ClassicLink, IconTile, StatCard } from '../components/ui'
+import { Button, ClassicLink, IconTile } from '../components/ui'
 import { fetchToday, type TodayPanel } from '../lib/api'
 
 const TOOLS: {
@@ -55,36 +56,33 @@ export function Create() {
   return (
     <div className="space-y-6">
       <PageIntro icon={Sparkles} badge="Studio" here="/create" title="Make a draft">
-        One studio. Copy, stills, and memes stay where they are — they open from here.
+        One studio for everything you make. Captions, images and memes all open from here.
         <span className="mt-2 block">
           <ClassicLink href="/?page=buildpost" label="Build a post (classic)" />
         </span>
       </PageIntro>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard
+        <FunTile
           to="/review"
-          icon={PenLine}
           label="Drafts"
           value={data ? drafts : '—'}
           hint="In studio, not reviewed"
           tone="gold"
         />
-        <StatCard
+        <FunTile
           to="/review"
-          icon={Sparkles}
           label="Waiting"
           value={data ? (data.counts?.review ?? 0) : '—'}
           hint="Already in inbox"
-          tone="mute"
+          tone="violet"
         />
-        <StatCard
+        <FunTile
           to="/create/copy?tab=library"
-          icon={Library}
           label="Library"
           value="Open"
           hint="Reuse a past winner"
-          tone="mute"
+          tone="green"
         />
       </div>
 

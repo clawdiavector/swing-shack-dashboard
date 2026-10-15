@@ -2,7 +2,7 @@
   "_schema": "https://campaign-os/brand-directory/bible-visual/v1",
   "brand_id": "swing-shack",
   "version": "1.0.0",
-  "updated": "2026-09-25T00:00:00Z",
+  "updated": "2026-10-14T00:00:00Z",
   "confidence": "source",
   "voice": "Premium, confident, data-driven. TrackMan-confident. JHB-original.",
   "philosophy": "Performance golf, TrackMan truth, coaching and fitting seriousness — where good golfers get better. Restraint over entertainment-bar golf cliches.",
@@ -12,7 +12,10 @@
     "One clear focal subject per frame",
     "Shadows and silhouette for depth",
     "Premium sports-apparel campaign framing",
-    "Photo-real or near photo-real for people and TrackMan bays"
+    "Photo-real or near photo-real for people and TrackMan bays",
+    "Photo backgrounds: original photos of the venue whenever possible (branding document, design cues)",
+    "Gradient overlay from a black base to the post's accent colour (branding document, design cues)",
+    "The logo's open border frame used as a design element: encouraged, not required (branding document, design cues)"
   ],
   "anti_patterns": [
     "Entertainment-bar golf cliches and neon cyber-golf",
@@ -28,7 +31,7 @@
     "moody indoor studio",
     "TrackMan glow",
     "mid-swing motion",
-    "deep teal and amber accent",
+    "black and white with one accent (green, blue, orange or purple)",
     "Johannesburg premium golf",
     "data-led coaching",
     "restrained negative space"

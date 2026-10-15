@@ -1,5 +1,8 @@
 import { CalendarDays, ChevronDown } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import '../fun.css'
+import { Mascot, WeekStrip } from '../components/fun'
+import { burstConfetti } from '../lib/confetti'
 import { useSearchParams } from 'react-router-dom'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
@@ -43,6 +46,18 @@ const SCHEDULE_BRAND_LABEL: Record<string, string> = {
   stick: 'Stick',
 }
 
+const QUIET_LINES = [
+  'Nothing going out. Room for something fun?',
+  'A blank slate. Fill me up!',
+  'Quiet one. Got a good idea for this day?',
+]
+
+function emptyDayLine(day: PostingWeekDay): string {
+  if (['sat', 'sun'].includes(day.weekday.slice(0, 3).toLowerCase())) return 'Weekend. Nobody posts on weekends, right?'
+  const n = Number(day.date.slice(8, 10)) || 0
+  return QUIET_LINES[n % QUIET_LINES.length]
+}
+
 function DaySection({
   day,
   waitForReads,
@@ -77,8 +92,9 @@ function DaySection({
         <Badge tone="mute">{day.posts.length}</Badge>
       </div>
       {day.posts.length === 0 ? (
-        <div className="space-y-3 rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-          <p>Nothing going out.</p>
+        <div className="fun-day-empty space-y-3 text-tx3">
+          <Mascot tone="blue" />
+          <p className="font-semibold text-tx2">{emptyDayLine(day)}</p>
           {editable && scheduleBrandIds?.length ? (
             <>
               <p className="text-xs">Adds candidate cards — nothing generates.</p>
@@ -160,6 +176,9 @@ export function WeekBoard() {
   const load = useCallback(() => {
     const run = async (): Promise<void> => {
       setFailures([])
+      // The brand list loads after first paint. Fetching with no brands merges nothing
+      // and flashed "Failed to load week" until the real load landed.
+      if (isAll && brandIds.length === 0) return
       if (isAll) {
         const { payloads, failures: fails } = await fanOutPayloads(brandIds, (brandId) =>
           fetchPostingWeek(brandId, weekFetchOpts),
@@ -258,6 +277,15 @@ export function WeekBoard() {
     return { pastDays: past, futureDays: future }
   }, [days])
 
+  const weekFull =
+    !isDayMode && futureDays.length > 0 && weekGaps.length === 0 && futureDays.every((d) => d.posts.length > 0)
+  const celebratedWeek = useRef(false)
+  useEffect(() => {
+    if (!weekFull || celebratedWeek.current) return
+    celebratedWeek.current = true
+    burstConfetti(window.innerWidth / 2, window.innerHeight / 3, 120)
+  }, [weekFull])
+
   const pastCount = pastDays.reduce((n, d) => n + d.posts.length, 0)
 
   const daySections = isDayMode ? days : futureDays
@@ -347,7 +375,7 @@ export function WeekBoard() {
           data-testid="week-gaps-strip"
         >
           <h2 className="font-display text-sm font-semibold text-yel">Gaps this week</h2>
-          <ul className="mt-2 flex flex-wrap gap-2">
+          <ul className="fun-gap-chips mt-2 flex flex-wrap gap-2">
             {weekGaps.map((row) => {
               const key = `${row.post_type ?? ''}-${row.label ?? ''}`
               const count = row.count ?? 0
@@ -367,6 +395,21 @@ export function WeekBoard() {
             Measure templates with the campaign-os-template skill — gaps clear automatically once vetted.
           </p>
         </section>
+      ) : null}
+
+      {!isDayMode && futureDays.length > 0 ? (
+        <>
+          <WeekStrip days={futureDays} onPick={(d) => setDeskParams('day', d)} />
+          {weekFull ? (
+            <p className="fun-cleared" role="status">
+              <Mascot tone="green" />
+              <span>
+                <strong>Week is full</strong>
+                Every day has something going out and no gaps are flagged.
+              </span>
+            </p>
+          ) : null}
+        </>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">

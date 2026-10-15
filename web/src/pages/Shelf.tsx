@@ -1,11 +1,13 @@
-import { Calendar, Library, Rocket } from 'lucide-react'
+import { Library, Rocket } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useBrandScope } from '../components/BrandSwitch'
+import '../fun.css'
+import { FunTile } from '../components/fun'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { PageIntro } from '../components/chrome'
 import { PostCard } from '../components/posting/PostCard'
-import { Badge, Button, StatCard } from '../components/ui'
+import { Badge, Button } from '../components/ui'
 import { fetchPublishMode, fetchShelf, type PublishMode } from '../lib/api'
 import { fanOutPayloads, mergeShelfPayloads, type FanOutFailure } from '../lib/fanOut'
 import { useLoadGate } from '../lib/useLoadGate'
@@ -73,7 +75,7 @@ export function Shelf() {
           </div>
         }
       >
-        Approved posts with a go-live date — release when ready. Sandbox only until Kyle enables live.
+        Approved posts with a go-live date. Release them when you’re ready. Sandbox (practice mode) only until Kyle switches on live.
       </PageIntro>
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />
@@ -88,41 +90,37 @@ export function Shelf() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         {counts?.attention != null && counts.attention > 0 ? (
-          <StatCard
-            icon={Rocket}
+          <FunTile
             label="Needs attention"
             value={counts.attention}
             hint="Failed or partial send"
-            tone="gold"
+            tone="violet"
           />
         ) : null}
-        <StatCard
-          icon={Calendar}
+        <FunTile
           label="Scheduled"
           value={counts?.scheduled ?? '—'}
           hint="Waiting for release"
-          tone="green"
+          tone="blue"
         />
-        <StatCard
-          icon={Rocket}
+        <FunTile
           label="Releasable today"
           value={counts?.releasable_today ?? '—'}
           hint="Go-live is today"
           tone="gold"
         />
-        <StatCard
-          icon={Library}
+        <FunTile
           label="Released waiting"
           value={counts?.released ?? '—'}
           hint="Awaiting dispatch"
-          tone="mute"
+          tone="violet"
         />
-        <StatCard
-          icon={Rocket}
+        <FunTile
           label="Released today"
           value={counts?.released_today ?? '—'}
           hint="Human releases"
-          tone="mute"
+          tone="green"
+          dots={counts?.released_today != null ? { on: Math.min(counts.released_today, 7) } : undefined}
         />
       </div>
 

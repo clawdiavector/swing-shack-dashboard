@@ -39,11 +39,12 @@ export const RAIL: RailItem[] = [
     label: 'Today',
     hint: 'What needs you',
     icon: Sun,
-    match: ['/daily', '/review', '/inbox'],
+    match: ['/daily', '/review', '/inbox', '/stories'],
     pages: [
       { to: '/daily', label: 'Today' },
       { to: '/review', label: 'Approve drafts' },
       { to: '/inbox', label: 'Inbox' },
+      { to: '/stories', label: 'Stories' },
     ],
   },
   {
@@ -51,9 +52,10 @@ export const RAIL: RailItem[] = [
     label: 'Plan',
     hint: 'Calendar',
     icon: CalendarDays,
-    match: ['/calendar', '/week'],
+    match: ['/calendar', '/week', '/todo'],
     pages: [
       { to: '/calendar/lanes', label: 'Plan' },
+      { to: '/todo', label: 'To do' },
       { to: '/week', label: 'This week' },
     ],
   },

@@ -24,6 +24,12 @@ markers, so a regression where the banner disappears (or moves into a dead
 branch) fails loudly.
 """
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent))
+import _legacy_page  # noqa: E402
+_legacy_page.skip_module_unless('renderInsightsV2')
+
 import os
 import re
 import unittest

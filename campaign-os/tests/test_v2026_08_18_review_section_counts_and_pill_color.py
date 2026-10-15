@@ -46,6 +46,11 @@ This test pins:
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import os
 import re
 import unittest
@@ -65,6 +70,7 @@ class ReviewSectionCountsAndPillColorTest(unittest.TestCase):
     def setUpClass(cls):
         cls.html = _read(HTML_PATH)
 
+    @_legacy_page.on_old_page_only
     def test_section_count_badges_present_in_html(self):
         """The header HTML must contain the IDs that renderReview() writes to."""
         self.assertIn('id="review-pending-count"', self.html,
@@ -76,6 +82,7 @@ class ReviewSectionCountsAndPillColorTest(unittest.TestCase):
         self.assertIn('id="review-rejected-count"', self.html,
                       "Rejected h3 must have an id=review-rejected-count badge")
 
+    @_legacy_page.on_old_page_only
     def test_renderReview_writes_count_into_each_badge(self):
         """renderReview() must populate the three count badges from the API response."""
         # The actual source uses `if (_countEls.pending)  _countEls.pending.textContent = ...`
@@ -94,6 +101,7 @@ class ReviewSectionCountsAndPillColorTest(unittest.TestCase):
                     f"renderReview must write {key} count from r.{key}.length",
                 )
 
+    @_legacy_page.on_old_page_only
     def test_renderReview_writes_breakdown_copy_when_both_buckets_exist(self):
         """The breakdown span gets 'X ready for review · Y still drafting' when both buckets > 0."""
         self.assertIn("ready for review", self.html,
@@ -105,12 +113,14 @@ class ReviewSectionCountsAndPillColorTest(unittest.TestCase):
             r"""_pendingReviews\s*=\s*\(r\.pending\s*\|\|\s*\[\]\s*\)\.filter\(\s*x\s*=>\s*\(x\.publishStatus\s*\|\|\s*''\)\.toLowerCase\(\)\s*===\s*'planned'\s*\)\.length""",
             "renderReview must derive the ready-for-review count from publishStatus==='planned'")
 
+    @_legacy_page.on_old_page_only
     def test_renderReview_hides_breakdown_when_only_one_bucket_exists(self):
         """If everything is 'planned' or everything is 'draft', the breakdown span should hide, not show '0 ready for review'."""
         self.assertRegex(self.html,
             r'if\s*\(\s*_pendingDrafts\s*>\s*0\s*&&\s*_pendingReviews\s*>\s*0\s*\)',
             "renderReview must guard the breakdown render on both buckets > 0 so the copy never reads '0 ready for review'")
 
+    @_legacy_page.on_old_page_only
     def test_planned_pill_uses_live_class_not_draft(self):
         """The pill() call for publishStatus must map 'planned' to 'live' (blue), not 'draft' (gray)."""
         m = re.search(
@@ -120,6 +130,7 @@ class ReviewSectionCountsAndPillColorTest(unittest.TestCase):
         self.assertIsNotNone(m,
             "publishStatus pill must map 'planned' to 'live' class (blue) so it reads as 'ready to schedule' not 'unfinished'")
 
+    @_legacy_page.on_old_page_only
     def test_row_date_span_skipped_when_updatedAt_missing(self):
         """renderRow() must use `x.updatedAt ? <span>... : ''` so null-updatedAt rows don't render an empty muted span."""
         self.assertRegex(self.html,

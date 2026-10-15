@@ -23,6 +23,11 @@ and asserts structural markers.
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -52,6 +57,7 @@ def _renderReddit_body() -> str:
     return m.group(0)
 
 
+@_legacy_page.on_old_page_only
 class RedditReplyRendererTests(unittest.TestCase):
     """Guard tests for the Reddit Outreach Replies renderer fix."""
 

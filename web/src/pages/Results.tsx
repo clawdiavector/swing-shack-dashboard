@@ -1,11 +1,13 @@
-import { Activity, BookOpen, BotMessageSquare, Layers, LineChart, Search, Sparkles, TrendingUp } from 'lucide-react'
+import { Activity, BookOpen, Layers, LineChart, Search, Sparkles, TrendingUp } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useBrand } from '../components/BrandSwitch'
+import '../fun.css'
+import { FunTile } from '../components/fun'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { InsightPostThumb } from '../components/InsightPostThumb'
-import { Badge, Button, IconTile, StatCard, Tip } from '../components/ui'
+import { Badge, Button, IconTile, Tip } from '../components/ui'
 import { fetchToday, fetchTopPosts, type InsightPost, type TodayPanel } from '../lib/api'
 
 const TABS: { href: string; label: string; hint: string; icon: LucideIcon }[] = [
@@ -52,56 +54,27 @@ export function Results() {
   return (
     <div className="space-y-6">
       <PageIntro icon={Activity} badge="What worked" here="/results" title="Results">
-        Reports and outcomes for {brand}. Daily already shows the headline numbers.
+        How {brand} is doing. Today already shows the headline numbers.
       </PageIntro>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard
-          icon={Sparkles}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <FunTile
           label="Shipped"
           value={data ? published : '—'}
           hint="This week’s live posts"
           tone="green"
+          dots={data ? { on: Math.min(published, 7) } : undefined}
         />
-        <a
-          href={weeklyHref}
-          className="glass block rounded-2xl border-[1.5px] border-yel/50 px-3 py-3 backdrop-blur-xl transition-colors hover:border-yel"
-          title="Opens the full weekly report (authed)."
-        >
-          <div className="flex items-center justify-between gap-2">
-            <LineChart className="h-5 w-5 text-yel" strokeWidth={2.5} />
-            <span className="rounded-full bg-yel/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-yel uppercase">
-              Open
-            </span>
-          </div>
-          <p className="mt-2 font-display text-2xl font-semibold text-tx">Weekly</p>
-          <p className="mt-0.5 text-[11px] font-semibold tracking-wide text-tx3 uppercase">
-            Full weekly report
-          </p>
+        <a href={weeklyHref} className="fun-tile" data-tone="gold" title="Opens the full weekly report (authed).">
+          <p className="fun-tile__label">Open</p>
+          <p className="fun-tile__value">Weekly</p>
+          <p className="fun-tile__hint">Full weekly report</p>
         </a>
-        <StatCard
-          href="/?page=seo"
-          icon={Search}
-          label="SEO"
-          value="Audit"
-          hint="Rankings and gaps"
-          tone="mute"
-        />
-        <a
-          href="/geo"
-          className="glass block rounded-2xl border-[1.5px] border-yel/40 px-3 py-3 backdrop-blur-xl transition-colors hover:border-yel"
-          title="Open GEO & AI Citation Health."
-        >
-          <div className="flex items-center justify-between gap-2">
-            <BotMessageSquare className="h-5 w-5 text-yel" strokeWidth={2.5} />
-            <span className="rounded-full bg-yel/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-yel uppercase">
-              Open
-            </span>
-          </div>
-          <p className="mt-2 font-display text-2xl font-semibold text-tx">GEO</p>
-          <p className="mt-0.5 text-[11px] font-semibold tracking-wide text-tx3 uppercase">
-            AI citation health
-          </p>
+        <FunTile href="/?page=seo" label="SEO" value="Audit" hint="Rankings and gaps" tone="violet" />
+        <a href="/geo" className="fun-tile" data-tone="blue" title="Open GEO & AI Citation Health.">
+          <p className="fun-tile__label">Open</p>
+          <p className="fun-tile__value">GEO</p>
+          <p className="fun-tile__hint">AI citation health</p>
         </a>
       </div>
 

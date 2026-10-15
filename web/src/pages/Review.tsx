@@ -1,12 +1,15 @@
-import { Check, Inbox, RotateCcw, Sparkles } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { Inbox, Sparkles } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import '../fun.css'
+import { FunTile, Mascot } from '../components/fun'
+import { burstAtPointer, burstConfetti } from '../lib/confetti'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { BrandChip } from '../components/BrandChip'
 import { ReviewDraftDetail } from '../components/ReviewDraftDetail'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { FilterChips, PageIntro } from '../components/chrome'
-import { Badge, Button, QueueItem, StatCard, Tip } from '../components/ui'
+import { Badge, Button, QueueItem, Tip } from '../components/ui'
 import {
   draftRegeneratePhoto,
   draftRecompose,
@@ -52,6 +55,9 @@ function ReviewInbox({
   const [failures, setFailures] = useState<FanOutFailure[]>([])
   const [imageCap, setImageCap] = useState<{ at_cap: boolean; cap: number } | null>(null)
   const [draftBusy, setDraftBusy] = useState(false)
+  const [cheer, setCheer] = useState('')
+  const hadItems = useRef(false)
+  const celebrated = useRef(false)
   const { trackLoad, waitForLoad } = useLoadGate()
 
   function load() {
@@ -101,8 +107,27 @@ function ReviewInbox({
       setError(result.error || 'Action failed')
       return
     }
+    if (action === 'approve') {
+      burstAtPointer(70)
+      sayCheer('Approved. Nice call. It won’t go live until you publish it.')
+    } else {
+      sayCheer('Rejected. On to the next one.')
+    }
     load()
   }
+
+  function sayCheer(text: string) {
+    setCheer(text)
+    setTimeout(() => setCheer((c) => (c === text ? '' : c)), 4500)
+  }
+
+  useEffect(() => {
+    if (items.length > 0) hadItems.current = true
+    else if (hadItems.current && pending === 0 && !celebrated.current) {
+      celebrated.current = true
+      burstConfetti(window.innerWidth / 2, window.innerHeight / 3, 140)
+    }
+  }, [items.length, pending])
 
   const types = useMemo(() => ['all', 'no-brief'], [])
 
@@ -144,7 +169,11 @@ function ReviewInbox({
     await waitForLoad()
     try {
       const ok = await run()
-      if (ok) load()
+      if (ok) {
+        burstAtPointer(70)
+        sayCheer('Approved and released. Nice one.')
+        load()
+      }
     } finally {
       setDraftBusy(false)
     }
@@ -174,10 +203,22 @@ function ReviewInbox({
       {error ? <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">{error}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard icon={Inbox} label="Pending" value={pending ?? '—'} hint="On your desk now" tone="gold" />
-        <StatCard icon={RotateCcw} label="Stale" value={stale ?? '—'} hint="Sitting too long" tone="mute" />
-        <StatCard icon={Check} label="Cleared today" value={approved ?? '—'} hint="Approved, not live" tone="green" />
+        <FunTile label="Pending" value={pending ?? '—'} hint="On your desk now" tone="gold" />
+        <FunTile label="Stale" value={stale ?? '—'} hint="Sitting too long" tone="violet" />
+        <FunTile
+          label="Cleared today"
+          value={approved ?? '—'}
+          hint="Approved, not live"
+          tone="green"
+          dots={approved != null ? { on: Math.min(approved, 7) } : undefined}
+        />
       </div>
+
+      {cheer ? (
+        <p className="fun-cheer" role="status">
+          {cheer}
+        </p>
+      ) : null}
 
       <FilterChips
         value={filter}
@@ -270,9 +311,20 @@ function ReviewInbox({
           </Button>
         </section>
       ) : (
-        <Button to="/create" icon={Sparkles} tip="Open Studio to start a new draft.">
-          Go to studio
-        </Button>
+        <>
+          {pending === 0 && items.length === 0 ? (
+            <div className="fun-cleared" role="status">
+              <Mascot tone="green" />
+              <div>
+                <strong>Queue cleared. Look at you!</strong>
+                <span>Nothing is waiting on your yes or no.</span>
+              </div>
+            </div>
+          ) : null}
+          <Button to="/create" icon={Sparkles} tip="Open Studio to start a new draft.">
+            Go to studio
+          </Button>
+        </>
       )}
 
       <section>
@@ -280,7 +332,7 @@ function ReviewInbox({
           <h2 className="font-display text-xl font-semibold">Queue</h2>
           <Badge tone="gold">{shown.length}</Badge>
         </div>
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="fun-ticker grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map((item) => {
             const thumb = inboxItemThumbUrl(item)
             const kind =
@@ -339,8 +391,9 @@ function ReviewInbox({
             )
           })}
           {shown.length === 0 ? (
-            <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-              Nothing in this filter.
+            <li className="fun-empty sm:col-span-2 xl:col-span-3">
+              <Mascot tone="blue" />
+              <span>Nothing in this filter. Try All and see what’s waiting.</span>
             </li>
           ) : null}
         </ul>
@@ -375,7 +428,7 @@ export function Review() {
           </Button>
         }
       >
-        Draft-ready posts on your desk. Candidates live on{' '}
+        Posts waiting for your yes or no. Dates to decide live in{' '}
         <Link to="/inbox" className="font-semibold text-ac hover:underline">
           Inbox
         </Link>

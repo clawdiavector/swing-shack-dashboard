@@ -1,10 +1,13 @@
-import { BookMarked, Inbox, RotateCcw, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { BookMarked, Inbox, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import '../fun.css'
+import { FunTile, Mascot } from '../components/fun'
+import { burstAtPointer, burstConfetti } from '../lib/confetti'
 import { BrandChip } from '../components/BrandChip'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { FilterChips, PageIntro } from '../components/chrome'
-import { Badge, StatCard, Tip } from '../components/ui'
+import { Badge, Tip } from '../components/ui'
 import {
   fetchInbox,
   inboxAction,
@@ -41,7 +44,7 @@ function CandidateCard({
 }: {
   item: InboxItem
   busy: string
-  onDone: () => void
+  onDone: (kind?: 'lodge' | 'book' | 'reject') => void
   showBrandChip: boolean
   waitForReads?: () => Promise<void>
 }) {
@@ -81,16 +84,16 @@ function CandidateCard({
     if (mode === 'reject') {
       const result = await inboxAction(item.id, 'reject')
       if (!result.ok) setErr(result.error || 'Reject failed')
-      else onDone()
+      else onDone('reject')
       return
     }
     const result = await inboxAction(item.id, 'approve', '', mode)
     if (!result.ok) setErr(result.error || result.code || 'Action failed')
-    else onDone()
+    else onDone(mode)
   }
 
   return (
-    <li className="glass rounded-2xl border-[1.5px] border-white/10 px-4 py-3 backdrop-blur-xl">
+    <li className="glass fun-lift rounded-2xl border-[1.5px] border-white/10 px-4 py-3 backdrop-blur-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-base font-semibold text-tx line-clamp-2">
@@ -141,7 +144,7 @@ function CandidateCard({
               type="button"
               disabled={busy === item.id || noLodge}
               onClick={() => void act('lodge')}
-              className="inline-flex items-center gap-1.5 rounded-full bg-ac px-3 py-1.5 text-sm font-semibold text-bg disabled:opacity-40"
+              className="fun-btn inline-flex items-center gap-1.5 rounded-full bg-ac px-3 py-1.5 text-sm font-semibold text-bg disabled:opacity-40"
             >
               <Inbox className="h-4 w-4" strokeWidth={2.5} />
               Lodge
@@ -151,7 +154,7 @@ function CandidateCard({
             type="button"
             disabled={busy === item.id}
             onClick={() => void act('book')}
-            className="inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
+            className="fun-btn inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
           >
             <BookMarked className="h-4 w-4" strokeWidth={2} />
             Book only
@@ -160,7 +163,7 @@ function CandidateCard({
             type="button"
             disabled={busy === item.id}
             onClick={() => void act('reject')}
-            className="inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
+            className="fun-btn inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
           >
             <X className="h-4 w-4" />
             Reject
@@ -183,7 +186,15 @@ export function InboxPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
+  const [cheer, setCheer] = useState('')
+  const hadCandidates = useRef(false)
+  const celebrated = useRef(false)
   const { trackLoad, waitForLoad } = useLoadGate()
+
+  function sayCheer(text: string) {
+    setCheer(text)
+    setTimeout(() => setCheer((c) => (c === text ? '' : c)), 4500)
+  }
 
   function load() {
     const run = async (): Promise<void> => {
@@ -229,6 +240,13 @@ export function InboxPage() {
   )
   // The fetch also returns drafts, which Approve drafts lists; count candidates only.
   const candidateCount = useMemo(() => items.filter(isCandidateItem).length, [items])
+  useEffect(() => {
+    if (candidateCount > 0) hadCandidates.current = true
+    else if (hadCandidates.current && pending != null && !celebrated.current) {
+      celebrated.current = true
+      burstConfetti(window.innerWidth / 2, window.innerHeight / 3, 140)
+    }
+  }, [candidateCount, pending])
   const staleCandidateCount = useMemo(
     () => items.filter((i) => isCandidateItem(i) && i.sla_state === 'stale').length,
     [items],
@@ -237,7 +255,7 @@ export function InboxPage() {
   return (
     <div className="space-y-6">
       <PageIntro here="/inbox" title="Inbox">
-        Candidates waiting for a decision — lodge, book only, or reject.
+        Dates waiting for your call. Lodge it, book it only, or reject it.
       </PageIntro>
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />
@@ -247,10 +265,32 @@ export function InboxPage() {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard icon={Inbox} label="Pending" value={pending == null ? '—' : candidateCount} hint="Candidates" tone="gold" />
-        <StatCard icon={RotateCcw} label="Stale" value={stale == null ? '—' : staleCandidateCount} hint="Needs a decision" tone="mute" />
-        <StatCard icon={BookMarked} label="Lodged today" value={approvedToday ?? '—'} hint="Booked today" tone="green" />
+        <FunTile label="Pending" value={pending == null ? '—' : candidateCount} hint="Candidates" tone="gold" />
+        <FunTile label="Stale" value={stale == null ? '—' : staleCandidateCount} hint="Needs a decision" tone="violet" />
+        <FunTile
+          label="Lodged today"
+          value={approvedToday ?? '—'}
+          hint="Booked today"
+          tone="green"
+          dots={approvedToday != null ? { on: Math.min(approvedToday, 7) } : undefined}
+        />
       </div>
+
+      {cheer ? (
+        <p className="fun-cheer" role="status">
+          {cheer}
+        </p>
+      ) : null}
+
+      {pending != null && candidateCount === 0 ? (
+        <div className="fun-cleared" role="status">
+          <Mascot tone="green" />
+          <div>
+            <strong>Inbox zero. Look at you!</strong>
+            <span>No dates are waiting for your call.</span>
+          </div>
+        </div>
+      ) : null}
 
       <FilterChips
         value={source}
@@ -281,15 +321,25 @@ export function InboxPage() {
             busy={busy}
             showBrandChip={isAll}
             waitForReads={waitForLoad}
-            onDone={() => {
+            onDone={(kind) => {
               setBusy('')
+              if (kind === 'lodge') {
+                burstAtPointer(60)
+                sayCheer('Lodged. Caption and image are queued.')
+              } else if (kind === 'book') {
+                burstAtPointer(40)
+                sayCheer('Booked. It’s on the calendar.')
+              } else if (kind === 'reject') {
+                sayCheer('Rejected. Off the list.')
+              }
               load()
             }}
           />
         ))}
-        {shown.length === 0 ? (
-          <li className="rounded-2xl border border-dashed border-bd px-4 py-8 text-center text-sm text-tx3">
-            No candidates in this filter.
+        {shown.length === 0 && candidateCount > 0 ? (
+          <li className="fun-empty">
+            <Mascot tone="blue" />
+            <span>No candidates in this filter. Try All sources and Any date.</span>
           </li>
         ) : null}
       </ul>

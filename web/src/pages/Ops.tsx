@@ -1,9 +1,10 @@
-import { ClipboardCheck } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../components/chrome'
-import { Badge, Button, ClassicLink, StatCard, Tip } from '../components/ui'
+import { Badge, Button, ClassicLink, Tip } from '../components/ui'
+import '../fun.css'
+import { FunTile } from '../components/fun'
 import {
   archiveCampaign,
   fetchAccounts,
@@ -166,12 +167,11 @@ function LayerRibbon({
                 onClick={() => onSelectTab(nativeTab)}
                 className="w-full text-left"
               >
-                <StatCard
-                  icon={ClipboardCheck}
+                <FunTile
                   label={layer.label || key}
                   value={verdict}
                   hint={layer.pending != null ? `${layer.pending} pending` : 'Fleet layer'}
-                  tone={tone === 'green' ? 'green' : tone === 'gold' ? 'gold' : 'mute'}
+                  tone={tone === 'green' ? 'green' : tone === 'gold' ? 'gold' : tone === 'red' ? 'red' : 'blue'}
                 />
               </button>
             </Tip>
@@ -182,13 +182,12 @@ function LayerRibbon({
             <button
               type="button"
               onClick={() => onSelectTab('jobs')}
-              className="glass w-full rounded-2xl border-[1.5px] border-bd px-3 py-3 text-left backdrop-blur-xl"
+              className="fun-tile w-full text-left"
+              data-tone={tone === 'green' ? 'green' : tone === 'gold' ? 'gold' : tone === 'red' ? 'red' : 'blue'}
             >
-              <p className="text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">
-                {layer.label || key}
-              </p>
-              <p className="mt-1 font-display text-2xl font-semibold">{verdict}</p>
-              <p className="mt-0.5 text-xs text-tx3">
+              <p className="fun-tile__label">{layer.label || key}</p>
+              <p className="fun-tile__value">{verdict}</p>
+              <p className="fun-tile__hint">
                 Classic only —{' '}
                 <ClassicLink
                   tip={false}
@@ -768,8 +767,7 @@ export function Ops() {
   return (
     <div className="space-y-6">
       <PageIntro here="/ops" title="Ops">
-        Jobs, agents, connected accounts, and stored campaigns — native Heroes, same APIs as
-        Classic. The fleet is shared; accounts and per-brand job rows follow the brand switch.
+        Jobs, agents, connected accounts and saved campaigns, all in one place. The fleet is shared; accounts and job rows follow the brand you pick.
       </PageIntro>
 
       <LayerRibbon layers={layers} onSelectTab={setTab} />

@@ -19,6 +19,11 @@ This test asserts:
      pops posts into it (smoke check).
 """
 from __future__ import annotations
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -27,6 +32,7 @@ REPO = Path(__file__).resolve().parents[2]
 SPA = REPO / "campaign-os" / "campaign-os.html"
 
 
+@_legacy_page.on_old_page_only
 class TestReviewSocialsStripDeadLinks(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

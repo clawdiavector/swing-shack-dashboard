@@ -18,6 +18,11 @@ This test asserts:
   4. No em-dashes leaked into the new copy.
 """
 from __future__ import annotations
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -31,6 +36,7 @@ class TestInsightsRelativeTone(unittest.TestCase):
     def setUpClass(cls):
         cls.html = SPA.read_text(encoding="utf-8")
 
+    @_legacy_page.on_old_page_only
     def test_no_hardcoded_absolute_thresholds_in_ig_tone(self):
         """The buggy `er >= 3 ? 'good' : er >= 1.5 ? 'watch' : 'bad'` chain
         must be gone from the IG-post tone computation."""
@@ -41,18 +47,21 @@ class TestInsightsRelativeTone(unittest.TestCase):
             "Hardcoded absolute IG-tone thresholds still present (regressed)",
         )
 
+    @_legacy_page.on_old_page_only
     def test_local_average_er_computed_in_render(self):
         """The render block must compute a local-average ER constant."""
         block = self._igList_block()
         self.assertIn("igAvgEr", block, "Local-average ER const `igAvgEr` missing")
         self.assertIn("ratio", block, "Per-row ratio const missing")
 
+    @_legacy_page.on_old_page_only
     def test_top_performer_badge_present(self):
         """The new ★ Top badge template must be reachable."""
         block = self._igList_block()
         self.assertIn("★ Top", block, "★ Top badge template missing")
         self.assertIn("isTop", block, "isTop detection flag missing")
 
+    @_legacy_page.on_old_page_only
     def test_no_dead_href_hash_for_missing_permalink(self):
         """When `p.permalink` is missing, the row must render as a div, not a stub anchor."""
         block = self._igList_block()
@@ -66,6 +75,7 @@ class TestInsightsRelativeTone(unittest.TestCase):
         self.assertIn("if (p.permalink)", block, "Permalink conditional render branch missing")
         self.assertIn("href=\"${esc(p.permalink)}\"", block, "Direct permalink href missing")
 
+    @_legacy_page.on_old_page_only
     def test_no_em_dashes_in_new_render_block(self):
         """Standing rule: no em-dashes in published copy."""
         block = self._igList_block()

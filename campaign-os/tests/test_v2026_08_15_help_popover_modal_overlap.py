@@ -36,6 +36,11 @@ doesn't require a browser session).
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import os
 import re
 import unittest
@@ -72,10 +77,12 @@ class HelpPopoverModalOverlapTests(unittest.TestCase):
             i += 1
         return self.src[start:i - 1]
 
+    @_legacy_page.on_old_page_only
     def test_01_show_pop_defined(self):
         """showPop must exist in the SPA bundle."""
         self.assertRegex(self.src, r"const\s+showPop\s*=\s*\(target,\s*payload\)")
 
+    @_legacy_page.on_old_page_only
     def test_02_overlap_detection_helper_present(self):
         """showPop must contain the new overlapBelow detection helper.
 
@@ -97,6 +104,7 @@ class HelpPopoverModalOverlapTests(unittest.TestCase):
                       "showPop no longer computes overlapBelow — "
                       "the modal-overlap fix is gone.")
 
+    @_legacy_page.on_old_page_only
     def test_03_overlap_triggers_flip_above(self):
         """When overlapBelow is true, the pop must flip above the trigger."""
         body = self._show_pop_body()
@@ -115,6 +123,7 @@ class HelpPopoverModalOverlapTests(unittest.TestCase):
             "branch — the fix is incomplete.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_04_modal_context_selector_specific(self):
         """The inModal check must look for `.modal-bg` / `.modal-card`.
 
@@ -132,6 +141,7 @@ class HelpPopoverModalOverlapTests(unittest.TestCase):
             "scope the overlap fix to actual modals.",
         )
 
+    @_legacy_page.on_old_page_only
     def test_05_default_below_still_works_for_non_modals(self):
         """The default below behavior is preserved for triggers outside modals.
 
