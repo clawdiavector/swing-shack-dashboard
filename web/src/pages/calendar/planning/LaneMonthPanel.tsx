@@ -14,6 +14,17 @@ import {
   truncateChipTitle,
 } from '../../../lib/planning'
 import type { PlanningMonthItem, PlanningMonthView } from '../../../lib/planningTypes'
+import { EventTypeIcon } from '../../../components/EventTypeIcon'
+import {
+  groupByDay,
+  readShowPlanSteps,
+  readShowSuggestions,
+  saveShowPlanSteps,
+  saveShowSuggestions,
+} from '../../../lib/calendarSuggestions'
+import { stepsByDay } from '../../../lib/planSteps'
+import { PlanStepChip, useMonthPlanSteps } from './PlanStepChips'
+import { GhostChip, SuggestionBar, useMonthSuggestions } from './MonthSuggestions'
 
 const DOW = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
@@ -21,10 +32,12 @@ function LaneChip({
   lane,
   title,
   status,
+  kind,
 }: {
   lane?: string
   title?: string
   status?: string
+  kind?: string
 }) {
   const meta = LANE_META[lane || ''] || { color: 'var(--color-tx3)', label: lane || '—' }
   const opacity = status === 'NEEDS_CAPTURE' ? 0.55 : 1
@@ -39,7 +52,11 @@ function LaneChip({
       }}
       title={`${title || ''} — ${lane} (${status || ''})`}
     >
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.color }} />
+      {kind ? (
+        <EventTypeIcon kind={kind} size="sm" className="!border-0 !bg-transparent !p-0" />
+      ) : (
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.color }} />
+      )}
       {truncateChipTitle(title || '')}
     </span>
   )
@@ -86,7 +103,7 @@ function DayDrawer({
           </button>
         </div>
         {items.length === 0 ? (
-          <p className="text-sm text-tx3">No items scheduled for this day.</p>
+          <p className="text-sm text-tx3">Nothing scheduled for this day. A clear one!</p>
         ) : (
           <ul className="space-y-4">
             {items.map((it, i) => {
@@ -99,7 +116,7 @@ function DayDrawer({
               return (
                 <li key={`${it.title}-${i}`} className="space-y-2 border-b border-bd/50 pb-4 last:border-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <LaneChip lane={it.lane} title={laneLabel(it.lane, brand)} status={it.status} />
+                    <LaneChip lane={it.lane} title={laneLabel(it.lane, brand)} status={it.status} kind={it.kind} />
                     {it.status ? (
                       <span
                         className="rounded-full border px-2 py-0.5 text-[10px]"
@@ -170,15 +187,28 @@ export function LaneMonthPanel({
   monthView,
   onMonthChange,
   onSuggestDate,
+  brandId = '',
+  onChanged,
 }: {
   brand: string
   monthParam: string
   monthView: PlanningMonthView | null
   onMonthChange: (next: string) => void
   onSuggestDate?: (iso: string) => void
+  /** The brand's id; suggestions are drawn only when one brand is chosen. */
+  brandId?: string
+  /** Called after a suggestion is approved, rejected or undone, to reload the month. */
+  onChanged?: () => void
 }) {
   const [laneFilter, setLaneFilter] = useState('')
   const [drawerIso, setDrawerIso] = useState<string | null>(null)
+  const [showGhosts, setShowGhosts] = useState(readShowSuggestions)
+  const noop = useCallback(() => {}, [])
+  const sug = useMonthSuggestions(brandId, monthParam, showGhosts && Boolean(brandId), onChanged || noop)
+  const ghostsByDay = useMemo(() => groupByDay(sug.items), [sug.items])
+  const [showPlanSteps, setShowPlanSteps] = useState(readShowPlanSteps)
+  const planSteps = useMonthPlanSteps(brandId, monthParam, showPlanSteps)
+  const planStepsByDay = useMemo(() => stepsByDay(planSteps), [planSteps])
 
   const [year, month1] = monthParam.split('-').map(Number)
   const todayIso = localTodayIso()
@@ -310,13 +340,37 @@ export function LaneMonthPanel({
           )
         })}
       </div>
+      {brandId ? (
+        <SuggestionBar
+          show={showGhosts}
+          onToggle={(v) => {
+            setShowGhosts(v)
+            saveShowSuggestions(v)
+          }}
+          count={sug.items.length}
+          showPlans={showPlanSteps}
+          onTogglePlans={(v) => {
+            setShowPlanSteps(v)
+            saveShowPlanSteps(v)
+          }}
+          planStepCount={planSteps.length}
+          decided={sug.decided}
+          busy={sug.busyKey !== null}
+          error={sug.error}
+          onUndo={sug.undo}
+          onDismiss={sug.dismiss}
+          onMakePlan={sug.makePlan}
+          planBusy={sug.planBusy}
+          planNote={sug.planNote}
+        />
+      ) : null}
       <p className="text-xs text-tx3">
         {laneFilter
           ? `Filtering by ${laneLabel(laneFilter, brand)}. Click a day to see all lanes.`
           : 'Showing all lanes. Click a lane chip to filter.'}
       </p>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-[repeat(7,minmax(0,1fr))] gap-1.5">
         {DOW.map((d, i) => (
           <div
             key={d}
@@ -330,6 +384,8 @@ export function LaneMonthPanel({
         {cells.map((cell) => {
           const allItems = monthView.days?.[cell.iso] || []
           const items = filterMonthItemsByLane(allItems, laneFilter)
+          const ghosts = ghostsByDay[cell.iso] || []
+          const steps = planStepsByDay[cell.iso] || []
           const isFeatured = cell.iso === featuredDate
           return (
             <button
@@ -378,12 +434,25 @@ export function LaneMonthPanel({
                   ) : null}
                 </div>
               </div>
-              {items.length === 0 && cell.inMonth ? (
+              {items.length === 0 && ghosts.length === 0 && steps.length === 0 && cell.inMonth ? (
                 <span className="text-[9px] text-tx3 italic">no content</span>
               ) : (
                 <div className="flex flex-col gap-0.5">
                   {items.map((it, idx) => (
-                    <LaneChip key={`${it.title}-${idx}`} lane={it.lane} title={it.title} status={it.status} />
+                    <LaneChip key={`${it.title}-${idx}`} lane={it.lane} title={it.title} status={it.status} kind={it.kind} />
+                  ))}
+                  {steps.map((st) => (
+                    <PlanStepChip key={st.key} s={st} brandId={brandId} />
+                  ))}
+                  {ghosts.map((g) => (
+                    <GhostChip
+                      key={g.key}
+                      s={g}
+                      busy={sug.busyKey === g.key}
+                      pillars={sug.pillars}
+                      onApprove={(pillar) => void sug.approve(g, pillar)}
+                      onReject={() => void sug.reject(g)}
+                    />
                   ))}
                 </div>
               )}

@@ -90,6 +90,43 @@
         "Location": 36
       },
       "dry_run": false
+    },
+    {
+      "date": "2026-10-06",
+      "method": "public_folder_http",
+      "folder_id": "1k5icaxY3AKBD9z2-oIO6i42PUnq1gYUG",
+      "files_downloaded": 0,
+      "files_skipped_dedupe": 306,
+      "files_skipped_non_image": 5,
+      "download_errors": 0,
+      "counts_by_folder": {},
+      "dry_run": false
+    },
+    {
+      "date": "2026-10-13",
+      "method": "public_folder_http",
+      "folder_id": "12WslKqt5WfgkUCGLA5TSWt6jLOVSet5x",
+      "files_downloaded": 20,
+      "files_skipped_dedupe": 0,
+      "files_skipped_non_image": 0,
+      "download_errors": 0,
+      "counts_by_folder": {
+        "": 20
+      },
+      "dry_run": false
+    },
+    {
+      "date": "2026-10-13",
+      "method": "public_folder_http",
+      "folder_id": "1dHC7lNXKZAaG4YzxY5syidyqSjDTTyf3",
+      "files_downloaded": 85,
+      "files_skipped_dedupe": 0,
+      "files_skipped_non_image": 2,
+      "download_errors": 0,
+      "counts_by_folder": {
+        "": 85
+      },
+      "dry_run": false
     }
   ]
 }

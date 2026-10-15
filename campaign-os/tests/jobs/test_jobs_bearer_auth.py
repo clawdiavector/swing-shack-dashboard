@@ -43,6 +43,7 @@ def _stub_golf(app_module):
         JobSpec(
             name="golf_news",
             fn=_fn,
+            brand_mode="global",
             every_seconds=86400,
             best_effort=True,
             criticality="LOW",

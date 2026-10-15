@@ -237,7 +237,7 @@ export function InboxPage() {
   return (
     <div className="space-y-6">
       <PageIntro here="/inbox" title="Inbox">
-        Candidates waiting for a decision — lodge, book only, or reject.
+        Dates waiting for your call. Lodge it, book it only, or reject it.
       </PageIntro>
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />

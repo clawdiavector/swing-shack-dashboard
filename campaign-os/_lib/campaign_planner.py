@@ -190,7 +190,7 @@ def _goal_decomposition(campaign: Dict[str, Any]) -> Dict[str, Any]:
     """Pull primary, secondary, hidden goals from the campaign identity."""
     identity = campaign.get("identity") or {}
     primary = identity.get("goal") or identity.get("primaryGoal") or "Drive bookings"
-    audience = identity.get("audience") or "Johannesburg golfers"
+    audience = identity.get("audience") or "golfers"
     return {
         "primary": primary,
         "secondary": [
@@ -208,7 +208,7 @@ def _goal_decomposition(campaign: Dict[str, Any]) -> Dict[str, Any]:
 def _persona(campaign: Dict[str, Any]) -> Dict[str, Any]:
     """Build a persona derived from the campaign audience + the local JHB golf market."""
     identity = campaign.get("identity") or {}
-    audience = identity.get("audience") or "Johannesburg golfers aged 28-55"
+    audience = identity.get("audience") or "golfers aged 28-55"
     return {
         "name": "The Curious JHB Club Golfer",
         "demographics": {
@@ -269,10 +269,10 @@ def _hooks(campaign: Dict[str, Any], n: int = 15) -> List[Dict[str, Any]]:
         out.append({"hook": h["hook_text"], "source": f"bank:{h.get('bucket','proven')}", "score": h.get("score", 0)})
     # Add campaign-tailored formulas
     tailored = [
-        f"Johannesburg golfers: your range session isn't fixing this.",
+        f"Your range session isn't fixing this.",
         f"3 swings on TrackMan will tell you what 3 months at the range won't.",
         f"Your {identity.get('kind','swing')} problem isn't what you think it is.",
-        f"Book a TrackMan session in JHB. Walk out knowing your numbers.",
+        f"Book a TrackMan session. Walk out knowing your numbers.",
         f"What the data says about your {identity.get('focus','swing')} — and why it matters.",
         f"Stop guessing about your {identity.get('focus','clubs')}. Start measuring.",
         f"Indoor golf JHB: 30 minutes that actually change your game.",

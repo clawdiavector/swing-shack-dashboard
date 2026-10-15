@@ -47,3 +47,13 @@ stocked brand to repost from (Instagram and Facebook page links). If someone ask
 "what should we story today", read it out: feature, brand, and the `look_for` line.
 The brand lists are `data/brand-directory/<brand>/story-brands.json`. RipIt has no
 handles yet and is skipped until they are added.
+
+## Finding specific posts
+
+`GET /api/stories/candidates?brand=<id>` returns the best recent posts to repost, read
+from the pages in `story-brands.json` (retail brands and golf "moments") with Meta's
+read-only business_discovery. Launches, sales, giveaways, paid posts and sad or
+divisive news are dropped; quiet "vibe" posts that beat the page's normal rank first;
+product posts are marked "check we stock it". Cached six hours; `&refresh=1` re-reads.
+Each result has `url`, `why`, likes and a caption. To put one on the list, `POST
+/api/stories` with its `url`. Swing Shack never gets Psycho Bunny.

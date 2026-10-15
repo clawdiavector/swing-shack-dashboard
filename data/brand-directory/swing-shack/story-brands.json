@@ -65,5 +65,35 @@
       "pairs_with": null,
       "source": "swing-shack knowledge.json"
     }
+  ],
+  "moments": [
+    {
+      "id": "trackman",
+      "name": "TrackMan",
+      "instagram": "https://www.instagram.com/trackmangolf/",
+      "facebook": "https://www.facebook.com/TrackManGolf/",
+      "look_for": "Tech, data and fitting content."
+    },
+    {
+      "id": "pga-tour",
+      "name": "PGA Tour",
+      "instagram": "https://www.instagram.com/pgatour/",
+      "facebook": "https://www.facebook.com/PGATour",
+      "look_for": "Big tournament moments and great shots."
+    },
+    {
+      "id": "golf-digest",
+      "name": "Golf Digest",
+      "instagram": "https://www.instagram.com/golfdigest/",
+      "facebook": "https://www.facebook.com/GolfDigest/",
+      "look_for": "Instruction, equipment and culture."
+    },
+    {
+      "id": "sunshine-tour",
+      "name": "Sunshine Tour",
+      "instagram": "https://www.instagram.com/sunshinetourgolf/",
+      "facebook": null,
+      "look_for": "South African pro golf. Handle looks right but the Sunshine Tour website does not link to it."
+    }
   ]
 }

@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""The ONE command that decides "done". Agents loop on it; CI runs it on every PR.
+
+    ./check            (Git Bash, Linux, macOS)
+    python3 check      (anywhere, including PowerShell)
+
+Runs what CI's blocking jobs run, from the same lists, so "green here" and
+"green in CI" mean the same thing:
+
+  1. scripts/check_lib_modules.py   every imported _lib module exists
+  2. pytest over tests/ci-allowlist.txt, minus tests/check-known-failures.txt
+     (tests that were already failing on main; that list may only shrink)
+  3. the test run left tracked data/ exactly as it found it
+
+The last line is always "CHECK: PASS" or "CHECK: FAIL". Stdlib only, and Python
+rather than bash so it runs the same on the Windows desk as on Linux and the Mac.
+"""
+from __future__ import annotations
+
+import hashlib
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+ALLOWLIST = ROOT / "tests" / "ci-allowlist.txt"
+KNOWN_FAILURES = "tests/check-known-failures.txt"
+PLUGIN_DIR = ROOT / "scripts" / "agent-hooks"
+
+
+def run(cmd: list[str], env: dict[str, str] | None = None) -> int:
+    sys.stdout.flush()
+    return subprocess.run(cmd, cwd=ROOT, env=env).returncode
+
+
+def data_state() -> str:
+    """A digest of every uncommitted change under data/, so a tree that was
+    already dirty before the tests ran (the image ingest leaves one) still passes."""
+    h = hashlib.sha256()
+    for args in (["status", "--porcelain", "--", "data/"], ["diff", "--no-ext-diff", "--", "data/"]):
+        h.update(subprocess.run(["git", *args], cwd=ROOT, capture_output=True).stdout)
+    return h.hexdigest()
+
+
+def allowlisted_tests() -> list[str]:
+    if not ALLOWLIST.is_file():
+        return []
+    lines = (ln.strip() for ln in ALLOWLIST.read_text(encoding="utf-8").splitlines())
+    return [ln for ln in lines if ln and not ln.startswith("#")]
+
+
+def main() -> int:
+    fail = False
+
+    print("== lib modules", flush=True)
+    if run([sys.executable, "scripts/check_lib_modules.py"]) != 0:
+        fail = True
+
+    print("\n== pytest (CI allowlist)", flush=True)
+    tests = allowlisted_tests()
+    if not tests:
+        # Empty/garbage allowlist must fail, not pass silently (t26-E).
+        print("tests/ci-allowlist.txt is missing or empty")
+        fail = True
+    else:
+        before = data_state()
+        with tempfile.TemporaryDirectory(prefix="cos-check-", ignore_cleanup_errors=True) as tmp:
+            env = dict(os.environ)
+            # Tests get scratch dirs unless the caller (CI) already chose them.
+            for var, sub in (("DATA_DIR", "data"), ("OPENCLAW_CREDENTIALS_DIR", "creds")):
+                if not env.get(var):
+                    env[var] = str(Path(tmp, sub))
+                Path(env[var]).mkdir(parents=True, exist_ok=True)
+            # Tests read repo files with bare open(); without this Windows decodes
+            # them as cp1252 and fails where Linux CI passes.
+            env.setdefault("PYTHONUTF8", "1")
+            # known_failures_plugin marks the listed tests xfail, so pytest exits
+            # non-zero only for a failure this change introduced.
+            env["PYTHONPATH"] = os.pathsep.join(filter(None, [str(PLUGIN_DIR), env.get("PYTHONPATH")]))
+            pytest = [sys.executable, "-m", "pytest", "-q", "--tb=short",
+                      "-p", "known_failures_plugin", "--known-failures", KNOWN_FAILURES]
+            if run([*pytest, *tests], env) != 0:
+                fail = True
+
+        print("\n== tests must not write into tracked data/", flush=True)
+        if data_state() != before:
+            # Gate P0 criterion 3: no automation writes to data/.
+            print("The test run modified files under data/:")
+            run(["git", "status", "--short", "--", "data/"])
+            fail = True
+        else:
+            print("ok")
+
+    print()
+    print("CHECK: FAIL" if fail else "CHECK: PASS")
+    return 1 if fail else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -530,9 +530,7 @@ export function Library() {
   return (
     <div className="space-y-6">
       <PageIntro icon={Layers} here="/library" title="Library">
-        Draft and sandbox inventory for this brand — multi-select on Drafts and Sandbox tabs to archive or delete
-        junk rows. Calendar moments survive draft delete; receipt-only sandbox rows cannot be selected. Templates stay
-        read-only.{' '}
+        Every draft and sandbox post for this brand. Tick the junk rows to archive or delete them. Calendar moments survive a draft delete, receipt-only rows can’t be ticked, and templates are look-only.{' '}
         <ClassicLink href="/visualizer" label="Classic visual library" />
       </PageIntro>
 
@@ -656,7 +654,7 @@ export function Library() {
           />
           <div className="space-y-3">
             {drafts.length === 0 ? (
-              <p className="text-sm text-tx3">No draft assets for this brand yet.</p>
+              <p className="text-sm text-tx3">No drafts for this brand yet. Go make one!</p>
             ) : (
               drafts.map((row) => {
                 const key = draftRowKey(row)
@@ -689,7 +687,7 @@ export function Library() {
           />
           <div className="space-y-3">
             {sandbox.length === 0 ? (
-              <p className="text-sm text-tx3">No sandbox queue rows for this brand.</p>
+              <p className="text-sm text-tx3">Nothing in the sandbox queue for this brand.</p>
             ) : (
               sandbox.map((row) => {
                 const key = sandboxRowKey(row)

@@ -155,3 +155,27 @@ describe('laneLabel', () => {
   })
 })
 
+
+describe('plain words', () => {
+  it('turns the calendar shorthand for importance into the names people see', async () => {
+    const { plainNotes } = await import('./planning')
+    expect(plainNotes("B-PIN retail hook. Gift vouchers.")).toBe('Medium retail hook. Gift vouchers.')
+    expect(plainNotes('A-PIN END POINT. The campaign happens BEFORE this date.')).toBe('Major END POINT. The campaign happens BEFORE this date.')
+    expect(plainNotes('Light content hook. C-PIN by default, must not look equal to A/B-PINs.')).toBe(
+      'Light content hook. Light by default, must not look equal to Major or Medium dates.',
+    )
+    expect(plainNotes('A-tier Golf; confirmed by operator.')).toBe('A-tier Golf; confirmed by you.')
+    expect(plainNotes('Paarl Gim 23 Apr per operator.')).toBe('Paarl Gim 23 Apr per you.')
+    expect(plainNotes(undefined)).toBe('')
+    expect(plainNotes('Operators of the range')).toBe('Operators of the range')   // only the shorthand changes
+  })
+  it('turns category tags into words, and hides the one that is only a label for the file', async () => {
+    const { plainCategory } = await import('./planning')
+    expect(plainCategory('shopping-moment')).toBe('Shopping')
+    expect(plainCategory('sa-cultural')).toBe('South African')
+    expect(plainCategory('sustained-arc')).toBe('Ongoing')
+    expect(plainCategory('endpoint')).toBe('')
+    expect(plainCategory('winter-golf')).toBe('Winter golf')
+    expect(plainCategory(null)).toBe('')
+  })
+})

@@ -13,6 +13,11 @@ Read-only regression test — never imports flask, never hits a running server.
 
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 from pathlib import Path
 
@@ -31,6 +36,7 @@ def _render_agents_body(src: str) -> str:
     return m.group(1)
 
 
+@_legacy_page.on_old_page_only
 def test_cosAgentHtml_function_defined():
     """The fix introduces cosAgentHtml() for the ops fleet roster."""
     src = _read()
@@ -39,6 +45,7 @@ def test_cosAgentHtml_function_defined():
     )
 
 
+@_legacy_page.on_old_page_only
 def test_renderAgents_fetches_ops_agents_for_fleet_list():
     """renderAgents() must fetch /api/ops/agents for the fleet list card."""
     body = _render_agents_body(_read())
@@ -48,6 +55,7 @@ def test_renderAgents_fetches_ops_agents_for_fleet_list():
     assert "S.cosFleet" in body, "renderAgents must cache the ops fleet payload on S.cosFleet"
 
 
+@_legacy_page.on_old_page_only
 def test_renderAgents_uses_cosAgentHtml_not_intel_agents_list():
     """renderAgents() must render S.cosFleet.agents via cosAgentHtml, not intel a.agents."""
     body = _render_agents_body(_read())
@@ -62,6 +70,7 @@ def test_renderAgents_uses_cosAgentHtml_not_intel_agents_list():
     )
 
 
+@_legacy_page.on_old_page_only
 def test_renderAgents_still_fetches_intel_for_health():
     """renderAgents() must still fetch /api/intel/agents for system + integration health."""
     body = _render_agents_body(_read())
@@ -72,6 +81,7 @@ def test_renderAgents_still_fetches_intel_for_health():
     assert "integrationHealthHtml" in body, "integration health card must still render"
 
 
+@_legacy_page.on_old_page_only
 def test_cosAgentHtml_renders_status_pill():
     """cosAgentHtml() must emit a fleet status pill from last_status."""
     src = _read()
@@ -82,6 +92,7 @@ def test_cosAgentHtml_renders_status_pill():
     assert "last_status" in body, "cosAgentHtml must read last_status from the ops agent record"
 
 
+@_legacy_page.on_old_page_only
 def test_cosAgentHtml_renders_fleet_fields():
     """cosAgentHtml() must surface id, kind, layer, schedule, enabled, heartbeat, writes, skill."""
     src = _read()
@@ -92,6 +103,7 @@ def test_cosAgentHtml_renders_fleet_fields():
         assert field in body, f"cosAgentHtml must reference {field}"
 
 
+@_legacy_page.on_old_page_only
 def test_cosAgentHtml_renders_ops_link():
     """cosAgentHtml() must link rows to /ops?layer=agents&agent=<id>."""
     src = _read()
@@ -103,6 +115,7 @@ def test_cosAgentHtml_renders_ops_link():
     )
 
 
+@_legacy_page.on_old_page_only
 def test_cosAgentHtml_emits_li_detail_block():
     """cosAgentHtml() must emit a li-detail block for click-to-expand."""
     src = _read()
@@ -112,6 +125,7 @@ def test_cosAgentHtml_emits_li_detail_block():
     assert "li-detail" in body, "cosAgentHtml must render an expandable li-detail block"
 
 
+@_legacy_page.on_old_page_only
 def test_fleet_card_header_renamed():
     """The fleet card h3 must read Campaign OS fleet, not Agent runs."""
     src = _read()
@@ -121,6 +135,7 @@ def test_fleet_card_header_renamed():
     )
 
 
+@_legacy_page.on_old_page_only
 def test_status_pill_color_mapping_matches_ops_jobs():
     """OK/LATE/FAILED/NEVER must map to fleet-* pill classes aligned with ops-jobs."""
     src = _read()

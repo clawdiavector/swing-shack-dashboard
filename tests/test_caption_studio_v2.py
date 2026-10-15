@@ -5,6 +5,11 @@ Tests voice-aware caption generation:
   - Intelligence: voice bible loading + generate_captions(voice=, tone=)
   - SPA: section renders with voice picker; generate respects voice
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '../campaign-os/tests').resolve()))
+import _legacy_page  # noqa: E402
+
 import subprocess
 import json
 import sys
@@ -145,7 +150,9 @@ assert 'swing-shack' in voices, f'swing-shack missing: {{list(voices.keys())}}'
 assert 'stick' in voices, f'stick missing'
 assert 'bag-drop' in voices, f'bag-drop missing'
 ss = voices['swing-shack']
-assert '⛳' in ss.get('template_prefix', ''), f'bad prefix: {{ss.get(\"template_prefix\")}}'
+# 3c85bb2f (2026-09-30) moved voice authority to bible-intelligence.json and
+# emptied the canned prefixes on purpose.
+assert ss.get('authority') == 'bible-intelligence.json#copy_system', f'authority: {{ss.get(\"authority\")}}'
 assert 'educational' in ss.get('allowed_tones', []), 'educational tone missing'
 print('PASS: test_voice_bible_loads')
 """],
@@ -206,7 +213,9 @@ bodies_stick  = [v.get('body','') for v in r_stick.get('variants',[])]
 bodies_bag    = [v.get('body','') for v in r_bag.get('variants',[])]
 
 assert any('⛳' in b or 'TrackMan' in b for b in bodies_swing), f'swing-shack body missing voice signal: {{bodies_swing[0][:80] if bodies_swing else "NONE"}}'
-assert any('🚩' in b or 'Reality check' in b for b in bodies_stick), f'stick body missing voice signal: {{bodies_stick[0][:80] if bodies_stick else "NONE"}}'
+# Stick's 🚩 'Reality check' prefix was retired in 3c85bb2f; its voice now shows
+# in the closing line, so compare whole bodies against Swing Shack's instead.
+assert bodies_stick and bodies_stick != bodies_swing, f'stick bodies identical to swing-shack: {{bodies_stick[0][:80] if bodies_stick else "NONE"}}'
 assert any('🫂' in b or 'Fair warning' in b for b in bodies_bag), f'bag-drop body missing voice signal: {{bodies_bag[0][:80] if bodies_bag else "NONE"}}'
 
 # Verify variants are annotated with voice
@@ -261,6 +270,7 @@ print('PASS: test_generate_captions_tone_param')
 
 # ─── Test 5: SPA section HTML has voice picker elements ─────────────────────
 
+@_legacy_page.on_old_page_only
 def test_spa_has_voice_picker():
     """campaign-os.html contains voice picker UI in #sec-captions."""
     html_path = REPO / 'campaign-os' / 'campaign-os.html'
@@ -376,7 +386,7 @@ assert login.status_code == 200, f'login failed: {{login.status_code}} {{login.d
 
 # POST to new /api/captions/generate route with voice/tone
 rv = client.post('/api/captions/generate',
-    json={{'voice': 'stick', 'tone': 'sarcastic', 'n': 3}},
+    json={{'voice': 'stick', 'tone': 'wry', 'n': 3}},
     content_type='application/json'
 )
 assert rv.status_code == 200, f'Expected 200, got {{rv.status_code}}: {{rv.data[:100]}}'
@@ -385,7 +395,8 @@ assert 'ok' in body, 'Response missing ok field'
 assert body.get('ok') == True, f'Expected ok=True: {{body}}'
 assert 'variants' in body, 'Missing variants field'
 assert body.get('_voice') == 'stick', f"Wrong voice: {{body.get('_voice')}}"
-assert body.get('_tone') == 'sarcastic', f"Wrong tone: {{body.get('_tone')}}"
+# 'sarcastic' left Stick's allowed_tones in 3c85bb2f; 'wry' replaced it.
+assert body.get('_tone') == 'wry', f"Wrong tone: {{body.get('_tone')}}"
 
 print('PASS: test_api_generate_captions_post_with_voice')
 """

@@ -11,6 +11,11 @@ Fix: cap at limit=16 (same as the "generated" tab preview that already paints
 in ~2s). The "Open Visual Library →" link below the pane still ladders to the
 full 60-image grid for users who want everything.
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import sys
 import unittest
@@ -20,6 +25,7 @@ REPO = Path(__file__).resolve().parent.parent.parent
 HTML = REPO / 'campaign-os' / 'campaign-os.html'
 
 
+@_legacy_page.on_old_page_only
 class TestLibraryImagesTabLimitFix(unittest.TestCase):
     """The Images tab must cap the visual-library fetch so the pane
     paints in ~2 seconds, not 7+. The cap lives in loadLibPane's

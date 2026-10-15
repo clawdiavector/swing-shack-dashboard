@@ -3,6 +3,7 @@ import { Shell } from './components/Shell'
 import { CalendarPage } from './pages/CalendarPage'
 import { Create } from './pages/Create'
 import { Daily } from './pages/Daily'
+import { Stories } from './pages/Stories'
 import { Desk } from './pages/Desk'
 import { Other } from './pages/Other'
 import { Publish } from './pages/Publish'
@@ -27,6 +28,7 @@ import { Queue } from './pages/publish/Queue'
 import { SandboxPreview } from './pages/publish/SandboxPreview'
 import { Socials } from './pages/publish/Socials'
 import { InboxPage } from './pages/InboxPage'
+import { Todo } from './pages/Todo'
 import { WeekBoard } from './pages/WeekBoard'
 import { Week } from './pages/results/Week'
 import { Templates } from './pages/results/Templates'
@@ -42,7 +44,9 @@ export default function App() {
         <Route index element={<Navigate to="/daily" replace />} />
         <Route path="daily" element={<Daily />} />
         <Route path="inbox" element={<InboxPage />} />
+        <Route path="stories" element={<Stories />} />
         <Route path="week" element={<WeekBoard />} />
+        <Route path="todo" element={<Todo />} />
         <Route path="review" element={<Review />} />
         <Route path="review/long-form" element={<LongFormReview />} />
         <Route path="review/long-form/:draftId" element={<LongFormReview />} />

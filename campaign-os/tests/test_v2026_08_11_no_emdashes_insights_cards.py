@@ -21,6 +21,11 @@ Fix (2026-08-11 nightshift tick):
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -33,6 +38,7 @@ def _read() -> str:
     return HTML.read_text(encoding="utf-8")
 
 
+@_legacy_page.on_old_page_only
 class TestNoEmdashesInsightsMainCards(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

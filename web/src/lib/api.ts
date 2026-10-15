@@ -2334,6 +2334,24 @@ export function setStoryRepostStatus(id: string, status: 'open' | 'done') {
   return postJson<{ ok: boolean }>(`/api/stories/${encodeURIComponent(id)}/${status}`, {})
 }
 
+export type AddStoryResult = { ok: boolean; created?: boolean; item?: StoryRepost; error?: string }
+
+/** Add a link to the story shelf. Never throws on a 400: the server's reason comes back in `error`. */
+export async function submitStoryLink(body: { brand: string; url: string; note?: string }): Promise<AddStoryResult> {
+  const res = await fetch('/api/stories', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json().catch(() => ({}))) as AddStoryResult
+  return res.ok ? data : { ok: false, error: data.error || `Couldn’t add that link (${res.status}).` }
+}
+
 export type StorySuggestion = {
   brand: string
   date: string
@@ -2344,4 +2362,29 @@ export type StorySuggestion = {
 
 export function fetchStorySuggestions() {
   return getJson<{ ok: boolean; suggestions: StorySuggestion[] }>('/api/stories/suggestion')
+}
+
+export type StoryCandidate = {
+  page_id: string
+  page: string
+  kind: 'vibe' | 'product' | 'story'
+  why: string
+  url: string
+  likes: number | null
+  comments: number | null
+  posted: string
+  media_type: string
+  image: string | null
+  caption: string
+  score: number
+}
+
+export function fetchStoryCandidates(brand: string) {
+  return getJson<{ ok: boolean; posts: StoryCandidate[]; errors: string[] }>(
+    `/api/stories/candidates?brand=${encodeURIComponent(brand)}`,
+  )
+}
+
+export function addStoryRepost(brand: string, url: string, note: string) {
+  return postJson<{ ok: boolean }>('/api/stories', { brand, url, note, added_by: 'Scout' })
 }

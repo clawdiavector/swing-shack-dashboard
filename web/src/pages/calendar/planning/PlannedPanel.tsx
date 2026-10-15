@@ -126,7 +126,7 @@ export function PlannedPanel({
   if (loading && !data) {
     return (
       <section data-testid="planned-panel" className="glass space-y-4 rounded-2xl border border-white/10 p-4">
-        <p className="text-tx3">Loading planned view…</p>
+        <p className="text-tx3">Unrolling the plan…</p>
       </section>
     )
   }

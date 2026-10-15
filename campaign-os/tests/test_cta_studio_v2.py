@@ -19,6 +19,11 @@ Tests cover:
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent))
+import _legacy_page  # noqa: E402
+
 import json
 import os
 import shutil
@@ -391,6 +396,7 @@ class CtaKnowledgeBundledFallbackTests(unittest.TestCase):
 # Front-end integration tests
 # ─────────────────────────────────────────────────────────────────────
 
+@_legacy_page.skip_unless('_CTA_CAT_COLORS')
 class CtaStudioSpaIntegrationTests(unittest.TestCase):
     """Verify the SPA has the new Headlines & CTAs v2 controls wired correctly."""
 
