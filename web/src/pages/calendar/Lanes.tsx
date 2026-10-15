@@ -270,7 +270,7 @@ export function Lanes() {
       </PageIntro>
 
       {scopeBrand && timeline ? (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="fun-grid3 grid grid-cols-3 gap-2 sm:gap-3">
           <FunTile
             label="Next 30 days"
             value={soonCount}

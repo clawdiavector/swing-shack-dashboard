@@ -363,6 +363,13 @@
 .fun-btn:active:not(:disabled) { transform: scale(0.94); }
 
 /* Plan */
+@media (max-width: 560px) {
+  .fun-grid3 .fun-tile { padding: 0.65rem 0.6rem 0.7rem; border-radius: 1.1rem; }
+  .fun-grid3 .fun-tile__label { font-size: 0.62rem; letter-spacing: 0.06em; }
+  .fun-grid3 .fun-tile__value { font-size: 2.2rem; }
+  .fun-grid3 .fun-tile__hint, .fun-grid3 .fun-dots { display: none; }
+  .fun-grid3 .fun-tile::after { display: none; }
+}
 .fun-when {
   display: block;
   margin-top: 0.15rem;
