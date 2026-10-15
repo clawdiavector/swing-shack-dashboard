@@ -1231,6 +1231,17 @@ def propose_product_calendar(
         return -score  # negate so higher = earlier
 
     eligible.sort(key=priority_key)
+    # Grips, ferrules and towels are promoted as a brand range, once, not per colourway.
+    seen_ranges = set()
+    collapsed = []
+    for p in eligible:
+        rn = p.get("range_name")
+        if rn:
+            if rn in seen_ranges:
+                continue
+            seen_ranges.add(rn)
+        collapsed.append(p)
+    eligible = collapsed
 
     # Generate publish dates
     start_dt_date = datetime.fromisoformat(start_date[:10]).date()
@@ -1326,7 +1337,8 @@ def propose_product_calendar(
             "publish_time": "09:00",
             "platforms": ["instagram"],
             "product_id": chosen.get("id"),
-            "product_name": chosen.get("name"),
+            "product_name": chosen.get("range_name") or chosen.get("name"),
+            "range_post": bool(chosen.get("range_name")),
             "product_sku": chosen.get("sku"),
             "product_category": chosen.get("category"),
             "product_family": family_name,

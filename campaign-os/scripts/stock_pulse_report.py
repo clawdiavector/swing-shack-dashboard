@@ -56,6 +56,18 @@ def main() -> int:
     else:
         say("- None yet." + (" This is the first list, so there is nothing to compare against." if len(snaps) < 2 else ""))
 
+    say("\n## Just in, and back in stock: announce these")
+    arrivals = [r for r in results if r["status"] in ("new", "back") and not r.get("folded_into_range")]
+    for r in arrivals:
+        say(f"- {r['name']}: {r['reason']}")
+    if not arrivals:
+        say("- None yet." + (" The first list is the baseline, so nothing can be called new until the next one." if len(snaps) < 2 else ""))
+
+    say("\n## Brand ranges (promoted as one post, not per colour)")
+    for r in results:
+        if r.get("is_range"):
+            say(f"- {r['name']}: {r['qty']} units across {len(r['members'])} lines" + (f". {r['reason']}" if r["reason"] else ""))
+
     say("\n## Heavy shelves (deep stock against alert level)")
     for r in sp.heavy_shelf(results):
         say(f"- {r['name']}: {r['reason']}")
@@ -84,7 +96,7 @@ def main() -> int:
     counts = {"exact": 0, "candidate": 0, "none": 0}
     need = []
     for r in results:
-        if r["status"] in ("out", "error") or r["not_for_feed"]:
+        if r["status"] in ("out", "error") or r["not_for_feed"] or r.get("folded_into_range"):
             continue
         m = sp.match_photos(r["name"], images)
         counts[m["match"]] += 1
@@ -93,7 +105,7 @@ def main() -> int:
     say(f"{counts['exact']} products have a photo whose filename carries the full make and model, "
           f"{counts['candidate']} have only a maker-level candidate, {counts['none']} have nothing.\n")
     say("Needing a photo, pushes and heavy shelves first:")
-    priority = {"stuck": 0, "still": 1, "heavy": 2}
+    priority = {"new": 0, "back": 0, "stuck": 1, "still": 1, "heavy": 2}
     need.sort(key=lambda x: (priority.get(x[0]["status"], 3) if not x[0]["deep_shelf"] else 2, -x[0]["qty"]))
     for r, m in need:
         cand = f" (candidates to check by eye: {', '.join(Path(c).name for c in m['candidates'])})" if m["candidates"] else ""

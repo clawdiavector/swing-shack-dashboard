@@ -28,21 +28,23 @@ HEAVY_ALERT_MULTIPLE = 3
 HEAVY_NO_ALERT_UNITS = 15
 # ...and never fewer than this many units.
 HEAVY_MIN_UNITS = 6
+# A line stays "new" (worth announcing) for this long after it first appears.
+NEW_DAYS = 21
 
 # Added to the planner's priority score (marketing_lanes.propose_product_calendar).
 FEED_BOOST = {
-    "stuck": 60, "still": 40, "new": 30, "heavy": 25,
+    "stuck": 60, "still": 40, "new": 45, "back": 25, "heavy": 25,
     "selling": 0, "steady": 0, "low": -20, "out": 0, "error": 0,
 }
 
 # The list is for things sold as they are. Drinks, snacks and food are never
-# promoted, and fitting components (shafts, ferrules) are mentioned in fitting
-# content, never pushed one by one. Add a pattern when a new line turns up.
+# promoted, and shafts are fitting components, mentioned in fitting content and
+# never pushed one by one. Add a pattern when a new line turns up.
 EXCLUDED = [
     ("drink or food", re.compile(
         r"\bfull swing\b|\b(still|sparkling) water\b|\b(water|drink|soda|cola|juice|coffee|beer|"
         r"snack|biltong|chips|biscuit|chocolate|sandwich|toastie|food)\b", re.I)),
-    ("fitting component", re.compile(r"\bferrules?\b|\bdriver shafts?\b|\b(tensei|speeder)\b", re.I)),
+    ("fitting component", re.compile(r"\bdriver shafts?\b|\b(tensei|speeder)\b", re.I)),
 ]
 
 
@@ -61,7 +63,8 @@ CATEGORY_RULES = [
     ("bag", r"golf bag"),
     ("towel", r"towel"),
     ("glove", r"glove|cabretta|perma soft|stasof|weathersoft|raingrip|sofjoy|sciflex|hyper flex|all weather"),
-    ("grip", r"grip|ferrule|pride|lamkin|star grip"),
+    ("ferrule", r"ferrule"),
+    ("grip", r"grip|pride|lamkin"),
     ("ball", r"titleist (tru feel|tour soft|pro v1|velocity|avx)|srixon (z|q|soft)|chrome|quantum"),
 ]
 
@@ -76,7 +79,31 @@ PUSH_IDEAS = {
     "bag": "Close-up of the bag with what fits inside",
     "rangefinder": "On-course use, side by side with the others",
     "towel": "Gift or add-on idea",
+    "ferrule": "Custom-build detail: the finishing touch on a club",
 }
+
+# Grips, ferrules and towels are promoted as a range per brand ("GripDrip is
+# available at ..."), never one colourway at a time.
+RANGE_CATEGORIES = {"grip": "grips", "ferrule": "ferrules", "towel": "towels"}
+RANGE_BRANDS = [
+    ("GripDrip", r"^gripdrip|^tropical vibes"),
+    ("Golf Pride", r"^golf pride"),
+    ("AJM GripCo", r"^ajm"),
+    ("Lamkin", r"^lamkin"),
+    ("BB&F Co", r"^bb&f"),
+]
+
+
+def range_name_for(name: str, category: str) -> str:
+    """'GripDrip grips' for a member of a range, else ''."""
+    word = RANGE_CATEGORIES.get(category)
+    if not word:
+        return ""
+    for brand, pattern in RANGE_BRANDS:
+        if re.search(pattern, name, re.I):
+            return f"{brand} {word}"
+    first = re.split(r"[\s\-]+", name.strip())[0]
+    return f"{first} {word}"
 
 
 def strip_excel_sep(text: str) -> str:
@@ -165,7 +192,7 @@ def _days(a: str, b: str) -> int:
     return (datetime.fromisoformat(b[:10]) - datetime.fromisoformat(a[:10])).days
 
 
-def analyse(snapshots: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _item_results(snapshots: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Status, feed boost and reason per product from the snapshot history."""
     if not snapshots:
         return []
@@ -176,6 +203,9 @@ def analyse(snapshots: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         qty, alert = now["qty"], now["alert"]
         history = [(d, prods[name]["qty"]) for d, prods in snaps if name in prods]
         prev_qty = history[-2][1] if len(history) > 1 else None
+        first_seen = history[0][0]
+        # Only lines that appear after the first list are known to be new.
+        just_in = snaps[0][0] != first_seen and _days(first_seen, latest_date) <= NEW_DAYS
         # How long the quantity has sat at today's level.
         still_since = latest_date
         for d, q in reversed(history):
@@ -191,14 +221,16 @@ def analyse(snapshots: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             status, reason = "error", f"Quantity is {qty}, check the count"
         elif qty == 0:
             status, reason = "out", "Out of stock"
+        elif just_in:
+            status, reason = "new", f"New on the shelf, first listed {first_seen}"
+        elif prev_qty == 0 and qty > 0:
+            status, reason = "back", f"Back in stock ({qty})"
         elif alert and alert >= 2 and qty <= alert:
             status, reason = "low", f"{qty} left, at or under the alert level of {alert}"
         elif days_still >= STUCK_DAYS:
             status, reason = "stuck", f"Unchanged at {qty} for {days_still} days"
         elif days_still >= STILL_DAYS:
             status, reason = "still", f"Unchanged at {qty} for {days_still} days"
-        elif prev_qty is None and len(snaps) > 1 and len(history) == 1:
-            status, reason = "new", "First time on the stocklist"
         elif prev_qty is not None and qty < prev_qty:
             status, reason = "selling", f"Down {prev_qty - qty} since the last list"
         elif (alert and qty >= max(alert * HEAVY_ALERT_MULTIPLE, HEAVY_MIN_UNITS)) or (not alert and qty >= HEAVY_NO_ALERT_UNITS):
@@ -220,14 +252,74 @@ def analyse(snapshots: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "not_for_feed": bool(excluded_reason(name)),
             "excluded_reason": excluded_reason(name),
             "idea": PUSH_IDEAS.get(cat, "") if status in ("stuck", "still", "heavy") else "",
+            "range_name": range_name_for(name, cat),
+            "first_seen": first_seen,
             "snapshots_seen": len(history),
         })
     return results
 
 
+def _range_rows(snapshots: List[Dict[str, Any]], items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """One row per brand range with 2+ lines: summed units, newest line, combined stillness."""
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+    for it in items:
+        if it["range_name"] and not it["not_for_feed"]:
+            groups.setdefault(it["range_name"], []).append(it)
+    rows = []
+    for rname, members in groups.items():
+        if len(members) < 2:
+            continue
+        names = {m["name"] for m in members}
+        series = [(s["date"], sum(r["qty"] for r in s["rows"] if r["name"] in names)) for s in snapshots]
+        units, latest_date = series[-1][1], series[-1][0]
+        since = latest_date
+        for d, q in reversed(series):
+            if q != units:
+                break
+            since = d
+        days_still = _days(since, latest_date) if len(series) > 1 else 0
+        new = [m for m in members if m["status"] == "new"]
+        back = [m for m in members if m["status"] == "back"]
+        if units <= 0:
+            status, reason = "out", "Whole range out of stock"
+        elif new:
+            status = "new"
+            reason = f"{len(new)} new line(s) in the range: " + ", ".join(m["name"] for m in new[:4])
+        elif back:
+            status, reason = "back", f"{len(back)} line(s) back in stock"
+        elif days_still >= STUCK_DAYS:
+            status, reason = "stuck", f"Range unchanged at {units} units for {days_still} days"
+        elif days_still >= STILL_DAYS:
+            status, reason = "still", f"Range unchanged at {units} units for {days_still} days"
+        else:
+            status, reason = "steady", ""
+        rows.append({
+            "name": rname, "is_range": True, "category": members[0]["category"], "qty": units,
+            "alert": None, "prev_qty": series[-2][1] if len(series) > 1 else None,
+            "days_still": days_still, "status": status, "deep_shelf": False, "reason": reason,
+            "skus": [k for m in members for k in m["skus"]], "thin_variants": [],
+            "feed_boost": FEED_BOOST[status], "not_for_feed": False, "excluded_reason": "",
+            "idea": "Range post: where to buy it, the colours in stock" if status != "steady" else "",
+            "range_name": rname, "members": [m["name"] for m in members],
+            "first_seen": min(m["first_seen"] for m in members), "snapshots_seen": len(series),
+        })
+    return rows
+
+
+def analyse(snapshots: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """What the planner and the report work from: single lines sold as-is, plus one
+    row per brand range. Range members are returned too, marked folded_into_range."""
+    items = _item_results(snapshots)
+    ranges = _range_rows(snapshots, items)
+    folded = {r["range_name"] for r in ranges}
+    single = [it for it in items if it["range_name"] not in folded]
+    members = [dict(it, folded_into_range=True) for it in items if it["range_name"] in folded]
+    return single + ranges + members
+
+
 def push_list(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Products worth pushing, biggest stuck pile first."""
-    pushes = [r for r in results if r["status"] in ("stuck", "still") and not r["not_for_feed"]]
+    pushes = [r for r in results if r["status"] in ("stuck", "still") and not r["not_for_feed"] and not r.get("folded_into_range")]
     pushes.sort(key=lambda r: (r["days_still"] * r["qty"]), reverse=True)
     return pushes
 
@@ -235,7 +327,7 @@ def push_list(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def heavy_shelf(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Deep stock against alert level. Needs one snapshot, so it works from week one."""
     heavy = [r for r in results if r["deep_shelf"] and r["status"] not in ("low", "out", "error")
-             and not r["not_for_feed"]]
+             and not r["not_for_feed"] and not r.get("folded_into_range")]
     heavy.sort(key=lambda r: r["qty"] / (r["alert"] or 1), reverse=True)
     return heavy
 
@@ -269,6 +361,8 @@ def record_and_stamp(brand_id: str, csv_text: str, products: List[Dict[str, Any]
     results = analyse(load_snapshots(brand_id))
     by_sku = {}
     for r in results:
+        if r.get("folded_into_range"):
+            continue  # the range row already carries these SKUs
         for s in r["skus"]:
             by_sku[s] = r
     stamped = 0
@@ -280,6 +374,7 @@ def record_and_stamp(brand_id: str, csv_text: str, products: List[Dict[str, Any]
             p["feed_boost"] = r["feed_boost"]
             p["push_reason"] = r["reason"]
             p["not_for_feed"] = r["not_for_feed"]
+            p["range_name"] = r["name"] if r.get("is_range") else ""
             stamped += 1
     return {"snapshots": len(load_snapshots(brand_id)), "stamped": stamped,
             "push": [r["name"] for r in push_list(results)]}
@@ -297,7 +392,7 @@ GENERIC_TOKENS = {
     "golf", "putter", "putters", "driver", "wood", "wedge", "bag", "glove", "grip", "swing",
     "magnet", "towel", "rangefinder", "shafts", "shaft", "the", "and", "set", "ss", "pro",
     "white", "yellow", "blue", "green", "red", "black", "grey", "navy", "small", "medium",
-    "large", "extra", "standard", "midsize", "2025", "2026",
+    "large", "extra", "standard", "midsize", "2025", "2026", "grips", "ferrules", "towels",
 }
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -342,6 +437,8 @@ def match_photos(product_name: str, images_dir: Path) -> Dict[str, Any]:
         joined = len("".join(model)) >= 4 and "".join(model) in compact
         if model and (len(hit) == len(model) or joined):
             exact.append(str(f))
+        elif not model:
+            partial.append((0, str(f)))  # a brand range: any real photo of the brand, for a person to check
         elif hit:
             partial.append((len(hit), str(f)))
     partial.sort(reverse=True)

@@ -107,7 +107,7 @@ class StampTests(unittest.TestCase):
 class ExclusionTests(unittest.TestCase):
     def test_drinks_food_and_fitting_parts_are_left_out(self):
         for name in ["Full Swing Cherry Pop", "SS Still water", "Mitsubishi Tensei White",
-                     "Fujikura speeder Driver Shafts", "BB&F Co ferrules set", "Biltong Pack"]:
+                     "Fujikura speeder Driver Shafts", "Biltong Pack"]:
             self.assertTrue(sp.excluded_reason(name), name)
 
     def test_sold_as_is_stays_in_including_putters_with_a_shaft_name(self):
@@ -121,6 +121,68 @@ class ExclusionTests(unittest.TestCase):
         self.assertEqual(sp.push_list(res), [])
         self.assertEqual(res[0]["feed_boost"], 0)
         self.assertEqual(sp.heavy_shelf(res), [])
+
+
+class RangeAndNewTests(unittest.TestCase):
+    GRIPS = [("GripDrip Zen Swing Grip - Sky", "Z1"), ("GripDrip Zen Swing Grip - Plum", "Z2"),
+             ("GripDrip Par 3 Swing Grip", "P3")]
+
+    def week(self, date, qtys, extra=()):
+        lines = [row(n, k, q, "") for (n, k), q in zip(self.GRIPS, qtys)]
+        return snap(date, *lines, *extra)
+
+    def test_grips_fold_into_one_brand_range(self):
+        res = sp.analyse([self.week("2026-10-14", [15, 15, 8])])
+        ranges = [r for r in res if r.get("is_range")]
+        self.assertEqual([r["name"] for r in ranges], ["GripDrip grips"])
+        self.assertEqual(ranges[0]["qty"], 38)
+        self.assertEqual(sp.push_list(res), [])
+        self.assertTrue(all(r.get("folded_into_range") for r in res if r["name"].startswith("GripDrip Zen")))
+
+    def test_range_goes_still_as_a_whole(self):
+        res = sp.analyse([self.week("2026-09-16", [15, 15, 8]), self.week("2026-09-30", [15, 15, 8]),
+                          self.week("2026-10-14", [15, 15, 8])])
+        rng = next(r for r in res if r.get("is_range"))
+        self.assertEqual(rng["status"], "stuck")
+        self.assertEqual([r["name"] for r in sp.push_list(res)], ["GripDrip grips"])
+
+    def test_one_colourway_selling_keeps_range_moving(self):
+        res = sp.analyse([self.week("2026-09-16", [15, 15, 8]), self.week("2026-10-14", [12, 15, 8])])
+        rng = next(r for r in res if r.get("is_range"))
+        self.assertEqual(rng["status"], "steady")
+
+    def test_new_line_is_announced_then_ages_out(self):
+        base = [self.week("2026-09-16", [15, 15, 8]), self.week("2026-09-30", [15, 15, 8],
+                [row("Titleist Pro V2 2026", "NEW1", 12, 4)])]
+        res = {r["name"]: r for r in sp.analyse(base)}
+        self.assertEqual(res["Titleist Pro V2 2026"]["status"], "new")
+        self.assertGreater(res["Titleist Pro V2 2026"]["feed_boost"], 0)
+        later = base + [self.week("2026-10-28", [15, 15, 8], [row("Titleist Pro V2 2026", "NEW1", 12, 4)]),
+                        self.week("2026-11-18", [15, 15, 8], [row("Titleist Pro V2 2026", "NEW1", 12, 4)])]
+        res = {r["name"]: r for r in sp.analyse(later)}
+        self.assertNotEqual(res["Titleist Pro V2 2026"]["status"], "new")
+
+    def test_new_colourway_marks_the_range_new(self):
+        res = sp.analyse([self.week("2026-09-16", [15, 15, 8]),
+                          self.week("2026-10-14", [15, 15, 8], [row("GripDrip Zen Swing Grip - Mint", "Z9", 7)])])
+        rng = next(r for r in res if r.get("is_range"))
+        self.assertEqual(rng["status"], "new")
+
+    def test_first_list_marks_nothing_new(self):
+        res = sp.analyse([self.week("2026-10-14", [15, 15, 8])])
+        self.assertFalse([r for r in res if r["status"] == "new"])
+
+    def test_back_in_stock(self):
+        res = sp.analyse([snap("2026-09-16", row("Ball", "B1", 0, 8)), snap("2026-10-14", row("Ball", "B1", 20, 8))])
+        self.assertEqual(res[0]["status"], "back")
+
+    def test_stamp_gives_every_colourway_the_range(self):
+        brand = "range-stamp"
+        lines = [row(n, k, q) for (n, k), q in zip(self.GRIPS, [15, 15, 8])]
+        csv = HEADER + chr(10).join(lines)
+        products = [{"sku": k, "name": n} for n, k in self.GRIPS]
+        sp.record_and_stamp(brand, csv, products, on="2026-10-14")
+        self.assertTrue(all(p["range_name"] == "GripDrip grips" for p in products))
 
 
 class PhotoTests(unittest.TestCase):
