@@ -41,3 +41,8 @@ def test_default_watchlists_have_no_duplicates():
     for brand, queries in geo_routes._DEFAULT_WATCHLIST.items():
         lowered = [q.lower() for q in queries]
         assert len(lowered) == len(set(lowered)), brand
+
+
+def test_swing_shack_and_stick_watchlists_are_about_thirty():
+    for brand in ("swing-shack", "stick"):
+        assert 25 <= len(geo_routes._DEFAULT_WATCHLIST[brand]) <= 35, brand
