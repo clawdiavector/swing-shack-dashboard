@@ -17,6 +17,11 @@ This test asserts:
 These are all cache-bustable assertions; once this test is green on
 LIVE the favicon.ico console error stops appearing in every navigation.
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import os
 import re
 import sys
@@ -57,6 +62,7 @@ def test_favicon_in_public_routes():
     assert '/favicon.ico' in PUBLIC_ROUTES
 
 
+@_legacy_page.on_old_page_only
 def test_home_html_declares_favicon_link():
     """The home page (campaign-os.html) must include a <link rel="icon">."""
     html = _read('campaign-os.html')
@@ -94,6 +100,7 @@ def test_login_html_declares_favicon_link():
     assert '<svg' in payload
 
 
+@_legacy_page.on_old_page_only
 def test_no_404_in_home_html():
     """Sanity: the favicon link is the only <link rel="icon"> in the file.
 

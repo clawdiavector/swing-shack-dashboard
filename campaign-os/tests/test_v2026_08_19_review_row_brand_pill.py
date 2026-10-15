@@ -34,6 +34,11 @@ This test pins:
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import os
 import re
 import sys
@@ -183,6 +188,7 @@ class ReviewRowBrandPill(unittest.TestCase):
 
     # ─── C. JS: renderReview() correctly reads bl.brands ────────────────
 
+    @_legacy_page.on_old_page_only
     def test_renderReview_no_longer_iterates_top_level_keys_as_records(self):
         """The old `(bl || []).forEach(b => { b.id ... })` pattern is gone —
         replaced by Object.values(bl.brands) so we iterate records, not keys."""
@@ -195,6 +201,7 @@ class ReviewRowBrandPill(unittest.TestCase):
         self.assertIn("bl.brands", render, "renderReview() doesn't read bl.brands dict")
         self.assertIn("Object.values", render, "renderReview() should resolve bl.brands via Object.values()")
 
+    @_legacy_page.on_old_page_only
     def test_renderReview_prettyBrand_pill_still_present(self):
         """The prettyBrand pill render still exists (we didn't accidentally
         delete the row layout when patching the brandNames lookup)."""

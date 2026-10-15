@@ -1,57 +1,58 @@
 {
   "schema": "https://campaign-os/brand-directory/palette/v1",
   "brand_id": "swing-shack",
-  "version": "1.0",
-  "updated": "2026-07-28T20:10:00Z",
+  "version": "2.0",
+  "updated": "2026-10-14T00:00:00Z",
   "palette": {
     "primary": {
-      "hex": "#0F766E",
-      "name": "deep teal",
-      "usage": "backgrounds, dominant brand colour, headers, top-bar"
+      "hex": "#1C1C1C",
+      "name": "black",
+      "usage": "main colour: backgrounds and the black base of gradient overlays"
     },
     "accent": {
-      "hex": "#F59E0B",
-      "name": "amber",
-      "usage": "CTAs, highlights, key callouts, secondary buttons"
+      "hex": "#74CC46",
+      "name": "green",
+      "usage": "accent: one accent per piece, matched to the photo; green, blue, orange and purple are all accents"
     },
     "neutral_dark": {
-      "hex": "#0B1220",
-      "name": "midnight ink",
-      "usage": "text on light, dark mode backgrounds, headlines"
-    },
-    "neutral_light": {
-      "hex": "#F8FAFC",
-      "name": "paper",
-      "usage": "body text on dark, light surface cards"
+      "hex": "#404040",
+      "name": "dark grey",
+      "usage": "main colour: the logo's colour on white; dark panels"
     },
     "neutral_mid": {
-      "hex": "#475569",
-      "name": "slate",
-      "usage": "secondary text, captions, metadata"
+      "hex": "#7C7C7C",
+      "name": "grey",
+      "usage": "main colour: secondary text and lines"
+    },
+    "neutral_light": {
+      "hex": "#FFFFFF",
+      "name": "white",
+      "usage": "main colour: the logo and text on photos and dark backgrounds"
     },
     "supporting": [
       {
-        "hex": "#0EA5A4",
-        "name": "bright teal",
-        "usage": "hover state, secondary brand"
+        "hex": "#63A3EF",
+        "name": "blue",
+        "usage": "accent"
       },
       {
-        "hex": "#FCD34D",
-        "name": "soft amber",
-        "usage": "tag pills, badges"
+        "hex": "#E27124",
+        "name": "orange",
+        "usage": "accent"
       },
       {
-        "hex": "#1E293B",
-        "name": "ink",
-        "usage": "deep backgrounds"
+        "hex": "#8F4BF9",
+        "name": "purple",
+        "usage": "accent"
       }
-    ]
+    ],
+    "accent_rule": "Additional accent colours to be used with discretion, within the same style as the four above (branding document)."
   },
   "tokens": {
-    "ss_green": "#74CB46",
-    "ss_orange": "#E27123",
-    "ss_blue": "#64A3F0",
-    "ss_purple": "#8F4BFA",
+    "ss_green": "#74CC46",
+    "ss_orange": "#E27124",
+    "ss_blue": "#63A3EF",
+    "ss_purple": "#8F4BF9",
     "ss_charcoal": "#3A3A3A",
     "ss_near_black": "#0C0A0B",
     "ss_orange_hot": "#E95105",
@@ -61,42 +62,55 @@
     "white": "#FFFFFF",
     "ss_orange_bright": "#F58E20",
     "ss_blue_bright": "#3B7FEE",
-    "ss_panel_black": "#070707"
+    "ss_panel_black": "#070707",
+    "ss_black": "#1C1C1C",
+    "ss_dark_grey": "#404040",
+    "ss_grey": "#7C7C7C"
   },
-  "tokens_source": "measured 2026-09-27 from Content Bank Services/cf1–cf6 headline fills",
+  "tokens_source": "ss_green, ss_blue, ss_orange, ss_purple, ss_black, ss_dark_grey, ss_grey and white are the branding document's values (2026-10-14; the four accents had been measured from Content Bank posts within one shade of them). The other tokens (ss_charcoal #3A3A3A, ss_near_black, ss_panel_black, ss_orange_hot, ss_lime, ss_fit_*, *_bright) were measured from real posts on 2026-09-27 and are not in the document; they stay so measured templates keep matching their references.",
   "contrast_checks": [
     {
       "pair": [
-        "primary",
-        "neutral_light"
+        "neutral_light",
+        "primary"
       ],
-      "ratio_estimate": 5.1,
-      "wcag": "AA pass for large text"
+      "ratio_estimate": 17.0
     },
     {
       "pair": [
         "accent",
-        "neutral_dark"
+        "primary"
       ],
-      "ratio_estimate": 6.8,
-      "wcag": "AA pass"
+      "ratio_estimate": 8.5
+    },
+    {
+      "pair": [
+        "blue",
+        "primary"
+      ],
+      "ratio_estimate": 6.5
+    },
+    {
+      "pair": [
+        "orange",
+        "primary"
+      ],
+      "ratio_estimate": 5.4
+    },
+    {
+      "pair": [
+        "purple",
+        "primary"
+      ],
+      "ratio_estimate": 3.7
     },
     {
       "pair": [
         "neutral_dark",
         "neutral_light"
       ],
-      "ratio_estimate": 16.2,
-      "wcag": "AAA pass"
-    },
-    {
-      "pair": [
-        "primary",
-        "neutral_dark"
-      ],
-      "ratio_estimate": 3.2,
-      "wcag": "AA fail for body — use primary for headlines only"
+      "ratio_estimate": 10.4
     }
   ],
-  "source": "brands.json#swing-shack + visual best-guess; needs Drive validation once folders are wired in"
+  "source": "Swing Shack branding document (designer), brand-guide/swingshack-branding-document.pdf, page 4 'Colours'. Replaces the 2026-07-28 'visual best-guess' (deep teal #0F766E, amber #F59E0B), which the document does not contain."
 }

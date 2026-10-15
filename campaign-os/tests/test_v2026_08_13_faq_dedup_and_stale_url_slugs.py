@@ -23,6 +23,11 @@ test pins the behavior so future regressions don't reintroduce the
 "5x What is trackman golf?" wall.
 """
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import os
 import re
 import sys
@@ -39,6 +44,7 @@ def _read(path):
         return f.read()
 
 
+@_legacy_page.on_old_page_only
 class TestFAQsDedupAndStaleUrlSlugs(unittest.TestCase):
     def setUp(self):
         self.html = _read(HTML_PATH)

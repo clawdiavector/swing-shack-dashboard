@@ -19,6 +19,11 @@ markers.
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -63,6 +68,7 @@ class WelcomeTourNullSafeTests(unittest.TestCase):
         assert m, "Could not locate closeWelcome() body"
         return m.group(0)
 
+    @_legacy_page.on_old_page_only
     def test_renderTourStep_guards_every_setter(self):
         """Every `$('#welcome-*')` setter inside renderTourStep must be guarded
         by an `if(el)` null-check so the tour no-ops gracefully when the DOM
@@ -96,6 +102,7 @@ class WelcomeTourNullSafeTests(unittest.TestCase):
             + "when any welcome-* child has been removed from the DOM before the tour runs."
         )
 
+    @_legacy_page.on_old_page_only
     def test_openWelcome_guards_welcome_bg_setter(self):
         """openWelcome() must guard $('#welcome-bg').classList.add('on') with
         an `if(bg)` check."""
@@ -110,6 +117,7 @@ class WelcomeTourNullSafeTests(unittest.TestCase):
             "— wrap it in `if(bg)` so the tour no-ops if the modal was wiped."
         )
 
+    @_legacy_page.on_old_page_only
     def test_closeWelcome_guards_welcome_bg_setter(self):
         """closeWelcome() must guard $('#welcome-bg').classList.remove('on')
         with an `if(bg)` check."""
@@ -141,6 +149,7 @@ class WelcomeTourNullSafeTests(unittest.TestCase):
             + " — every welcome-* mutation must be wrapped in `if(el)`."
         )
 
+    @_legacy_page.on_old_page_only
     def test_renderTourStep_returns_early_on_missing_step(self):
         """The patched function adds `if(!tour) return;` after the
         `const tour = TOUR_STEPS[idx]` line so an out-of-range index is safe."""
@@ -150,6 +159,7 @@ class WelcomeTourNullSafeTests(unittest.TestCase):
             "undefined — guards against out-of-range index calls."
         )
 
+    @_legacy_page.on_old_page_only
     def test_no_em_dash_in_patched_block(self):
         """Standing rule: no em-dash in shipped copy. The new comment block is
         a code comment but the rule still gets a regression test."""

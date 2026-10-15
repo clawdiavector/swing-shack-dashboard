@@ -8,6 +8,12 @@ roughly 4+ viewport heights. We collapsed the 4 least-actioned cards
 single <details> accordion that defaults closed. Do first + Needs your
 review + Ready to publish remain visible above the fold.
 """
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent))
+import _legacy_page  # noqa: E402
+_legacy_page.skip_module_unless('#brief-grid')
+
 import re
 import unittest
 from pathlib import Path

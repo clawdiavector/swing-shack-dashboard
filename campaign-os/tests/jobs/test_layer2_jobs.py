@@ -80,10 +80,12 @@ def _assert_writes(data_dir: Path, names: tuple[str, ...]) -> None:
         )
 
 
-def _seed_min_calendar(data_dir: Path, brand_id: str = "stick") -> None:
+def _seed_min_calendar(data_dir: Path, brand_id: str = "stick", today=None) -> None:
     cal_dir = data_dir / "intelligence" / "marketing-calendar"
     cal_dir.mkdir(parents=True, exist_ok=True)
-    today = datetime.now(timezone.utc).date()
+    # Pass the date the planner is pinned to; the wall clock only matches it
+    # on that one day.
+    today = today or datetime.now(timezone.utc).date()
     record = {
         "calendar_id": "cal-test-1",
         "event_key": "evt-test-1",
@@ -135,8 +137,8 @@ def test_slot_planner_empty_world(data_dir):
 def test_slot_planner_with_calendar_record(data_dir):
     from _lib.jobs.layer2 import slot_planner
 
-    _seed_min_calendar(data_dir)
     fixed = datetime(2026, 9, 17, tzinfo=timezone.utc).date()
+    _seed_min_calendar(data_dir, today=fixed)
     with patch.object(slot_planner, "_today_utc", return_value=fixed):
         result = slot_planner.run()
     _assert_ok_rows(result)

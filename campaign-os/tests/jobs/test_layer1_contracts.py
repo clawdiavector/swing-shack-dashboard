@@ -285,7 +285,8 @@ def test_ga4_report_missing_cred(data_dir):
 
     result = ga4_report.run()
     _assert_fail_no_raise(result)
-    assert "GA4_PROPERTY_ID" in result["error"]
+    # Property ids are per brand now (GA4_PROPERTY_<BRAND>).
+    assert "missing GA4_PROPERTY_" in result["error"]
 
 
 # ── site_audit ──────────────────────────────────────────────────────────────

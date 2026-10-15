@@ -99,7 +99,11 @@ def allowed_hues(brand_dir: Path) -> set[str] | None:
         return None
     raw = json.loads(pal_path.read_text(encoding="utf-8"))
     allowed: set[str] = set()
-    for src in (raw.get("palette") or {}).values():
+    sources: list = []
+    for val in (raw.get("palette") or {}).values():
+        # `supporting` is a list of swatches; its colours are brand colours too.
+        sources.extend(val if isinstance(val, list) else [val])
+    for src in sources:
         if isinstance(src, dict):
             if src.get("hex"):
                 allowed |= hex_to_hue(str(src["hex"]))

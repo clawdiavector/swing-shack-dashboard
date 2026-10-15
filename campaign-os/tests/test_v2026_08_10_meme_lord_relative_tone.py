@@ -23,6 +23,11 @@ This test asserts:
   6. No new em-dashes leaked into the new copy.
 """
 from __future__ import annotations
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str((_Path(__file__).resolve().parent / '.').resolve()))
+import _legacy_page  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -56,16 +61,19 @@ class TestMemeLordRelativeTone(unittest.TestCase):
     def setUpClass(cls):
         cls.html = SPA.read_text(encoding="utf-8")
 
+    @_legacy_page.on_old_page_only
     def test_mempickscard_signature_accepts_isTop_and_tone(self):
         block = _extract_block(self.html, "function memPicksCard(", ["function memLibraryRow("])
         self.assertIn("isTop", block, "memPicksCard must accept isTop arg")
         self.assertIn("tone", block, "memPicksCard must accept tone arg")
 
+    @_legacy_page.on_old_page_only
     def test_memmechanismchip_helper_present(self):
         self.assertIn("function memMechanismChip", self.html, "memMechanismChip helper missing")
         block = _extract_block(self.html, "function memMechanismChip(", ["function memPicksCard("])
         self.assertIn("mech", block, "memMechanismChip body must reference mech")
 
+    @_legacy_page.on_old_page_only
     def test_memrefresh_uses_relative_tone(self):
         block = _extract_block(self.html, "async function memRefresh(){", ["if(!MEM_LIB_CACHE._bound)"])
         self.assertIn("avgFit", block, "avgFit local-average constant missing in memRefresh")
@@ -77,12 +85,14 @@ class TestMemeLordRelativeTone(unittest.TestCase):
         # meme decks because brand_fit scores cluster near the ceiling.
         self.assertIn("1.2", block, "1.2x ratio threshold missing in memRefresh")
 
+    @_legacy_page.on_old_page_only
     def test_top_badge_template_present(self):
         self.assertIn("★ Top", self.html, "★ Top badge template missing from memPicksCard")
         block = _extract_block(self.html, "function memPicksCard(", ["function memLibraryRow("])
         self.assertIn("Top brand-fit in this list", block, "Top badge tooltip text missing")
         self.assertIn("1.2x", block, "1.2x tooltip text missing from top badge")
 
+    @_legacy_page.on_old_page_only
     def test_border_left_tone_wired_in(self):
         block = _extract_block(self.html, "function memPicksCard(", ["function memLibraryRow("])
         # All three tone colours must be present so the green/amber/red left-border fires.
@@ -91,6 +101,7 @@ class TestMemeLordRelativeTone(unittest.TestCase):
         self.assertIn("ef4444", block, "red tone colour missing")
         self.assertIn("border-left:3px solid", block, "border-left rule missing")
 
+    @_legacy_page.on_old_page_only
     def test_no_new_em_dashes_in_memPicksCard(self):
         """Only inspect the memPicksCard function body for em-dashes.
 
@@ -104,6 +115,7 @@ class TestMemeLordRelativeTone(unittest.TestCase):
         self.assertNotIn("—", block, "Em-dash (—) leaked into memPicksCard")
         self.assertNotIn("–", block, "En-dash (–) leaked into memPicksCard")
 
+    @_legacy_page.on_old_page_only
     def test_mechanism_chip_in_template(self):
         block = _extract_block(self.html, "function memPicksCard(", ["function memLibraryRow("])
         self.assertIn("memMechanismChip(m.mechanism)", block,

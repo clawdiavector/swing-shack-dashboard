@@ -108,7 +108,9 @@ def _resolve_site_url(brand: str | None) -> tuple[str, str | None]:
             except Exception:
                 pass
             return probe_url, None
-        return None, probe_err or f"GSC_SITE_URL_{safe} not set and OAuth sites.list probe did not find a usable property"
+        # Name the env var first: it is the fix an operator can make today.
+        return None, (f"GSC_SITE_URL_{safe} not set and OAuth sites.list probe did not "
+                      f"find a usable property" + (f" ({probe_err})" if probe_err else ""))
 
     # 4) Default brand fall-through.
     site = (

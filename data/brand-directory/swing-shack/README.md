@@ -16,8 +16,8 @@ not just looking good. They are sceptical of hype. They respect data.
 
 ## Canonical references
 - Voice bible: `data/voice_bible.json#voices/swing-shack`
-- Primary colour: `#0F766E` (deep teal)
-- Accent colour: `#F59E0B` (amber)
+- Main colours: `#1C1C1C`, `#404040`, `#7C7C7C`, `#FFFFFF`
+- Accent colours: `#74CC46`, `#63A3EF`, `#E27124`, `#8F4BF9` (source: `brand-guide/swingshack-branding-document.pdf`)
 - Pillar defaults: TrackMan Intelligence / Fitting Education / Membership Value / Coach Credibility / Performance Proof
 - Website: https://swingshack.co.za
 - Instagram: @swingshack
