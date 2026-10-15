@@ -29,6 +29,9 @@ class ScoutTests(unittest.TestCase):
         u = "https://x.com/cdn/shop/files/a.png?v=12&width=533&crop=center"
         self.assertEqual(sc.full_size(u), "https://x.com/cdn/shop/files/a.png?v=12")
 
+    def test_a_deliberate_large_size_is_kept(self):
+        self.assertEqual(sc.full_size("https://x.com/a.jpg?v=1&width=2400"), "https://x.com/a.jpg?v=1&width=2400")
+
     def test_gate_rejects_non_images_thumbnails_and_tiny_files(self):
         self.assertIn("not an image", sc.check(b"<html>" * 5000, "text/html")["reason"])
         self.assertIn("under", sc.check(png(300, 300), "image/png")["reason"])

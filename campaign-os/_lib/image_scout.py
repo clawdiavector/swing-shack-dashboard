@@ -49,9 +49,16 @@ def _save(brand_id: str, rows: List[Dict[str, Any]]) -> None:
 
 
 def full_size(url: str) -> str:
-    """Shopify and similar CDNs serve a small version unless the size parameters are dropped."""
+    """Shopify and similar CDNs serve a small version unless the size parameters are dropped.
+    A deliberate large size (width/height of 1000 or more) is kept: it caps huge originals."""
     u = urlparse(url)
-    q = [(k, v) for k, v in parse_qsl(u.query) if k.lower() not in SIZE_PARAMS]
+
+    def keep(k: str, v: str) -> bool:
+        if k.lower() not in SIZE_PARAMS:
+            return True
+        return k.lower() in {"width", "height", "w", "h"} and v.isdigit() and int(v) >= 1000
+
+    q = [(k, v) for k, v in parse_qsl(u.query) if keep(k, v)]
     return urlunparse(u._replace(query=urlencode(q)))
 
 
