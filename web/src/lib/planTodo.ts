@@ -28,6 +28,8 @@ export type TodoStep = {
   event_kind: string
   plan_status: string
   asked?: { to: string; at: string } | null
+  /** A post step: set once a caption draft has been asked for. */
+  draft?: { requested_at: string } | null
   /** What the step still needs: "no shot list yet", "nobody asked yet", "no budget yet". */
   needs: string[]
 }

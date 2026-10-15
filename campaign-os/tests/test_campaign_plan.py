@@ -140,7 +140,7 @@ def test_place_creates_content_and_reminders_once():
     r = cp.place_on_calendar("stick", pid, add_record=cal.add)
     assert r["ok"] and r["placed"] == len(cal.rows) > 0
     types = {row["plan_item_kind"]: row["type"] for row in cal.rows}
-    assert types["post"] == "content" and types["story"] == "content"
+    assert types["post"] == "moment" and types["story"] == "content"   # a post is a moment the Create pipeline can draft
     assert types["shoot"] == "reminder" and types["boost"] == "reminder"
     assert all(row["status"] == "approved" for row in cal.rows)
     again = cp.place_on_calendar("stick", pid, add_record=cal.add)
@@ -315,3 +315,65 @@ def test_a_new_shoot_step_can_carry_a_shot_list():
     assert a["ok"] and a["item"]["shots"] == ["The window at dusk", "The new stock"]
     assert not cp.add_item("stick", p["plan_id"], {"title": "A post", "due": "2026-12-01", "kind": "post",
                                                     "shots": ["no"]})["ok"]
+
+
+def _placed_post(approved=True, place=True):
+    p = cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY)["plan"]
+    if approved:
+        cp.approve_plan("stick", p["plan_id"])
+    if place:
+        cp.place_on_calendar("stick", p["plan_id"],
+                             add_record=lambda b, r, s: dict(r, calendar_id="cal-" + r["plan_item_id"]))
+    plan = cp.get_plan("stick", p["plan_id"])
+    return plan, next(i for i in plan["items"] if i["kind"] == "post")
+
+
+def test_a_planned_post_tells_the_caption_writer_only_what_the_plan_knows():
+    p = cp.propose_plan("stick", brief(d="2026-12-12"), today=TODAY, profile="retail_push")["plan"]
+    post = next(i for i in p["items"] if i["kind"] == "post")
+    text = cp.post_brief(p, post)
+    assert post["title"] in text and "Black Friday" in text and "2026-12-12" in text
+    assert "retail push plan" in text
+    assert "R" not in text.replace("Retail", "").split("plan")[-1]   # no prices or budgets slipped in
+    rows = []
+    cp.approve_plan("stick", p["plan_id"])
+    cp.place_on_calendar("stick", p["plan_id"], add_record=lambda b, r, s: rows.append(r) or dict(r, calendar_id=f"c{len(rows)}"))
+    mine = next(r for r in rows if r["plan_item_kind"] == "post")
+    assert mine["type"] == "moment" and mine["angle"].startswith(post["title"])
+
+
+def test_a_draft_can_be_asked_for_once_the_plan_is_approved_and_on_the_calendar():
+    plan, post = _placed_post()
+    seen = []
+    r = cp.request_draft("stick", plan["plan_id"], post["item_id"], "Christelle",
+                         enqueue=lambda moment, brand, reason: seen.append((moment, brand, reason)) or ["draft_caption"])
+    assert r["ok"] and r["queued"] == ["draft_caption"]
+    assert seen == [(f"calendar_candidate:stick:cal-{post['item_id']}", "stick", "plan-step")]
+    kept = next(i for i in cp.get_plan("stick", plan["plan_id"])["items"] if i["item_id"] == post["item_id"])
+    assert kept["draft"]["by"] == "Christelle" and kept["draft"]["queued"] == ["draft_caption"]
+
+
+def test_a_draft_is_refused_with_a_plain_reason_when_it_is_too_early_or_the_wrong_kind():
+    never = lambda *a: (_ for _ in ()).throw(AssertionError("must not queue"))
+    plan, post = _placed_post(approved=False, place=False)
+    assert "approve the plan" in cp.request_draft("stick", plan["plan_id"], post["item_id"], enqueue=never)["error"]
+    plan, post = _placed_post(approved=True, place=False)
+    assert "calendar first" in cp.request_draft("stick", plan["plan_id"], post["item_id"], enqueue=never)["error"]
+    plan, post = _placed_post()
+    story = next(i for i in plan["items"] if i["kind"] == "story")
+    assert "only a post" in cp.request_draft("stick", plan["plan_id"], story["item_id"], enqueue=never)["error"]
+    assert not cp.request_draft("stick", plan["plan_id"], "it-missing", enqueue=never)["ok"]
+    assert not cp.request_draft("stick", "pln-missing", post["item_id"], enqueue=never)["ok"]
+    cp.edit_item("stick", plan["plan_id"], post["item_id"], {"status": "done"})
+    assert "already done" in cp.request_draft("stick", plan["plan_id"], post["item_id"], enqueue=never)["error"]
+
+
+def test_a_failure_in_the_pipeline_is_reported_and_nothing_is_recorded():
+    plan, post = _placed_post()
+
+    def boom(*a):
+        raise RuntimeError("queue is locked")
+
+    r = cp.request_draft("stick", plan["plan_id"], post["item_id"], enqueue=boom)
+    assert not r["ok"] and "queue is locked" in r["error"]
+    assert "draft" not in next(i for i in cp.get_plan("stick", plan["plan_id"])["items"] if i["item_id"] == post["item_id"])

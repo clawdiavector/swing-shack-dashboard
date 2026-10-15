@@ -90,6 +90,41 @@ export const PIN_COLORS: Record<
 const TIER_NAMES: Record<string, string> = { 'A-PIN': 'Major', 'B-PIN': 'Medium', 'C-PIN': 'Light' }
 
 /** The name a tier is shown by. Stored values stay A-PIN / B-PIN / C-PIN. */
+// Words in the calendar's own data that mean something only to the people who wrote
+// the files. Shown to everyone else in plain terms.
+const PLAIN_CATEGORY: Record<string, string> = {
+  'shopping-moment': 'Shopping',
+  'golf-moment': 'Golf',
+  'sa-cultural': 'South African',
+  'sa-holiday': 'Public holiday',
+  'always-on-arc': 'Ongoing',
+  'sustained-arc': 'Ongoing',
+  'humour-moment': 'Light-hearted',
+  'test-moment': 'Small',
+  endpoint: '',
+}
+
+/** A category as it should read: "shopping-moment" becomes "Shopping". */
+export function plainCategory(raw?: string | null): string {
+  const key = String(raw || '').trim().toLowerCase()
+  if (!key) return ''
+  if (key in PLAIN_CATEGORY) return PLAIN_CATEGORY[key]
+  const spaced = key.replace(/[-_]+/g, ' ')
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
+
+/** Notes written in the calendar's own shorthand, in plain words: "A-PIN" is a
+ *  Major date, "B-PIN" Medium, "C-PIN" Light, and "operator" is you. */
+export function plainNotes(raw?: string | null): string {
+  return String(raw || '')
+    .replace(/\bA\/B-PINs?\b/g, 'Major or Medium dates')
+    .replace(/\bA-PIN\b/g, 'Major')
+    .replace(/\bB-PIN\b/g, 'Medium')
+    .replace(/\bC-PIN\b/g, 'Light')
+    .replace(/\b(confirmed|added|chosen|picked) by operator\b/gi, '$1 by you')
+    .replace(/\bper operator\b/gi, 'per you')
+}
+
 export function tierLabel(tier?: string | null): string {
   return TIER_NAMES[tier || ''] || tier || '—'
 }

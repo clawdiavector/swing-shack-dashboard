@@ -21,7 +21,7 @@ export type Suggestion = {
 }
 
 export type Undo = {
-  kind: 'approve' | 'reject'
+  kind: 'approve' | 'reject' | 'later'
   key: string
   source: SuggestionSource
   calendar_id?: string | null
@@ -29,6 +29,8 @@ export type Undo = {
   month?: string
   /** Issued by the server; undo works from this, once, for a day. */
   token?: string
+  /** The draft plan made for this approval; undoing the approval retires it. */
+  plan_id?: string
 }
 
 type Result = { ok: boolean; error?: string; items?: Suggestion[]; undo?: Undo }
@@ -86,6 +88,13 @@ export async function fetchPillars(brand: string): Promise<PillarOption[]> {
 export const rejectSuggestion = (brand: string, month: string, key: string, name: string) =>
   call('POST', `${base(brand)}/reject`, { month, key }, name)
 
+/** Important dates still waiting for a yes or no, soonest first. */
+export const fetchTriage = (brand: string) => call('GET', `${base(brand)}/triage`)
+
+/** Not now: the date leaves the sort list for two weeks and stays on the grid. */
+export const laterSuggestion = (brand: string, month: string, key: string, name: string) =>
+  call('POST', `${base(brand)}/later`, { month, key }, name)
+
 export const undoSuggestion = (brand: string, undo: Undo) => call('POST', `${base(brand)}/undo`, { undo })
 
 /** Suggestions grouped by the day they are drawn on. */
@@ -110,6 +119,7 @@ export function spanLabel(date: string, end: string): string {
 
 /** What the undo bar says after an action. */
 export function undoMessage(kind: Undo['kind'], title: string): string {
+  if (kind === 'later') return `Put off “${title}” for two weeks.`
   return kind === 'approve' ? `Added “${title}” to the calendar.` : `Removed “${title}”.`
 }
 

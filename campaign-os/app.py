@@ -25391,6 +25391,22 @@ def plan_v1_unplace(brand_id, plan_id):
     return jsonify(r), (200 if r.get("ok") else 400)
 
 
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/item/<item_id>/draft', methods=['POST'])
+def plan_v1_draft(brand_id, plan_id, item_id):
+    """Ask the Create pipeline for a caption draft of a post step. The draft lands in
+    Approve drafts for a person to approve; nothing is posted."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    actor = (request.headers.get('X-Actor-Display-Name') or body.get("actor") or "operator")
+    try:
+        r = _plan_import().request_draft(brand_id, plan_id, item_id, str(actor).strip() or "operator")
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
 @app.route('/api/plan/v1/<brand_id>/<plan_id>/reopen', methods=['POST'])
 def plan_v1_reopen(brand_id, plan_id):
     bad = _plan_guard(brand_id)
@@ -46304,15 +46320,9 @@ def _cs_guard(brand_id):
     return None
 
 
-def _cs_items(brand_id, month):
-    """Faded suggestions for a month, from the operator store and the
-    important-dates list, minus anything already on the calendar."""
-    from zoneinfo import ZoneInfo
-    from _lib import calendar_suggestions as cs
+def _cs_inputs(brand_id, years):
+    """The important-dates rows and the names already on the calendar for these years."""
     from _lib import marketing_calendar as mc
-    first, last = cs.month_bounds(month)
-    today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
-    years = sorted({first.year, last.year})
     note_rows, names = [], []
     for yr in years:
         note_rows.extend(_filter_demo_out(_read_important_dates(yr)))
@@ -46323,11 +46333,60 @@ def _cs_items(brand_id, month):
         except Exception:
             pass
     for r in mc.latest_revisions(mc.list_records(brand_id) or []):
-        if r.get("status") == "approved":
+        # Steps a plan put on the calendar ("Teaser post, Valentine's Day") are not the
+        # event itself, and would hide the event's own date if counted.
+        if r.get("status") == "approved" and not r.get("plan_id"):
             names.append(r.get("title") or r.get("name") or "")
+    return note_rows, names
+
+
+def _cs_items(brand_id, month):
+    """Faded suggestions for a month, from the operator store and the
+    important-dates list, minus anything already on the calendar."""
+    from zoneinfo import ZoneInfo
+    from _lib import calendar_suggestions as cs
+    first, last = cs.month_bounds(month)
+    today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
+    note_rows, names = _cs_inputs(brand_id, sorted({first.year, last.year}))
     return cs.month_items(
         brand_id, month, _operator_pending_suggestions(brand_id), _typed_by_operator,
         note_rows, cs.read_decisions(brand_id), names, today)
+
+
+@app.route("/api/calendar-suggestions/<brand_id>/triage", methods=["GET"])
+def calendar_suggestions_triage(brand_id):
+    """GET — important dates still waiting for a yes or no over the next year,
+    soonest first, for the sort-your-dates screen."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    today = _jhb_today()
+    note_rows, names = _cs_inputs(brand_id, [today.year, today.year + 1])
+    items = cs.triage_items(brand_id, today, note_rows, names, cs.read_decisions(brand_id))
+    return jsonify({"ok": True, "brand_id": brand_id, "count": len(items), "items": items}), 200
+
+
+@app.route("/api/calendar-suggestions/<brand_id>/later", methods=["POST"])
+def calendar_suggestions_later(brand_id):
+    """Not now: the date leaves the sort list for two weeks and stays on the grid."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    body = request.get_json(silent=True) or {}
+    try:
+        item = _cs_find(brand_id, body)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    if not item or item["source"] != "date":
+        return jsonify({"ok": False, "error": "that date is no longer there"}), 404
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    until = (_jhb_today() + _dt.timedelta(days=cs.LATER_DAYS)).isoformat()
+    cs.record_decision(brand_id, item["key"], "later", actor, until=until)
+    undo = {"kind": "later", "key": item["key"], "source": "date", "month": body.get("month")}
+    undo["token"] = cs.issue_undo(brand_id, undo)
+    return jsonify({"ok": True, "until": until, "undo": undo}), 200
 
 
 @app.route("/api/calendar-suggestions/<brand_id>", methods=["GET"])
@@ -46462,9 +46521,11 @@ def calendar_suggestions_undo(brand_id):
         return jsonify({"ok": False, "error": "That can no longer be undone: it was already undone, or it is more than a day old."}), 404
     kind, source, key = u.get("kind"), u.get("source"), u.get("key")
     cid, event_key = u.get("calendar_id"), u.get("event_key")
-    if kind not in ("approve", "reject") or not key:
+    if kind not in ("approve", "reject", "later") or not key:
         return jsonify({"ok": False, "error": "nothing to undo"}), 400
-    if kind == "reject":
+    if kind == "later":
+        cs.clear_decision(brand_id, key)
+    elif kind == "reject":
         if source == "date":
             cs.clear_decision(brand_id, key)
         elif cid:
@@ -46478,7 +46539,21 @@ def calendar_suggestions_undo(brand_id):
         if source == "date":
             cs.clear_decision(brand_id, key)
     cs.drop_undo(brand_id, token)
-    return jsonify({"ok": True}), 200
+    # A draft plan made when this date was approved goes with it. The id comes from
+    # the browser, so it only counts if the plan belongs to this very date and is
+    # still an untouched draft.
+    retired = False
+    plan_id = sent.get("plan_id")
+    if kind == "approve" and plan_id and event_key:
+        try:
+            from _lib import campaign_plan as cp
+            plan = cp.get_plan(brand_id, str(plan_id))
+            brief = _cb_import()._read_brief(brand_id, plan["brief_id"]) if plan else None
+            if brief and (brief.get("source_opportunity") or {}).get("event_key") == event_key:
+                retired = cp.supersede_plan(brand_id, str(plan_id))
+        except (ValueError, KeyError, TypeError):
+            retired = False
+    return jsonify({"ok": True, "plan_retired": retired}), 200
 
 
 @app.route("/api/planning/<brand_id>/waiting", methods=["GET"])

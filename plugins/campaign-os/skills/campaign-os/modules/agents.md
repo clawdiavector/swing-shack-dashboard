@@ -72,6 +72,21 @@ POST /api/ops/agents/enqueue
 | Job health | Mac `watch_campaign_os.py` (15m) — **not** per-agent |
 | Telegram | Mac digest 07:00; cos-triage brief (Mac, when enabled) |
 
+## Calendar morning message (for the Telegram brief)
+
+`GET /api/jobs/morning-message?brand=all` (or `stick`, `swing-shack`, `bag-drop`) with the job bearer token
+(`COS_JOB_TOKEN`) returns plain text ready to send, plus counts:
+
+```json
+{"ok": true, "date": "2026-10-15", "text": "Good morning. Calendar check, Thu 15 Oct. ...",
+ "screaming": 1, "overdue": 2, "due_today": 0}
+```
+
+The text lists, per brand: approved dates that are close and have nothing ready (the red alerts), plan steps that are
+overdue, and plan steps due today. It says "Nothing needs you today." when there is nothing. It sends nothing itself:
+the agent that sends the Telegram brief (cos-triage, or the 07:00 Mac digest) reads it and adds `text` to its message.
+Not wired into a cron yet; that is a Mac change for Kyle. Built from `_lib/plan_todo.py` and `_lib/calendar_alerts.py`.
+
 No dedicated Mac LaunchAgent poller yet — agents run on cron (disabled) or manual Hermes invoke.
 
 ## Cron ids (Mac — check runtime, not this table)

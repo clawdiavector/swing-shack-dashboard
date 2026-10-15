@@ -125,3 +125,35 @@ def test_a_transition_starts_from_the_newest_row_so_later_edits_survive(tmp_path
     mc.transition_status("stick", cid, "candidate")
     cur = [r for r in mc.latest_revisions(mc.list_records("stick")) if r.get("calendar_id") == cid]
     assert len(cur) == 1 and cur[0]["status"] == "candidate" and cur[0]["revision"] == 6
+
+
+def _notes():
+    return [
+        {"event_name": "Italy v Springboks", "start_date": "2026-11-07", "notes": "Rugby. Tier B.", "event_type": "SA_SPORT"},
+        {"event_name": "France v Springboks", "start_date": "2026-11-14", "notes": "Rugby. Tier B.", "event_type": "SA_SPORT"},
+        {"event_name": "Absa Cape Epic", "start_date": "2027-03-21", "notes": "B-tier Western Cape sport"},
+        {"event_name": "Already past", "start_date": "2026-09-01"},
+    ]
+
+
+def test_triage_lists_the_dates_still_waiting_soonest_first_across_months():
+    out = cs.triage_items("stick", TODAY, _notes(), [], {})
+    assert [i["title"] for i in out] == ["Italy v Springboks", "France v Springboks", "Absa Cape Epic"]
+    assert all(i["source"] == "date" for i in out)
+
+
+def test_triage_leaves_out_decided_dates_and_dates_already_on_the_calendar():
+    decisions = {"note:italyvspringboks:2026-11-07": {"decision": "approved"},
+                 "note:francevspringboks:2026-11-14": {"decision": "rejected"}}
+    assert [i["title"] for i in cs.triage_items("stick", TODAY, _notes(), [], decisions)] == ["Absa Cape Epic"]
+    assert [i["title"] for i in cs.triage_items("stick", TODAY, _notes(), ["Absa Cape Epic"], {})] == [
+        "Italy v Springboks", "France v Springboks"]
+
+
+def test_not_now_hides_a_date_from_triage_for_two_weeks_but_keeps_it_on_the_grid():
+    key = "note:italyvspringboks:2026-11-07"
+    later = {key: {"decision": "later", "until": "2026-10-28"}}
+    assert "Italy v Springboks" not in [i["title"] for i in cs.triage_items("stick", TODAY, _notes(), [], later)]
+    assert any(i["key"] == key for i in items(notes=_notes(), decisions=later))               # still a faded chip
+    expired = {key: {"decision": "later", "until": "2026-10-10"}}
+    assert "Italy v Springboks" in [i["title"] for i in cs.triage_items("stick", TODAY, _notes(), [], expired)]

@@ -1,7 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { EventTypeIcon, EventTypeLegend } from '../../../components/EventTypeIcon'
-import { PIN_COLORS, tierLabel } from '../../../lib/planning'
+import { PIN_COLORS, plainCategory, plainNotes, tierLabel } from '../../../lib/planning'
 import type { PlanningEventDetail, PlanningTimelineEvent } from '../../../lib/planningTypes'
 import { EventDetail } from './EventDetail'
 import { PlanPanel } from './PlanPanel'
@@ -199,9 +199,9 @@ function PlanRow({
                 Local
               </span>
             ) : null}
-            {ev.category ? <span className="ml-2 text-[11px] text-tx3">{ev.category}</span> : null}
+            {plainCategory(ev.category) ? <span className="ml-2 text-[11px] text-tx3">{plainCategory(ev.category)}</span> : null}
             {ev.commercial_push ? (
-              <span className="mt-0.5 block truncate text-xs text-tx3">{ev.commercial_push}</span>
+              <span className="mt-0.5 block truncate text-xs text-tx3">{plainNotes(ev.commercial_push)}</span>
             ) : null}
           </span>
         </button>
