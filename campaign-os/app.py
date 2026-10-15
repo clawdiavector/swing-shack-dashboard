@@ -46213,17 +46213,9 @@ def _alerts_for_brand(brand_id):
     from _lib import marketing_calendar as mc
     from _lib.plan_profiles import event_kind as _event_kind
     today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
-    horizon = today + _dt.timedelta(days=max(ca.WARN_DAYS.values()))
+    # Only dates approved on the Main Calendar are alerted on. The event spine
+    # lists every date for the year, approved or not, so it is not read here.
     events = []
-    for yr in sorted({today.year, horizon.year}):
-        try:
-            spine, _src = _load_events_for_year(brand_id, yr)
-        except Exception:
-            spine = None
-        for e in (spine or {}).get("events") or []:
-            events.append({"id": e.get("id"), "name": e.get("name") or e.get("title"),
-                           "start": e.get("start") or e.get("public_peak"), "end": e.get("end"),
-                           "tier": e.get("tier"), "kind": _event_kind(e)})
     content_dates = []
     for r in mc.latest_revisions(mc.list_records(brand_id) or []):
         if r.get("status") != "approved" or r.get("plan_id"):
