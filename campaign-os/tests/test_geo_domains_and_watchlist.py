@@ -1,11 +1,10 @@
 """
-GEO: Bag Drop must not be audited against the Swing Shack website, and the
-default watchlists must be the ones we reviewed.
+GEO: Bag Drop must be audited against its own website, not the Swing Shack
+site, and the default watchlists must be the ones we reviewed.
 
 Background (2026-10-15): geo_audit and geo_routes both mapped bag-drop to
 https://swingshack.co.za, so the Bag Drop GEO audit was checking the wrong
-site. Bag Drop's real domain is not recorded in the repo, so it is now empty
-and the audit says "no website set" instead.
+site. Bag Drop's site is https://thebagdrop.co.za (confirmed by Christelle).
 """
 import sys
 from pathlib import Path
@@ -16,9 +15,13 @@ sys.path.insert(0, str(ROOT))
 from _lib import geo_audit, geo_routes, geo_runner  # noqa: E402
 
 
-def test_bag_drop_has_no_domain_so_audit_does_not_check_swing_shack():
-    assert geo_audit._BRAND_DOMAINS["bag-drop"] == ""
-    assert geo_routes._BRAND_DOMAINS["bag-drop"] == ""
+def test_bag_drop_domain_is_its_own_site():
+    assert geo_audit._BRAND_DOMAINS["bag-drop"] == "https://thebagdrop.co.za"
+    assert geo_routes._BRAND_DOMAINS["bag-drop"] == "https://thebagdrop.co.za"
+
+
+def test_audit_reports_missing_domain_instead_of_guessing(monkeypatch):
+    monkeypatch.setitem(geo_audit._BRAND_DOMAINS, "bag-drop", "")
     result = geo_audit.run_geo_audit("bag-drop")
     assert result["ok"] is False
     assert "no website" in result["error"]
@@ -26,7 +29,7 @@ def test_bag_drop_has_no_domain_so_audit_does_not_check_swing_shack():
 
 def test_bag_drop_own_domain_is_not_swing_shack():
     assert not geo_runner._is_own_domain("https://swingshack.co.za/shop", "bag-drop")
-    assert geo_runner._is_own_domain("https://bag-drop.example/bag", "bag-drop")
+    assert geo_runner._is_own_domain("https://thebagdrop.co.za/product/x", "bag-drop")
 
 
 def test_stick_and_swing_shack_domains_unchanged():

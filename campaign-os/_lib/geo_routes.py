@@ -34,11 +34,10 @@ _BRAND_DISPLAY = {
     "bag-drop": "Bag Drop",
 }
 
-# Bag Drop has no confirmed website yet (see geo_audit._BRAND_DOMAINS).
 _BRAND_DOMAINS = {
     "swing-shack": "https://swingshack.co.za",
     "stick": "https://stickgolf.co.za",
-    "bag-drop": "",
+    "bag-drop": "https://thebagdrop.co.za",
 }
 
 # Default watchlist queries (seeded only when the brand's watchlist file is

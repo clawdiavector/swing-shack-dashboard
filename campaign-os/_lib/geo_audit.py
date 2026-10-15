@@ -28,13 +28,10 @@ BUNDLED_DATA_DIR = os.environ.get(
 )
 DATA_DIR = os.environ.get("DATA_DIR", "/data/campaign-os")
 
-# Bag Drop's own website is not recorded anywhere in the repo yet. Left empty
-# on purpose so the audit reports "no website set" instead of checking the
-# Swing Shack site. Fill in once the real domain is confirmed.
 _BRAND_DOMAINS = {
     "swing-shack": "https://swingshack.co.za",
     "stick":      "https://stickgolf.co.za",
-    "bag-drop":   "",
+    "bag-drop":   "https://thebagdrop.co.za",
 }
 
 # ── Cache helpers ────────────────────────────────────────────────────────────
