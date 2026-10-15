@@ -5,7 +5,7 @@ import { formatStamp, stampLabel } from '../lib/stamp'
 import type { PostingWeekDay } from '../lib/postingWeek'
 import { Tip } from './ui'
 
-export type FunTone = 'gold' | 'green' | 'blue' | 'violet'
+export type FunTone = 'gold' | 'green' | 'blue' | 'violet' | 'red'
 
 /** Friendly blob that lives in the corner of Today. Colour follows the tone. */
 export function Mascot({ tone = 'gold', className = '' }: { tone?: FunTone; className?: string }) {
@@ -14,6 +14,7 @@ export function Mascot({ tone = 'gold', className = '' }: { tone?: FunTone; clas
     green: 'var(--play-green, var(--color-ac))',
     blue: 'var(--play-blue, var(--color-blu))',
     violet: 'var(--play-violet, var(--color-lane-paid))',
+    red: 'var(--play-red, var(--color-red))',
   }[tone]
   return (
     <svg className={`fun-mascot ${className}`} viewBox="0 0 120 120" aria-hidden>

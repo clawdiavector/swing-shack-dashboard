@@ -26,6 +26,7 @@
 .fun-tile[data-tone='green'] { --tone: var(--color-ac); }
 .fun-tile[data-tone='blue'] { --tone: var(--color-blu); }
 .fun-tile[data-tone='violet'] { --tone: var(--color-lane-paid); }
+.fun-tile[data-tone='red'] { --tone: var(--color-red); }
 
 .fun-tile::after {
   content: '';
@@ -394,6 +395,10 @@
   font-weight: 800;
 }
 .fun-mascot.\!w-9 { width: 2.25rem; animation: none; }
+
+/* Links inside a tile keep the tile's ink. */
+.fun-tile a { color: inherit; text-decoration: underline; font-weight: 700; }
+.fun-tile .inline-flex { color: inherit; }
 
 @keyframes fun-pop { from { transform: scale(0.6); opacity: 0; } }
 @keyframes fun-bob { 50% { transform: translateY(-5px) rotate(2deg); } }

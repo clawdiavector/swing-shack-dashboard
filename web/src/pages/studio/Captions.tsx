@@ -1,3 +1,4 @@
+import { burstAtPointer } from '../../lib/confetti'
 import { MessageSquareText } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useBrand } from '../../components/BrandSwitch'
@@ -73,6 +74,7 @@ export function Captions() {
       }
       setSurvivors(res.survivors || [])
       setRejects(res.rejects_by_check || null)
+      if ((res.survivors || []).length) burstAtPointer(50)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generate failed')
     } finally {
@@ -119,7 +121,7 @@ export function Captions() {
               onClick={handleGenerate}
               className="mt-3 rounded-full bg-yel px-4 py-2 text-sm font-semibold text-bg disabled:opacity-50"
             >
-              {busy ? 'Working…' : 'Generate 5'}
+              {busy ? 'Writing…' : 'Generate 5'}
             </button>
           </Tip>
           {error ? <p className="mt-2 text-sm text-red">{error}</p> : null}
@@ -229,7 +231,7 @@ export function Captions() {
           <section className="glass rounded-2xl border border-white/10 p-4">
             <h2 className="text-sm font-semibold">Voice bible</h2>
             <pre className="mt-2 max-h-40 overflow-auto text-xs text-tx3">
-              {voiceBible ? JSON.stringify(voiceBible, null, 2) : 'Loading…'}
+              {voiceBible ? JSON.stringify(voiceBible, null, 2) : 'Reading the voice bible…'}
             </pre>
           </section>
           <section className="glass rounded-2xl border border-white/10 p-4">
