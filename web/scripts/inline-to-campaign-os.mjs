@@ -43,18 +43,23 @@ let out = indexHtml;
 // Inline CSS
 for (const href of styleHrefs) {
     const css = read(resolve(href));
+    // Function replacement: a plain string would expand $& / $' / $` in the CSS.
     out = out.replace(
         new RegExp(`<link[^>]*rel="stylesheet"[^>]*href="${href.replace(/[/]/g, '\\/')}"[^>]*\\/?>`),
-        `<style>\n${css}\n</style>`,
+        () => `<style>\n${css}\n</style>`,
     );
 }
 
 // Inline JS — replace the module script with a non-module <script> wrapping the bundle
 for (const src of scriptSrcs) {
     const js = read(resolve(src));
+    // Function replacement: the bundle contains $& and $` sequences, which a
+    // plain replacement string would expand into copies of the script tag.
+    // type="module" is required: the bundle uses import.meta, which a classic
+    // inline script rejects ("Cannot use 'import.meta' outside a module").
     out = out.replace(
         new RegExp(`<script[^>]*src="${src.replace(/[/]/g, '\\/')}"[^>]*><\\/script>`),
-        `<script>\n${js}\n</script>`,
+        () => `<script type="module">\n${js}\n</script>`,
     );
 }
 
