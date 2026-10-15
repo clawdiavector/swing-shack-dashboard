@@ -345,6 +345,23 @@
 @keyframes fun-wiggle { 50% { transform: rotate(-5deg) scale(1.05); } }
 @keyframes fun-munch { 50% { transform: scale(1.12, 0.9); } }
 @keyframes fun-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+/* Cheers, lifted cards, bouncy buttons */
+.fun-cheer {
+  display: inline-block;
+  border-radius: 999px;
+  background: var(--color-tx);
+  color: var(--color-bg);
+  padding: 0.5rem 1.1rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  animation: fun-drop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.fun-lift { transition: transform 0.25s cubic-bezier(0.3, 1.7, 0.5, 1); }
+.fun-lift:hover { transform: translateY(-2px) rotate(-0.2deg); }
+.fun-btn { transition: transform 0.2s cubic-bezier(0.3, 1.7, 0.5, 1); }
+.fun-btn:hover:not(:disabled) { transform: scale(1.07) rotate(-1.5deg); }
+.fun-btn:active:not(:disabled) { transform: scale(0.94); }
+
 @keyframes fun-pop { from { transform: scale(0.6); opacity: 0; } }
 @keyframes fun-bob { 50% { transform: translateY(-5px) rotate(2deg); } }
 @keyframes fun-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
@@ -366,6 +383,9 @@
   .fun-ticker > *,
   .fun-shortcuts > *,
   .fun-cleared,
+  .fun-cheer,
+  .fun-lift,
+  .fun-btn,
   .fun-mouth,
   .fun-chomper,
   .fun-chomper__lid,
@@ -382,6 +402,8 @@
   }
   .fun-story:hover,
   .fun-story__done:hover,
+  .fun-lift:hover,
+  .fun-btn:hover,
   .fun-day-pill:hover,
   .fun-gap-chips > li:hover,
   .fun-tile:hover,
