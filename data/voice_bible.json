@@ -53,17 +53,17 @@
       "personality": "community-first, fun, supportive, member energy",
       "template_prefix": "🫂 Fair warning:",
       "template_suffix": "You'll never go back.",
-      "cta_default": "Drop your bag with us → swingshack.co.za",
+      "cta_default": "Visit the online store or DM ⛳️",
       "cta_alternatives": [
-        "Leave your bag at Swing Shack — play lighter",
-        "Member social every Thursday — join us",
-        "Book your drop → swingshack.co.za"
+        "Message us for current stock.",
+        "Message us to check what’s available.",
+        "Visit the online store or DM ⛳️"
       ],
       "allowed_tones": ["funny", "relatable", "educational", "confident"],
       "meme_fit": ["bag-drop"],
       "example_caption": "When your mate says 'I'll fix it myself' — we've all been there. Almost.",
       "callout_style": "warm, community, relatable scenario",
-      "hashtag_suggestions": ["#BagDropJHB", "#SwingShackMembers", "#GolfCommunity"]
+      "hashtag_suggestions": ["#BagDropJHB", "#GolfCommunity"]
     }
   },
   "tones": {

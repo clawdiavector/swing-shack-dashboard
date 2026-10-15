@@ -1741,7 +1741,6 @@ def generate_captions(
             {"hook": "Custom fitting changes the game."},
             {"hook": "Get the data, then make the call."},
             {"hook": "Why guess when you can measure?"},
-            {"hook": "Swing Shack makes improvement measurable."},
         ]
     # Shuffle the pool with the seeded RNG so order varies per call.
     shuffled_pool = list(pool_raw)
@@ -1787,7 +1786,8 @@ def generate_captions(
 
     def _voice_cta(vid, idx=0):
         alts = voices.get(vid, {}).get("cta_alternatives", [])
-        cta_default = voices.get(vid, {}).get("cta_default", "Book a session → swingshack.co.za")
+        # No default: a missing CTA must not borrow another brand's website.
+        cta_default = voices.get(vid, {}).get("cta_default", "")
         if alts and idx < len(alts):
             return alts[idx]
         return cta_default
@@ -1800,7 +1800,8 @@ def generate_captions(
         if mechanism == "problem-first":
             body = f"{prefix} The problem nobody talks about: {hook_text}. {suffix} {cta}"
         elif mechanism == "story":
-            body = f"{prefix} A golfer walked into Swing Shack and said: {hook_text}. {suffix} {cta}"
+            # Brand-neutral: this template runs for every voice.
+            body = f"{prefix} A golfer told us: {hook_text}. {suffix} {cta}"
         elif mechanism == "contrarian":
             body = f"{prefix} Forget what you heard about {hook_text.split()[0] if hook_text else 'that'}. Here's the truth. {suffix} {cta}"
         elif mechanism == "listicle":
