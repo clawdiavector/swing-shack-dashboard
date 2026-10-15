@@ -362,6 +362,32 @@
 .fun-btn:hover:not(:disabled) { transform: scale(1.07) rotate(-1.5deg); }
 .fun-btn:active:not(:disabled) { transform: scale(0.94); }
 
+/* Plan */
+.fun-when {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ac);
+}
+.fun-when[data-past='true'] { color: var(--color-tx3); }
+.fun-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--color-tx);
+  color: var(--color-bg);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.fun-mascot.\!w-9 { width: 2.25rem; animation: none; }
+
 @keyframes fun-pop { from { transform: scale(0.6); opacity: 0; } }
 @keyframes fun-bob { 50% { transform: translateY(-5px) rotate(2deg); } }
 @keyframes fun-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }

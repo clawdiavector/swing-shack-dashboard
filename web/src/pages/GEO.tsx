@@ -329,14 +329,14 @@ export default function GEO() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-white/10">
+      <div className="flex gap-1 overflow-x-auto border-b border-white/10">
         {TABS.map(t => {
           const Icon = t.icon
           return (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px sm:px-4 ${
                 tab === t.id
                   ? 'border-yel text-yel'
                   : 'border-transparent text-tx3 hover:text-tx hover:border-white/20'
