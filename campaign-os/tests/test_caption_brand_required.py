@@ -59,6 +59,23 @@ def test_intel_generate_captions_with_brand_still_works(client):
 
 @pytest.mark.parametrize("brand", ["swing-shack", "stick", "bag-drop"])
 def test_captions_view_uses_the_active_brand(brand, client):
-    rv = client.get(f"/api/intel/captions_generate?brand_id={brand}")
-    body = json.loads(rv.data)
+    # Called the way app._intel calls it. Not through the route: in the full CI
+    # run other tests re-import app, and the route answered with another
+    # test's brand.
+    fn = intelligence.INTELLIGENCE_FUNCS["captions_generate"]
+    intelligence.set_request_brand(brand)
+    try:
+        body = fn()
+    finally:
+        intelligence.clear_request_brand()
     assert body.get("_voice") == brand
+
+
+def test_captions_view_without_a_voice_is_refused(client):
+    fn = intelligence.INTELLIGENCE_FUNCS["captions_generate"]
+    intelligence.set_request_brand("takomo")
+    try:
+        body = fn()
+    finally:
+        intelligence.clear_request_brand()
+    assert body.get("ok") is False and not body.get("variants")
