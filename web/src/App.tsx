@@ -36,6 +36,7 @@ import { Worked } from './pages/results/Worked'
 import { BrandVisuals } from './pages/BrandVisuals'
 import { Library } from './pages/Library'
 import GEO from './pages/GEO'
+import { SeoPage } from './pages/SeoPage'
 
 export default function App() {
   return (
@@ -75,6 +76,7 @@ export default function App() {
         <Route path="results/week" element={<Week />} />
         <Route path="results/worked" element={<Worked />} />
         <Route path="results/templates" element={<Templates />} />
+        <Route path="results/seo" element={<SeoPage />} />
         <Route path="ops" element={<Ops />} />
         <Route path="geo" element={<GEO />} />
         <Route path="other" element={<Other />} />
