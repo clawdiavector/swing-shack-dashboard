@@ -24,7 +24,7 @@ import type {
   PlanningRightNow,
   PlanningTimeline,
 } from '../../lib/planningTypes'
-import { EventTimelinePanel } from './planning/EventTimelinePanel'
+import { AlertBanner } from './planning/AlertBanner'
 import { LaneMonthPanel } from './planning/LaneMonthPanel'
 import { PlanList } from './planning/PlanList'
 import { PlanningCandidatesPanel } from './planning/PlanningCandidatesPanel'
@@ -35,14 +35,13 @@ import { SearchPanel } from './planning/SearchPanel'
 import { SuggestDateModal } from './planning/SuggestDateModal'
 import { WaitingForYou } from './planning/WaitingForYou'
 
-type LanesTab = 'list' | 'timeline' | 'month'
+type LanesTab = 'list' | 'month'
 
 // One calendar, three ways to look at it. The switch sits at the top of
 // the page and List is the default; everything else on the page stays put
 // whichever view is showing. Old ?tab=strategy links land on List.
 const TAB_OPTIONS: { id: LanesTab; label: string; hint: string }[] = [
   { id: 'list', label: 'List', hint: 'Everything coming up as rows, soonest first' },
-  { id: 'timeline', label: 'Timeline', hint: 'Events as bars across the year' },
   { id: 'month', label: 'Month', hint: 'Day-by-day grid for one month' },
 ]
 
@@ -72,7 +71,6 @@ export function Lanes() {
   const monthParam =
     params.get('month') ||
     `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
-  const yearParam = params.get('year') || String(new Date().getFullYear())
 
   const [bigIdea, setBigIdea] = useState<PlanningBigIdeaResponse | null>(null)
   const [rightNow, setRightNow] = useState<PlanningRightNow | null>(null)
@@ -229,27 +227,6 @@ export function Lanes() {
   const strategyEmpty = panelFailed(bigIdea) && panelFailed(rightNow)
   const brandLabel = scopeBrand || 'brand'
 
-  const yearControl = (
-    <label className="flex items-center gap-2 text-sm text-tx2">
-      Year
-      <select
-        value={yearParam}
-        onChange={(e) => {
-          const p = new URLSearchParams(params)
-          p.set('year', e.target.value)
-          setParams(p, { replace: true })
-        }}
-        className="rounded-xl border border-white/10 bg-bg2/80 px-3 py-2 text-sm text-tx"
-      >
-        {[2026, 2027].map((y) => (
-          <option key={y} value={String(y)}>
-            {y}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-
   const openSuggestDate = (iso?: string) => {
     setSuggestDateInitial(iso)
     setShowSuggestDate(true)
@@ -286,7 +263,6 @@ export function Lanes() {
               </button>
             ))}
           </span>
-          {tab === 'timeline' ? yearControl : null}
         </div>
         {scopeBrand ? (
           <button
@@ -300,6 +276,8 @@ export function Lanes() {
           </button>
         ) : null}
       </div>
+
+      <AlertBanner brandId={scopeBrand || ''} refreshKey={refreshKey} />
 
       {!scopeBrand ? <p className="text-sm text-tx3">Pick a brand to load its plan.</p> : null}
 
@@ -324,17 +302,6 @@ export function Lanes() {
         />
       ) : null}
 
-      {tab === 'timeline' ? (
-        <EventTimelinePanel
-          brand={brandLabel}
-          year={yearParam}
-          timeline={withDatesToNote}
-          eventDetail={eventDetail}
-          onOpenEvent={openEvent}
-          onCloseEvent={closeEvent}
-        />
-      ) : null}
-
       {tab === 'month' ? (
         <LaneMonthPanel
           brand={brandLabel}
@@ -342,6 +309,8 @@ export function Lanes() {
           monthView={monthView}
           onMonthChange={setMonthParam}
           onSuggestDate={openSuggestDate}
+          brandId={scopeBrand || ''}
+          onChanged={() => setRefreshKey((k) => k + 1)}
         />
       ) : null}
 

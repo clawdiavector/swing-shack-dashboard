@@ -51,9 +51,10 @@ export const RAIL: RailItem[] = [
     label: 'Plan',
     hint: 'Calendar',
     icon: CalendarDays,
-    match: ['/calendar', '/week'],
+    match: ['/calendar', '/week', '/todo'],
     pages: [
       { to: '/calendar/lanes', label: 'Plan' },
+      { to: '/todo', label: 'To do' },
       { to: '/week', label: 'This week' },
     ],
   },

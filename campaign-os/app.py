@@ -25143,6 +25143,268 @@ def brief_v1_list(brand_id):
                     "count": len(items), "briefs": items}), 200
 
 
+# ── Plan from a date: approved brief -> dated, editable checklist ──
+def _plan_import():
+    from _lib import campaign_plan as cp
+    return cp
+
+
+def _plan_guard(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    return None
+
+
+def _plan_event_meta(brand_id, brief):
+    """What the calendar knows about a brief's date (tier, category, whether it
+    is a shopping moment, how long it runs, its lead-time class), so the plan
+    can take the right shape. Empty when the date is not found."""
+    src = (brief or {}).get("source_opportunity") or {}
+    key = src.get("event_key") or src.get("id") or ""
+    year = str(src.get("date") or "")[:4]
+    meta = {}
+    try:
+        # An event can run into the next year, so its file may be the year before its date.
+        for yr in ((int(year), int(year) - 1) if year.isdigit() else ()):
+            spine, _src = _load_events_for_year(brand_id, yr)
+            for e in (spine or {}).get("events") or []:
+                if e.get("id") == key:
+                    meta = {"tier": e.get("tier"), "category": e.get("category"),
+                            "shopping_moment": bool(e.get("shopping_moment")),
+                            "pillars": e.get("pillars"),
+                            "start": e.get("start"), "end": e.get("end")}
+                    break
+            if meta:
+                break
+        if not meta:
+            from _lib import marketing_calendar as mc
+            for r in mc.latest_revisions(mc.list_records(brand_id) or []):
+                if (r.get("event_key") or r.get("calendar_id")) == key:
+                    meta = {"tier": r.get("tier"), "category": r.get("category"),
+                            "lead_time_class": r.get("lead_time_class"),
+                            "start": r.get("event_start"), "end": r.get("event_end")}
+                    if meta["lead_time_class"] == "normal_campaign":
+                        meta["lead_time_class"] = None  # the default, not a choice
+                    break
+        a, b = str(meta.get("start") or "")[:10], str(meta.get("end") or "")[:10]
+        if a and b:
+            meta["duration_days"] = max(1, (_dt.date.fromisoformat(b) - _dt.date.fromisoformat(a)).days + 1)
+    except Exception:
+        _app_log.exception("plan event meta failed for %s", key)
+    return meta
+
+
+def _plan_sync(brand_id, plan):
+    """Refresh the plan's copy of its brief's status. Never raises."""
+    try:
+        if plan:
+            _plan_import().sync_brief_status(
+                plan, _cb_import()._read_brief(brand_id, plan.get("brief_id")))
+    except Exception:
+        pass
+
+
+@app.route('/api/plan/v1/<brand_id>/propose', methods=['POST'])
+def plan_v1_propose(brand_id):
+    """POST body: {brief_id, force?}. Builds a dated checklist from the
+    brief's event date. Nothing is scheduled or published."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    brief_id = (body.get("brief_id") or "").strip()
+    if not brief_id:
+        return jsonify({"ok": False, "error": "brief_id required"}), 400
+    try:
+        brief = _cb_import()._read_brief(brand_id, brief_id)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    r = _plan_import().propose_plan(
+        brand_id, brief, force=bool(body.get("force")),
+        profile=(body.get("profile") or None),
+        event_meta=_plan_event_meta(brand_id, brief))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/from-event', methods=['POST'])
+def plan_v1_from_event(brand_id):
+    """POST body: {event_key, force?}. One step from a calendar date to a draft
+    plan: reuse the date's brief or write one, then propose the plan."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    event_key = (body.get("event_key") or "").strip()
+    if not event_key:
+        return jsonify({"ok": False, "error": "event_key required"}), 400
+    cb = _cb_import()
+    brief = None
+    existing = cb._find_active_brief(brand_id, event_key)
+    if existing:
+        brief = cb._read_brief(brand_id, existing["brief_id"])
+    else:
+        r = cb.create_brief(brand_id, event_key, force=bool(body.get("force")))
+        if r.get("decision"):
+            watch = r["decision"] == "WATCH"
+            reasons = [f.get("reason") or f.get("gate") or ""
+                       for f in ((r.get("gate") or {}).get("hard_gate_failures") or [])]
+            lead = ("Campaign OS wants to watch this one, not brief it yet."
+                    if watch else "Campaign OS will not brief this entry.")
+            return jsonify({"ok": False, "decision": r["decision"],
+                            "reasons": [x for x in reasons if x],
+                            "error": " ".join([lead] + [x.rstrip(".") + "." for x in reasons if x])}), 200
+        if not r.get("ok"):
+            return jsonify({"ok": False, "error": r.get("error") or "could not write the brief"}), 400
+        brief = r.get("brief")
+    res = _plan_import().propose_plan(brand_id, brief,
+                                      event_meta=_plan_event_meta(brand_id, brief))
+    if not res.get("ok"):
+        return jsonify(res), 400
+    return jsonify({"ok": True, "brief_id": brief.get("brief_id"),
+                    "brief_status": brief.get("status"), "plan": res["plan"],
+                    "brief_existed": bool(existing)}), 200
+
+
+@app.route('/api/plan/v1/<brand_id>/month', methods=['GET'])
+def plan_v1_month(brand_id):
+    """GET ?month=YYYY-MM — steps of draft (or approved, not yet placed) plans
+    due that month, for the faded chips on the month grid."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    try:
+        first, last = cs.month_bounds((request.args.get("month") or "").strip())
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    steps = _plan_import().month_steps(brand_id, first, last)
+    return jsonify({"ok": True, "brand_id": brand_id, "count": len(steps), "steps": steps}), 200
+
+
+@app.route('/api/plan/v1/<brand_id>/list', methods=['GET'])
+def plan_v1_list(brand_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    items = _plan_import().list_plans(brand_id,
+                                      (request.args.get("status") or None))
+    for _p in items:
+        _plan_sync(brand_id, _p)
+    return jsonify({"ok": True, "brand_id": brand_id,
+                    "count": len(items), "plans": items}), 200
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>', methods=['GET'])
+def plan_v1_get(brand_id, plan_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    try:
+        plan = _plan_import().get_plan(brand_id, plan_id)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    if not plan:
+        return jsonify({"ok": False, "error": "plan not found"}), 404
+    _plan_sync(brand_id, plan)
+    return jsonify({"ok": True, "plan": plan}), 200
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/item/<item_id>', methods=['PATCH'])
+def plan_v1_edit_item(brand_id, plan_id, item_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    actor = body.pop("actor", "operator") or "operator"
+    try:
+        r = _plan_import().edit_item(brand_id, plan_id, item_id, body, actor)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/item', methods=['POST'])
+def plan_v1_add_item(brand_id, plan_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    actor = body.pop("actor", "operator") or "operator"
+    try:
+        r = _plan_import().add_item(brand_id, plan_id, body, actor)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/approve', methods=['POST'])
+def plan_v1_approve(brand_id, plan_id):
+    """Records the yes. Does not put anything on the calendar yet."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    try:
+        _plan_sync(brand_id, _plan_import().get_plan(brand_id, plan_id))
+        r = _plan_import().approve_plan(brand_id, plan_id,
+                                        body.get("actor") or "operator")
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/place', methods=['POST'])
+def plan_v1_place(brand_id, plan_id):
+    """Put the approved plan's steps on the Main Calendar. Not published.
+    The calendar's write-gate only books an approved slot for a request that
+    names its person, so X-Actor-Display-Name is required, as for lodging."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip()
+    if not actor:
+        return jsonify({"ok": False, "error": (
+            "send your name in the X-Actor-Display-Name header -- the calendar "
+            "only books a slot for a named person")}), 400
+    try:
+        r = _plan_import().place_on_calendar(brand_id, plan_id, actor)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/unplace', methods=['POST'])
+def plan_v1_unplace(brand_id, plan_id):
+    """Undo: take the plan's steps off the Main Calendar."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    try:
+        r = _plan_import().take_off_calendar(
+            brand_id, plan_id, body.get("actor") or "operator")
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/reopen', methods=['POST'])
+def plan_v1_reopen(brand_id, plan_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    try:
+        r = _plan_import().reopen_plan(brand_id, plan_id,
+                                       body.get("actor") or "operator")
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
 @app.route('/api/brief/v1/<brand_id>/<brief_id>', methods=['GET'])
 def brief_v1_get(brand_id, brief_id):
     """GET /api/brief/v1/<brand_id>/<brief_id> — full Brief JSON."""
@@ -44016,10 +44278,12 @@ def planning_month_view(brand_id):
     # any approved event shows up the moment it is approved.
     operator_approved_events: List[Dict[str, Any]] = []
     operator_approved_days: Dict[str, List[Dict[str, Any]]] = {}
+    _op_seen: set = set()
+    from _lib.plan_profiles import event_kind as _month_kind
     try:
         from _lib import marketing_calendar as _mc_month
         try:
-            _op_records = _mc_month.list_records(brand_id) or []
+            _op_records = _mc_month.latest_revisions(_mc_month.list_records(brand_id) or [])
         except Exception:
             _op_records = []
         for r in _op_records:
@@ -44036,6 +44300,12 @@ def planning_month_view(brand_id):
             if not start_iso.startswith(month):
                 continue
             ek = r.get("event_key")
+            # Approving a suggestion leaves two approved rows (the event and the
+            # suggestion it came from); draw the day once.
+            _dup_key = (str(r.get("title") or r.get("name") or "").strip().lower(), start_iso)
+            if _dup_key in _op_seen:
+                continue
+            _op_seen.add(_dup_key)
             lane = r.get("lane") or "operator"
             item = {
                 "id": ek or start_iso,
@@ -44053,6 +44323,8 @@ def planning_month_view(brand_id):
                 "source": r.get("source_origin") or "operator-store",
                 "tier": r.get("tier"),
                 "event_key": ek,
+                # A step a plan put on the calendar carries the type of its event.
+                "kind": r.get("event_kind") or _month_kind(r),
             }
             operator_approved_events.append(item)
             operator_approved_days.setdefault(start_iso, []).append(item)
@@ -44068,6 +44340,7 @@ def planning_month_view(brand_id):
                 "execution_type": "operator_approved",
                 "source": "operator-store",
                 "channel": "main-calendar",
+                "kind": item["kind"],
             })
             # Also surface in days_extended for the three-layer panel.
             if start_iso in days_extended:
@@ -44137,6 +44410,7 @@ def planning_month_view(brand_id):
                     "event_key": ev.get("event_key") or ev.get("id"),
                     "public_peak": (ev.get("public_peak") or "")[:10],
                     "phases": ev.get("phases"),
+                    "kind": _month_kind(ev),
                 }
                 days.setdefault(start_iso, []).append(spine_item)
                 # Also push into days_extended.planned_content
@@ -45470,8 +45744,10 @@ def planning_timeline(brand_id):
             # The Plan list shows each row's next step (Create brief /
             # Open brief) without one lookup per row.
             brief_ids = _brief_ids_by_event(brand_id)
+            from _lib.plan_profiles import event_kind as _event_kind
             for e in ordered:
                 e["brief_id"] = brief_ids.get(e.get("event_key") or e.get("id")) or ""
+                e["kind"] = _event_kind(e)
 
             counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
             for e in ordered:
@@ -45498,6 +45774,8 @@ def planning_timeline(brand_id):
                     brand_id, note_rows, start_d, end_d,
                     already_named=[e.get("name") or e.get("title") for e in ordered],
                 )
+                for _n in notes_to_show:
+                    _n["kind"] = _event_kind(_n)
             except Exception as note_err:
                 print(f"[timeline] dates_to_note EXC: {type(note_err).__name__}: {note_err}", file=_sys_main.stderr, flush=True)
             try:
@@ -45806,6 +46084,9 @@ def _operator_pending_suggestions(brand_id):
         rid = r.get("calendar_id") or r.get("event_key")
         if rid:
             current_status[rid] = r.get("status")
+    # Only an approval that still stands counts: an undone one has a newer
+    # "ignored" row for the same event.
+    for r in _mc_pending.latest_revisions(records):
         if r.get("status") == "approved":
             src = (r.get("candidate_metadata") or {}).get("candidate_id")
             if src:
@@ -45840,21 +46121,364 @@ def _typed_by_operator(record):
     )
 
 
+_BRIEF_INDEX: Dict[str, Any] = {}
+
+
+def _briefs_signature(brand_id):
+    """What the brand's brief files look like right now (name, mtime, size).
+    Cheap to read: it stats the files and opens none."""
+    try:
+        d = _cb_import()._briefs_dir(brand_id)
+        with os.scandir(d) as it:
+            rows = []
+            for e in it:
+                if e.is_file() and e.name.endswith(".json"):
+                    st = e.stat()
+                    rows.append((e.name, st.st_mtime_ns, st.st_size))
+            return tuple(sorted(rows))
+    except (FileNotFoundError, OSError):
+        return ()
+
+
 def _brief_ids_by_event(brand_id):
-    """{event_key: brief_id} for every brief of the brand that is not superseded."""
+    """{event_key: brief_id} for every brief of the brand that is not superseded.
+
+    Reading every brief is the cost, and it was paid on every timeline and alert
+    request (twice per brief). The answer is kept until a brief file is added,
+    removed or changed, and a read that failed is never kept."""
+    sig = _briefs_signature(brand_id)
+    key = (os.environ.get("DATA_DIR", ""), brand_id)
+    hit = _BRIEF_INDEX.get(key)
+    if hit and hit[0] == sig:
+        return dict(hit[1])
     out: Dict[str, str] = {}
+    complete = True
     try:
         cb = _cb_import()
-        for row in cb.list_briefs(brand_id):
-            full = cb._read_brief(brand_id, row.get("brief_id"))
-            if not full or full.get("status") == cb.STATUS_SUPERSEDED:
+        for name, _mtime, _size in sig:
+            try:
+                full = cb._read_brief(brand_id, name[:-len(".json")])
+            except Exception:
+                full = None
+            if full is None:
+                complete = False  # unreadable now; try again next time
+                continue
+            if full.get("status") == cb.STATUS_SUPERSEDED:
                 continue
             ek = (full.get("source_opportunity") or {}).get("event_key")
             if ek and full.get("brief_id"):
                 out.setdefault(ek, full["brief_id"])
     except Exception:
         _app_log.exception("_brief_ids_by_event failed for %s", brand_id)
-    return out
+        complete = False
+    if complete:
+        _BRIEF_INDEX[key] = (sig, out)
+    return dict(out)
+
+
+# ── Approved dates that are close and have no plan or content ──
+def _alerts_for_brand(brand_id):
+    from zoneinfo import ZoneInfo
+    from _lib import calendar_alerts as ca
+    from _lib import campaign_plan as cp
+    from _lib import marketing_calendar as mc
+    from _lib.plan_profiles import event_kind as _event_kind
+    today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
+    horizon = today + _dt.timedelta(days=max(ca.WARN_DAYS.values()))
+    events = []
+    for yr in sorted({today.year, horizon.year}):
+        try:
+            spine, _src = _load_events_for_year(brand_id, yr)
+        except Exception:
+            spine = None
+        for e in (spine or {}).get("events") or []:
+            events.append({"id": e.get("id"), "name": e.get("name") or e.get("title"),
+                           "start": e.get("start") or e.get("public_peak"), "end": e.get("end"),
+                           "tier": e.get("tier"), "kind": _event_kind(e)})
+    content_dates = []
+    for r in mc.latest_revisions(mc.list_records(brand_id) or []):
+        if r.get("status") != "approved" or r.get("plan_id"):
+            continue  # steps a plan put there are the plan's, not content made for the date
+        kind = r.get("type")
+        start = r.get("event_start") or r.get("event_date") or r.get("public_peak")
+        if kind in ("campaign", "moment"):
+            # Someone chose this date for the calendar, so it is never quieter than B.
+            events.append({"event_key": r.get("event_key") or r.get("calendar_id"),
+                           "name": r.get("title") or r.get("name"), "start": start,
+                           "end": r.get("event_end"),
+                           "tier": r.get("tier") if r.get("tier") in ("A-PIN", "B-PIN") else "B-PIN",
+                           "kind": _event_kind(r)})
+        elif kind == "content":
+            content_dates.append(start)
+    plans = {p.get("brief_id"): p for p in cp.list_plans(brand_id) if p.get("status") != "superseded"}
+    return ca.find_alerts(brand_id, events, _brief_ids_by_event(brand_id), plans, content_dates, today)
+
+
+@app.route("/api/calendar-alerts", methods=["GET"])
+def calendar_alerts():
+    """GET ?brand=stick|swing-shack|bag-drop|all — approved dates that are
+    close and have no plan or content, loudest first."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = (request.args.get("brand") or "all").strip()
+    brands = ["swing-shack", "stick", "bag-drop"] if brand == "all" else [brand]
+    if any(b not in ("swing-shack", "stick", "bag-drop") for b in brands):
+        return jsonify({"ok": False, "error": f"brand '{brand}' invalid"}), 400
+    alerts = []
+    for b in brands:
+        try:
+            alerts.extend(_alerts_for_brand(b))
+        except Exception:
+            _app_log.exception("calendar alerts failed for %s", b)
+    alerts.sort(key=lambda a: (a["level"] != "scream", a["days"], a["name"]))
+    return jsonify({"ok": True, "brand": brand, "count": len(alerts),
+                    "screaming": sum(1 for a in alerts if a["level"] == "scream"),
+                    "alerts": alerts}), 200
+
+
+# ── The working list from the plans, and the morning message ──
+def _todo_brands(brand):
+    brands = ["swing-shack", "stick", "bag-drop"] if brand in ("", "all") else [brand]
+    if any(b not in ("swing-shack", "stick", "bag-drop") for b in brands):
+        return None
+    return brands
+
+
+def _jhb_today():
+    from zoneinfo import ZoneInfo
+    return _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
+
+
+@app.route("/api/plan-todo", methods=["GET"])
+def plan_todo_route():
+    """GET ?brand=stick|swing-shack|bag-drop|all — every step still to do across the
+    live plans, overdue first, then today, this week, and the next 30 days."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brands = _todo_brands((request.args.get("brand") or "all").strip())
+    if brands is None:
+        return jsonify({"ok": False, "error": "unknown brand"}), 400
+    from _lib import campaign_plan as cp
+    from _lib import plan_todo as pt
+    today = _jhb_today()
+    steps = []
+    for b in brands:
+        steps.extend(pt.todo_steps(b, cp.list_plans(b), today))
+    steps.sort(key=lambda s: (pt.BUCKETS.index(s["bucket"]), s["due"], s["event_name"], s["title"]))
+    counts = {k: len(v) for k, v in pt.group_by_bucket(steps).items()}
+    return jsonify({"ok": True, "today": today.isoformat(), "count": len(steps),
+                    "counts": counts, "steps": steps}), 200
+
+
+@app.route("/api/jobs/morning-message", methods=["GET"])
+def morning_message_route():
+    """GET ?brand=...|all — the morning message as plain text, for the agent that sends
+    the Telegram brief to read. It sends nothing itself. Session or job bearer."""
+    brands = _todo_brands((request.args.get("brand") or "all").strip())
+    if brands is None:
+        return jsonify({"ok": False, "error": "unknown brand"}), 400
+    from _lib import campaign_plan as cp
+    from _lib import plan_todo as pt
+    today = _jhb_today()
+    sections = {}
+    for b in brands:
+        try:
+            alerts = _alerts_for_brand(b)
+        except Exception:
+            _app_log.exception("morning message alerts failed for %s", b)
+            alerts = []
+        sections[b] = {"alerts": alerts, "steps": pt.todo_steps(b, cp.list_plans(b), today)}
+    text = pt.morning_text(sections, today)
+    return jsonify({"ok": True, "date": today.isoformat(), "text": text,
+                    "screaming": sum(1 for s in sections.values() for a in s["alerts"] if a["level"] == "scream"),
+                    "overdue": sum(1 for s in sections.values() for x in s["steps"] if x["bucket"] == "overdue"),
+                    "due_today": sum(1 for s in sections.values() for x in s["steps"] if x["bucket"] == "today")}), 200
+
+
+# ── Suggestions on the month calendar: faded until approved or rejected ──
+def _cs_guard(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+    return None
+
+
+def _cs_items(brand_id, month):
+    """Faded suggestions for a month, from the operator store and the
+    important-dates list, minus anything already on the calendar."""
+    from zoneinfo import ZoneInfo
+    from _lib import calendar_suggestions as cs
+    from _lib import marketing_calendar as mc
+    first, last = cs.month_bounds(month)
+    today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
+    years = sorted({first.year, last.year})
+    note_rows, names = [], []
+    for yr in years:
+        note_rows.extend(_filter_demo_out(_read_important_dates(yr)))
+        note_rows.extend(_read_golf_moments(yr))
+        try:
+            spine, _src = _load_events_for_year(brand_id, yr)
+            names.extend((e.get("name") or e.get("title") or "") for e in (spine or {}).get("events") or [])
+        except Exception:
+            pass
+    for r in mc.latest_revisions(mc.list_records(brand_id) or []):
+        if r.get("status") == "approved":
+            names.append(r.get("title") or r.get("name") or "")
+    return cs.month_items(
+        brand_id, month, _operator_pending_suggestions(brand_id), _typed_by_operator,
+        note_rows, cs.read_decisions(brand_id), names, today)
+
+
+@app.route("/api/calendar-suggestions/<brand_id>", methods=["GET"])
+def calendar_suggestions_list(brand_id):
+    """GET ?month=YYYY-MM — the faded entries for the month grid."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    month = (request.args.get("month") or "").strip()
+    try:
+        items = _cs_items(brand_id, month)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify({"ok": True, "brand_id": brand_id, "month": month,
+                    "count": len(items), "items": items}), 200
+
+
+def _cs_find(brand_id, body):
+    month = (body.get("month") or "").strip()
+    key = (body.get("key") or "").strip()
+    for it in _cs_items(brand_id, month):
+        if it["key"] == key:
+            return it
+    return None
+
+
+@app.route("/api/calendar-suggestions/<brand_id>/approve", methods=["POST"])
+def calendar_suggestions_approve(brand_id):
+    """Approve a faded entry: it becomes a real Main Calendar event through
+    the canonical approval path. An important date first becomes a campaign
+    suggestion of its own, so it can be approved like any other."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    from _lib import marketing_calendar as mc
+    body = request.get_json(silent=True) or {}
+    try:
+        item = _cs_find(brand_id, body)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    if not item:
+        return jsonify({"ok": False, "error": "that suggestion is no longer there"}), 404
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    cid, made = item.get("calendar_id"), False
+    pillars = [p for p in (body.get("pillars") or []) if isinstance(p, str) and p]
+    if item["source"] != "date" and pillars and not item.get("pillars"):
+        # A row with no pillar can still be approved, but could never get a brief.
+        try:
+            mc.set_pillars(brand_id, cid, pillars, reason=f"pillar chosen when approved by {actor}")
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+    if item["source"] == "date":
+        why = item.get("why") or ""
+        try:
+            rec = mc.add_candidate(brand_id, {
+                "type": "campaign", "title": item["title"],
+                "event_start": item["date"], "event_end": item["end"], "public_peak": item["date"],
+                "summary": why, "why_it_matters": why, "tier": item.get("tier"),
+                "category": item.get("category"), "source_type": "operator",
+                "source": "OPERATOR_PROVIDED", "created_by": "operator", "is_suggested": True,
+                "origin_note_id": item["key"],
+                "pillars": pillars,
+            }, initial_status="candidate")
+        except (ValueError, PermissionError) as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        cid, made = rec.get("calendar_id"), True
+    try:
+        resp = planning_approve_candidate(brand_id, cid)
+    except Exception:
+        _app_log.exception("calendar suggestion approve failed for %s", cid)
+        if made:
+            mc.transition_status(brand_id, cid, "ignored", reason="approval failed; not kept")
+        return jsonify({"ok": False, "error": "could not approve it; nothing was changed"}), 500
+    code = 200
+    if isinstance(resp, tuple):
+        resp, code = resp[0], resp[1]
+    data = resp.get_json(silent=True) or {}
+    if code >= 400 or not data.get("ok"):
+        if made:
+            mc.transition_status(brand_id, cid, "ignored", reason="approval failed; not kept")
+        return jsonify({"ok": False, "error": data.get("error") or "could not approve it"}), (code if code >= 400 else 400)
+    if item["source"] == "date":
+        cs.record_decision(brand_id, item["key"], "approved", actor, calendar_id=cid,
+                           event_key=data.get("event_key"))
+    undo = {"kind": "approve", "key": item["key"], "source": item["source"],
+            "calendar_id": cid, "event_key": data.get("event_key"), "month": body.get("month")}
+    undo["token"] = cs.issue_undo(brand_id, undo)
+    return jsonify({"ok": True, "undo": undo}), 200
+
+
+@app.route("/api/calendar-suggestions/<brand_id>/reject", methods=["POST"])
+def calendar_suggestions_reject(brand_id):
+    """Reject a faded entry: it stops being offered. Undo brings it back."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    from _lib import marketing_calendar as mc
+    body = request.get_json(silent=True) or {}
+    try:
+        item = _cs_find(brand_id, body)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    if not item:
+        return jsonify({"ok": False, "error": "that suggestion is no longer there"}), 404
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    if item["source"] == "date":
+        cs.record_decision(brand_id, item["key"], "rejected", actor)
+    else:
+        mc.transition_status(brand_id, item["calendar_id"], "ignored",
+                             reason=f"rejected from the calendar view by {actor}")
+    undo = {"kind": "reject", "key": item["key"], "source": item["source"],
+            "calendar_id": item.get("calendar_id"), "month": body.get("month")}
+    undo["token"] = cs.issue_undo(brand_id, undo)
+    return jsonify({"ok": True, "undo": undo}), 200
+
+
+@app.route("/api/calendar-suggestions/<brand_id>/undo", methods=["POST"])
+def calendar_suggestions_undo(brand_id):
+    """Reverse the last approve or reject, using the `undo` the call returned."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    from _lib import marketing_calendar as mc
+    sent = (request.get_json(silent=True) or {}).get("undo") or {}
+    token = sent.get("token")
+    # What to reverse comes from what the server stored, never from the request.
+    u = cs.get_undo(brand_id, token)
+    if not u:
+        return jsonify({"ok": False, "error": "That can no longer be undone: it was already undone, or it is more than a day old."}), 404
+    kind, source, key = u.get("kind"), u.get("source"), u.get("key")
+    cid, event_key = u.get("calendar_id"), u.get("event_key")
+    if kind not in ("approve", "reject") or not key:
+        return jsonify({"ok": False, "error": "nothing to undo"}), 400
+    if kind == "reject":
+        if source == "date":
+            cs.clear_decision(brand_id, key)
+        elif cid:
+            mc.transition_status(brand_id, cid, "candidate", reason="reject undone")
+    else:
+        if event_key:
+            mc.transition_status(brand_id, event_key, "ignored", reason="approval undone")
+        if cid:
+            mc.transition_status(brand_id, cid, "ignored" if source == "date" else "candidate",
+                                 reason="approval undone")
+        if source == "date":
+            cs.clear_decision(brand_id, key)
+    cs.drop_undo(brand_id, token)
+    return jsonify({"ok": True}), 200
 
 
 @app.route("/api/planning/<brand_id>/waiting", methods=["GET"])
@@ -46349,7 +46973,7 @@ def planning_approve_candidate(brand_id, candidate_id):
     if not candidate and not research_lead:
         try:
             from _lib import marketing_calendar as _mc_approve_lookup
-            _records = _mc_approve_lookup.list_records(brand_id) or []
+            _records = _mc_approve_lookup.latest_revisions(_mc_approve_lookup.list_records(brand_id) or [])
             for r in _records:
                 if r.get("calendar_id") == candidate_id or r.get("event_key") == candidate_id:
                     # Found in the operator-store. Already approved? Idempotent noop.
