@@ -31,6 +31,7 @@ export type PlanningMonthItem = {
   stock_refs?: string[]
   /** What kind of date it is, for its icon. Set on events, not on content cards. */
   kind?: string
+  event_key?: string
 }
 
 export type PlanningMonthView = {

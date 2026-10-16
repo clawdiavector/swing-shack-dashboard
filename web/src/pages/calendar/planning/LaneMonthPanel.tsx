@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { planPageHref } from '../../../lib/calendarAlerts'
 import {
   buildMonthGridCells,
   filterMonthItemsByLane,
@@ -139,7 +141,7 @@ function DayDrawer({
                   {it.subtitle ? <p className="text-sm text-tx2">{it.subtitle}</p> : null}
                   <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-tx2">
                     <dt className="text-tx3">Pillar</dt>
-                    <dd>{it.lane}</dd>
+                    <dd>{!it.lane || it.lane === 'operator' ? 'Not set' : it.lane}</dd>
                     {it.channel ? (
                       <>
                         <dt className="text-tx3">Channel</dt>
@@ -171,6 +173,14 @@ function DayDrawer({
                       </>
                     ) : null}
                   </dl>
+                  {it.event_key || it.title ? (
+                    <Link
+                      to={planPageHref({ event_key: it.event_key, name: it.title })}
+                      className="inline-flex rounded-full border border-yel/40 bg-yel/15 px-3 py-1 text-xs font-semibold text-yel hover:bg-yel/25"
+                    >
+                      Open in the list
+                    </Link>
+                  ) : null}
                 </li>
               )
             })}

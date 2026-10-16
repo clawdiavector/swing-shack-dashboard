@@ -44490,7 +44490,14 @@ def planning_month_view(brand_id):
             if _dup_key in _op_seen:
                 continue
             _op_seen.add(_dup_key)
-            lane = r.get("lane") or "operator"
+            _pillars = r.get("pillars") or r.get("pillar")
+            if isinstance(_pillars, list) and _pillars:
+                _pillar0 = str(_pillars[0] or "")
+            elif isinstance(_pillars, str):
+                _pillar0 = _pillars
+            else:
+                _pillar0 = ""
+            lane = r.get("lane") or _pillar0 or ""
             item = {
                 "id": ek or start_iso,
                 "title": r.get("title") or r.get("name") or "(operator-approved)",
@@ -44525,6 +44532,7 @@ def planning_month_view(brand_id):
                 "source": "operator-store",
                 "channel": "main-calendar",
                 "kind": item["kind"],
+                "event_key": ek,
             })
             # Also surface in days_extended for the three-layer panel.
             if start_iso in days_extended:
