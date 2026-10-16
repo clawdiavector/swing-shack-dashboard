@@ -813,11 +813,10 @@ export type DraftRegenerateCaptionResult = {
 
 /** Draft id accepted by POST /api/drafts/.../regenerate-caption (photo regen uses the same shape). */
 export function reviewPieceDraftId(item: InboxItem): string | null {
+  if (item.id.startsWith('draft_asset:')) return item.id
   const cid = item.meta?.campaign_id?.trim()
   const aid = item.meta?.asset_id?.trim()
-  if (item.type === 'draft_asset' && aid) return aid
   if (cid && aid) return `${cid}:${aid}`
-  if (item.id.startsWith('draft_asset:')) return item.id
   return null
 }
 

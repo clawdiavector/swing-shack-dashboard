@@ -305,9 +305,9 @@ export function ReviewPiece() {
     setSuccess('')
     const note = 'Regenerate from review piece'
     try {
-      const assetId = item.meta?.asset_id
-      if (item.type === 'draft_asset' && assetId) {
-        const result = await draftRegeneratePhoto(assetId, note)
+      const draftId = reviewPieceDraftId(item)
+      if (draftId) {
+        const result = await draftRegeneratePhoto(draftId, note)
         if (!result.ok) {
           setError(result.error || 'Could not queue regenerate')
           if (result.at_cap && item.brand_id) {

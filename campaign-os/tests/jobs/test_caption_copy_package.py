@@ -109,13 +109,25 @@ def test_check_locale_rejects_us_hype():
     assert r["passed"] is False
 
 
-def test_check_locale_warns_on_length():
+def test_check_locale_rejects_over_220_chars():
     from _lib.p11_context_engine import _check_locale
 
-    long_body = "x" * 400
+    long_body = "x" * 221
     r = _check_locale({"caption_body": long_body, "poster_hook": "", "cta_line": ""})
-    assert r["passed"] is True
-    assert "caption_body_over_320" in r["warnings"]
+    assert r["passed"] is False
+    assert r["reason"] == "caption_body_over_220"
+
+
+def test_check_locale_rejects_over_two_sentences():
+    from _lib.p11_context_engine import _check_locale
+
+    r = _check_locale({
+        "caption_body": "One idea. Two ideas. Three ideas.",
+        "poster_hook": "",
+        "cta_line": "",
+    })
+    assert r["passed"] is False
+    assert r["reason"] == "caption_body_over_2_sentences"
 
 
 def test_en_za_block_in_system_prompt():
@@ -150,6 +162,7 @@ def test_en_za_block_in_system_prompt():
     assert "en-ZA" in system
     assert "personalised" in system
     assert "NEVER use US spellings" in system
+    assert "at most 2 sentences and 220 characters" in system
 
 
 def test_sidecar_carries_copy_package_and_compose_fields(l5_app, tmp_path):
