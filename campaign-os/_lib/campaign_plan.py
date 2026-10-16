@@ -270,10 +270,13 @@ def reanchor_plan_from_brief(plan: dict, brief: dict,
 
 
 def _attach_offer_step_payload(plan: dict, brief: dict) -> None:
-    """Copy read-only candidate offers onto the retail offer-decide step."""
+    """Copy the offer options onto the retail offer-decide step: suggestions, every stock
+    line, and the brand's services. Read-only; the operator picks or types anything."""
     block = brief.get("candidate_offers") or {}
     lines = block.get("items") or []
-    if not lines:
+    catalogue = block.get("catalogue") or []
+    services = block.get("services") or []
+    if not (lines or catalogue or services):
         return
     for item in plan.get("items") or []:
         if item.get("kind") != "decide":
@@ -281,6 +284,10 @@ def _attach_offer_step_payload(plan: dict, brief: dict) -> None:
         if "offer" not in (item.get("title") or "").lower():
             continue
         item["candidate_offers"] = lines
+        item["offer_catalogue"] = catalogue
+        item["offer_services"] = services
+        item["offer_focus"] = block.get("focus_product") or ""
+        item["offer_note"] = block.get("note") or ""
         item.setdefault(
             "operator_offer",
             {"selected_name": "", "price": "", "discount": ""},
@@ -384,8 +391,8 @@ def propose_plan(brand_id: str, brief: dict, *, force: bool = False,
             peak, today, chosen, duration, window_start=window),
         "edit_log": [],
     }
-    if chosen == "retail_push" and not brief.get("candidate_offers"):
-        # A brief written before candidate offers existed: build them from the stock list now.
+    if chosen == "retail_push":
+        # Always built fresh: the stock list changes weekly and older briefs hold none.
         from _lib import candidate_offers
         brief = dict(brief, candidate_offers=candidate_offers.build(brand_id))
     _attach_offer_step_payload(plan, brief)
