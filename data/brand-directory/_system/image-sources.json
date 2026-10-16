@@ -73,7 +73,7 @@
       "note": "The feed does not tie an image to a colourway, so every colourway of a design gets the same picture. Use one design image per range; shoot the colourways."
     },
     "Not scouted yet": [
-      "Ping (404), LA Golf (409): block automated requests",
+      "LA Golf (409): blocks automated requests",
       "Jordan bags",
       "Vice clubs, bags and junior sets (site has no product feed)",
       "AJM GripCo, Lamkin, Icon, Star Grip, Pure Grip (no site found)",
@@ -106,6 +106,12 @@
       "method": "browser pane (the site is on Callaway's platform); page og:image",
       "images": "https://prd-sfcc.callawaygolf.com/.../sits/<slug>/<slug>___1.png?sw=2000 (2000px, downloads from a script)",
       "note": "Ai-One Double Wide CH, Rossie DB (US site) and Milled Seven T (Odyssey Europe page) found. Stock names do not give the hosel (CH or DB), so each is flagged to confirm. odysseygolf.com itself returns 429 to scripts; odyssey.callawaygolf.com works in the pane."
+    },
+    "Ping": {
+      "site": "https://ping.com/en-us",
+      "method": "browser pane for the pages; images from api.next.ping.com/media/catalog/product/c/l/<file>.png",
+      "images": "1600x1600 PNG, top-down address views and angled face views; downloads from a script with a ping.com referrer",
+      "note": "Anser 2D and DS72 each exist as PLD Milled, 2023 and Scottsdale versions and the stock name does not say which, so all three are saved as separate views per SKU (address-2023, address-scottsdale, face-pld-milled): approve one, reject the others. ping.com itself 404s plain requests."
     }
   }
 }
