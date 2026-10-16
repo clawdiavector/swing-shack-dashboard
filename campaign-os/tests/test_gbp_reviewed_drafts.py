@@ -221,6 +221,15 @@ class SearchTermTests(unittest.TestCase):
         self.assertNotIn("target_query_not_in_body", gbp.review_problems(draft))
 
 
+def _jpeg_bytes() -> bytes:
+    import io  # noqa: PLC0415
+    from PIL import Image  # noqa: PLC0415
+
+    buf = io.BytesIO()
+    Image.new("RGB", (40, 40), (200, 30, 30)).save(buf, "JPEG")
+    return buf.getvalue()
+
+
 class DraftRouteTests(unittest.TestCase):
     """Approve, photo upload and dismiss through the Flask routes, on temp folders."""
 
@@ -249,7 +258,7 @@ class DraftRouteTests(unittest.TestCase):
         self._tmp.cleanup()
 
     def _save(self, **over):
-        draft = _draft("route-draft", imageUrl="", **over)
+        draft = _draft("route-draft", **{"imageUrl": "", **over})
         _write(self.root, draft)
         return draft
 
@@ -261,7 +270,7 @@ class DraftRouteTests(unittest.TestCase):
 
     def test_photo_upload_then_approve_works_and_rebuilds_plan(self):
         self._save()
-        jpg = b"\xff\xd8\xff\xe0" + b"0" * 64
+        jpg = _jpeg_bytes()
         res = self.client.post(
             "/api/intel/gmb/draft/route-draft/photo",
             data={"file": (__import__("io").BytesIO(jpg), "fitting.jpg")},
@@ -270,9 +279,33 @@ class DraftRouteTests(unittest.TestCase):
         self.assertEqual(res.status_code, 200, res.get_json())
         saved_path = res.get_json()["draft"]["imageUrl"]
         self.assertTrue(Path(saved_path).is_file())
-        res = self.client.post("/api/intel/gmb/draft/route-draft/approve")
+        res = self.client.post("/api/intel/gmb/draft/route-draft/approve", json={"photoMatch": True})
         self.assertEqual(res.status_code, 200, res.get_json())
         self.assertTrue(res.get_json()["plan_rebuilt"])
+
+    def test_approve_refused_until_photo_match_is_confirmed(self):
+        self._save(imageUrl=str(self.media / "x.jpg"))
+        (self.media / "x.jpg").write_bytes(b"\xff\xd8\xff\xe0" + b"0" * 64)
+        res = self.client.post("/api/intel/gmb/draft/route-draft/approve", json={})
+        self.assertEqual(res.status_code, 409)
+        self.assertIn("photo_match_not_confirmed", res.get_json()["problems"])
+
+    def test_photo_file_only_serves_files_in_the_media_folder(self):
+        outside = Path(self._tmp.name) / "secret.jpg"
+        outside.write_bytes(b"\xff\xd8\xff" + b"0" * 8)
+        self._save(imageUrl=str(outside))
+        res = self.client.get("/api/intel/gmb/draft/route-draft/photo-file")
+        self.assertEqual(res.status_code, 404)
+
+    def test_resize_keeps_the_original_and_shrinks_the_copy(self):
+        from PIL import Image  # noqa: PLC0415
+
+        src_path = self.media / "big.png"
+        Image.new("RGB", (3000, 1500), (10, 120, 80)).save(src_path)
+        out = self.media / "big.jpg"
+        gbp.resize_photo(src_path, out, max_side=2000)
+        self.assertEqual(Image.open(out).size, (2000, 1000))
+        self.assertEqual(Image.open(src_path).size, (3000, 1500))
 
     def test_photo_that_is_not_an_image_is_refused(self):
         self._save()

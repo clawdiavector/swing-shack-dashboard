@@ -760,6 +760,19 @@ PHOTO_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 PHOTO_MAX_BYTES = 8 * 1024 * 1024
 
 
+PHOTO_MAX_SIDE = 2000
+
+
+def resize_photo(src_path, dst_path, max_side: int = PHOTO_MAX_SIDE) -> None:
+    """Write a JPEG copy with its long edge at most max_side px. The source is not touched."""
+    from PIL import Image  # noqa: PLC0415
+
+    with Image.open(src_path) as im:
+        im = im.convert("RGB")
+        im.thumbnail((max_side, max_side))
+        im.save(dst_path, "JPEG", quality=88, optimize=True)
+
+
 def looks_like_photo(data: bytes, ext: str) -> bool:
     """True if the bytes start like the image type the extension names."""
     ext = ext.lower()

@@ -16612,7 +16612,11 @@ def gmb_approve_draft(draft_id):
     problems = _gdp.review_problems({**draft, "id": draft_id})
     if problems:
         return jsonify({"ok": False, "error": "draft is not ready to approve", "problems": problems}), 409
-    _gdp.set_draft_status(draft_id, "approved", drafts_dir=GMB_DRAFTS_DIR)
+    if not (request.get_json(silent=True) or {}).get('photoMatch') is True:
+        return jsonify({"ok": False, "error": "confirm the photo shows what the text says",
+                        "problems": ["photo_match_not_confirmed"]}), 409
+    _gdp.set_draft_status(draft_id, "approved", drafts_dir=GMB_DRAFTS_DIR,
+                          photoMatchAt=_now_iso())
     # Rebuild the plan now so the approval reaches the Today card without waiting for 06:00.
     rebuilt = False
     try:
@@ -16663,12 +16667,21 @@ def gmb_upload_draft_photo(draft_id):
     if not _gdp.looks_like_photo(data, ext):
         return jsonify({"ok": False, "error": "file is not a real jpg, png or webp"}), 400
     os.makedirs(ASSET_MEDIA_DIR, exist_ok=True)
-    out_path = os.path.join(ASSET_MEDIA_DIR, f"gbp-{secure_filename(draft_id)}-{int(time.time())}{ext}")
-    with open(out_path, 'wb') as fh:
+    stamp = f"gbp-{secure_filename(draft_id)}-{int(time.time())}"
+    original_path = os.path.join(ASSET_MEDIA_DIR, f"{stamp}-original{ext}")
+    with open(original_path, 'wb') as fh:
         fh.write(data)
+    # Post copy is resized for the upload; the original is kept beside it.
+    out_path = os.path.join(ASSET_MEDIA_DIR, f"{stamp}.jpg")
+    try:
+        _gdp.resize_photo(original_path, out_path)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"could not read this photo: {exc}"}), 400
     with open(path, 'r', encoding='utf-8') as fh:
         draft = json.load(fh)
     draft['imageUrl'] = out_path
+    draft['originalPhoto'] = original_path
+    draft.pop('photoMatchAt', None)
     if draft.get('status') == 'approved':
         draft['status'] = 'draft'
         draft.pop('approvedAt', None)
@@ -16676,6 +16689,23 @@ def gmb_upload_draft_photo(draft_id):
     with open(path, 'w', encoding='utf-8') as fh:
         json.dump(draft, fh, indent=2, ensure_ascii=False)
     return jsonify({"ok": True, "draft": draft}), 200
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/photo-file', methods=['GET'])
+def gmb_draft_photo_file(draft_id):
+    """The draft's post photo, for the thumbnail on the drafts page."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    with open(path, 'r', encoding='utf-8') as fh:
+        draft = json.load(fh)
+    real = os.path.realpath(draft.get('imageUrl') or '')
+    root = os.path.realpath(ASSET_MEDIA_DIR)
+    if not real.startswith(root + os.sep) or not os.path.isfile(real):
+        return jsonify({"ok": False, "error": "no photo"}), 404
+    return send_from_directory(root, os.path.basename(real), max_age=0)
 
 
 @app.route('/api/intel/gmb/draft/<draft_id>/unapprove', methods=['POST'])

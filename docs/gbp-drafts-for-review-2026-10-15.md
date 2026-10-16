@@ -6,7 +6,9 @@ Each draft passes the same checks the Approve button runs: body present, link on
 
 ## Stick (3 drafts, pass the checks)
 
-Suggested photo for all three: a real Stick photo of iron sets, `stick/images/Location/Photos of iron sets/` (DJI, 5 Oct 2026). Pick one and use Attach photo on each draft. Uploads must be jpg, png or webp, under 8 MB.
+Suggested photo for all three: a real Stick photo of iron sets, `stick/images/Location/Photos of iron sets/` (DJI, 5 Oct 2026). Pick one and use Attach photo on each draft. Uploads must be jpg, png or webp, under 8 MB. The app keeps your original and posts a copy resized to 2000 px.
+
+Before approving, the app asks you to confirm the photo shows what the text says. That is the check that the image matches the copy; nothing checks it automatically.
 
 ### 1. Iron fitting in Paarl
 - **Body:** Irons should be fitted before you buy them. We run TrackMan fittings on any brand, then match the shaft and head to what your swing is doing. Book a fitting and see the numbers. Better begins here.

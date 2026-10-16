@@ -184,7 +184,8 @@ export function Gbp() {
     setMsg('')
     try {
       if (approve) {
-        const res = await approveGmbDraft(id)
+        if (!window.confirm('Does this photo show what the text says? Approve only if it matches.')) return
+        const res = await approveGmbDraft(id, true)
         if (!res.ok) {
           setMsg(`Not ready to approve: ${(res.problems?.length ? res.problems : [res.error ?? 'unknown']).join(', ')}`)
           return
@@ -385,6 +386,14 @@ export function Gbp() {
                   {d.imageUrl ? '' : ' · no photo'}
                   {d.link ? '' : ' · no link'}
                 </p>
+                {d.imageUrl && d.id ? (
+                  <img
+                    src={`/api/intel/gmb/draft/${encodeURIComponent(d.id)}/photo-file?v=${encodeURIComponent(d.updatedAt ?? '')}`}
+                    alt="Photo for this draft"
+                    loading="lazy"
+                    className="mt-2 h-32 w-auto rounded-xl border border-white/10 object-cover"
+                  />
+                ) : null}
                 <label className={`${actionBtn} mt-2 inline-block cursor-pointer`}>
                   {d.imageUrl ? 'Replace photo' : 'Attach photo'}
                   <input
