@@ -50,6 +50,9 @@ from typing import Any, Optional
 
 _LOG = logging.getLogger("campaign_os.gbp_daily_poster")
 
+# Same folder app.py writes GBP drafts to (campaign-os/data/gmb-drafts).
+GMB_DRAFTS_DIR = Path(__file__).resolve().parent.parent / "data" / "gmb-drafts"
+
 # ── Brand-scoped defaults ────────────────────────────────────────────
 
 
@@ -611,7 +614,190 @@ def compose_post(
     return post
 
 
+# ── Reviewed drafts: the only source for daily posts ─────────────────
+#
+# A daily post is a GMB draft that a person approved on the GBP page. Nothing
+# is composed to fill a plan slot: an empty slot is a gap. The fragment
+# composer (compose_post) is kept for its existing callers, but build_daily_plan
+# no longer uses it, because fragments read as templates and carried no photo
+# or link.
+
+DRAFT_STATUSES = ("draft", "approved", "published")
+
+
+def _read_draft(path: Path) -> Optional[dict]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    data["id"] = path.stem
+    return data
+
+
+def load_drafts(brand_id: Optional[str] = None, drafts_dir: Optional[Path] = None) -> list[dict]:
+    root = Path(drafts_dir) if drafts_dir else GMB_DRAFTS_DIR
+    if not root.is_dir():
+        return []
+    rows = [_read_draft(p) for p in sorted(root.glob("*.json"))]
+    return [r for r in rows if r and (brand_id is None or r.get("brand") == brand_id)]
+
+
+def approved_drafts(brand_id: str, drafts_dir: Optional[Path] = None) -> list[dict]:
+    """Approved drafts for a brand, earliest approval first."""
+    rows = [d for d in load_drafts(brand_id, drafts_dir) if d.get("status") == "approved"]
+    return sorted(rows, key=lambda d: d.get("approvedAt") or "")
+
+
+def draft_post(draft: dict) -> dict:
+    """A reviewed draft in the shape publish_post() takes."""
+    brand_id = draft.get("brand") or ""
+    body = (draft.get("body") or "").strip()
+    post = {
+        "brand_id": brand_id,
+        "draft_id": draft.get("id"),
+        "keyword": None,
+        "intent": "reviewed_draft",
+        "pillar": None,
+        "title": ((draft.get("title") or body)[:58]).strip(),
+        "body": body,
+        "cta": (draft.get("cta") or "").strip(),
+        "cta_url": (draft.get("link") or "").strip() or None,
+        "image_url": (draft.get("imageUrl") or "").strip() or None,
+        "target_query": (draft.get("targetQuery") or "").strip() or None,
+        "hashtags": [],
+    }
+    ok, violations = integrity_check(post, brand_id)
+    post["integrity_ok"] = ok
+    post["integrity_violations"] = violations
+    return post
+
+
+def review_problems(draft: dict) -> list[str]:
+    """Why a draft may not be approved yet. An empty list means it may be."""
+    brand_id = draft.get("brand") or ""
+    profile = BRAND_PROFILES.get(brand_id)
+    if not profile:
+        return ["unknown_brand"]
+    problems: list[str] = []
+    if not (draft.get("body") or "").strip():
+        problems.append("body_empty")
+    link = (draft.get("link") or "").strip()
+    if not link:
+        problems.append("link_missing")
+    elif profile["domain"] not in link:
+        problems.append("link_not_brand_domain")
+    if not (draft.get("imageUrl") or "").strip():
+        problems.append("photo_missing")
+    target = (draft.get("targetQuery") or "").strip().lower()
+    if target and target not in (draft.get("body") or "").lower():
+        problems.append("target_query_not_in_body")
+    problems.extend(draft_post(draft)["integrity_violations"])
+    return problems
+
+
+def search_terms(brand_id: str, *, limit: int = 12, payload: Optional[dict] = None) -> dict:
+    """Top Search Console queries for a brand, to pick a post's target term from.
+
+    Only a live Search Console file for this brand's own site counts. Anything
+    else returns ok=False with a reason and no terms.
+    """
+    profile = BRAND_PROFILES.get(brand_id)
+    if not profile:
+        return {"ok": False, "reason": "unknown_brand", "terms": []}
+    if payload is None:
+        from _lib.brand_data_paths import read_brand_data_json  # noqa: PLC0415
+        payload = read_brand_data_json("search-console.json", brand_id)
+    if not isinstance(payload, dict) or payload.get("source") != "google_search_console_api":
+        return {"ok": False, "reason": "no_search_console_data", "terms": []}
+    if profile["domain"] not in (payload.get("site_url") or ""):
+        return {"ok": False, "reason": "search_console_site_is_not_this_brand", "terms": []}
+    rows = sorted(
+        (r for r in payload.get("queries") or [] if r.get("key")),
+        key=lambda r: int(r.get("impressions") or 0),
+        reverse=True,
+    )[:limit]
+    terms = [
+        {
+            "query": r["key"],
+            "impressions": int(r.get("impressions") or 0),
+            "clicks": int(r.get("clicks") or 0),
+            "position": r.get("position"),
+        }
+        for r in rows
+    ]
+    return {"ok": True, "updated": payload.get("updated"), "data_window": payload.get("data_window"), "terms": terms}
+
+
+def set_draft_status(
+    draft_id: str,
+    status: str,
+    *,
+    drafts_dir: Optional[Path] = None,
+    **extra: Any,
+) -> bool:
+    """Move a draft to another status. Returns False if it cannot be found."""
+    if status not in DRAFT_STATUSES or not draft_id or "/" in draft_id or ".." in draft_id:
+        return False
+    root = Path(drafts_dir) if drafts_dir else GMB_DRAFTS_DIR
+    path = root / f"{draft_id}.json"
+    draft = _read_draft(path) if path.is_file() else None
+    if draft is None:
+        return False
+    draft.pop("id", None)
+    now = _dt.datetime.utcnow().isoformat() + "Z"
+    draft["status"] = status
+    draft["statusAt"] = now
+    if status == "approved":
+        draft["approvedAt"] = now
+    draft.update(extra)
+    path.write_text(json.dumps(draft, indent=2, ensure_ascii=False), encoding="utf-8")
+    return True
+
+
+PHOTO_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
+PHOTO_MAX_BYTES = 8 * 1024 * 1024
+
+
+PHOTO_MAX_SIDE = 2000
+
+
+def resize_photo(src_path, dst_path, max_side: int = PHOTO_MAX_SIDE) -> None:
+    """Write a JPEG copy with its long edge at most max_side px. The source is not touched."""
+    from PIL import Image  # noqa: PLC0415
+
+    with Image.open(src_path) as im:
+        im = im.convert("RGB")
+        im.thumbnail((max_side, max_side))
+        im.save(dst_path, "JPEG", quality=88, optimize=True)
+
+
+def looks_like_photo(data: bytes, ext: str) -> bool:
+    """True if the bytes start like the image type the extension names."""
+    ext = ext.lower()
+    if ext in (".jpg", ".jpeg"):
+        return data[:3] == b"\xff\xd8\xff"
+    if ext == ".png":
+        return data[:8] == b"\x89PNG\r\n\x1a\n"
+    if ext == ".webp":
+        return data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+    return False
+
+
 # ── Plan builder ────────────────────────────────────────────────────
+
+
+def rebuild_plan(brand_id: str, *, previous: Optional[dict] = None, drafts_dir: Optional[Path] = None) -> dict:
+    """Rebuild the plan from the approved drafts as they stand now.
+
+    `previous` is the plan being replaced. Its publish log is carried over, so
+    a post already sent today is not sent again by the 06:30 job.
+    """
+    plan = build_daily_plan(brand_id, days=7, posts_per_day=1, drafts_dir=drafts_dir)
+    if previous and previous.get("publish"):
+        plan["publish"] = previous["publish"]
+    return plan
 
 
 def build_daily_plan(
@@ -621,159 +807,51 @@ def build_daily_plan(
     posts_per_day: int = 1,
     publish: bool = False,
     keywords: Optional[list[str]] = None,
+    drafts_dir: Optional[Path] = None,
 ) -> dict:
-    """Build a daily posting plan for a brand."""
+    """Daily plan from approved drafts, one post per slot, earliest approval first.
+
+    `publish` and `keywords` are accepted for existing callers and do nothing
+    here. Sending is publish_post(), from the Today approve button or the
+    gbp_publish job.
+    """
     profile = BRAND_PROFILES.get(brand_id)
     if not profile:
         return {"error": "unknown_brand", "brand_id": brand_id}
 
-    facts = load_verified_facts(brand_id)
-    bank = load_copy_bank(brand_id)
-
-    if keywords:
-        kw_list = list(keywords)
-    else:
-        # Pillar-anchored keyword pool. The keyword anchors map to the
-        # brand's `pillar` field; the headline pool is selected by intent
-        # + pillar, so the anchor just steers WHICH pillar wins today.
-        # Christelle (2026-09-23): SS = Fitting / Coaching / Indoor Golf;
-        # Stick = Fitting / Coaching / Retail.
-        #
-        # Per-brand pools (NOT one shared dict) so SS doesn't accidentally
-        # pick up Stick's "paarl"-anchored keywords and vice versa. We
-        # previously had a single combined dict and the iterator order
-        # caused SS to draw "club fitting paarl" — a location violation.
-        brand_anchors = {
-            "swing-shack": {
-                "fitting": [
-                    "driver fitting johannesburg",
-                    "club fitting randburg",
-                    "iron fitting johannesburg",
-                    "putter fitting johannesburg",
-                    "trackman fitting randburg",
-                    "fitting johannesburg",
-                ],
-                "coaching": [
-                    "golf lessons johannesburg",
-                    "golf coach randburg",
-                    "trackman coaching johannesburg",
-                    "indoor golf lessons randburg",
-                    "golf coaching johannesburg",
-                ],
-                "indoor_golf": [
-                    "indoor golf johannesburg",
-                    "golf simulator randburg",
-                    "trackman simulator johannesburg",
-                    "indoor golf randburg",
-                    "indoor golf bay johannesburg",
-                    "indoor golf practice johannesburg",
-                    "social play randburg",
-                    "indoor golf membership johannesburg",
-                ],
-            },
-            "stick": {
-                "fitting": [
-                    "club fitting paarl",
-                    "putter fitting western cape",
-                    "putter fitting paarl",
-                    "iron fitting western cape",
-                    "trackman fitting paarl",
-                    "brand agnostic fitting paarl",
-                ],
-                "coaching": [
-                    "golf lessons paarl",
-                    "golf coach paarl",
-                    "golf coaching western cape",
-                    "coaching paarl",
-                ],
-                "retail": [
-                    "takomo paarl",
-                    "vice golf paarl",
-                    "psycho bunny paarl",
-                    "l.a.b golf paarl",
-                    "golf retail paarl",
-                    "avoda paarl",
-                ],
-                "workshop": [
-                    "regrip golf clubs paarl",
-                    "loft and lie paarl",
-                    "shaft work western cape",
-                    "club repair paarl",
-                ],
-                "local": [
-                    "indoor golf paarl",
-                    "stick golf paarl",
-                    "golf fitting western cape",
-                    "golf lessons paarl",
-                ],
-            },
-            "bag-drop": {
-                "general": [
-                    "golf bag storage johannesburg",
-                    "regrip golf clubs johannesburg",
-                ],
-            },
-        }
-        pillar_kw_anchors = brand_anchors.get(brand_id, {})
-        pillar_shares = profile.get("share_targets") or {}
-        pillars_sorted = sorted(pillar_shares.items(), key=lambda x: -x[1])
-        kw_list = []
-        # Pull keywords per pillar weighted by share target. Each pillar
-        # gets its top `ceil(3 * share)` anchor keywords; the rotation
-        # cycles through pillars in share-target order.
-        for pillar, share in pillars_sorted:
-            anchors = pillar_kw_anchors.get(pillar, [])
-            if not anchors:
-                continue
-            n = max(1, int(round(3 * share)))
-            kw_list.extend(anchors[:n])
-
+    ready = approved_drafts(brand_id, drafts_dir)
     today = _dt.date.today()
     posts: list[dict] = []
     gaps: list[dict] = []
-    seen_keywords: set[str] = set()
-
-    for day_offset in range(days):
-        day_iso = (today + _dt.timedelta(days=day_offset)).isoformat()
-        for slot in range(posts_per_day):
-            kw = None
-            for candidate in kw_list:
-                if candidate not in seen_keywords:
-                    kw = candidate
-                    break
-            if kw is None:
-                kw = kw_list[(day_offset * posts_per_day + slot) % len(kw_list)]
-            seen_keywords.add(kw)
-
-            post = compose_post(brand_id, kw, day_iso)
-            if post.get("error") == "gap_no_matching_headline":
-                gaps.append(post)
-                continue
-            if not post.get("integrity_ok", False):
-                gaps.append({**post, "kind": "integrity_violation"})
-                continue
+    for slot in range(days * posts_per_day):
+        day_iso = (today + _dt.timedelta(days=slot // posts_per_day)).isoformat()
+        if slot >= len(ready):
+            gaps.append({
+                "error": "gap_no_approved_draft",
+                "brand_id": brand_id,
+                "day": day_iso,
+                "needs": "Write and approve a draft on the GBP page",
+            })
+            continue
+        post = draft_post(ready[slot])
+        post["day"] = day_iso
+        if post["integrity_ok"]:
             posts.append(post)
+        else:
+            gaps.append({**post, "kind": "integrity_violation"})
 
-    source_breakdown = {
-        "from_bank": len(posts),
-        "gaps": len(gaps),
-        "ubersuggest": 0,
-        "fallback": 0,
-    }
-
-    plan = {
+    return {
         "brand_id": brand_id,
         "domain": profile["domain"],
         "build_started_at": _dt.datetime.utcnow().isoformat() + "Z",
         "build_for_days": days,
         "posts": posts,
         "gaps": gaps,
-        "source_breakdown": source_breakdown,
+        "source_breakdown": {"from_drafts": len(posts), "gaps": len(gaps)},
         "publish": {"scheduled": False, "reason": "publish_disabled_in_build"},
         "voice_id": profile["voice_id"],
         "tagline": profile.get("tagline"),
     }
-    return plan
 
 
 # ── Plan persistence ────────────────────────────────────────────────
@@ -876,8 +954,18 @@ def list_plans(brand_id: Optional[str] = None, limit: int = 30) -> list[dict]:
 # ── Publish (used by gbp_publish job) ────────────────────────────────
 
 
+def gbp_post_text(post: dict) -> str:
+    """Text sent to GBP: body, then the CTA label and link on one line."""
+    cta_line = " ".join(x for x in ((post.get("cta") or "").strip(), (post.get("cta_url") or "").strip()) if x)
+    parts = [(post.get("body") or "").strip(), cta_line]
+    return "\n\n".join(p for p in parts if p)[:1500]
+
+
 def publish_post(post: dict, *, dry_run: bool = False) -> dict:
-    """Publish a single post to GBP via Postiz. Returns publish result."""
+    """Send one reviewed post to GBP via Postiz, photo attached and link in the text.
+
+    A photo that fails to upload stops the post. A text-only post does not go out.
+    """
     brand_id = post.get("brand_id")
     profile = BRAND_PROFILES.get(brand_id)
     if not profile:
@@ -904,14 +992,23 @@ def publish_post(post: dict, *, dry_run: bool = False) -> dict:
     except Exception as exc:
         return {"ok": False, "error": f"postiz_client_unavailable: {exc}"}
 
-    body = (post.get("body") or "") + "\n\n" + (post.get("cta") or "")
-    body = body.strip()
+    media_ids: list[str] = []
+    image = post.get("image_url")
+    if image:
+        try:
+            upload, up_err = _pc.upload_media(image)
+        except Exception as exc:
+            return {"ok": False, "error": f"image_upload_exception: {exc}", "post_status": "ERROR"}
+        if up_err or not (upload and upload.get("id")):
+            return {"ok": False, "error": f"image_upload_failed: {up_err}", "post_status": "ERROR"}
+        media_ids.append(upload["id"])
+
     scheduled_at = _dt.datetime.utcnow().isoformat()
     try:
         result, err = _pc.create_post(
             integration_id=integration_id,
-            content=body,
-            media_ids=[],
+            content=gbp_post_text(post),
+            media_ids=media_ids,
             publish_date=scheduled_at,
         )
         if err:
@@ -979,6 +1076,8 @@ def _gbp_publish_cron_tick(*, brand: str | None = None, dry_run: bool = False) -
             result = publish_post(p, dry_run=dry_run)
             p["post_status"] = result.get("post_status", "ERROR")
             p["publish_result"] = result
+            if result.get("ok") and p.get("draft_id"):
+                set_draft_status(p["draft_id"], "published")
             plan["publish"] = {
                 "brand": b,
                 "integration_id": (BRAND_PROFILES[b] or {}).get("postiz_gbp_integration_id"),

@@ -16,11 +16,15 @@ import {
   fetchGbpStatus,
   fetchGbpSuggestions,
   fetchGmbDrafts,
+  fetchGmbSearchTerms,
+  approveGmbDraft,
   previewGbpDailyPlan,
-  publishGbpDailyPlan,
+  unapproveGmbDraft,
+  uploadGmbDraftPhoto,
   scheduleGmbDraft,
   updateGmbDraft,
   type GmbDraft,
+  type GmbSearchTerms,
   type GbpPlan,
 } from '../../lib/api'
 import { formatStamp } from '../../lib/stamp'
@@ -91,9 +95,10 @@ export function Gbp() {
   const [drafts, setDrafts] = useState<GmbDraft[]>([])
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
   const [msg, setMsg] = useState('')
-  const [liveAction, setLiveAction] = useState<'daily' | { draftId: string } | null>(null)
+  const [liveAction, setLiveAction] = useState<{ draftId: string } | null>(null)
   const [draftForm, setDraftForm] = useState<GmbDraft>({ title: '', body: '', brand: scopeBrand })
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [searchTerms, setSearchTerms] = useState<GmbSearchTerms | null>(null)
 
   const setTab = useCallback(
     (id: string) => {
@@ -130,6 +135,11 @@ export function Gbp() {
   }, [])
 
   useEffect(() => {
+    if (tab !== 'drafts') return
+    fetchGmbSearchTerms(scopeBrand).then(setSearchTerms).catch(() => setSearchTerms(null))
+  }, [tab, scopeBrand])
+
+  useEffect(() => {
     if (tab === 'plans') loadPlans()
     if (tab === 'suggestions') loadSuggestions()
     if (tab === 'drafts') loadDrafts()
@@ -155,15 +165,39 @@ export function Gbp() {
     }
   }
 
-  async function handleDailyPublish() {
+  async function handlePhoto(id: string, file: File) {
     setMsg('')
     try {
-      await publishGbpDailyPlan({ brand_id: scopeBrand, days: 7, posts_per_day: 1 })
-      setMsg('Daily plan publish submitted.')
-      setLiveAction(null)
-      loadPlans()
+      const res = await uploadGmbDraftPhoto(id, file)
+      if (!res.ok) {
+        setMsg(res.error ?? 'Photo upload failed')
+        return
+      }
+      setMsg('Photo attached. Draft is back in review.')
+      loadDrafts()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : 'Publish failed')
+      setMsg(e instanceof Error ? e.message : 'Photo upload failed')
+    }
+  }
+
+  async function handleReview(id: string, approve: boolean) {
+    setMsg('')
+    try {
+      if (approve) {
+        if (!window.confirm('Does this photo show what the text says? Approve only if it matches.')) return
+        const res = await approveGmbDraft(id, true)
+        if (!res.ok) {
+          setMsg(`Not ready to approve: ${(res.problems?.length ? res.problems : [res.error ?? 'unknown']).join(', ')}`)
+          return
+        }
+        setMsg('Draft approved. It can now go into the daily plan.')
+      } else {
+        await unapproveGmbDraft(id)
+        setMsg('Draft back in review.')
+      }
+      loadDrafts()
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Review failed')
     }
   }
 
@@ -247,20 +281,7 @@ export function Gbp() {
                 Preview plan
               </button>
             </Tip>
-            <Tip text="Live outbound publish to GBP.">
-              <button type="button" className={primaryBtn} onClick={() => setLiveAction('daily')}>
-                Publish to GBP (live)
-              </button>
-            </Tip>
           </div>
-          {liveAction === 'daily' ? (
-            <BrandLiveConfirm
-              brandId={scopeBrand}
-              label="Publish daily poster plan to GBP (live)"
-              onCancel={() => setLiveAction(null)}
-              onConfirm={handleDailyPublish}
-            />
-          ) : null}
           {preview ? (
             <div className="glass max-h-96 overflow-auto rounded-2xl border border-white/10 p-4 text-xs">
               <pre>{JSON.stringify(preview, null, 2)}</pre>
@@ -317,6 +338,24 @@ export function Gbp() {
             />
             <input
               className={inputCls}
+              placeholder="Search term this post targets (optional)"
+              list="gmb-search-terms"
+              maxLength={100}
+              value={draftForm.targetQuery || ''}
+              onChange={(e) => setDraftForm({ ...draftForm, targetQuery: e.target.value })}
+            />
+            <datalist id="gmb-search-terms">
+              {(searchTerms?.terms ?? []).map((t) => (
+                <option key={t.query} value={t.query}>{`${t.impressions} impressions`}</option>
+              ))}
+            </datalist>
+            {searchTerms && !searchTerms.ok ? (
+              <p className="text-xs text-tx3">
+                No Search Console data for this brand yet ({searchTerms.reason}). Terms will appear here once it is pulled.
+              </p>
+            ) : null}
+            <input
+              className={inputCls}
               placeholder="Link (300)"
               maxLength={300}
               value={draftForm.link || ''}
@@ -338,6 +377,36 @@ export function Gbp() {
               <li key={d.id} className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm">
                 <p className="font-medium">{d.title || '(untitled)'}</p>
                 <p className="mt-1 line-clamp-2 text-tx3">{d.body}</p>
+                <p className="mt-1 text-xs text-tx3">
+                  {d.status === 'approved'
+                    ? 'Approved, in the daily plan queue'
+                    : d.status === 'published'
+                      ? 'Published'
+                      : 'Needs review'}
+                  {d.imageUrl ? '' : ' · no photo'}
+                  {d.link ? '' : ' · no link'}
+                </p>
+                {d.imageUrl && d.id ? (
+                  <img
+                    src={`/api/intel/gmb/draft/${encodeURIComponent(d.id)}/photo-file?v=${encodeURIComponent(d.updatedAt ?? '')}`}
+                    alt="Photo for this draft"
+                    loading="lazy"
+                    className="mt-2 h-32 w-auto rounded-xl border border-white/10 object-cover"
+                  />
+                ) : null}
+                <label className={`${actionBtn} mt-2 inline-block cursor-pointer`}>
+                  {d.imageUrl ? 'Replace photo' : 'Attach photo'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      e.target.value = ''
+                      if (file && d.id) handlePhoto(d.id, file)
+                    }}
+                  />
+                </label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -360,13 +429,25 @@ export function Gbp() {
                   >
                     Delete
                   </button>
-                  <button
-                    type="button"
-                    className={primaryBtn}
-                    onClick={() => d.id && setLiveAction({ draftId: d.id })}
-                  >
-                    Publish to GBP via Postiz (live)
-                  </button>
+                  {d.status === 'approved' ? (
+                    <button type="button" className={actionBtn} onClick={() => d.id && handleReview(d.id, false)}>
+                      Take back to review
+                    </button>
+                  ) : (
+                    <button type="button" className={primaryBtn} onClick={() => d.id && handleReview(d.id, true)}>
+                      Approve
+                    </button>
+                  )}
+                  <Tip text="Only approved drafts can be published.">
+                    <button
+                      type="button"
+                      className={actionBtn}
+                      disabled={d.status !== 'approved'}
+                      onClick={() => d.id && setLiveAction({ draftId: d.id })}
+                    >
+                      Publish to GBP via Postiz (live)
+                    </button>
+                  </Tip>
                 </div>
                 {liveAction && typeof liveAction === 'object' && liveAction.draftId === d.id ? (
                   <div className="mt-3">

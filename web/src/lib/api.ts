@@ -1912,6 +1912,21 @@ export type GmbDraft = {
   link?: string
   imageUrl?: string
   brand?: string
+  status?: 'draft' | 'approved' | 'published'
+  approvedAt?: string
+  targetQuery?: string
+  updatedAt?: string
+}
+
+export type GmbSearchTerms = {
+  ok: boolean
+  reason?: string
+  updated?: string
+  terms: { query: string; impressions: number; clicks: number; position?: number }[]
+}
+
+export function fetchGmbSearchTerms(brandId: string) {
+  return getJson<GmbSearchTerms>(`/api/intel/gmb/search-terms?brand_id=${encodeURIComponent(brandId)}`)
 }
 
 export function fetchGmbDrafts() {
@@ -2019,6 +2034,108 @@ export async function deleteGmbDraft(id: string) {
     throw new Error('auth required')
   }
   return res.json() as Promise<{ ok?: boolean; deleted?: boolean }>
+}
+
+export type GmbReviewResult = { ok?: boolean; error?: string; problems?: string[] }
+
+async function postGmbReview(
+  id: string,
+  action: 'approve' | 'unapprove',
+  body: Record<string, unknown> = {},
+): Promise<GmbReviewResult> {
+  const res = await fetch(`/api/intel/gmb/draft/${encodeURIComponent(id)}/${action}`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return (await res.json().catch(() => ({ ok: false }))) as GmbReviewResult
+}
+
+export async function uploadGmbDraftPhoto(id: string, file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`/api/intel/gmb/draft/${encodeURIComponent(id)}/photo`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: form,
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return (await res.json().catch(() => ({ ok: false, error: `upload failed (${res.status})` }))) as {
+    ok?: boolean
+    error?: string
+  }
+}
+
+export type GbpPendingPost = {
+  title?: string
+  body?: string
+  cta?: string
+  cta_url?: string | null
+  integrity_ok?: boolean
+  integrity_violations?: string[]
+  draft_id?: string | null
+  has_photo?: boolean
+  photo_url?: string | null
+}
+
+export type GbpPending = {
+  ok: boolean
+  brand_id: string
+  display_name?: string
+  post: GbpPendingPost | null
+  reason?: string
+  integration_error?: string | null
+}
+
+export type GbpActionResult = {
+  ok?: boolean
+  error?: string
+  reason?: string
+  post_status?: string
+  integrity_violations?: string[]
+}
+
+export function fetchGbpPending(brandId: string) {
+  return getJson<GbpPending>(`/api/gbp/daily-poster/pending?brand_id=${encodeURIComponent(brandId)}`)
+}
+
+async function gbpAction(path: string, body: unknown): Promise<GbpActionResult> {
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return (await res.json().catch(() => ({ ok: false, error: `request failed (${res.status})` }))) as GbpActionResult
+}
+
+/** Sends the post the Today card is showing. Live: it goes to Google through Postiz. */
+export function publishGbpPending(brandId: string, draftId: string) {
+  return gbpAction(`/api/gbp/daily-poster/approve?brand_id=${encodeURIComponent(brandId)}`, { draft_id: draftId })
+}
+
+export function skipGbpPending(brandId: string) {
+  return gbpAction(`/api/gbp/daily-poster/dismiss?brand_id=${encodeURIComponent(brandId)}`, {})
+}
+
+export function approveGmbDraft(id: string, photoMatch: boolean) {
+  return postGmbReview(id, 'approve', { photoMatch })
+}
+
+export function unapproveGmbDraft(id: string) {
+  return postGmbReview(id, 'unapprove')
 }
 
 export async function scheduleGmbDraft(id: string) {
