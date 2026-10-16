@@ -15934,6 +15934,10 @@ def gbp_daily_poster_pending_route():
             "pillar": pending.get("pillar"),
             "integrity_ok": integrity_ok,
             "integrity_violations": violations,
+            "draft_id": pending.get("draft_id"),
+            "has_photo": bool(pending.get("image_url")),
+            "photo_url": (f"/api/intel/gmb/draft/{pending.get('draft_id')}/photo-file"
+                          if pending.get("draft_id") and pending.get("image_url") else None),
         },
         "plan_id": plan.get("plan_id") or plan.get("build_started_at"),
         "plan_path": plan.get("file_path"),
@@ -15982,6 +15986,11 @@ def gbp_daily_poster_approve_route():
         return jsonify({"ok": False, "brand_id": brand_id,
                         "error": "all_actioned",
                         "reason": "no pending post to approve"}), 409
+    # The Today card names the post it shows; refuse if the queue moved on since.
+    shown = (request.get_json(silent=True) or {}).get("draft_id")
+    if shown and shown != target.get("draft_id"):
+        return jsonify({"ok": False, "brand_id": brand_id, "error": "stale",
+                        "reason": "the queue changed; refresh to see the next post"}), 409
     # Publish via the integrity gate.
     publish_date = _dt_cls.now(_tz.utc).isoformat()
     try:

@@ -2073,6 +2073,62 @@ export async function uploadGmbDraftPhoto(id: string, file: File) {
   }
 }
 
+export type GbpPendingPost = {
+  title?: string
+  body?: string
+  cta?: string
+  cta_url?: string | null
+  integrity_ok?: boolean
+  integrity_violations?: string[]
+  draft_id?: string | null
+  has_photo?: boolean
+  photo_url?: string | null
+}
+
+export type GbpPending = {
+  ok: boolean
+  brand_id: string
+  display_name?: string
+  post: GbpPendingPost | null
+  reason?: string
+  integration_error?: string | null
+}
+
+export type GbpActionResult = {
+  ok?: boolean
+  error?: string
+  reason?: string
+  post_status?: string
+  integrity_violations?: string[]
+}
+
+export function fetchGbpPending(brandId: string) {
+  return getJson<GbpPending>(`/api/gbp/daily-poster/pending?brand_id=${encodeURIComponent(brandId)}`)
+}
+
+async function gbpAction(path: string, body: unknown): Promise<GbpActionResult> {
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return (await res.json().catch(() => ({ ok: false, error: `request failed (${res.status})` }))) as GbpActionResult
+}
+
+/** Sends the post the Today card is showing. Live: it goes to Google through Postiz. */
+export function publishGbpPending(brandId: string, draftId: string) {
+  return gbpAction(`/api/gbp/daily-poster/approve?brand_id=${encodeURIComponent(brandId)}`, { draft_id: draftId })
+}
+
+export function skipGbpPending(brandId: string) {
+  return gbpAction(`/api/gbp/daily-poster/dismiss?brand_id=${encodeURIComponent(brandId)}`, {})
+}
+
 export function approveGmbDraft(id: string, photoMatch: boolean) {
   return postGmbReview(id, 'approve', { photoMatch })
 }

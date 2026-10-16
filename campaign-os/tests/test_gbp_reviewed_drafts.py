@@ -318,5 +318,52 @@ class DraftRouteTests(unittest.TestCase):
         self.assertEqual(list(self.media.iterdir()), [])
 
 
+class TodayCardRouteTests(unittest.TestCase):
+    """The Today card: pending shows the draft and its photo; approve refuses a post that moved on."""
+
+    def setUp(self):
+        import app as app_module  # noqa: PLC0415
+
+        self.app_module = app_module
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name) / "gmb-drafts"
+        self.media = Path(self._tmp.name) / "media"
+        self.root.mkdir()
+        self.media.mkdir()
+        photo = self.media / "card.jpg"
+        photo.write_bytes(_jpeg_bytes())
+        _write(self.root, _draft("card-draft", status="approved", approvedAt="2026-10-15T10:00:00Z",
+                                 imageUrl=str(photo)))
+        self._patches = [
+            mock.patch.object(app_module, "GMB_DRAFTS_DIR", str(self.root)),
+            mock.patch.object(app_module, "ASSET_MEDIA_DIR", str(self.media)),
+            mock.patch.object(app_module._gdp, "GMB_DRAFTS_DIR", self.root),
+            mock.patch.object(app_module._gdp, "save_plan", return_value=Path("x.json")),
+            mock.patch.object(app_module._gdp, "latest_plan",
+                              side_effect=lambda b: app_module._gdp.rebuild_plan(b, drafts_dir=self.root)),
+        ]
+        for p in self._patches:
+            p.start()
+        self.client = app_module.app.test_client()
+
+    def tearDown(self):
+        for p in self._patches:
+            p.stop()
+        self._tmp.cleanup()
+
+    def test_pending_names_the_draft_and_its_photo(self):
+        res = self.client.get("/api/gbp/daily-poster/pending?brand_id=swing-shack")
+        post = res.get_json()["post"]
+        self.assertEqual(post["draft_id"], "card-draft")
+        self.assertTrue(post["has_photo"])
+        self.assertEqual(post["photo_url"], "/api/intel/gmb/draft/card-draft/photo-file")
+
+    def test_approve_refuses_a_post_that_is_no_longer_the_one_shown(self):
+        res = self.client.post("/api/gbp/daily-poster/approve?brand_id=swing-shack",
+                               json={"draft_id": "some-other-draft"})
+        self.assertEqual(res.status_code, 409)
+        self.assertEqual(res.get_json()["error"], "stale")
+
+
 if __name__ == "__main__":
     unittest.main()
