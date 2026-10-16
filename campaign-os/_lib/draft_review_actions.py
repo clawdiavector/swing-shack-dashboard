@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -541,6 +542,50 @@ def clear_caption_keep_image(asset_id: str) -> bool:
     return True
 
 
+def _keep_caption_fallback(brand_id: str, moment_id: str, asset_id: str) -> str:
+    from _lib.jobs.layer5.image_draft_context import calendar_title_for_item
+
+    title = (calendar_title_for_item(brand_id, moment_id) or "").strip()
+    if title:
+        return title
+    sidecar = _load_sidecar(asset_id) or {}
+    composed = sidecar.get("composed")
+    if isinstance(composed, dict):
+        for key in ("headline", "title", "text"):
+            val = str(composed.get(key) or "").strip()
+            if val:
+                return val
+    return str(sidecar.get("title") or "").strip()
+
+
+def write_caption_keep_image(asset_id: str, caption: str) -> bool:
+    """Put caption text on an existing poster draft. Leave the image."""
+    from _lib import unified_inbox as ui
+
+    asset_id = (asset_id or "").strip()
+    caption = (caption or "").strip()
+    if not asset_id or not caption:
+        return False
+    sidecar = _load_sidecar(asset_id)
+    if not sidecar:
+        return False
+    data = ui._load_campaign_data()  # noqa: SLF001
+    found = False
+    for campaign in (data.get("campaigns") or {}).values():
+        if not isinstance(campaign, dict):
+            continue
+        asset = (campaign.get("assets") or {}).get(asset_id)
+        if isinstance(asset, dict):
+            asset["caption"] = caption
+            found = True
+    if not found:
+        return False
+    ui._write_campaign_data(data)  # noqa: SLF001
+    sidecar["title"] = caption
+    _save_sidecar(asset_id, sidecar)
+    return True
+
+
 def restore_poster_from_publish(
     draft_id: str,
     *,
@@ -726,7 +771,9 @@ def regenerate_caption(
                 else f"inbox/{resolved_moment}"
             ),
             "dedupe_key": (
-                f"cap-regen-{stamp}-{item_hash}" if recompose else f"cap-keep-{asset_id}"
+                f"cap-regen-{stamp}-{item_hash}"
+                if recompose
+                else f"cap-keep-{time.time_ns()}-{item_hash}"
             ),
         }
     )
@@ -771,6 +818,11 @@ def regenerate_caption(
     writer_error = str(writer.get("error") or "").strip()
     drafted = writer.get("drafted")
     ok = True
+    if run_now and not recompose and drafted == 0 and asset_id:
+        fallback = _keep_caption_fallback(brand_id, resolved_moment, asset_id)
+        if fallback and write_caption_keep_image(asset_id, fallback):
+            drafted = 1
+            writer_error = ""
     if run_now and not recompose:
         if writer_error or writer.get("ok") is False:
             ok = False
