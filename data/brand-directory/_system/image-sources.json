@@ -51,11 +51,14 @@
     },
     "Mileseey": {
       "site": "https://mileseeygolf.com",
-      "note": "Plain fetch reads the page but it has no product feed; the built-in browser refused to open it (needs the site allowed in the pane)."
+      "method": "browser pane for the product list, og:image on each product page",
+      "images": "img-va.myshopline.com, w=1600 (S1 source is 800px). Downloads fine from a script.",
+      "note": "GenePro G1 and S1, GeneSonic Pro, IONME2 all found. Some images carry award badges (Red Dot, MyGolfSpy, TIME): crop before use."
     },
     "Golf Pride": {
       "site": "https://www.golfpride.com",
-      "note": "403 to plain fetch; the built-in browser refused to open it (needs the site allowed in the pane)."
+      "method": "browser pane",
+      "note": "Opens in the pane once allowed. Product shots come from images.eaton.com with coded part numbers, not colour names, so colourways cannot be told apart from the page. Scripts get 403 (site) and no connection (eaton). Range-level photo is the realistic route."
     },
     "GripDrip": {
       "site": "https://gripdripgolf.com",
@@ -96,7 +99,8 @@
     },
     "FootJoy": {
       "site": "https://www.footjoy.com",
-      "note": "403 to plain fetch; the built-in browser refused to open it (needs the site allowed in the pane)."
+      "method": "browser pane",
+      "note": "Opens in the pane once allowed. Glove pages found (StaSof, SciFlex, RainGrip, SofJoy, WeatherSof). Same Acushnet image server as Titleist: scripts get 403, so images can be seen but not downloaded."
     }
   }
 }
