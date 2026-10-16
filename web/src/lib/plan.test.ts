@@ -55,8 +55,11 @@ describe('splitItems', () => {
 })
 
 describe('approveBlocker', () => {
-  it('blocks until the brief is approved', () => {
-    expect(approveBlocker(plan([item({})], 'draft'))).toMatch(/brief is not approved/)
+  it('lets a draft brief through as long as one exists', () => {
+    expect(approveBlocker(plan([item({})], 'draft'))).toBe('')
+  })
+  it('blocks when there is no brief', () => {
+    expect(approveBlocker({ ...plan([item({})]), brief_id: '' })).toMatch(/no brief/)
   })
   it('blocks a boost with no real video shoot', () => {
     expect(approveBlocker(plan([item({ kind: 'boost' })]))).toMatch(/real video/)

@@ -1,4 +1,4 @@
-"""campaign_plan.py — turn an approved brief into a dated, editable plan.
+"""campaign_plan.py — turn a brief into a dated, editable plan.
 
 A brief says WHAT the campaign is for. A plan says WHAT TO DO and WHEN,
 working backwards from the event date: research, decide, shoot, edit,
@@ -613,15 +613,14 @@ def add_item(brand_id: str, plan_id: str, item: dict,
 
 def approve_plan(brand_id: str, plan_id: str, actor: str = "operator") -> dict:
     """Record the operator's yes. Does NOT create calendar entries — that is
-    a separate, explicit step. Refused while the brief is not approved or a
-    boost has no real-video shoot item left in the plan."""
+    a separate, explicit step. Needs a brief on the plan. Refused if a boost
+    has no real-video shoot item left."""
     plan = get_plan(brand_id, plan_id)
     err = _editable(plan)
     if err:
         return {"ok": False, "error": err}
-    if plan.get("brief_status") != "approved":
-        return {"ok": False,
-                "error": "the brief is not approved yet; approve it first"}
+    if not plan.get("brief_id"):
+        return {"ok": False, "error": "this plan has no brief"}
     live = [i for i in plan["items"] if i["status"] != "removed"]
     if not live:
         return {"ok": False, "error": "every item is removed"}
