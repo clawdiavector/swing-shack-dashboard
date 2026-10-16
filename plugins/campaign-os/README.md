@@ -26,6 +26,7 @@ is why this exists: **the plugin is now the canonical home** for these skills.
 |---|---|
 | `campaign-os-map` | **Before building anything.** What already exists — lib modules, the composer, brand templates, Meta/Krea wrappers, and which specs are known wrong. |
 | `campaign-os` | Ops hub — jobs, prod health, the ops API, host routing. Opens per-task modules. |
+| `campaign-os-campaign` | **Set up / create a campaign, TEST n, Suggest Date, Brief.** Run `suggest_campaign.py` only. Not a lodge. |
 | `campaign-os-template` | Turning a batch of real brand posts into a pixel-accurate compose template. |
 | `krea-lab` | Any Krea/Ideogram/Recraft/Flux work — look up model ids, schemas and resolutions *before* generating. |
 | `brand-voice-truth` | **Before writing any caption or headline.** What the feed actually says, measured over all 261 Stick posts — the bibles drift and prompts read the bibles. |

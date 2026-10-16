@@ -3,11 +3,15 @@
 Kyle says: “load a post for Thursday”, “put this on the calendar”, “book a fitting
 Facebook post”.
 
+If the user said **set up** / **create** a named window, **TEST n**, Suggest Date,
+or wants a Brief — wrong file. Load the Suggest Date skill. Do not ask channel.
+Do not upsert. Do not enqueue.
+
 **Contract:** calendar **and** Create queue. Action does **not** have to be
 immediate. Never caption without image (Facebook / IG). Review is only for a
 **complete** post.
 
-Do it from a **fresh chat**. Do not continue a `campaign-data.json` shell.
+Do it from a **fresh chat**. Do not continue a seed-JSON shell.
 
 ## Ask first (minimum)
 
@@ -26,7 +30,7 @@ Absurdity Mirror = Swing Shack **pillar**, not a brand.
 
 ## Never
 
-- Edit `campaign-data.json` / campaign `assets` blocks.
+- Edit the seed JSON under `data/` (the old plan store).
 - Enqueue `fill_slot`.
 - Enqueue **caption without image** (Facebook / Instagram). Pair or stop.
 - `POST /api/jobs/run/draft_assets` unless Kyle says **run now** / **cook it now**.
@@ -134,7 +138,7 @@ point at Review.
 
 ## If upsert 401 / 400 / 500
 
-Say **blocked**. Do not patch `campaign-data.json`. On 500
+Say **blocked**. Do not patch the seed JSON under `data/`. On 500
 `event_key must be prefixed with '{brand}:'`, retry once with the prefix.
 
 ## Related
