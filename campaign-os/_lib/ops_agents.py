@@ -353,7 +353,7 @@ def normalise_enqueue(body: dict[str, Any]) -> dict[str, str]:
         row_id = f"manual-{brand}-{agent}-{reason}"[:80]
     payload_ref = body.get("payload_ref")
     if payload_ref is not None:
-        payload_ref = _clamp_text(payload_ref, 120)
+        payload_ref = _clamp_text(payload_ref, 256)
     else:
         payload_ref = f"ops-agents/enqueue#{reason}"
     action = _clamp_text(body.get("action") or "enqueue", 64)

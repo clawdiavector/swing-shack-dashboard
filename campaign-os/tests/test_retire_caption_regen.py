@@ -133,8 +133,24 @@ def test_caption_regen_keeps_poster(monkeypatch, tmp_path):
 
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     row_ids = [row["id"] for row in queue["rows"]]
+    refs = [row["payload_ref"] for row in queue["rows"]]
     assert any("cap-keep-draft-abc123def456" in row_id for row_id in row_ids)
+    assert any(f"#keep:{asset_id}" in ref for ref in refs)
     assert all(row["action"] != "compose_post" for row in queue["rows"])
+
+
+def test_keep_asset_id_from_payload_ref_when_row_id_truncated():
+    from _lib.jobs.layer5.draft_assets import _keep_asset_id_from_row, _parse_inbox_ref
+
+    moment = "calendar_candidate:stick:long-calendar-id-that-used-to-eat-the-suffix"
+    asset_id = "asset-not-draft-prefix-xyz"
+    row = {
+        "id": "manual-stick-cos-caption-cap-keep-asset-not-d",
+        "payload_ref": f"inbox/{moment}#keep:{asset_id}",
+    }
+    assert _keep_asset_id_from_row(row) == asset_id
+    assert _parse_inbox_ref(row["payload_ref"]) == moment
+    assert _keep_asset_id_from_row({"id": "x-cap-keep-plain-id-99"}) == "plain-id-99"
 
 
 def test_restore_poster_from_publish(monkeypatch, tmp_path):

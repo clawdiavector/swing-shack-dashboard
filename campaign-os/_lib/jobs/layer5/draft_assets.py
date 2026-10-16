@@ -110,6 +110,10 @@ def _parse_inbox_ref(payload_ref: str) -> Optional[str]:
     if not payload_ref.startswith(prefix):
         return None
     item_id = payload_ref[len(prefix) :].strip()
+    if "#keep:" in item_id:
+        item_id = item_id.split("#keep:", 1)[0].strip()
+    elif "#" in item_id:
+        item_id = item_id.split("#", 1)[0].strip()
     return item_id or None
 
 
@@ -538,9 +542,14 @@ def _process_caption_row(
     if _caption_unavailable(result):
         return None, "missing OPENAI_API_KEY"
 
+    keep_id = (keep_asset_id or _keep_asset_id_from_row(row) or "").strip()
     caption = _pick_caption(result)
     if not caption:
-        return None, "caption pipeline returned no survivors"
+        lodge = str(pipeline_in.get("lodge_title") or "").strip()
+        if keep_id and lodge:
+            caption = lodge
+        else:
+            return None, "caption pipeline returned no survivors"
 
     cal_title = calendar_title_for_item(brand_id, item_id)
     copy_package = _pick_copy_package(result)
@@ -607,7 +616,6 @@ def _process_caption_row(
             sidecar_extra["compose_cta"] = compose_cta
         if compose_body:
             sidecar_extra["compose_body"] = compose_body
-    keep_id = (keep_asset_id or _keep_asset_id_from_row(row) or "").strip()
     if keep_id:
         asset_id = _rewrite_caption_keep_image(
             asset_id=keep_id,
@@ -698,16 +706,20 @@ def _asset_has_persisted_image(asset: dict[str, Any]) -> bool:
 
 
 def _keep_asset_id_from_row(row: dict[str, Any]) -> str | None:
-    """Asset id embedded in a caption-only regen queue id (cap-keep-draft-…)."""
+    """Asset id for a caption-only rewrite. Prefer payload_ref #keep: (not truncated)."""
+    ref = str(row.get("payload_ref") or "")
+    if "#keep:" in ref:
+        asset_id = ref.split("#keep:", 1)[1].strip()
+        asset_id = asset_id.split("#", 1)[0].strip()
+        if asset_id:
+            return asset_id
     row_id = str(row.get("id") or "")
     marker = "cap-keep-"
     idx = row_id.find(marker)
     if idx < 0:
         return None
     asset_id = row_id[idx + len(marker) :].strip()
-    if asset_id.startswith("draft-") and len(asset_id) >= 18:
-        return asset_id
-    return None
+    return asset_id or None
 
 
 def _caption_keep_asset_id(rows_for_moment: list[tuple[dict[str, Any], str]]) -> str | None:
