@@ -24,6 +24,18 @@ export type CandidateOffer = {
   idea?: string
 }
 
+export type OfferOption = {
+  name: string
+  category?: string
+  qty: number
+  status: string
+  reason: string
+  suggested: boolean
+  north_star_product?: boolean
+}
+
+export type OfferService = { name: string; detail?: string }
+
 export type OperatorOffer = { selected_name: string; price: string; discount: string }
 
 export type PlanItem = {
@@ -50,6 +62,13 @@ export type PlanItem = {
   calendar_id?: string
   /** An offer step: stock-driven candidates from the brief (system draft, read-only). */
   candidate_offers?: CandidateOffer[]
+  /** An offer step: every stock line sold as-is, each with why it is or is not suggested. */
+  offer_catalogue?: OfferOption[]
+  /** An offer step: the brand's services (fitting, coaching...). */
+  offer_services?: OfferService[]
+  /** An offer step: the product the Retail North Star is about, e.g. Psycho Bunny. */
+  offer_focus?: string
+  offer_note?: string
   /** An offer step: what the operator chose. Price and discount are only ever typed by them. */
   operator_offer?: OperatorOffer
   source: 'template' | 'operator'
@@ -153,7 +172,7 @@ export const proposePlan = (brand: string, briefId: string, force = false, profi
   call('POST', `${base(brand)}/propose`, { brief_id: briefId, force, ...(profile ? { profile } : {}) })
 
 /** What can be changed on a step. A budget may be typed ("1,500"); the server reads it. */
-export type PlanItemPatch = Partial<Omit<PlanItem, 'budget' | 'shots' | 'asked' | 'candidate_offers'>> & {
+export type PlanItemPatch = Partial<Omit<PlanItem, 'budget' | 'shots' | 'asked' | 'candidate_offers' | 'offer_catalogue' | 'offer_services'>> & {
   budget?: number | string | null
   /** A list, or text with one shot per line. */
   shots?: string[] | string
