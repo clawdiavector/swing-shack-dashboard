@@ -470,30 +470,39 @@ def _caption_pipeline_payload(
 ) -> dict[str, Any]:
     product_id: str | None = None
     service: str | None = None
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    lodge_title = calendar_title_for_item(brand_id, item_id) or str(calendar.get("title") or "")
+    title_l = lodge_title.lower()
+    calendar_products = calendar.get("products") if isinstance(calendar.get("products"), list) else []
     if ctx.products:
         first = ctx.products[0]
         pid = str(first.get("id") or "")
-        if pid.startswith("product-"):
+        name = str(first.get("name") or "").strip()
+        named_on_calendar = bool(calendar_products)
+        named_in_title = bool(name) and name.lower() in title_l
+        if pid.startswith("product-") and (named_on_calendar or named_in_title):
             product_id = pid
-        else:
-            service = str(first.get("name") or first.get("category") or "").strip() or None
+        elif name and (named_on_calendar or named_in_title):
+            service = name
     channel = primary_channel_for_item(brand_id, item_id, fallback="instagram")
     from _lib.archetypes_v2 import select_archetype  # noqa: PLC0415
     from _lib.poster_copy import poster_cta_cap, poster_hook_cap  # noqa: PLC0415
 
     archetype = select_archetype(brand_id, item_id)
-    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    angle = str(calendar.get("angle") or "")
+    post_type = str(calendar.get("post_type") or "").strip() or None
+    brief_bits = [bit for bit in (lodge_title, angle, post_type or "") if bit]
     payload: dict[str, Any] = {
         "brand_id": brand_id,
-        "user_brief": ctx.job,
+        "user_brief": " | ".join(brief_bits) or lodge_title or (ctx.job or ""),
         "channel": channel,
         "n_survivors": 3,
         "n_candidates": 12,
         "poster_hook_cap": poster_hook_cap(archetype),
         "poster_cta_cap": poster_cta_cap(archetype),
         "template_id": str(calendar.get("template_id") or "").strip() or None,
-        "post_type": str(calendar.get("post_type") or "").strip() or None,
-        "lodge_title": calendar_title_for_item(brand_id, item_id) or None,
+        "post_type": post_type,
+        "lodge_title": lodge_title or None,
     }
     if product_id:
         payload["product_id"] = product_id

@@ -26,6 +26,13 @@ GLOBAL_FORBIDDEN_PHRASES: tuple[str, ...] = (
     "research has shown",
 )
 
+# Other services — only if the lodge title / brief names them.
+GLOBAL_FORBIDDEN_UNLESS_IN_BRIEF: tuple[str, ...] = (
+    "tpi",
+    "tpi assessment",
+    "titleist performance",
+)
+
 # Extra brand phrases (merged into P11 banned list + contract checks).
 BRAND_FORBIDDEN_PHRASES: dict[str, tuple[str, ...]] = {
     "stick": (
@@ -141,6 +148,7 @@ EQUIPMENT_FAMILIES: dict[str, tuple[str, ...]] = {
     "coaching": ("coaching", "coach", "lesson", "trackman session", "trackman"),
     "membership": ("membership", "join our membership", "member benefits"),
     "fitting_generic": ("club fitting", "fitting session", "fitted", "fitting"),
+    "tpi": ("tpi", "titleist performance", "tpi assessment"),
 }
 
 
@@ -244,7 +252,8 @@ def build_copy_contract(
         "lodge_title": (lodge_title or "").strip() or None,
         "focus": spec.get("focus"),
         "preferred_terms": list(spec.get("preferred_terms") or ()),
-        "forbidden_unless_in_brief": list(spec.get("forbidden_unless_in_brief") or ()),
+        "forbidden_unless_in_brief": list(spec.get("forbidden_unless_in_brief") or ())
+        + list(GLOBAL_FORBIDDEN_UNLESS_IN_BRIEF),
         "required_families": list(spec.get("required_families") or ()),
         "forbidden_phrases": forbidden_phrases,
         "brief_subject_override": spec.get("brief_subject_override"),
@@ -327,6 +336,9 @@ def check_poster_caption_alignment(
     if "coaching" in hook_f and "putter" in cap_f and "coaching" not in cap_f:
         if "putter" not in brief_f:
             return {"passed": False, "reason": "coaching_hook_putter_caption"}
+
+    if "tpi" in cap_f and "tpi" not in hook_f and "tpi" not in brief_f:
+        return {"passed": False, "reason": "off_topic:tpi"}
 
     from _lib.poster_copy import hook_grounded_in_caption  # noqa: PLC0415
 

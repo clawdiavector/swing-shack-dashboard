@@ -136,11 +136,11 @@ SERVICE_KEYWORDS = {
     "driver fitting": ["driver", "shaft", "swing speed", "attack angle", "smash factor"],
     "iron fitting": ["iron", "7-iron", "carry", "trajectory"],
     "wedge fitting": ["wedge", "bounce", "loft", "short game"],
-    "coaching": ["coach", "lesson", "swing", "tempo", "drill"],
-    "tpi assessment": ["tpi", "body", "swing", "physical", "assessment"],
-    "trackman session": ["trackman", "session", "data", "numbers"],
-    "membership": ["membership", "member", "join", "social"],
-    "fitting": ["fitting", "club", "shaft", "custom"],
+    "coaching": ["coaching", "coach", "lesson", "drill"],
+    "tpi assessment": ["tpi", "tpi assessment", "titleist performance"],
+    "trackman session": ["trackman"],
+    "membership": ["membership"],
+    "fitting": ["fitting", "fitted", "club fitting"],
 }
 
 
@@ -1028,15 +1028,30 @@ def _load_performance_evidence(brand_id: str) -> List[dict]:
 
 
 # ─── Brief subject detection ───────────────────────────────────────────
+def _keyword_in_brief(kw: str, text: str) -> bool:
+    needle = (kw or "").strip().lower()
+    hay = (text or "").lower()
+    if not needle or not hay:
+        return False
+    if " " in needle:
+        return needle in hay
+    return bool(re.search(rf"\b{re.escape(needle)}\b", hay))
+
+
 def _detect_brief_subject(brief: str, service: str = None, product_id: str = None) -> str:
     """Return the dominant subject of the brief (e.g. 'putter fitting')."""
     text = (brief or "").lower()
-    # Service param wins if explicit
+    # Named service wins only when it is a known subject, not a photo-job leftover.
     if service:
-        return service.lower()
+        svc = service.lower().strip()
+        if svc in SERVICE_KEYWORDS:
+            return svc
+        for key, kws in SERVICE_KEYWORDS.items():
+            if svc == key or any(_keyword_in_brief(kw, svc) for kw in kws):
+                return key
     # First try to detect a service keyword from the brief text
     for svc, kws in SERVICE_KEYWORDS.items():
-        if any(kw in text for kw in kws):
+        if any(_keyword_in_brief(kw, text) for kw in kws):
             return svc
     # If a product_id is supplied AND the brief mentions that product,
     # combine them. Otherwise return the product_id as the subject.
@@ -1851,7 +1866,12 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
             "do not assert them as permanent brand truth."
         )
     contract = ctx.get("copy_contract") if isinstance(ctx.get("copy_contract"), dict) else {}
-    if contract.get("focus") or contract.get("preferred_terms"):
+    if (
+        contract.get("focus")
+        or contract.get("preferred_terms")
+        or contract.get("forbidden_unless_in_brief")
+        or contract.get("lodge_title")
+    ):
         user_parts.append("\nTEMPLATE / MOMENT COPY CONTRACT (must obey):")
         if contract.get("template_id"):
             user_parts.append(f"- Template: {contract['template_id']}")
@@ -1859,6 +1879,9 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
             user_parts.append(f"- Post type: {contract['post_type']}")
         if contract.get("lodge_title"):
             user_parts.append(f"- Lodge title (visual headline source): {contract['lodge_title']}")
+            user_parts.append(
+                "- Caption must be about that title / poster, not a different service."
+            )
         if contract.get("focus"):
             user_parts.append(f"- Stay on: {contract['focus']}")
         preferred = contract.get("preferred_terms") or []
