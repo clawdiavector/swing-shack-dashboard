@@ -9,9 +9,9 @@
   "brands": {
     "Titleist": {
       "site": "https://www.titleist.com",
-      "method": "browser pane",
+      "method": "browser pane; images saved with the browser's own download (anchor with a download name), which lands on the Desktop, then moved into the photo map",
       "images": "https://www.titleist.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-titleist-master/default/<hash>/<code>_01.png?sw=2000&sh=2000&sm=fit&sfrm=png (2000px)",
-      "blocked": "The image server returns 403 to anything but a real browser page. Found and checked in the browser, cannot be downloaded by a script. Needs a manual save or a different route."
+      "blocked": "Scripts get 403 from the image server, so a script cannot fetch them. The browser pane can: fetch the image inside the page and trigger a normal download, wait a few seconds, then read the file from the Desktop. Downloads can drop silently when several fire at once: space them 4 s apart and check the Desktop. Do not relay bytes through a local server (denied)."
     },
     "Srixon": {
       "site": "https://ca.dunlopsports.com",
@@ -58,7 +58,7 @@
     "Golf Pride": {
       "site": "https://www.golfpride.com",
       "method": "browser pane",
-      "note": "Opens in the pane once allowed. Product shots come from images.eaton.com with coded part numbers, not colour names, so colourways cannot be told apart from the page. Scripts get 403 (site) and no connection (eaton). Range-level photo is the realistic route."
+      "note": "Opens in the pane. The only large images on the grip pages are macro texture banners (no colour, no whole grip), not product shots; product shots come from images.eaton.com with coded part numbers and cannot be told apart by colour. Treat Golf Pride as a shoot-in-store brand."
     },
     "GripDrip": {
       "site": "https://gripdripgolf.com",
@@ -98,7 +98,7 @@
     "FootJoy": {
       "site": "https://www.footjoy.com",
       "method": "browser pane",
-      "note": "Opens in the pane once allowed. Glove pages found (StaSof, SciFlex, RainGrip, SofJoy, WeatherSof). Same Acushnet image server as Titleist: scripts get 403, so images can be seen but not downloaded."
+      "note": "Gloves saved the same way as Titleist (browser download, then moved). Hero images are glove plus retail pack, 2000px. StaSof, WeatherSof, RainGrip, SofJoy, SciFlex found; the old Hyper Flex is not on the site."
     },
     "Odyssey": {
       "site": "https://odyssey.callawaygolf.com",
