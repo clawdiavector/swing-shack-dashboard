@@ -966,6 +966,7 @@ export type InsightPost = {
   verdict?: string
   plain_english?: string
   like_count?: number
+  comments_count?: number
   timestamp?: string
   permalink?: string
   thumbnail_url?: string
