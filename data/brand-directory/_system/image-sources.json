@@ -23,7 +23,7 @@
       "site": "https://www.callawaygolf.com",
       "method": "image path pattern",
       "images": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792042806975/sits/balls-<year>-<model>/balls-<year>-<model>_2___1.jpg?sw=2000&q=90&bgcolor=F7F7F7&sfrm=png",
-      "note": "Listing pages hang a hidden browser pane; open product pages in a fresh tab. Titles and headings can disagree. 2026 images exist for chrome-tour, chrome-tour-x, chrome-tour-td, chrome-soft; confirm the stock generation."
+      "note": "Listing pages hang a hidden browser pane; open product pages in a fresh tab. Titles and headings can disagree. 2026 images exist for chrome-tour, chrome-tour-x, chrome-tour-td, chrome-soft; confirm the stock generation. Quantum Mini (2026) image: .../sits/drivers-2026-quantum-mini/drivers-2026-quantum-mini___1.png?sw=2000."
     },
     "Vice Golf": {
       "site": "https://www.vicegolf.com",
@@ -73,11 +73,10 @@
       "note": "The feed does not tie an image to a colourway, so every colourway of a design gets the same picture. Use one design image per range; shoot the colourways."
     },
     "Not scouted yet": [
-      "Odyssey (429), Ping (404), LA Golf (409): block automated requests",
+      "Ping (404), LA Golf (409): block automated requests",
       "Jordan bags",
       "Vice clubs, bags and junior sets (site has no product feed)",
       "AJM GripCo, Lamkin, Icon, Star Grip, Pure Grip (no site found)",
-      "Callaway Quantum Mini (retailer pages only)",
       "Titleist gloves, Vokey SM10, Scotty Cameron",
       "Srixon gloves"
     ],
@@ -101,6 +100,12 @@
       "site": "https://www.footjoy.com",
       "method": "browser pane",
       "note": "Opens in the pane once allowed. Glove pages found (StaSof, SciFlex, RainGrip, SofJoy, WeatherSof). Same Acushnet image server as Titleist: scripts get 403, so images can be seen but not downloaded."
+    },
+    "Odyssey": {
+      "site": "https://odyssey.callawaygolf.com",
+      "method": "browser pane (the site is on Callaway's platform); page og:image",
+      "images": "https://prd-sfcc.callawaygolf.com/.../sits/<slug>/<slug>___1.png?sw=2000 (2000px, downloads from a script)",
+      "note": "Ai-One Double Wide CH, Rossie DB (US site) and Milled Seven T (Odyssey Europe page) found. Stock names do not give the hosel (CH or DB), so each is flagged to confirm. odysseygolf.com itself returns 429 to scripts; odyssey.callawaygolf.com works in the pane."
     }
   }
 }
