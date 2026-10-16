@@ -99,6 +99,13 @@ def test_caption_brief_subject_not_draft_or_coaching(inbox_env, tmp_path):
         assert "Photoreal" not in payload["user_brief"]
 
 
+def test_brief_subject_club_assessment_is_fitting_not_free():
+    from _lib.p11_context_engine import _detect_brief_subject
+
+    assert _detect_brief_subject("FREE CLUB ASSESSMENT @ stick") == "fitting"
+    assert _detect_brief_subject("free taster night at stick") != "free"
+
+
 def test_caption_brief_stays_on_lodge_title(inbox_env, tmp_path):
     from _lib.jobs.layer5.draft_assets import _caption_pipeline_payload
     from _lib.jobs.layer5.image_draft_context import build_image_draft_context

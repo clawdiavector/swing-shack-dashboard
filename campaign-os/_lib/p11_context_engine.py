@@ -140,7 +140,7 @@ SERVICE_KEYWORDS = {
     "tpi assessment": ["tpi", "tpi assessment", "titleist performance"],
     "trackman session": ["trackman"],
     "membership": ["membership"],
-    "fitting": ["fitting", "fitted", "club fitting"],
+    "fitting": ["fitting", "fitted", "club fitting", "club assessment"],
 }
 
 
@@ -1057,8 +1057,12 @@ def _detect_brief_subject(brief: str, service: str = None, product_id: str = Non
     # combine them. Otherwise return the product_id as the subject.
     if product_id:
         return product_id.lower()
-    # Fallback: most distinctive noun-ish word in brief
-    words = re.findall(r"\b[a-z]{4,}\b", text)
+    # Fallback: distinctive noun from the lodge title, not "free" / "this".
+    stop = {
+        "free", "your", "this", "that", "with", "from", "stick", "shack",
+        "golf", "today", "book", "just", "when", "have", "been",
+    }
+    words = [w for w in re.findall(r"\b[a-z]{4,}\b", text) if w not in stop]
     if words:
         return words[0]
     return ""

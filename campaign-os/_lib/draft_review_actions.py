@@ -720,7 +720,11 @@ def regenerate_caption(
             "brand": brand_id,
             "reason": reason_s,
             "action": "draft_caption",
-            "payload_ref": f"inbox/{resolved_moment}",
+            "payload_ref": (
+                f"inbox/{resolved_moment}#keep:{asset_id}"
+                if asset_id
+                else f"inbox/{resolved_moment}"
+            ),
             "dedupe_key": (
                 f"cap-regen-{stamp}-{item_hash}" if recompose else f"cap-keep-{asset_id}"
             ),
@@ -764,15 +768,26 @@ def regenerate_caption(
     if not recompose and run_now:
         writer = _kick_caption_keep(resolved_moment, brand_id)
 
+    writer_error = str(writer.get("error") or "").strip()
+    drafted = writer.get("drafted")
+    ok = True
+    if run_now and not recompose:
+        if writer_error or writer.get("ok") is False:
+            ok = False
+        elif drafted == 0:
+            ok = False
+            writer_error = writer_error or "caption rewrite wrote nothing"
+
     return {
-        "ok": True,
+        "ok": ok,
         "brand_id": brand_id,
         "moment_id": resolved_moment,
         "retired_asset_ids": retired,
         "enqueued": enqueued,
         "started": bool(writer.get("started")),
-        "drafted": writer.get("drafted"),
-        "writer_error": writer.get("error"),
+        "drafted": drafted,
+        "writer_error": writer_error or None,
+        "error": writer_error or None,
     }
 
 
