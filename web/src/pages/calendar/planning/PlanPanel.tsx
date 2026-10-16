@@ -32,6 +32,7 @@ import {
   type PlanItem,
   type PlanItemKind,
   type PlanItemPatch,
+  type OperatorOffer,
   type PlanProfile,
   type PlanResult,
 } from '../../../lib/plan'
@@ -70,6 +71,9 @@ function ItemRow({
   const [note, setNote] = useState(item.note)
   const [budget, setBudget] = useState(item.budget ? String(item.budget) : '')
   const [shots, setShots] = useState((item.shots && item.shots.length ? item.shots : defaultShots(eventKind, !!item.needs_real_video)).join('\n'))
+  const [offer, setOffer] = useState<OperatorOffer>(
+    item.operator_offer ?? { selected_name: '', price: '', discount: '' },
+  )
   const [err, setErr] = useState<string | null>(null)
   const [drafting, setDrafting] = useState(false)
   const done = item.status === 'done'
@@ -123,6 +127,45 @@ function ItemRow({
             </span>
           </label>
         ) : null}
+        {item.candidate_offers && item.candidate_offers.length ? (
+          <div className="space-y-1 text-xs text-tx2" data-testid="plan-offer-editor">
+            <label className="block">
+              Lead with (from the stock list)
+              <select
+                aria-label="Lead with"
+                className={`${field} mt-1 block w-full`}
+                value={offer.selected_name}
+                onChange={(e) => setOffer({ ...offer, selected_name: e.target.value })}
+              >
+                <option value="">Not chosen yet</option>
+                {item.candidate_offers.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name} · {c.qty} on shelf{c.reason ? ` · ${c.reason}` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <input
+                aria-label="Price"
+                placeholder="Price, e.g. R1,499"
+                className={`${field} w-40`}
+                value={offer.price}
+                onChange={(e) => setOffer({ ...offer, price: e.target.value })}
+              />
+              <input
+                aria-label="Discount"
+                placeholder="Discount, e.g. 15% off"
+                className={`${field} w-44`}
+                value={offer.discount}
+                onChange={(e) => setOffer({ ...offer, discount: e.target.value })}
+              />
+            </div>
+            <span className="block text-[11px] text-tx3">
+              Price and discount are yours to type. Nothing is suggested or published from here.
+            </span>
+          </div>
+        ) : null}
         {item.kind === 'boost' ? (
           <label className="block text-xs text-tx2">
             Planned budget (rand)
@@ -152,6 +195,7 @@ function ItemRow({
                 note,
                 ...(item.kind === 'boost' ? { budget } : {}),
                 ...(item.kind === 'shoot' ? { shots } : {}),
+                ...(item.candidate_offers && item.candidate_offers.length ? { operator_offer: offer } : {}),
               })
             }
           >
@@ -219,6 +263,19 @@ function ItemRow({
                 Open Approve drafts
               </Link>
             ) : null}
+          </div>
+        ) : null}
+        {item.candidate_offers && item.candidate_offers.length ? (
+          <div className="mt-0.5 space-y-0.5" data-testid="plan-offer-info">
+            <p className="text-[11px] text-tx2">
+              Candidates from stock: {item.candidate_offers.slice(0, 5).map((c) => c.name).join('; ')}
+              {item.candidate_offers.length > 5 ? ` and ${item.candidate_offers.length - 5} more` : ''}
+            </p>
+            <p className={`text-[11px] ${item.operator_offer?.selected_name ? 'text-emerald-400' : 'text-yel'}`}>
+              {item.operator_offer?.selected_name
+                ? `Leading with ${item.operator_offer.selected_name}${item.operator_offer.price ? ` at ${item.operator_offer.price}` : ''}${item.operator_offer.discount ? `, ${item.operator_offer.discount}` : ''}.`
+                : 'Nothing chosen yet. Use Change to pick one and add the price.'}
+            </p>
           </div>
         ) : null}
         {item.kind === 'shoot' ? (

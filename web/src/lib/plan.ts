@@ -14,6 +14,18 @@ export type PlanItemKind =
 
 export type PlanItemStatus = 'proposed' | 'kept' | 'removed' | 'done'
 
+export type CandidateOffer = {
+  name: string
+  category?: string
+  qty: number
+  days_unchanged: number
+  status: string
+  reason: string
+  idea?: string
+}
+
+export type OperatorOffer = { selected_name: string; price: string; discount: string }
+
 export type PlanItem = {
   item_id: string
   kind: PlanItemKind
@@ -36,6 +48,10 @@ export type PlanItem = {
   draft?: { requested_at: string; by: string; moment: string; queued: string[] } | null
   /** Set once the step is on the Main Calendar; '' otherwise. */
   calendar_id?: string
+  /** An offer step: stock-driven candidates from the brief (system draft, read-only). */
+  candidate_offers?: CandidateOffer[]
+  /** An offer step: what the operator chose. Price and discount are only ever typed by them. */
+  operator_offer?: OperatorOffer
   source: 'template' | 'operator'
 }
 
@@ -137,7 +153,7 @@ export const proposePlan = (brand: string, briefId: string, force = false, profi
   call('POST', `${base(brand)}/propose`, { brief_id: briefId, force, ...(profile ? { profile } : {}) })
 
 /** What can be changed on a step. A budget may be typed ("1,500"); the server reads it. */
-export type PlanItemPatch = Partial<Omit<PlanItem, 'budget' | 'shots' | 'asked'>> & {
+export type PlanItemPatch = Partial<Omit<PlanItem, 'budget' | 'shots' | 'asked' | 'candidate_offers'>> & {
   budget?: number | string | null
   /** A list, or text with one shot per line. */
   shots?: string[] | string

@@ -25341,7 +25341,8 @@ def _plan_event_meta(brand_id, brief):
                     meta = {"tier": e.get("tier"), "category": e.get("category"),
                             "shopping_moment": bool(e.get("shopping_moment")),
                             "pillars": e.get("pillars"),
-                            "start": e.get("start"), "end": e.get("end")}
+                            "start": e.get("start"), "end": e.get("end"),
+                            "public_peak": e.get("public_peak")}
                     break
             if meta:
                 break
@@ -25351,7 +25352,8 @@ def _plan_event_meta(brand_id, brief):
                 if (r.get("event_key") or r.get("calendar_id")) == key:
                     meta = {"tier": r.get("tier"), "category": r.get("category"),
                             "lead_time_class": r.get("lead_time_class"),
-                            "start": r.get("event_start"), "end": r.get("event_end")}
+                            "start": r.get("event_start"), "end": r.get("event_end"),
+                            "public_peak": r.get("public_peak")}
                     if meta["lead_time_class"] == "normal_campaign":
                         meta["lead_time_class"] = None  # the default, not a choice
                     break
