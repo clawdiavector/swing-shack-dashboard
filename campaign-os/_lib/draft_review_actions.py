@@ -21,6 +21,25 @@ def _data_dir() -> Path:
     return Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
 
 
+def _draft_id_from_asset_id(asset_id: str) -> str | None:
+    """Map a bare asset id to draft_asset:<campaign>:<asset> when unique."""
+    from _lib import unified_inbox as ui
+
+    data = ui._load_campaign_data()  # noqa: SLF001
+    matches: list[str] = []
+    for cid, campaign in (data.get("campaigns") or {}).items():
+        if not isinstance(campaign, dict):
+            continue
+        assets = campaign.get("assets") or {}
+        if not isinstance(assets, dict):
+            continue
+        if asset_id in assets:
+            matches.append(f"draft_asset:{cid}:{asset_id}")
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
 def _normalize_draft_item_id(draft_id: str) -> str:
     raw = (draft_id or "").strip()
     if not raw:
@@ -29,6 +48,9 @@ def _normalize_draft_item_id(draft_id: str) -> str:
         return raw
     if ":" in raw:
         return f"draft_asset:{raw}"
+    resolved = _draft_id_from_asset_id(raw)
+    if resolved:
+        return resolved
     raise ValueError("draft id must be draft_asset:<campaign>:<asset>")
 
 

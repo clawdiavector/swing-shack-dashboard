@@ -35039,8 +35039,8 @@ def api_captions_v2_recipe():
         "product_brands": _P11_PRODUCT_BRANDS,
         "channel_rules": {
             "instagram_reel": "Vertical video. Caption can be longer; first 1-2 lines are the hook above the 'more' cut.",
-            "instagram_feed": "Static or carousel. Caption can be 100-300 words. First line = hook.",
-            "facebook": "Longer caption acceptable. Slightly more conversational.",
+            "instagram_feed": "Static or carousel. Caption body: 1-2 sentences, max 220 characters. CTA is appended. First line = hook.",
+            "facebook": "Same length as Instagram feed. Slightly more conversational.",
             "paid_meta": "Tighter. First 3 words matter most. 1-2 sentence body max.",
             "gbp": "Short post. Local context. No hashtags.",
         },

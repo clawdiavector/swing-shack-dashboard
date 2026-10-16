@@ -1288,11 +1288,11 @@ def build_generation_context(
             "voice_notes": "Data-driven hook in line 1. CTA in last line. Hashtags at end (3-6).",
         },
         "instagram_feed": {
-            "format": "Static or carousel. Caption can be 100-300 words. First line = hook.",
+            "format": "Static or carousel. Caption body: 1-2 sentences, max 220 characters. CTA is appended. First line = hook.",
             "voice_notes": "Lead with the data point or the contradiction. Don't bury the lede.",
         },
         "facebook": {
-            "format": "Longer caption acceptable. Slightly more conversational.",
+            "format": "Same length as Instagram feed. Slightly more conversational.",
             "voice_notes": "Same brand voice. Less hashtag-heavy. CTA more explicit.",
         },
         "paid_meta": {
@@ -1624,7 +1624,8 @@ def _en_za_locale_block(*, hook_cap: int, cta_cap: int) -> str:
         "Register: plain, dry, understated. No US hype openers — no Spoiler "
         "alert, Let's be real, Here's the thing, Game-changer, Level up, "
         "Unlock, Elevate your game, Pro tip.\n"
-        f"LENGTH: caption_body at most 3 sentences and 320 characters.\n"
+        f"LENGTH: caption_body at most 2 sentences and 220 characters. "
+        f"Do not write a booking/CTA line; the pipeline appends the brand CTA.\n"
         f"poster_hook at most {hook_cap} characters, at most 6 words, and must "
         f"read correctly in ALL CAPS. cta_line at most {cta_cap} characters.\n"
     )
@@ -1663,7 +1664,7 @@ def _check_locale(
     hook_cap: int = 72,
     cta_cap: int = 48,
 ) -> dict:
-    """Hard-fail US spellings/hype; soft warnings for length."""
+    """Hard-fail US spellings/hype and over-long caption bodies."""
     warnings: list[str] = []
     if not copy_package:
         return {"passed": True, "reason": "no_package", "warnings": warnings}
@@ -1683,11 +1684,11 @@ def _check_locale(
     if re.search(r"\$\s*\d", blob):
         return {"passed": False, "reason": "usd_currency", "warnings": warnings}
     body = copy_package.get("caption_body") or ""
-    if len(body) > 320:
-        warnings.append("caption_body_over_320")
+    if len(body) > 220:
+        return {"passed": False, "reason": "caption_body_over_220", "warnings": warnings}
     sentences = [s for s in re.split(r"[.!?]+", body) if s.strip()]
-    if len(sentences) > 3:
-        warnings.append("caption_body_over_3_sentences")
+    if len(sentences) > 2:
+        return {"passed": False, "reason": "caption_body_over_2_sentences", "warnings": warnings}
     hook = copy_package.get("poster_hook") or ""
     if len(hook) > hook_cap:
         warnings.append("poster_hook_over_cap")

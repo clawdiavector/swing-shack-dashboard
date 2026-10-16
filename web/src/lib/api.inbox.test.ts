@@ -6,9 +6,32 @@ import {
   inboxMediaTag,
   patchMomentFields,
   resolvedInboxVisualUrl,
+  reviewPieceDraftId,
   reviewPiecePath,
   saveMomentFields,
 } from './api'
+
+describe('reviewPieceDraftId', () => {
+  it('uses the full draft_asset inbox id, not a bare asset id', () => {
+    expect(
+      reviewPieceDraftId({
+        id: 'draft_asset:camp-ss:off-the-rack',
+        type: 'draft_asset',
+        meta: { campaign_id: 'camp-ss', asset_id: 'off-the-rack' },
+      }),
+    ).toBe('draft_asset:camp-ss:off-the-rack')
+  })
+
+  it('falls back to campaign:asset when the inbox id is not a draft_asset', () => {
+    expect(
+      reviewPieceDraftId({
+        id: 'publish_request:x',
+        type: 'publish_request',
+        meta: { campaign_id: 'camp-ss', asset_id: 'off-the-rack' },
+      }),
+    ).toBe('camp-ss:off-the-rack')
+  })
+})
 
 describe('reviewPiecePath', () => {
   it('appends brand query when provided', () => {
