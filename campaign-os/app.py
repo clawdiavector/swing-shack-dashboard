@@ -45877,6 +45877,14 @@ def planning_timeline(brand_id):
             for record in mc_records:
                 ek = record.get("event_key")
                 if not ek:
+                    cid = record.get("calendar_id")
+                    ek = f"{brand_id}:{cid}" if cid else None
+                if not ek:
+                    continue
+                # Check / shoot / edit reminders stay on the month grid and
+                # inside the plan. The list is for the campaign and its posts.
+                step_kind = record.get("plan_item_kind")
+                if step_kind and step_kind not in ("post", "story"):
                     continue
                 # V2.6 — write-gate defence-in-depth.
                 #
@@ -45903,7 +45911,10 @@ def planning_timeline(brand_id):
                 except Exception:
                     continue
                 if r_end >= start_d and r_start <= end_d:
-                    combined_events[ek] = _operator_record_as_timeline_event(record)
+                    mapped = _operator_record_as_timeline_event(record)
+                    mapped["event_key"] = ek
+                    mapped.setdefault("id", ek)
+                    combined_events[ek] = mapped
             try:
                 sources.append(f"marketing_calendar[{brand_id}].jsonl")
             except Exception:

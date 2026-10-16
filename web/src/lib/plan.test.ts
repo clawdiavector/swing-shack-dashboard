@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { approveBlocker, boostBudget, draftState, dueLabel, formatRand, splitItems, type Plan, type PlanItem } from './plan'
+import { approveBlocker, boostBudget, draftReviewHref, draftState, dueLabel, formatRand, splitItems, type Plan, type PlanItem } from './plan'
 
 const item = (over: Partial<PlanItem>): PlanItem => ({
   item_id: 'it-1',
@@ -77,6 +77,17 @@ describe('approveBlocker', () => {
   })
   it('blocks an empty plan', () => {
     expect(approveBlocker(plan([item({ status: 'removed' })]))).toMatch(/removed/)
+  })
+})
+
+describe('draftReviewHref', () => {
+  it('opens Approve drafts on this post, not the next queue item', () => {
+    const it = item({
+      draft: { requested_at: '2026-10-16', by: 'Kyle', moment: 'calendar_candidate:stick:cal-1', queued: ['draft_caption'] },
+    })
+    expect(draftReviewHref(it, 'stick')).toBe(
+      '/review?brand=stick&moment=calendar_candidate%3Astick%3Acal-1',
+    )
   })
 })
 

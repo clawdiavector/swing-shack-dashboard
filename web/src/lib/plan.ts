@@ -196,6 +196,16 @@ export const requestDraft = (brand: string, planId: string, itemId: string, name
     'X-Actor-Display-Name': name,
   })
 
+/** Approve drafts, opened on this post's caption — not the next unrelated one. */
+export function draftReviewHref(item: PlanItem, brandId: string): string {
+  const q = new URLSearchParams()
+  if (brandId) q.set('brand', brandId)
+  if (item.draft?.moment) q.set('moment', item.draft.moment)
+  else if (item.calendar_id) q.set('calendar', item.calendar_id)
+  const qs = q.toString()
+  return qs ? `/review?${qs}` : '/review'
+}
+
 /** What a post step shows about its draft: the button, or what happened. */
 export function draftState(
   item: PlanItem,
