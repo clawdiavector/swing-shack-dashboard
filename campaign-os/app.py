@@ -112,6 +112,9 @@ DUAL_AUTH_PATHS = frozenset({
     '/api/posts/channels',
     # Story reposts: Foreman adds links from Telegram with bearer only.
     '/api/stories',
+    # Suggest Date: Telegram Foreman loads a candidate (Waiting for you).
+    # Exact POST path only — GET /api/calendar/candidates/<brand> stays session.
+    '/api/calendar/candidates',
 })
 
 # Dynamic-segment dual-auth prefixes. Each MUST end in '/' — see _gate comment.
