@@ -788,21 +788,27 @@ def get_brief_opportunities(brand_id: str) -> list:
         return []
     mc = _marketing_calendar_import()
     out = []
-    # Canonical calendar records (one per event_key, latest revision)
+    # One bad row must not empty the whole list: Make a plan then 404s every date.
     try:
-        for r in mc.canonical_records(brand_id) or []:
-            if r.get("status") == "watchlist":
-                continue  # skip watchlist in this loop
+        rows = mc.canonical_records(brand_id) or []
+    except Exception:
+        rows = []
+    for r in rows:
+        if r.get("status") == "watchlist":
+            continue
+        try:
             out.append(_map_canonical_to_opportunity(r, "calendar"))
-    except Exception:
-        pass
-    # Canonical watchlist records
+        except Exception:
+            continue
     try:
-        for r in (mc.canonical_records(brand_id, status_filter="watchlist")
-                  or []):
-            out.append(_map_canonical_to_opportunity(r, "watchlist"))
+        watch = mc.canonical_records(brand_id, status_filter="watchlist") or []
     except Exception:
-        pass
+        watch = []
+    for r in watch:
+        try:
+            out.append(_map_canonical_to_opportunity(r, "watchlist"))
+        except Exception:
+            continue
     return out
 
 
@@ -869,10 +875,11 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
     return {
         "id": event_key,
         "event_key": event_key,
+        "calendar_id": r.get("calendar_id") or "",
         "name": r.get("title") or r.get("name") or "",
         "year": (event_start or "")[:4] or "unknown",
         "pillars": pillars,
-        "lanes": list((r.get("lanes") or {}).keys())
+        "lanes": _lane_keys(r.get("lanes"))
         + (["watchlist"] if source == "watchlist" else []),
         "duration_days": duration_days,
         "date": event_start,
@@ -912,8 +919,75 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
 
 
 
+def _lane_keys(lanes) -> list:
+    """Lanes are a dict on spine events and a list on many calendar rows."""
+    if not lanes:
+        return []
+    if isinstance(lanes, dict):
+        return list(lanes.keys())
+    if isinstance(lanes, (list, tuple)):
+        return [str(x) for x in lanes if x]
+    return []
+
+
+def _record_matches_opportunity_id(r: dict, opportunity_id: str) -> bool:
+    """Approve-then-plan looks up a generated calendar row id, not the spine slug.
+
+    Keys we see: event_key, calendar_id, and
+    ``swing-shack:cal-swing-shack-cam-<ts>-<hex>:2026-11-07`` (colon or hyphen
+    before the date). Matching the cal- id inside that string is enough.
+    """
+    wanted = (opportunity_id or "").strip()
+    if not wanted or not isinstance(r, dict):
+        return False
+    meta = r.get("candidate_metadata") if isinstance(r.get("candidate_metadata"), dict) else {}
+    bits = [
+        r.get("event_key"),
+        r.get("calendar_id"),
+        r.get("id"),
+        (meta or {}).get("candidate_id"),
+    ]
+    for b in bits:
+        if not b:
+            continue
+        b = str(b)
+        if b == wanted:
+            return True
+        if b.startswith("cal-") and b in wanted:
+            return True
+    return False
+
+
+def _resolve_calendar_opportunity(brand_id: str, opportunity_id: str) -> dict:
+    """Find the Main Calendar row Make a plan was given, even when mapping skipped it."""
+    if not opportunity_id:
+        return {}
+    mc = _marketing_calendar_import()
+    rows = []
+    try:
+        rows = list(mc.canonical_records(brand_id) or [])
+    except Exception:
+        rows = []
+    if not any(_record_matches_opportunity_id(r, opportunity_id) for r in rows):
+        try:
+            rows = list(mc.list_records(brand_id) or [])
+        except Exception:
+            pass
+    hit = None
+    for r in rows:
+        if _record_matches_opportunity_id(r, opportunity_id):
+            hit = r
+    if not hit:
+        return {}
+    src = "watchlist" if hit.get("status") == "watchlist" else "calendar"
+    try:
+        return _map_canonical_to_opportunity(hit, src)
+    except Exception:
+        return {}
+
+
 def _resolve_opportunity(brand_id: str, opportunity_id: str) -> dict:
-    """Look up a canonical opportunity by event_key (or id).
+    """Look up a canonical opportunity by event_key, calendar_id, or spine id.
 
     Brief V1.1 §2: reads from marketing_calendar canonical
     records, not from data/brand-planning/* files."""
@@ -921,8 +995,14 @@ def _resolve_opportunity(brand_id: str, opportunity_id: str) -> dict:
         return {}
     for opp in get_brief_opportunities(brand_id):
         if opp.get("event_key") == opportunity_id \
-                or opp.get("id") == opportunity_id:
+                or opp.get("id") == opportunity_id \
+                or opp.get("calendar_id") == opportunity_id:
             return opp
+        if _record_matches_opportunity_id(opp, opportunity_id):
+            return opp
+    cal = _resolve_calendar_opportunity(brand_id, opportunity_id)
+    if cal:
+        return cal
     return _resolve_spine_opportunity(brand_id, opportunity_id)
 
 
