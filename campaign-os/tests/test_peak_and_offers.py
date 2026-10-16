@@ -123,6 +123,11 @@ class Offers(unittest.TestCase):
 
 
 class BriefFixes(unittest.TestCase):
+    def test_stick_targets_not_quoted_on_other_brands(self):
+        import inspect
+        src = inspect.getsource(cb)
+        self.assertIn('if brand_id == "stick":\n        # Stick\'s own targets', src)
+
     def test_audience_has_no_unresolved_template(self):
         a = cb._derive_audience("swing-shack", {})
         self.assertNotIn("<brand>", a["specific_useful_definition"] + a["source"])

@@ -2315,13 +2315,15 @@ def create_brief(brand_id: str, opportunity_id: str,
         "type": "MEASURED_FACT",
         "confidence": "HIGH",
     })
-    evidence_pack.append({
-        "claim": ("Stick North Stars: Retail R350k/month, "
-                  "24 fittings/week, 24 coaching/week"),
-        "source": "Brief V1 §9 (Reporting V2 contract)",
-        "type": "MEASURED_FACT",
-        "confidence": "HIGH",
-    })
+    if brand_id == "stick":
+        # Stick's own targets (Retail R350k/month is Psycho Bunny). Never quoted on another brand.
+        evidence_pack.append({
+            "claim": ("Stick North Stars: Retail R350k/month, "
+                      "24 fittings/week, 24 coaching/week"),
+            "source": "Brief V1 §9 (Reporting V2 contract)",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
     if ri.get("data_coverage", {}).get("ga4") == "LIVE":
         ga = ri.get("website_performance", {}).get("metrics", {})
         evidence_pack.append({
@@ -2346,7 +2348,7 @@ def create_brief(brand_id: str, opportunity_id: str,
         })
     if cg.get("data_status") == "validated":
         evidence_pack.append({
-            "claim": f"Stick Visual DNA: {cg['validated_pattern']}",
+            "claim": f"{'Stick' if brand_id == 'stick' else brand_id} Visual DNA: {cg['validated_pattern']}",
             "source": cg.get("source"),
             "type": "SUPPORTED_INFERENCE",
             "confidence": "MEDIUM",
@@ -2446,9 +2448,9 @@ def create_brief(brand_id: str, opportunity_id: str,
         "cta_strategy": system_drafts["cta_strategy"],
         "reasons_to_believe": {
             "items": [
-                ("Stick brand essence: "
+                (f"{'Stick' if brand_id == 'stick' else brand_id} brand essence: "
                  f"{bp.get('brand_essence', 'see data/brand-planning/stick.json')}"),
-                ("Stick mission: "
+                (f"{'Stick' if brand_id == 'stick' else brand_id} mission: "
                  f"{bp.get('brand_mission', 'see data/brand-planning/stick.json')[:240]}"),
                 ("Brand promise: "
                  f"{bp.get('brand_promise', 'see data/brand-planning/stick.json')}"),
