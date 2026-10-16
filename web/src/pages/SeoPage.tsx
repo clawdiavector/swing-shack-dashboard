@@ -1,5 +1,5 @@
-import { Activity, Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Activity, RefreshCw, Search } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, StatCard } from '../components/ui'
@@ -48,6 +48,14 @@ interface SeoInsights {
 
 const ROWS = 20
 
+// Age in days of the stalest data file, or null when nothing reports an age.
+function oldestAge(data: SeoInsights): number | null {
+  const ages = Object.values(data.freshness)
+    .map((f) => f.age_days)
+    .filter((a): a is number => typeof a === 'number')
+  return ages.length ? Math.max(...ages) : null
+}
+
 function KeywordTable({ title, read, rows }: { title: string; read: string; rows: SeoKeyword[] }) {
   return (
     <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
@@ -94,11 +102,12 @@ export function SeoPage() {
   const { brandId, brandLabel } = useBrand()
   const [data, setData] = useState<SeoInsights | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshNote, setRefreshNote] = useState<{ ok: boolean; text: string } | null>(null)
   const isSwingShack = brandId === 'swing-shack'
 
-  useEffect(() => {
-    if (!isSwingShack) return
-    getJson<{ ok: boolean; insights?: SeoInsights; error?: string }>('/api/seo/insights')
+  const load = useCallback(() => {
+    return getJson<{ ok: boolean; insights?: SeoInsights; error?: string }>('/api/seo/insights')
       .then((r) => {
         if (r.ok && r.insights) {
           setData(r.insights)
@@ -108,7 +117,39 @@ export function SeoPage() {
         }
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'SEO insights unavailable'))
-  }, [isSwingShack])
+  }, [])
+
+  useEffect(() => {
+    if (isSwingShack) void load()
+  }, [isSwingShack, load])
+
+  // Pulls fresh Ubersuggest data via POST /api/seo/refresh. The server needs
+  // Ubersuggest tokens; the first-time login runs on the operator's Mac
+  // (scripts/ubersuggest_oauth.py), so a missing-credentials reply tells them so.
+  async function refresh() {
+    setRefreshing(true)
+    setRefreshNote(null)
+    try {
+      // Read the body on errors too: postJson drops it, and the 503 body carries the hint.
+      const res = await fetch('/api/seo/refresh', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand: 'swing-shack' }),
+      })
+      const r = (await res.json().catch(() => ({ ok: false }))) as { ok: boolean; error?: string; hint?: string }
+      if (r.ok) {
+        setRefreshNote({ ok: true, text: 'Refreshed. Showing the new numbers.' })
+        await load()
+      } else {
+        setRefreshNote({ ok: false, text: [r.error, r.hint].filter(Boolean).join(' — ') || 'Refresh failed' })
+      }
+    } catch (e: unknown) {
+      setRefreshNote({ ok: false, text: e instanceof Error ? e.message : 'Refresh failed' })
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -164,6 +205,24 @@ export function SeoPage() {
                 </Badge>
               ))}
             </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void refresh()}
+                disabled={refreshing}
+                title="Pull fresh Ubersuggest rankings for swingshack.co.za"
+                className="glass-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-tx hover:border-ac hover:text-ac disabled:opacity-60"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={2.5} />
+                {refreshing ? 'Refreshing…' : `Refresh data${oldestAge(data) ? ` (${oldestAge(data)} days old)` : ''}`}
+              </button>
+              {refreshNote ? (
+                <p className={`text-sm ${refreshNote.ok ? 'text-ac' : 'text-red'}`}>{refreshNote.text}</p>
+              ) : null}
+            </div>
+            <p className="mt-2 text-xs text-tx3">
+              Ubersuggest volumes are worldwide, not South African, and difficulty reads 0 in the cache.
+            </p>
           </section>
 
           <KeywordTable title="Winning" read="Top 10 or moved up this period." rows={data.winning} />
