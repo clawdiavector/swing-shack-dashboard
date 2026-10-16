@@ -1,6 +1,6 @@
 // Client for /api/plan/v1: a dated, editable checklist built from a brief.
 // Every call resolves to {ok, error?}; none throws, so the panel can show
-// the server's own plain-language refusal ("the brief is not approved yet").
+// the server's own plain-language refusal.
 
 export type PlanItemKind =
   | 'research'
@@ -282,8 +282,8 @@ export function splitItems(items: PlanItem[]): { active: PlanItem[]; removed: Pl
 
 /** Why Approve is disabled, in words, or '' when it can go ahead. */
 export function approveBlocker(plan: Plan): string {
-  if (plan.brief_status !== 'approved') {
-    return 'The brief is not approved yet. Approve the brief first, then this plan.'
+  if (!plan.brief_id) {
+    return 'This plan has no brief.'
   }
   const { active } = splitItems(plan.items)
   if (!active.length) return 'Every step is removed.'
