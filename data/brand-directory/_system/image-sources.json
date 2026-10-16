@@ -73,7 +73,6 @@
       "note": "The feed does not tie an image to a colourway, so every colourway of a design gets the same picture. Use one design image per range; shoot the colourways."
     },
     "Not scouted yet": [
-      "LA Golf (409): blocks automated requests",
       "Jordan bags",
       "Vice clubs, bags and junior sets (site has no product feed)",
       "AJM GripCo, Lamkin, Icon, Star Grip, Pure Grip (no site found)",
@@ -112,6 +111,12 @@
       "method": "browser pane for the pages; images from api.next.ping.com/media/catalog/product/c/l/<file>.png",
       "images": "1600x1600 PNG, top-down address views and angled face views; downloads from a script with a ping.com referrer",
       "note": "Anser 2D and DS72 each exist as PLD Milled, 2023 and Scottsdale versions and the stock name does not say which, so all three are saved as separate views per SKU (address-2023, address-scottsdale, face-pld-milled): approve one, reject the others. ping.com itself 404s plain requests."
+    },
+    "LA Golf": {
+      "site": "https://lagolfglobal.co.uk",
+      "method": "browser pane; Shopify /products.json and /products/<handle>.js (the .com site returns 409 to scripts)",
+      "images": "cdn.shopify.com, 1500px; the pictures are address views on a dark background",
+      "note": "Bel-Air II (stainless) and Bel-Air XT found. Malibu X and XT pages now 404 on the live UK store (search results are old), so they look discontinued: shoot them. 'LA Golf Driver' in the stock does not say which series (Gold, A, G, DJ, Bryson), so it cannot be matched."
     }
   }
 }
