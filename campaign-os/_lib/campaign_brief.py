@@ -298,6 +298,9 @@ def _north_stars(brand_id: str) -> dict:
         # V1.3 §6: restore Psycho Bunny label when the
         # objective / metric / monthly_target_note clearly
         # references a specific product (e.g. Psycho Bunny).
+        if not target:
+            target = "not set (operator input required)"
+            status = "operator_input_required"
         label = p_cfg.get("name") or bare.title()
         if product_hint and product_hint.lower() not in label.lower():
             label = f"{label} ({product_hint})"
@@ -875,6 +878,7 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
         "date": event_start,
         "event_start": event_start,
         "event_end": event_end,
+        "public_peak": str(r.get("public_peak") or "")[:10],
         "live_window": (f"{event_start} → {event_end}"
                         if event_start and event_end
                         else event_start or ""),
@@ -954,6 +958,7 @@ def _resolve_spine_opportunity(brand_id: str, opportunity_id: str) -> dict:
             "title": e.get("name") or e.get("title") or "",
             "event_start": start,
             "event_end": e.get("end") or "",
+            "public_peak": e.get("public_peak") or "",
             "pillars": list((e.get("pillars") or {}).keys()),
             "lanes": e.get("lanes") or {},
             "source_origin": "internal_strategy",
@@ -2017,6 +2022,23 @@ def _find_opp_cluster(brand_id: str, event_key: str) -> "Optional[dict]":
 
 
 
+def _peak_of(opp: dict) -> str:
+    """The commercial peak day: public_peak when the calendar has one, else the start."""
+    return str(opp.get("public_peak") or opp.get("date") or "")[:10]
+
+
+def _t_minus(opp: dict, days: int) -> str:
+    """'T-21 days before the peak (2026-11-06) (recommended)'. Counts back from the peak,
+    not from the start of a multi-week window."""
+    from datetime import date, timedelta
+    peak = _peak_of(opp)
+    try:
+        d = date.fromisoformat(peak) - timedelta(days=days)
+    except ValueError:
+        return f"T-{days} days (recommended)"
+    return f"T-{days} days before peak {peak}: {d.isoformat()} (recommended)"
+
+
 def _derive_audience(brand_id: str, bp: dict) -> dict:
     """Pull audience definition from brand-planning if present."""
     audience = bp.get("audience") or {}
@@ -2024,12 +2046,13 @@ def _derive_audience(brand_id: str, bp: dict) -> dict:
         "primary": audience.get("primary") or audience.get("core") or "",
         "secondary": audience.get("secondary") or "",
         "specific_useful_definition": (
-            "Use the brand's audience definition from data/brand-planning/"
-            "<brand>.json (audience.primary + audience.secondary). Avoid "
-            "generic labels like 'golfers' unless that is genuinely the "
-            "intended definition."
+            " / ".join(x for x in (audience.get("primary") or audience.get("core") or "",
+                                   audience.get("secondary") or "") if x)
+            or (f"Not set: operator to define (data/brand-planning/{brand_id}.json "
+                "audience.primary + audience.secondary). Avoid generic labels like "
+                "'golfers' unless that is genuinely the intended definition.")
         ),
-        "source": "data/brand-planning/<brand>.json#audience",
+        "source": f"data/brand-planning/{brand_id}.json#audience",
     }
 
 
@@ -2351,6 +2374,7 @@ def create_brief(brand_id: str, opportunity_id: str,
             "lanes": opp.get("lanes"),
             "duration_days": opp.get("duration_days") or 0,
             "date": opp.get("date") or "",
+            "public_peak": opp.get("public_peak") or "",
             "year": str(opp.get("date") or "")[:4] or "unknown",
             "source": opp.get("source", "calendar"),
         },
@@ -2390,12 +2414,13 @@ def create_brief(brand_id: str, opportunity_id: str,
         },
         "timing": {
             "event_date": opp.get("date") or "",
+            "peak_date": _peak_of(opp),
             "event_live_window": (f"{opp.get('duration_days')} days"
                                   if opp.get("duration_days")
                                   else "operator to pin live window"),
-            "research_start": "T-21 days (recommended)",
-            "planning_start": "T-14 days (recommended)",
-            "production_deadline": "T-7 days (recommended)",
+            "research_start": _t_minus(opp, 21),
+            "planning_start": _t_minus(opp, 14),
+            "production_deadline": _t_minus(opp, 7),
             "campaign_live_window": "operator to pin live window",
             "note": ("Suggested lead-times follow brief §8; actual dates "
                      "depend on operator approval + production pipeline."),
@@ -2416,6 +2441,8 @@ def create_brief(brand_id: str, opportunity_id: str,
         "audience": audience,
         "problem_insight": system_drafts["problem_insight"],
         "strategic_proposition": system_drafts["strategic_proposition"],
+        **({"candidate_offers": system_drafts["candidate_offers"]}
+           if system_drafts.get("candidate_offers") else {}),
         "cta_strategy": system_drafts["cta_strategy"],
         "reasons_to_believe": {
             "items": [
@@ -2636,7 +2663,13 @@ def _generate_system_drafts(brand_id, opp, ri, pmx, pcov,
                          f"{ig_metrics.get('reach_30d', 0):,}.")
 
     # strategic_proposition draft
+    cand = None
     if pillar_supported == "retail":
+        from _lib import candidate_offers
+        cand = candidate_offers.build(brand_id)
+    if pillar_supported == "retail" and cand and cand.get("items"):
+        prop_text = candidate_offers.proposition_text(cand)
+    elif pillar_supported == "retail":
         prop_text = ("Promote the retail North Star via the strongest-"
                     "performing format from Visual DNA + cross-channel "
                     "engagement, with retail-specific CTAs to drive "
@@ -2670,6 +2703,8 @@ def _generate_system_drafts(brand_id, opp, ri, pmx, pcov,
         cta_text = "Operator to define during review."
 
     return {
+        "candidate_offers": (dict(cand, drafted_by="system", drafted_at=_now_iso())
+                             if cand else None),
         "problem_insight": {
             "problem": problem_text + ga_session_line + ig_reach_line,
             "insight": ("Strategic insight grounded in current data: "
