@@ -81,6 +81,17 @@ class ApprovedCalendarResolve(unittest.TestCase):
         self.mc.list_records.return_value = []
         self.assertEqual(cb._resolve_opportunity("swing-shack", "nope-2026"), {})
 
+    def test_approved_date_without_source_origin_is_still_briefable(self):
+        thin = _row(source_origin="", trusted_for_planning=False)
+        self.mc.canonical_records.return_value = [thin]
+        opp = cb._resolve_opportunity("swing-shack", EVENT_KEY)
+        self.assertEqual(opp.get("date_confidence"), "MEDIUM")
+        self.assertEqual(opp.get("source_origin"), "internal_strategy")
+        gate = cb._opportunity_gate("swing-shack", opp, {}, {}, {})
+        reasons = " ".join(f.get("reason") or "" for f in gate.get("hard_gate_failures") or [])
+        self.assertNotIn("date_confidence=LOW", reasons)
+        self.assertNotIn("source_origin=", reasons)
+
     def test_one_bad_row_does_not_hide_the_date(self):
         bad = _row(event_key="swing-shack:broken", source_urls=123)
         good = _row()

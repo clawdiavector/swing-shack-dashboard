@@ -854,19 +854,26 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
                 event_start[:10], lead_time_class, cfg)
         except Exception:
             lead_time_schedule = None
-    # Date confidence
-    if event_start and event_end and r.get("source_origin") in (
-            "external", "scout"):
+    # Date confidence. An approved campaign/moment on the Main Calendar is the
+    # operator vouching for the date (Halloween / Joburg Open / TEST 1). The
+    # suggestion row often has no source_origin yet; without this, Make a plan
+    # dies on V1.3 §4 LOW/unknown.
+    origin = str(r.get("source_origin") or "").strip().lower()
+    rec_type = str(r.get("type") or "").strip().lower()
+    on_calendar = str(r.get("status") or "").strip().lower() == "approved"
+    if event_start and event_end and origin in ("external", "scout"):
         date_confidence = "HIGH"
     elif event_start and not event_end:
         date_confidence = "MEDIUM"
-    elif (event_start and r.get("type") == "campaign"
-            and r.get("source_origin") == "internal_strategy"
+    elif (event_start and rec_type == "campaign"
+            and origin == "internal_strategy"
             and r.get("trusted_for_planning") is True):
-        # A campaign the operator typed in and vouched for: they chose
-        # the date, so there is no external date left to verify. Other
-        # operator pins (content / moment / reminder) stay LOW.
         date_confidence = "MEDIUM"
+    elif event_start and on_calendar and rec_type in ("campaign", "moment"):
+        date_confidence = "MEDIUM"
+        if origin not in ("external", "scout", "internal_strategy",
+                          "deterministic_calendar"):
+            origin = "internal_strategy"
     else:
         date_confidence = "LOW"
     # Records written by the Calendar add-event path before it set
@@ -892,7 +899,7 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
         "lead_time_class": lead_time_class,
         "lead_time_schedule": lead_time_schedule,
         "date_confidence": date_confidence,
-        "source_origin": r.get("source_origin") or "unknown",
+        "source_origin": origin or "unknown",
         "source": source,  # "calendar" | "watchlist"
         "disposition": r.get("disposition") or "",
         "status": r.get("status") or "",
@@ -973,12 +980,19 @@ def _resolve_calendar_opportunity(brand_id: str, opportunity_id: str) -> dict:
             rows = list(mc.list_records(brand_id) or [])
         except Exception:
             pass
-    hit = None
-    for r in rows:
-        if _record_matches_opportunity_id(r, opportunity_id):
-            hit = r
-    if not hit:
+    hits = [r for r in rows if _record_matches_opportunity_id(r, opportunity_id)]
+    if not hits:
         return {}
+
+    def _brief_score(r: dict) -> tuple:
+        o = str(r.get("source_origin") or "")
+        known = 1 if o in ("external", "scout", "internal_strategy",
+                           "deterministic_calendar") else 0
+        trusted = 1 if r.get("trusted_for_planning") is True else 0
+        approved = 1 if r.get("status") == "approved" else 0
+        return (known, trusted, approved, int(r.get("revision") or 1))
+
+    hit = max(hits, key=_brief_score)
     src = "watchlist" if hit.get("status") == "watchlist" else "calendar"
     try:
         return _map_canonical_to_opportunity(hit, src)
