@@ -1,3 +1,4 @@
+import { burstAtPointer } from '../../lib/confetti'
 import { Laugh } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -45,6 +46,7 @@ export function Memes() {
         brief,
       })
       setResult({ catalog, generated })
+      burstAtPointer(50)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Meme Lord failed')
     } finally {
@@ -61,6 +63,7 @@ export function Memes() {
         template_id: brief,
       })
       setResult({ templates, applied })
+      burstAtPointer(40)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Meme lab failed')
     } finally {
@@ -92,7 +95,7 @@ export function Memes() {
             onClick={tab === 'lord' ? runLord : runLab}
             className="mt-3 rounded-full bg-yel px-4 py-2 text-sm font-semibold text-bg disabled:opacity-50"
           >
-            {busy ? 'Working…' : tab === 'lord' ? 'Generate meme' : 'Apply template'}
+            {busy ? 'Cooking…' : tab === 'lord' ? 'Generate meme' : 'Apply template'}
           </button>
         </Tip>
         {error ? <p className="mt-2 text-sm text-red">{error}</p> : null}

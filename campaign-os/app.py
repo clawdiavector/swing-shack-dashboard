@@ -20244,6 +20244,15 @@ def intel_generate_image():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+# Every caption runs through a brand: without one the generator falls back to
+# Swing Shack wording for whoever asked.
+_CAPTIONS_NEED_BRAND = {
+    "ok": False,
+    "error": "Pick a brand first: voice must be swing-shack, stick or bag-drop.",
+    "variants": [],
+}
+
+
 @app.route('/api/intel/generate/captions/<asset_id>', methods=['POST', 'GET'])
 def intel_generate_captions(asset_id):
     """POST/GET /api/intel/generate/captions/<assetId> — generate voice-aware caption variants.
@@ -20266,6 +20275,8 @@ def intel_generate_captions(asset_id):
         voice = str(body.get('voice', '') or '').strip() or None
         tone = str(body.get('tone', '') or '').strip() or None
         result = generate_captions(asset_id, n, voice=voice, tone=tone)
+        if not result.get('_voice'):
+            return jsonify(_CAPTIONS_NEED_BRAND), 400
         return jsonify(result), 200
     except Exception as exc:
         _app_log.exception("caption generate failed")
@@ -20301,6 +20312,8 @@ def api_captions_generate():
         if brief and not asset_id:
             asset_id = f"__brief__:{brief[:60]}"
         result = generate_captions(asset_id, n, voice=voice, tone=tone)
+        if not result.get('_voice'):
+            return jsonify(_CAPTIONS_NEED_BRAND), 400
         if brief:
             result['_brief'] = brief
         return jsonify(result), 200
@@ -46314,17 +46327,9 @@ def _alerts_for_brand(brand_id):
     from _lib import marketing_calendar as mc
     from _lib.plan_profiles import event_kind as _event_kind
     today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
-    horizon = today + _dt.timedelta(days=max(ca.WARN_DAYS.values()))
+    # Only dates approved on the Main Calendar are alerted on. The event spine
+    # lists every date for the year, approved or not, so it is not read here.
     events = []
-    for yr in sorted({today.year, horizon.year}):
-        try:
-            spine, _src = _load_events_for_year(brand_id, yr)
-        except Exception:
-            spine = None
-        for e in (spine or {}).get("events") or []:
-            events.append({"id": e.get("id"), "name": e.get("name") or e.get("title"),
-                           "start": e.get("start") or e.get("public_peak"), "end": e.get("end"),
-                           "tier": e.get("tier"), "kind": _event_kind(e)})
     content_dates = []
     for r in mc.latest_revisions(mc.list_records(brand_id) or []):
         if r.get("status") != "approved" or r.get("plan_id"):

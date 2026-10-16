@@ -9,11 +9,11 @@ html[data-theme='play'] {
   --color-bd: #ddd7ca;
   --color-tx: #1b1a22;
   --color-tx2: #45424f;
-  --color-tx3: #5e5b68;
-  --color-ac: #1b7f55;
-  --color-yel: #a35c00;
-  --color-red: #c2362f;
-  --color-blu: #2b62c9;
+  --color-tx3: #55525f;
+  --color-ac: #0f5c3c;
+  --color-yel: #7a4300;
+  --color-red: #b02a24;
+  --color-blu: #2457b8;
   --color-lane-paid: #7c3aed;
   --font-sans: 'DM Sans', Inter, ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Arial Black', ui-sans-serif, sans-serif;
@@ -27,6 +27,8 @@ html[data-theme='play'] {
   --play-blue-ink: #2a1c66;
   --play-violet: #ff9ec0;
   --play-violet-ink: #5a1030;
+  --play-red: #ff7b6f;
+  --play-red-ink: #4a0d08;
 }
 
 html[data-theme='play'] body {
@@ -140,6 +142,7 @@ html[data-theme='play'] [data-tone='gold'] { --fill: var(--play-gold); --ink: va
 html[data-theme='play'] [data-tone='green'] { --fill: var(--play-green); --ink: var(--play-green-ink); }
 html[data-theme='play'] [data-tone='blue'] { --fill: var(--play-blue); --ink: var(--play-blue-ink); }
 html[data-theme='play'] [data-tone='violet'] { --fill: var(--play-violet); --ink: var(--play-violet-ink); }
+html[data-theme='play'] [data-tone='red'] { --fill: var(--play-red); --ink: var(--play-red-ink); }
 html[data-theme='play'] .fun-tile::after { background: rgba(255, 255, 255, 0.4); }
 html[data-theme='play'] .fun-tile__label,
 html[data-theme='play'] .fun-tile__value,
@@ -189,3 +192,25 @@ html[data-theme='play'] [class*='bg-[#132033]'] span,
 html[data-theme='play'] [class*='bg-[#2a1518]'] span { background-color: currentColor; }
 /* The bottom phone bar: round the current item instead of a full-width block. */
 html[data-theme='play'] nav.glass a[aria-current='page'] { border-radius: 1.1rem; margin: 0.25rem; }
+
+/* Text utilities inside a playful fill read in that fill's ink, not the page greys. */
+html[data-theme='play'] .fun-idea [class*='text-tx'],
+html[data-theme='play'] .fun-idea a,
+html[data-theme='play'] .fun-story [class*='text-tx'],
+html[data-theme='play'] .fun-tile [class*='text-tx'] {
+  color: var(--ink);
+}
+html[data-theme='play'] .fun-story--done [class*='text-tx'] { color: var(--color-tx3); }
+
+/* Pastel text colours were picked for a dark page. Deeper shades on cream. */
+html[data-theme='play'] .text-emerald-400,
+html[data-theme='play'] .text-emerald-300 { color: #046c4e; }
+html[data-theme='play'] .text-purple-400,
+html[data-theme='play'] .text-violet-400 { color: #6b21a8; }
+html[data-theme='play'] .text-red-400 { color: #b91c1c; }
+html[data-theme='play'] .text-teal-400,
+html[data-theme='play'] .text-teal-300 { color: #0f766e; }
+html[data-theme='play'] .text-sky-300 { color: #0369a1; }
+html[data-theme='play'] .text-orange-400 { color: #9a3412; }
+html[data-theme='play'] .text-amber-400 { color: #92400e; }
+html[data-theme='play'] .text-slate-400 { color: #475569; }

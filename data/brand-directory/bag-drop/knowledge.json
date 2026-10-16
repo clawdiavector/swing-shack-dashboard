@@ -76,16 +76,15 @@
     "source": "data/brand-directory/bag-drop/copy/ctas.md",
     "source_class": "approved_internal",
     "authority_level": "high",
-    "default_cta": "Drop your bag with us → swingshack.co.za",
+    "default_cta": "Visit the online store or DM ⛳️",
     "hard_ctas": [
-      "Drop your bag with us → swingshack.co.za",
+      "Message us for current stock.",
       "Member social every Thursday. Join us",
-      "Book your drop → swingshack.co.za"
+      "Message us to check what’s available."
     ],
     "soft_ctas": [
       "You'll never go back.",
       "Apologise never.",
-      "The bag that lives at Swing Shack.",
       "Play lighter."
     ]
   },

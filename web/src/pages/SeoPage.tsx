@@ -1,0 +1,199 @@
+import { Activity, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useBrand } from '../components/BrandSwitch'
+import { PageIntro } from '../components/chrome'
+import { Badge, StatCard } from '../components/ui'
+import { getJson } from '../lib/api'
+
+// Shape of GET /api/seo/insights (campaign-os/app.py seo_insights_full).
+// The endpoint has no brand parameter and reads swingshack.co.za data only,
+// so this page shows it for Swing Shack and nothing else.
+
+interface SeoKeyword {
+  keyword: string
+  current_position: number | null
+  previous_position: number | null
+  delta?: number | null
+  volume: number
+  url: string | null
+  seo_difficulty: number | null
+  opportunity_label: string
+}
+
+interface SeoCompetitor {
+  domain: string | null
+  domain_authority: number | null
+  common_keywords: number | null
+}
+
+interface SeoInsights {
+  domain: string
+  domain_health: {
+    domain_authority: number
+    total_backlinks: number
+    ref_domains: number
+    keyword_footprint: { tracked: number; top_3: number; top_10: number; ranking_top_100: number; not_ranking: number }
+    weekly_change: { up: number; down: number; unchanged: number }
+    manager_read: string
+  }
+  freshness: Record<string, { exists: boolean; age_days: number | null; fresh?: boolean }>
+  winning: SeoKeyword[]
+  leaking: SeoKeyword[]
+  missing: SeoKeyword[]
+  quick_wins: SeoKeyword[]
+  competitors: SeoCompetitor[]
+  summary: { winning_count: number; leaking_count: number; missing_count: number; quick_win_count: number; competitor_count: number }
+  metadata: { fetched_at: string | null }
+}
+
+const ROWS = 20
+
+function KeywordTable({ title, read, rows }: { title: string; read: string; rows: SeoKeyword[] }) {
+  return (
+    <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
+      <h2 className="font-display text-lg font-semibold">
+        {title} <span className="text-sm text-tx3">({rows.length})</span>
+      </h2>
+      <p className="mt-1 text-sm text-tx3">{read}</p>
+      {rows.length === 0 ? (
+        <p className="mt-4 text-sm text-tx3">Nothing here this period.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs text-tx3 uppercase">
+              <tr>
+                <th className="py-1 pr-3">Keyword</th>
+                <th className="py-1 pr-3">Position</th>
+                <th className="py-1 pr-3">Was</th>
+                <th className="py-1 pr-3">Volume</th>
+                <th className="py-1 pr-3">Difficulty</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, ROWS).map((k) => (
+                <tr key={`${k.keyword}-${k.opportunity_label}`} className="border-t border-white/5">
+                  <td className="py-1.5 pr-3 text-tx">{k.keyword}</td>
+                  <td className="py-1.5 pr-3">{k.current_position ?? '—'}</td>
+                  <td className="py-1.5 pr-3 text-tx3">{k.previous_position ?? '—'}</td>
+                  <td className="py-1.5 pr-3">{k.volume || '—'}</td>
+                  <td className="py-1.5 pr-3">{k.seo_difficulty ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {rows.length > ROWS ? (
+            <p className="mt-2 text-xs text-tx3">Showing {ROWS} of {rows.length}.</p>
+          ) : null}
+        </div>
+      )}
+    </section>
+  )
+}
+
+export function SeoPage() {
+  const { brandId, brandLabel } = useBrand()
+  const [data, setData] = useState<SeoInsights | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const isSwingShack = brandId === 'swing-shack'
+
+  useEffect(() => {
+    if (!isSwingShack) return
+    getJson<{ ok: boolean; insights?: SeoInsights; error?: string }>('/api/seo/insights')
+      .then((r) => {
+        if (r.ok && r.insights) {
+          setData(r.insights)
+          setError(null)
+        } else {
+          setError(r.error || 'SEO insights unavailable')
+        }
+      })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'SEO insights unavailable'))
+  }, [isSwingShack])
+
+  return (
+    <div className="space-y-6">
+      <PageIntro icon={Search} badge="Results" here="/results/seo" title="SEO">
+        Rankings and gaps for the Swing Shack website.
+      </PageIntro>
+
+      {!isSwingShack ? (
+        <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
+          <p className="text-sm text-tx2">
+            SEO data is only tracked for Swing Shack right now{brandLabel ? `, not ${brandLabel}` : ''}. Switch the brand to Swing Shack to see it.
+          </p>
+        </section>
+      ) : error ? (
+        <section className="glass rounded-2xl border-[1.5px] border-red/40 p-5 backdrop-blur-xl">
+          <p className="text-sm text-tx2">Could not load SEO data: {error}</p>
+        </section>
+      ) : !data ? (
+        <p className="text-sm text-tx3">Loading SEO data…</p>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <StatCard icon={Activity} label="Domain authority" value={data.domain_health.domain_authority} hint={data.domain} tone="mute" />
+            <StatCard
+              icon={Activity}
+              label="Top 3"
+              value={data.domain_health.keyword_footprint.top_3}
+              hint={`${data.domain_health.keyword_footprint.top_10} in top 10`}
+              tone="green"
+            />
+            <StatCard
+              icon={Activity}
+              label="Ranking"
+              value={data.domain_health.keyword_footprint.ranking_top_100}
+              hint={`${data.domain_health.keyword_footprint.not_ranking} not ranking`}
+              tone="mute"
+            />
+            <StatCard
+              icon={Activity}
+              label="Backlinks"
+              value={data.domain_health.total_backlinks}
+              hint={`${data.domain_health.ref_domains} referring domains`}
+              tone="mute"
+            />
+          </div>
+
+          <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
+            <p className="text-sm text-tx2">{data.domain_health.manager_read}</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              {Object.entries(data.freshness).map(([file, f]) => (
+                <Badge key={file} tone={f.exists && f.fresh ? 'green' : 'red'}>
+                  {file.replace('.json', '')}: {f.exists ? `${f.age_days ?? '?'} days old` : 'missing'}
+                </Badge>
+              ))}
+            </div>
+          </section>
+
+          <KeywordTable title="Winning" read="Top 10 or moved up this period." rows={data.winning} />
+          <KeywordTable title="Quick wins" read="Close to page one; a small push may move them." rows={data.quick_wins} />
+          <KeywordTable title="Leaking" read="Slipped down this period." rows={data.leaking} />
+          <KeywordTable title="Missing" read="Tracked keywords we do not rank for yet." rows={data.missing} />
+
+          <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
+            <h2 className="font-display text-lg font-semibold">Competitors</h2>
+            {data.competitors.length === 0 ? (
+              <p className="mt-2 text-sm text-tx3">No competitor data yet.</p>
+            ) : (
+              <ul className="mt-2 space-y-1 text-sm">
+                {data.competitors.map((c) => (
+                  <li key={c.domain ?? ''} className="flex justify-between gap-3 border-t border-white/5 py-1.5">
+                    <span className="text-tx">{c.domain}</span>
+                    <span className="text-tx3">
+                      DA {c.domain_authority ?? '—'} · {c.common_keywords ?? '—'} shared keywords
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {data.metadata.fetched_at ? (
+            <p className="text-xs text-tx3">Rankings fetched {data.metadata.fetched_at}.</p>
+          ) : null}
+        </>
+      )}
+    </div>
+  )
+}

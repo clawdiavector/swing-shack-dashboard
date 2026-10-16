@@ -2,7 +2,7 @@
 
 ## What this brand is
 Sarcastic, golf-insider voice. Calls out bad habits, off-rack clubs, range myths. Meme-aware.
-Provokes thought with irony. Operates as a sub-brand of Swing Shack (services cross-reference).
+Provokes thought with irony. Stick is its own company: a fitting studio, workshop and retailer in Paarl, Western Cape.
 
 ## Who it is for
 Golfers who scroll social with one eyebrow up. They notice bad takes. They like someone
@@ -10,14 +10,14 @@ calling out the obvious. They will laugh at themselves, not at others.
 
 ## What it is not
 - Not serious performance copy — Stick is the meme side.
-- Not a separate business — Stick service offerings route to Swing Shack.
+- Not part of any other brand. Stick runs its own fittings and bookings (stickgolf.co.za/bookings/).
 - Not for first-time golfers who might feel mocked — Stick is insider-only.
 - Not mean-spirited. Sarcastic, not cruel.
 
 ## Canonical references
 - Voice bible: `data/voice_bible.json#voices/stick`
 - Palette (measured): primary `#073C52` navy deep, accent `#00B3BA` teal, highlight `#24FFAF` mint.
-- Linked services: swing-shack (Swing Shack handles bookings / fittings).
+- Bookings: stickgolf.co.za/bookings/
 
 ## Current state
 - voice: ✅ voice_bible.json covers it

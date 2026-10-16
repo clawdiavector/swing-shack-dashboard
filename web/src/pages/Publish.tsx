@@ -1,11 +1,14 @@
-import { CheckCircle2, Link2, MapPin, Rocket, Send, Share2 } from 'lucide-react'
+import { Link2, MapPin, Rocket, Send, Share2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BrandChip } from '../components/BrandChip'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
-import { Badge, Button, ClassicLink, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
+import '../fun.css'
+import { FunTile } from '../components/fun'
+import { burstAtPointer } from '../lib/confetti'
+import { Badge, Button, ClassicLink, IconTile, QueueItem, Tip } from '../components/ui'
 import {
   fetchPublishMode,
   fetchSandboxQueue,
@@ -52,7 +55,8 @@ export function Publish() {
           void publishDispatchNow(keys)
             .then(({ data: body }) => {
               const err = body.errors?.join('; ') || body.error
-              setPublishNote(err ? String(err) : 'Sent.')
+              setPublishNote(err ? String(err) : 'Sent. Off it goes!')
+              if (!err) burstAtPointer(70)
               loadPanelAndQueue()
             })
             .catch((e: unknown) => setPublishNote(e instanceof Error ? e.message : 'Publish failed'))
@@ -214,17 +218,15 @@ export function Publish() {
       </p>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard
-          icon={CheckCircle2}
+        <FunTile
           label="Approved"
           value={counts?.approved ?? '—'}
           hint="Ready, not live"
-          tone="mute"
+          tone="blue"
           stamp={data?.ts}
           stampKind="as_of"
         />
-        <StatCard
-          icon={Send}
+        <FunTile
           label="Sandbox queued"
           value={sandboxTotal || '—'}
           hint="Pending rows"
@@ -232,13 +234,13 @@ export function Publish() {
           stamp={data?.ts}
           stampKind="as_of"
         />
-        <StatCard
+        <FunTile
           to="/results"
-          icon={Rocket}
           label="Shipped"
           value={counts?.published ?? '—'}
           hint="Already live"
           tone="green"
+          dots={counts?.published != null ? { on: Math.min(counts.published, 7) } : undefined}
           stamp={data?.ts}
           stampKind="as_of"
         />

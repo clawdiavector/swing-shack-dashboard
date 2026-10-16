@@ -621,7 +621,7 @@ function ArticleTab({
   const blocking = blockers?.blockers?.blocking
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <article className="glass rounded-2xl border border-white/10 p-6">
         {article?.title ? (
           <h1 className="font-display text-3xl font-semibold leading-tight text-tx">

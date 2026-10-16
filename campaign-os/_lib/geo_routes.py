@@ -37,10 +37,15 @@ _BRAND_DISPLAY = {
 _BRAND_DOMAINS = {
     "swing-shack": "https://swingshack.co.za",
     "stick": "https://stickgolf.co.za",
-    "bag-drop": "https://swingshack.co.za",
+    "bag-drop": "https://thebagdrop.co.za",
 }
 
-# Default watchlist queries (seeded if file is empty)
+# Default watchlist queries (seeded only when the brand's watchlist file is
+# empty, so changing these does not touch a list that already exists).
+# Extra terms are real South African searches from Google Search Console (the
+# queries that already bring each site impressions). Swing Shack: 13 Sep to
+# 10 Oct 2026. Stick: 30 Aug to 26 Sep 2026. Ubersuggest volumes are NOT used
+# here: keyword_overview returns global numbers, not ZA.
 _DEFAULT_WATCHLIST = {
     "swing-shack": [
         "best indoor golf Johannesburg",
@@ -48,6 +53,31 @@ _DEFAULT_WATCHLIST = {
         "golf coaching JHB",
         "club fitting Johannesburg",
         "swing analysis Johannesburg",
+        # Search Console (swingshack.co.za)
+        "swing shack",
+        "swing shack golf",
+        "swing shack randburg",
+        "golf simulator",
+        "golf simulator johannesburg",
+        "golf simulator south africa",
+        "indoor golf",
+        "indoor golf johannesburg",
+        "indoor golf near me",
+        "indoor golf simulator",
+        "virtual golf johannesburg",
+        "golf sim near me",
+        "driving range near me",
+        "golf lessons near me",
+        "golf fitting",
+        "golf club fitting",
+        "club fitting near me",
+        "golf at home",
+        "takomo irons",
+        "takomo irons south africa",
+        "takomo golf south africa",
+        "takomo south africa",
+        "vice golf balls south africa",
+        "fujimoto irons",
     ],
     "stick": [
         "TrackMan fitting Paarl",
@@ -55,6 +85,30 @@ _DEFAULT_WATCHLIST = {
         "golf coaching Paarl",
         "Vice Golf South Africa",
         "golf lessons for beginners South Africa",
+        # Search Console (stickgolf.co.za)
+        "stick golf",
+        "stick paarl",
+        "stick golf paarl",
+        "golf simulator paarl",
+        "golf shop paarl",
+        "golf paarl",
+        "custom club fitting",
+        "custom golf club fitting",
+        "golf club fitting",
+        "golf club fitting cape town",
+        "club fitting near me",
+        "best golf fitting near me",
+        "golf fitting near me",
+        "putter fitting",
+        "golf club repair near me",
+        "golf club repairs near me",
+        "golf grip fitting near me",
+        "golf shops near me",
+        "golf coaching near me",
+        "golf equipment sa",
+        "takomo south africa",
+        "golf shoes",
+        "driving range near me",
     ],
     "bag-drop": [],
 }

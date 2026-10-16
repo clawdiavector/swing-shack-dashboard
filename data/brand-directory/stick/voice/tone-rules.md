@@ -38,7 +38,7 @@ translates per tone for Stick specifically.
 
 ## Provocative
 **Aim:** Challenge one specific assumption. The challenge must be defensible.
-- The challenge must be something Swing Shack can deliver on.
+- The challenge must be something Stick can deliver on.
 - Never just be edgy for its own sake.
 
 ✅ "Off-the-rack shoes? You wouldn't. So why your driver?"
