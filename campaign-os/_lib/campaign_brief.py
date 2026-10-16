@@ -919,7 +919,29 @@ def _resolve_opportunity(brand_id: str, opportunity_id: str) -> dict:
         if opp.get("event_key") == opportunity_id \
                 or opp.get("id") == opportunity_id:
             return opp
-    return _resolve_spine_opportunity(brand_id, opportunity_id)
+    return (_resolve_calendar_record_opportunity(brand_id, opportunity_id)
+            or _resolve_spine_opportunity(brand_id, opportunity_id))
+
+
+def _resolve_calendar_record_opportunity(brand_id: str, opportunity_id: str) -> dict:
+    """Fallback: an approved calendar date (a campaign or moment the operator put
+    on the calendar). The Plan alert banner lists these by their event_key or
+    calendar_id, and its "Make a plan" must find the same record. The canonical
+    list above can miss them, so this reads the same calendar records the banner
+    reads, latest revision only, and skips watchlist entries as the canonical list does."""
+    if not opportunity_id:
+        return {}
+    mc = _marketing_calendar_import()
+    try:
+        records = mc.latest_revisions(mc.list_records(brand_id) or [])
+    except Exception:
+        return {}
+    for r in records:
+        if r.get("status") == "watchlist":
+            continue
+        if opportunity_id in (r.get("event_key"), r.get("calendar_id")):
+            return _map_canonical_to_opportunity(r, "calendar")
+    return {}
 
 
 def _resolve_spine_opportunity(brand_id: str, opportunity_id: str) -> dict:
