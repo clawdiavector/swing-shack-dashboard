@@ -738,7 +738,8 @@ def _explicit_caption_regen(rows_for_moment: list[tuple[dict[str, Any], str]]) -
         if action != "draft_caption":
             continue
         row_id = str(row.get("id") or "")
-        if "cap-regen" in row_id or "cap-keep" in row_id:
+        ref = str(row.get("payload_ref") or "")
+        if "cap-regen" in row_id or "cap-keep" in row_id or "#keep:" in ref:
             return True
     return False
 
@@ -1164,7 +1165,11 @@ def _resolve_row_moment(row: dict[str, Any]) -> Optional[tuple[str, str]]:
         return None
     # A caption-only rewrite was asked for this draft. Scheduled posts are not
     # always status=approved, and the rewrite must still run.
-    if not _is_inbox_item_approved(item_id) and "cap-keep" not in str(row.get("id") or ""):
+    keep_asked = (
+        "cap-keep" in str(row.get("id") or "")
+        or "#keep:" in str(row.get("payload_ref") or "")
+    )
+    if not _is_inbox_item_approved(item_id) and not keep_asked:
         return None
     return brand_id, item_id
 
