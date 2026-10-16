@@ -96,6 +96,29 @@ def test_caption_brief_subject_not_draft_or_coaching(inbox_env, tmp_path):
         assert subject not in ("draft", "coaching"), (brand, subject, payload["user_brief"])
         assert payload["n_candidates"] >= 6
         assert "Draft from approved inbox item" not in payload["user_brief"]
+        assert "Photoreal" not in payload["user_brief"]
+
+
+def test_caption_brief_stays_on_lodge_title(inbox_env, tmp_path):
+    from _lib.jobs.layer5.draft_assets import _caption_pipeline_payload
+    from _lib.jobs.layer5.image_draft_context import build_image_draft_context
+
+    item_id = _seed_calendar(
+        tmp_path,
+        brand="swing-shack",
+        cal_id="cal-otr",
+        title="Off-the-rack is for groceries",
+        post_type="service_promo",
+        template_id="ss-service-promo",
+    )
+    ctx = build_image_draft_context("swing-shack", item_id)
+    payload = _caption_pipeline_payload(
+        brand_id="swing-shack", item_id=item_id, ctx=ctx
+    )
+    assert "Off-the-rack is for groceries" in payload["user_brief"]
+    assert "Photoreal" not in payload["user_brief"]
+    assert payload.get("lodge_title") == "Off-the-rack is for groceries"
+    assert payload.get("service") in (None, "")
 
 
 def test_unified_inbox_approved_total_not_capped_by_shelf_slice(inbox_env, tmp_path):
