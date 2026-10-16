@@ -32,16 +32,18 @@ def read_api_key() -> str:
     if key:
         return key
     roots: list[Path] = []
-    for env_key in ("DATA_DIR",):
-        val = os.environ.get(env_key)
-        if val:
-            roots.append(Path(val) / "credentials")
-    roots.extend(
-        [
-            Path(os.path.expanduser("~/.openclaw/workspace/credentials")),
-            Path(os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials")),
-        ]
-    )
+    data_dir = (os.environ.get("DATA_DIR") or "").strip()
+    if data_dir:
+        # A set DATA_DIR is the credential scope. Do not borrow a key from
+        # another directory, or a scratch run looks configured.
+        roots.append(Path(data_dir) / "credentials")
+    else:
+        roots.extend(
+            [
+                Path(os.path.expanduser("~/.openclaw/workspace/credentials")),
+                Path(os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials")),
+            ]
+        )
     seen: set[Path] = set()
     for base in roots:
         if base in seen:

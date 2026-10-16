@@ -2,9 +2,18 @@
 
 from __future__ import annotations
 
+import datetime as dt
+import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
+
+_SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+
+import caption_lint  # noqa: E402
 
 # Global vague-evidence phrasing (not banned in voice markdown yet).
 GLOBAL_FORBIDDEN_PHRASES: tuple[str, ...] = (
@@ -356,8 +365,55 @@ def _dont_say_path(brand_id: str) -> Path:
     return base / "voice" / "do-say-dont-say.md"
 
 
+def lint_gate_mode() -> str:
+    """`warn` reports bible hard fails without blocking. `block` fails the gate on them."""
+    mode = (os.environ.get("BRAND_LINT_GATE") or "warn").strip().lower()
+    return mode if mode in ("warn", "block") else "warn"
+
+
+def _lint_when(ctx: dict) -> dt.date | None:
+    raw = ctx.get("when")
+    if isinstance(raw, dt.datetime):
+        return raw.date()
+    if isinstance(raw, dt.date):
+        return raw
+    if isinstance(raw, str) and len(raw) >= 10:
+        try:
+            return dt.date.fromisoformat(raw[:10])
+        except ValueError:
+            return None
+    return None
+
+
+def _caption_lint_summary(brand_id: str, text: str, ctx: dict) -> dict[str, Any] | None:
+    lane = ctx.get("lane")
+    try:
+        result = caption_lint.lint(
+            brand_id,
+            text,
+            lane=lane if isinstance(lane, str) and lane else None,
+            when=_lint_when(ctx),
+        )
+    except (FileNotFoundError, ValueError, OSError):
+        return None
+    hard_messages = [
+        f["message"] for f in result.get("findings") or [] if f.get("level") == caption_lint.HARD
+    ][:5]
+    return {
+        "hard": result.get("hard") or 0,
+        "warn": result.get("warn") or 0,
+        "check": result.get("check") or 0,
+        "hard_messages": hard_messages,
+    }
+
+
 def gate_text(brand_id: str, text: str, *, ctx: dict | None = None) -> dict[str, Any]:
-    """Phrase gate on arbitrary copy (caption or poster field). Substring phrase bans only."""
+    """Phrase gate on arbitrary copy (caption or poster field).
+
+    The older phrase list still blocks. The brand-bible linter is attached as
+    `lint`. It blocks only when BRAND_LINT_GATE=block and the linter reports a
+    hard fail. The default is warn.
+    """
     candidate = text or ""
     if not candidate.strip():
         return {"passed": True, "reason": "empty_ok"}
@@ -380,7 +436,17 @@ def gate_text(brand_id: str, text: str, *, ctx: dict | None = None) -> dict[str,
         if re.search(r"\b(membership|join our membership|member benefits|become a member)\b", cl):
             if "membership" not in brief and "member" not in brief:
                 return {"passed": False, "reason": "membership_not_offered"}
-    return {"passed": True, "reason": "ok"}
+    lint = _caption_lint_summary(brand_id, candidate, contract_ctx)
+    mode = lint_gate_mode()
+    if lint and mode == "block" and lint["hard"]:
+        detail = lint["hard_messages"][0] if lint["hard_messages"] else "brand bible"
+        return {
+            "passed": False,
+            "reason": f"brand_lint:{detail[:80]}",
+            "lint": lint,
+            "lint_mode": mode,
+        }
+    return {"passed": True, "reason": "ok", "lint": lint, "lint_mode": mode}
 
 
 def gate_copy_package(

@@ -1109,7 +1109,7 @@ def build_generation_context(
         brief_subject = str(override)
 
     vb = _load_voice_bible()
-    voice = vb.get("voices", {}).get(brand_id, {})
+    voice = dict(vb.get("voices", {}).get(brand_id, {}))
     brand_rules = _load_brand_rules(brand_id)
     banned = _extract_banned_terms(brand_id)
     required = _extract_required_terms(brand_id)
@@ -1122,7 +1122,14 @@ def build_generation_context(
 
     from _lib.brand_bible import bible_copy_slice  # noqa: PLC0415
 
-    bible_slice = bible_copy_slice(brand_id, "caption").get("copy_system") or {}
+    bible_fields = bible_copy_slice(brand_id, "caption")
+    bible_slice = bible_fields.get("copy_system") or {}
+    markdown_voice = bible_fields.get("markdown_voice") or {}
+    if markdown_voice.get("voice_description"):
+        voice["description"] = markdown_voice["voice_description"]
+    if markdown_voice.get("personality"):
+        voice["personality"] = markdown_voice["personality"]
+    rules_excerpt = markdown_voice.get("rules_excerpt") or brand_rules.get("voice", "")[:1500]
 
     # ── Split facts by relevance to brief_subject ───────────────────
     GLOBAL_FACTS = {
@@ -1136,7 +1143,7 @@ def build_generation_context(
         "cta_default": voice.get("cta_default", ""),
         "cta_alternatives": voice.get("cta_alternatives", []),
         "hashtag_suggestions": voice.get("hashtag_suggestions", []),
-        "rules_excerpt": brand_rules.get("voice", "")[:1500],
+        "rules_excerpt": rules_excerpt,
         "tone_rules_excerpt": brand_rules.get("tone", "")[:1500],
         "punctuation_excerpt": brand_rules.get("punctuation", "")[:1000],
         "linked_brand_note": (
