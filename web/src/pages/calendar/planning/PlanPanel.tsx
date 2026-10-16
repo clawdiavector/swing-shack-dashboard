@@ -15,6 +15,7 @@ import {
   addPlanItem,
   approveBlocker,
   approvePlan,
+  draftReviewHref,
   placePlan,
   unplacePlan,
   dueLabel,
@@ -60,6 +61,7 @@ function ItemRow({
   eventKind,
   planApproved,
   onDraft,
+  brandId,
 }: {
   item: PlanItem
   /** The kind of date, for suggested shots. */
@@ -67,6 +69,7 @@ function ItemRow({
   planApproved?: boolean
   /** A post step: ask for a caption draft. Resolves to an error message, or null. */
   onDraft?: () => Promise<string | null>
+  brandId?: string
   today: string
   locked: boolean
   onSave: (patch: PlanItemPatch) => Promise<string | null>
@@ -312,7 +315,11 @@ function ItemRow({
               <span className={draft.kind === 'asked' ? 'text-emerald-400' : 'text-tx3'}>{draft.text}</span>
             )}
             {draft.kind === 'asked' ? (
-              <Link to="/review" className="font-semibold text-yel hover:underline" data-testid="plan-draft-link">
+              <Link
+                to={draftReviewHref(item, brandId || '')}
+                className="font-semibold text-yel hover:underline"
+                data-testid="plan-draft-link"
+              >
                 Open Approve drafts
               </Link>
             ) : null}
@@ -591,6 +598,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
             key={it.item_id}
             item={it}
             today={today}
+            brandId={brandId}
             locked={approved}
             onSave={async (patch) => take(await editPlanItem(brandId, plan.plan_id, it.item_id, patch))}
             eventKind={plan.event_kind || plan.profile}

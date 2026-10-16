@@ -149,6 +149,8 @@ def test_place_creates_content_and_reminders_once():
     assert types["post"] == "moment" and types["story"] == "content"   # a post is a moment the Create pipeline can draft
     assert types["shoot"] == "reminder" and types["boost"] == "reminder"
     assert all(row["status"] == "approved" for row in cal.rows)
+    keys = [row["event_key"] for row in cal.rows]
+    assert all(k.startswith("stick:plan-") for k in keys) and len(set(keys)) == len(keys)
     again = cp.place_on_calendar("stick", pid, add_record=cal.add)
     assert again["placed"] == 0 and len(cal.rows) == r["placed"]
 

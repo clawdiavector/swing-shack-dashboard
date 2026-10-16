@@ -685,24 +685,39 @@ def post_brief(plan: dict, item: dict) -> str:
 
 def _calendar_record(plan: dict, item: dict) -> dict:
     kind = item["kind"]
-    return {
+    brand_id = plan["brand_id"]
+    due = item["due"]
+    title = f"{item['title']} — {plan['event_name']}"
+    rec = {
         "type": _CALENDAR_TYPE.get(kind, "reminder"),
-        "title": f"{item['title']} — {plan['event_name']}",
-        "event_date": item["due"],
-        "event_start": item["due"],
-        "event_end": item["due"],
+        "title": title,
+        "event_date": due,
+        "event_start": due,
+        "event_end": due,
         "primary_channel": item.get("channel") or "",
         "angle": (post_brief(plan, item) if item["kind"] == "post" else (item.get("note") or ""))
         + (f" Planned budget: R{item['budget']:,}." if item.get("budget") else ""),
         "planned_budget_zar": item.get("budget"),
         "source_type": "operator",
+        "source_origin": "internal_strategy",
+        "date_confidence": "confirmed_date",
+        "verification_status": "verified_primary",
         "created_by": "plan:" + plan["plan_id"],
         "plan_id": plan["plan_id"],
         "plan_item_id": item["item_id"],
         "plan_item_kind": kind,
         "event_kind": plan.get("event_kind") or plan.get("profile"),
         "brief_id": plan.get("brief_id"),
+        # The Plan list / month grid skip rows with no event_key, so a placed
+        # step would vanish and only the original campaign date would show.
+        "event_key": f"{brand_id}:plan-{plan['plan_id']}-{item['item_id']}",
     }
+    if kind == "post":
+        rec["post_type"] = item.get("post_type") or "feed"
+    pillars = plan.get("pillars")
+    if isinstance(pillars, list) and pillars:
+        rec["pillars"] = pillars
+    return rec
 
 
 def place_on_calendar(brand_id: str, plan_id: str, actor: str = "operator",
