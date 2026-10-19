@@ -7,6 +7,7 @@ import {
   fetchSuggestions,
   rejectSuggestion,
   spanLabel,
+  swapSuggestion,
   undoMessage,
   undoSuggestion,
   type PillarOption,
@@ -61,6 +62,26 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
     notifyAlertsChanged()
     onChanged()
   }, [onChanged])
+
+  /** Different product: the stock line steps aside and the same day gets the next one. */
+  async function swap(s: Suggestion) {
+    const name = actorName()
+    if (!name) {
+      setError('A name is needed so the calendar knows who decided.')
+      return
+    }
+    setBusyKey(s.key)
+    setError(null)
+    const r = await swapSuggestion(brandId, month, s.key, name)
+    setBusyKey(null)
+    if (!r.ok || !r.undo) {
+      setError(r.error || 'That did not work.')
+      return
+    }
+    setPlanNote(null)
+    setDecided({ undo: r.undo, title: s.title })
+    settle()
+  }
 
   async function decide(s: Suggestion, verb: 'approve' | 'reject', pillar = '') {
     const name = actorName()
@@ -134,6 +155,7 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
     decided,
     approve: (s: Suggestion, pillar?: string) => decide(s, 'approve', pillar),
     reject: (s: Suggestion) => decide(s, 'reject'),
+    swap,
     undo,
     makePlan,
     planBusy,
@@ -155,12 +177,14 @@ export function GhostChip({
   pillars,
   onApprove,
   onReject,
+  onSwap,
 }: {
   s: Suggestion
   busy: boolean
   pillars: PillarOption[]
   onApprove: (pillar: string) => void
   onReject: () => void
+  onSwap?: () => void
 }) {
   const [pillar, setPillar] = useState('')
   // Without a pillar a date can never get a brief, so it is asked for here. An
@@ -231,6 +255,17 @@ export function GhostChip({
         >
           Reject
         </button>
+        {onSwap ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onSwap}
+            data-testid="ghost-swap"
+            className="rounded-full border border-bd px-3 py-1 text-xs font-semibold text-tx2 hover:text-tx disabled:opacity-60"
+          >
+            Different product
+          </button>
+        ) : null}
       </div>
     </HoverChip>
   )

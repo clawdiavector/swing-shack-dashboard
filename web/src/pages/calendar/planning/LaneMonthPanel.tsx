@@ -452,6 +452,7 @@ export function LaneMonthPanel({
                       pillars={sug.pillars}
                       onApprove={(pillar) => void sug.approve(g, pillar)}
                       onReject={() => void sug.reject(g)}
+                      onSwap={g.source === 'stock' ? () => void sug.swap(g) : undefined}
                     />
                   ))}
                 </div>
