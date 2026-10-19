@@ -4,6 +4,7 @@ import { useBrand } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, StatCard } from '../components/ui'
 import { getJson } from '../lib/api'
+import { fixLabel, groupFixes, type SeoFix, type SeoFixQueue } from '../lib/seoFixQueue'
 
 // Shape of GET /api/seo/insights (campaign-os/app.py seo_insights_full).
 // The endpoint has no brand parameter and reads swingshack.co.za data only,
@@ -98,9 +99,75 @@ function KeywordTable({ title, read, rows }: { title: string; read: string; rows
   )
 }
 
+const SEVERITY_TONE = { high: 'red', medium: 'gold', low: 'mute' } as const
+
+function FixRow({ fix }: { fix: SeoFix }) {
+  const tone = SEVERITY_TONE[fix.severity ?? 'low'] ?? 'mute'
+  return (
+    <li className="border-t border-white/5 py-2 text-sm first:border-t-0">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone={tone}>{fix.severity ?? 'note'}</Badge>
+        <span className="font-semibold text-tx">{fixLabel(fix.type)}</span>
+        {fix.page ? <span className="text-tx3">on {fix.page}</span> : null}
+      </div>
+      {fix.message ? <p className="mt-1 text-tx2">{fix.message}</p> : null}
+      {fix.fix ? <p className="mt-1 text-tx3">Suggested fix: {fix.fix}</p> : null}
+    </li>
+  )
+}
+
+// Findings from the daily site check, waiting for a fix. Read-only: nothing
+// here changes the website.
+function FixesWaiting({ queue }: { queue: SeoFixQueue | null }) {
+  const { auto, ask } = groupFixes(queue)
+  const total = auto.length + ask.length
+  return (
+    <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
+      <h2 className="font-display text-lg font-semibold">
+        Fixes waiting <span className="text-sm text-tx3">({total})</span>
+      </h2>
+      <p className="mt-1 text-sm text-tx3">
+        Found by the daily check of the Swing Shack website. Nothing is changed on the site from this page.
+      </p>
+      {!queue ? (
+        <p className="mt-4 text-sm text-tx3">No check has run yet. The first list appears after tonight's check.</p>
+      ) : total === 0 ? (
+        <p className="mt-4 text-sm text-tx3">Nothing waiting. The last check found nothing to fix.</p>
+      ) : (
+        <div className="mt-3 space-y-4">
+          {ask.length > 0 ? (
+            <div>
+              <h3 className="text-xs font-semibold text-tx3 uppercase">Needs your OK before it changes ({ask.length})</h3>
+              <ul className="mt-1">
+                {ask.map((f) => (
+                  <FixRow key={f.id} fix={f} />
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {auto.length > 0 ? (
+            <div>
+              <h3 className="text-xs font-semibold text-tx3 uppercase">
+                Can be fixed automatically, with an undo ({auto.length})
+              </h3>
+              <ul className="mt-1">
+                {auto.map((f) => (
+                  <FixRow key={f.id} fix={f} />
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <p className="text-xs text-tx3">Last checked {queue.updated.slice(0, 10)}.</p>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function SeoPage() {
   const { brandId, brandLabel } = useBrand()
   const [data, setData] = useState<SeoInsights | null>(null)
+  const [queue, setQueue] = useState<SeoFixQueue | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshNote, setRefreshNote] = useState<{ ok: boolean; text: string } | null>(null)
@@ -122,6 +189,14 @@ export function SeoPage() {
   useEffect(() => {
     if (isSwingShack) void load()
   }, [isSwingShack, load])
+
+  // The fix list is separate from the rankings: if it fails to load the rest of the page still works.
+  useEffect(() => {
+    if (!isSwingShack) return
+    getJson<{ ok: boolean; queue?: SeoFixQueue | null }>('/api/seo/fix-queue?brand=swing-shack')
+      .then((r) => setQueue(r.ok ? (r.queue ?? null) : null))
+      .catch(() => setQueue(null))
+  }, [isSwingShack])
 
   // Pulls fresh Ubersuggest data via POST /api/seo/refresh. The server needs
   // Ubersuggest tokens; the first-time login runs on the operator's Mac
@@ -224,6 +299,8 @@ export function SeoPage() {
               Ubersuggest volumes are worldwide, not South African, and difficulty reads 0 in the cache.
             </p>
           </section>
+
+          <FixesWaiting queue={queue} />
 
           <KeywordTable title="Winning" read="Top 10 or moved up this period." rows={data.winning} />
           <KeywordTable title="Quick wins" read="Close to page one; a small push may move them." rows={data.quick_wins} />
