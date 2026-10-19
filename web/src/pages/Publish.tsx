@@ -24,6 +24,7 @@ import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
 import { groupSandboxRowsByPostId, idempotencyKeysForGroup } from '../lib/publishPostGroup'
 import { postingChannelAbbrev } from '../lib/postingWeek'
+import { publishNowConfirmText } from '../lib/publishConfirm'
 import { sandboxGoesOutIso, sandboxRowId, sandboxTitle } from '../lib/sandboxRow'
 import { formatStamp } from '../lib/stamp'
 
@@ -39,7 +40,7 @@ export function Publish() {
   const [publishingPostId, setPublishingPostId] = useState('')
   const [publishNote, setPublishNote] = useState('')
 
-  function publishNowButton(postId: string, keys: string[]) {
+  function publishNowButton(postId: string, keys: string[], channels: string, title: string) {
     if (!keys.length) return undefined
     return (
       <button
@@ -50,6 +51,8 @@ export function Publish() {
         onClick={(event) => {
           event.preventDefault()
           event.stopPropagation()
+          const ask = publishNowConfirmText(publishMode?.mode, channels, title)
+          if (ask && !window.confirm(ask)) return
           setPublishingPostId(postId)
           setPublishNote('')
           void publishDispatchNow(keys)
@@ -105,7 +108,7 @@ export function Publish() {
           dateOnly={Boolean(goesOut)}
           thumb={thumb || undefined}
           thumbAlt={caption.slice(0, 80) || id}
-          action={publishNowButton(postKey, keys)}
+          action={publishNowButton(postKey, keys, platformChipSummary(g.rows), sandboxTitle(first))}
         />
       )
     })
