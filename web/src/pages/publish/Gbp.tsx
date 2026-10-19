@@ -1,5 +1,5 @@
 import { MapPin } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../../components/chrome'
@@ -98,6 +98,8 @@ export function Gbp() {
   const [liveAction, setLiveAction] = useState<{ draftId: string } | null>(null)
   const [draftForm, setDraftForm] = useState<GmbDraft>({ title: '', body: '', brand: scopeBrand })
   const [editingId, setEditingId] = useState<string | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
   const [searchTerms, setSearchTerms] = useState<GmbSearchTerms | null>(null)
 
   const setTab = useCallback(
@@ -313,8 +315,24 @@ export function Gbp() {
       {tab === 'drafts' ? (
         <div className="space-y-4">
           <p className="text-sm text-tx3">Drafts filtered to brand {scopeBrand}.</p>
-          <div className="grid gap-3 md:grid-cols-2">
+          {editingId ? (
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <span className="text-tx2">Editing a draft. Change it, then press Update draft.</span>
+              <button
+                type="button"
+                className={actionBtn}
+                onClick={() => {
+                  setEditingId(null)
+                  setDraftForm({ title: '', body: '', brand: scopeBrand })
+                }}
+              >
+                Cancel edit
+              </button>
+            </div>
+          ) : null}
+          <div ref={formRef} className="grid gap-3 md:grid-cols-2">
             <input
+              ref={titleRef}
               className={inputCls}
               placeholder="Title (100)"
               maxLength={100}
@@ -414,6 +432,8 @@ export function Gbp() {
                     onClick={() => {
                       setEditingId(d.id || null)
                       setDraftForm(d)
+                      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      titleRef.current?.focus()
                     }}
                   >
                     Edit
