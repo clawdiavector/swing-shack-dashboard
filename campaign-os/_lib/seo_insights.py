@@ -300,10 +300,44 @@ def competitors_table() -> List[Dict[str, Any]]:
     return out
 
 
+SWING_SHACK_DOMAIN = "swingshack.co.za"
+
+
+def _foreign_domains(rank: Dict[str, Any], dom: Dict[str, Any]) -> List[str]:
+    """Domains in the loaded files that are not Swing Shack's.
+
+    Stick's Ubersuggest pull (stickgolf.co.za) has landed in the same
+    unsuffixed files before. Swing Shack data must never show Stick numbers.
+    """
+    seen = [
+        rank.get("domain"),
+        (rank.get("metadata") or {}).get("domain"),
+        dom.get("domain"),
+    ]
+    out = []
+    for d in seen:
+        if not d:
+            continue
+        host = str(d).split(":")[0].lower()
+        if host != SWING_SHACK_DOMAIN and host != "www." + SWING_SHACK_DOMAIN and host not in out:
+            out.append(host)
+    return out
+
+
 def build_full_insights() -> Dict[str, Any]:
-    """Assemble the full SEO insights report."""
+    """Assemble the full SEO insights report.
+
+    Raises ValueError when the files on disk belong to another brand, so the
+    page shows an error instead of another brand's keywords.
+    """
     rank = load_seo_rankings()
     dom = domain_health()
+    foreign = _foreign_domains(rank, dom)
+    if foreign:
+        raise ValueError(
+            "SEO data on the server is for %s, not Swing Shack. "
+            "Refresh Swing Shack data before showing this page." % ", ".join(foreign)
+        )
     winning = winning_keywords(rank)
     leaking = leaking_keywords(rank)
     missing = missing_keywords(rank)

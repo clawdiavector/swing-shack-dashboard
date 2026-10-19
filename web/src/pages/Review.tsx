@@ -36,6 +36,16 @@ function itemType(item: InboxItem) {
   return (item.type || 'item').toLowerCase()
 }
 
+function inboxMatchesPlanDraft(item: InboxItem, moment: string, calendar: string): boolean {
+  const calFromMoment = moment.startsWith('calendar_candidate:')
+    ? moment.split(':').slice(2).join(':')
+    : ''
+  const cal = calendar || calFromMoment
+  if (moment && (item.id === moment || item.id.includes(moment))) return true
+  if (cal && (item.meta?.calendar_id === cal || item.id.includes(cal))) return true
+  return false
+}
+
 function ReviewInbox({
   brandId,
   isAll,
@@ -59,6 +69,9 @@ function ReviewInbox({
   const hadItems = useRef(false)
   const celebrated = useRef(false)
   const { trackLoad, waitForLoad } = useLoadGate()
+  const [params] = useSearchParams()
+  const wantMoment = params.get('moment') || ''
+  const wantCal = params.get('calendar') || ''
 
   function load() {
     const run = async (): Promise<void> => {
@@ -131,13 +144,17 @@ function ReviewInbox({
 
   const types = useMemo(() => ['all', 'no-brief'], [])
 
-  const shown =
+  const shownBase =
     filter === 'all'
       ? items
       : filter === 'no-brief'
         ? items.filter((item) => inboxMediaTag(item).id === filter)
         : items.filter((item) => itemType(item) === filter)
-
+  const shown =
+    wantMoment || wantCal
+      ? shownBase.filter((item) => inboxMatchesPlanDraft(item, wantMoment, wantCal))
+      : shownBase
+  const waitingOnPlanDraft = Boolean(wantMoment || wantCal) && shown.length === 0 && !error
   const firstDraft = shown[0]
   const firstDraftBrand = firstDraft?.brand_id
 
@@ -230,7 +247,11 @@ function ReviewInbox({
         }))}
       />
 
-      {firstDraft && itemType(firstDraft) === 'draft_asset' ? (
+      {waitingOnPlanDraft ? (
+        <p className="rounded-2xl border border-yel/40 bg-yel/10 px-4 py-3 text-sm text-tx" data-testid="plan-draft-waiting">
+          The caption for this post is still being written. It will open here when it is ready — not another draft from the queue.
+        </p>
+      ) : firstDraft && itemType(firstDraft) === 'draft_asset' ? (
         <ReviewDraftDetail
           item={firstDraft}
           showBrandChip={isAll}

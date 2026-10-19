@@ -6,6 +6,7 @@ import {
   dotState,
   fetchAlertsShared,
   notifyAlertsChanged,
+  planPageHref,
   type CalendarAlert,
 } from './calendarAlerts'
 
@@ -41,6 +42,14 @@ describe('alertAction', () => {
     expect(alertAction('no_plan')).toBe('Make a plan')
     expect(alertAction('plan_draft')).toBe('Open the plan')
     expect(alertAction('plan_approved')).toBe('Open the plan')
+  })
+})
+
+describe('planPageHref', () => {
+  it('opens the list with the date selected, not the bare Plan page', () => {
+    expect(planPageHref({ event_key: 'swing-shack:halloween:2026-10-31' })).toBe(
+      '/calendar/lanes?tab=list&event=swing-shack%3Ahalloween%3A2026-10-31',
+    )
   })
 })
 

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import './theme-play.css'
+import './a11y.css'
 import { applyTheme, readTheme } from './lib/theme'
 
 applyTheme(readTheme())

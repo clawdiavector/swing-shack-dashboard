@@ -244,16 +244,88 @@ def retrieve_for_job(brand_id: str, *, lane: str = "product", job_type: str = "a
     return out
 
 
+def _markdown_bible_path(brand_id: str) -> Path | None:
+    for base in (_runtime_data_dir(), _REPO_DATA):
+        path = base / "brand-directory" / brand_id / "BRAND-BIBLE.md"
+        if path.exists():
+            return path
+    return None
+
+
+def _markdown_section(text: str, heading: str) -> str:
+    start = text.find(heading)
+    if start < 0:
+        return ""
+    rest = text[start + len(heading):]
+    end = len(rest)
+    for marker in ("\n## ", "\n### "):
+        found = rest.find(marker)
+        if found >= 0:
+            end = min(end, found)
+    return rest[:end].strip()
+
+
+def _bullet_after(section: str, label: str) -> str:
+    for line in section.splitlines():
+        if label.lower() not in line.lower():
+            continue
+        _, _, tail = line.partition(":")
+        clean = re.sub(r"`[^`]*`", "", tail)
+        clean = clean.strip(" *-.")
+        if clean:
+            return clean
+    return ""
+
+
+def markdown_voice_slice(brand_id: str) -> dict[str, Any]:
+    """Short voice slice from BRAND-BIBLE.md section 5.1. Empty when the file is absent."""
+    path = _markdown_bible_path(brand_id)
+    if path is None:
+        return {}
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    status_match = re.search(r"\*\*Status:\*\*\s*`([^`]+)`", text)
+    section = _markdown_section(text, "### 5.1 Character")
+    personality = _bullet_after(section, "Voice in five words")
+    how = _bullet_after(section, "How that sounds")
+    point = _bullet_after(section, "Point of view")
+    description = " ".join(part for part in (how, point) if part)[:800]
+    # Keep the prompt free of the word "sarcastic". The bible uses it only to
+    # say the voice is not that, and the generation prompt already rejects it.
+    excerpt_lines = [
+        line for line in (personality, how, point) if line and "sarcastic" not in line.lower()
+    ]
+    return {
+        "source": "BRAND-BIBLE.md",
+        "status": (status_match.group(1).strip() if status_match else ""),
+        "personality": personality.split(".")[0].strip(),
+        "voice_description": description,
+        "rules_excerpt": " ".join(excerpt_lines)[:1500],
+    }
+
+
 def bible_copy_slice(brand_id: str, lane: str) -> dict[str, Any]:
-    """Thin wrapper for P11 / gates; never raises."""
+    """Thin wrapper for P11 / gates; never raises.
+
+    Caption and poster lanes also carry `markdown_voice` from BRAND-BIBLE.md
+    when that file exists. The older bible-intelligence JSON stays in `copy_system`.
+    """
+    fields: dict[str, Any] = {}
     try:
         row = retrieve_for_job(brand_id, lane=lane)
-        if not row.get("available"):
-            return {}
-        fields = row.get("fields")
-        return fields if isinstance(fields, dict) else {}
+        if row.get("available"):
+            raw = row.get("fields")
+            if isinstance(raw, dict):
+                fields = dict(raw)
     except Exception:
-        return {}
+        fields = {}
+    if lane in ("caption", "poster"):
+        voice = markdown_voice_slice(brand_id)
+        if voice:
+            fields["markdown_voice"] = voice
+    return fields
 
 
 def get_bible_meta(brand_id: str) -> Dict[str, Any]:

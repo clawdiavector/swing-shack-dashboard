@@ -55,7 +55,6 @@ BAD = [
     ("stick", "20% off full bag fittings\nFirst 30 people to tag someone who blames the wind.\nSTICK is coming to Paarl.\nDM us for bookings", {"banned-universal"}),
     ("stick", "Meet Jared.\nClub fitter. Gear nerd.\nHe looks at the numbers, the build, the flight, the strike — then helps you find what actually belongs in your bag.\nBetter begins here.", {"em-dash"}),
     ("stick", "Better begins here\nBook a fitting at Stick.", {"signoff-variant"}),
-    ("stick", "Rush Naidoo new iron build started with the fitting.\nBook a fitting at Stick.\nBetter begins here.\n#customgolfclubs #golfclubfitting", {"hashtag-allowed"}),
     ("swing-shack", "87% of golfers who get fit lower their handicap. That’s fact, not opinion. Your game deserves equipment that performs to your potential. Book your fitting today.", {"banned-brand"}),
     ("swing-shack", "Fitted clubs can take up to 5 shots off your game guaranteed!", {"banned-brand", "exclamation"}),
     ("swing-shack", "FROM CONFUSED GOLFER TO CONFIDENT STRIKER.\nReal South African results:\nClub speed: 142km/h\nR820 full TrackMan coaching session.\nSwing Shack - Johannesburg’s indoor golf studio.", {"caps", "banned-brand"}),
@@ -91,7 +90,8 @@ class BibleExamples(unittest.TestCase):
             with self.subTest(brand=brand, caption=cap.splitlines()[0][:50]):
                 res = L.lint(brand, cap, cross_brand=False)
                 self.assertTrue(want <= codes(res), f"wanted {sorted(want)}, got {sorted(codes(res))}")
-                self.assertGreater(res["hard"], 0)
+                if want:
+                    self.assertGreater(res["hard"], 0)
 
 
 @unittest.skipUnless(HAVE_BIBLES, "the brand bibles are not on this branch")
@@ -140,7 +140,8 @@ class Rules(unittest.TestCase):
 
     def test_vague_bag_drop_cta_is_not_listed(self):
         res = L.lint("bag-drop", "Putters are personal.\nMessage us for current stock.", cross_brand=False)
-        self.assertIn("cta-unlisted", codes(res, L.HARD))
+        self.assertIn("cta-unlisted", codes(res, L.WARN))
+        self.assertNotIn("cta-unlisted", codes(res, L.HARD))
 
     def test_the_word_stick_is_left_alone_but_the_brand_is_checked(self):
         self.assertNotIn("name-case", codes(L.lint("stick", "Big stick attitude. Slightly better manners.\nBook coaching at Stick.\nBetter begins here.", cross_brand=False)))
@@ -166,11 +167,38 @@ class Rules(unittest.TestCase):
         res = L.lint("swing-shack", "Camo has entered the chat.\nDM us for price and details. \U0001F3CC️‍♂️", cross_brand=False)
         self.assertNotIn("emoji-count", codes(res))
         res = L.lint("swing-shack", "Camo has entered the chat.\nDM us for price and details. ⛳⛳", cross_brand=False)
-        self.assertIn("emoji-count", codes(res, L.HARD))
+        self.assertIn("emoji-count", codes(res, L.WARN))
 
     def test_stick_allows_no_emoji_except_the_pin(self):
-        self.assertIn("emoji-allowed", codes(L.lint("stick", "Fit first.\nBook a fitting at Stick.\nBetter begins here.\n\U0001F3CC️", cross_brand=False), L.HARD))
+        self.assertIn("emoji-allowed", codes(L.lint("stick", "Fit first.\nBook a fitting at Stick.\nBetter begins here.\n\U0001F3CC️", cross_brand=False), L.WARN))
         self.assertNotIn("emoji-allowed", codes(L.lint("stick", "Fit first.\nWe are at Winelands Square.\n\U0001F4CD Paarl\nVisit us at Winelands Square.\nBetter begins here.", cross_brand=False)))
+
+    def test_unconfirmed_lists_warn_and_confirmed_lists_block(self):
+        text = "Fit first.\nCome test it properly.\nBetter begins here.\n#notalist"
+        warned = L.lint("stick", text, cross_brand=False)
+        self.assertIn("cta-unlisted", codes(warned, L.WARN))
+        self.assertIn("hashtag-allowed", codes(warned, L.WARN))
+        self.assertEqual(warned["hard"], 0)
+        rules = L.load_rules("stick")
+        rules["list_enforcement"] = "hard"
+        blocked = L.lint("stick", text, rules=rules, cross_brand=False)
+        self.assertIn("cta-unlisted", codes(blocked, L.HARD))
+        self.assertIn("hashtag-allowed", codes(blocked, L.HARD))
+        cased = L.lint(
+            "stick",
+            "Fit first.\nBook a fitting at Stick.\nBetter begins here.\n#customgolfclubs #golfclubfitting",
+            cross_brand=False,
+        )
+        self.assertIn("hashtag-allowed", codes(cased, L.WARN))
+        self.assertEqual(cased["hard"], 0)
+
+    def test_shared_fitting_cta_is_on_the_stick_list(self):
+        res = L.lint("stick", "Fit first.\nBook your fitting today.\nBetter begins here.", cross_brand=False)
+        self.assertNotIn("cta-unlisted", codes(res))
+
+    def test_bag_drop_store_line_is_on_the_list(self):
+        res = L.lint("bag-drop", "Old balls do old-ball things.\nVisit the online store or DM.", cross_brand=False)
+        self.assertNotIn("cta-unlisted", codes(res))
 
     def test_currency_format(self):
         for bad in ("R5000", "R8 500", "R 6,500.00", "R7999.00"):

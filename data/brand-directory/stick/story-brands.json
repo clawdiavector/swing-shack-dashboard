@@ -2,6 +2,7 @@
   "brand": "stick",
   "verified": "2026-10-12",
   "note": "Official pages, read from each brand's own website on 2026-10-12. Psycho Bunny is Stick only.",
+  "daily": ["psycho-bunny"],
   "retail": [
     {
       "id": "takomo",

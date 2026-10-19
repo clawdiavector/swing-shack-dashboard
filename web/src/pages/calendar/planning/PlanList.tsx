@@ -161,6 +161,7 @@ function PlanRow({
   brandId,
   ev,
   open,
+  startPlanOpen = false,
   heading,
   headingCount,
   eventDetail,
@@ -170,6 +171,7 @@ function PlanRow({
   brandId: string
   ev: PlanningTimelineEvent
   open: boolean
+  startPlanOpen?: boolean
   heading: string | null
   headingCount?: number
   eventDetail: PlanningEventDetail | null
@@ -180,9 +182,9 @@ function PlanRow({
     brandId,
     eventKey: ev.event_key || ev.id,
     knownBriefId: ev.brief_id || '',
-    lookup: false,
+    lookup: true,
   })
-  const [planOpen, setPlanOpen] = useState(false)
+  const [planOpen, setPlanOpen] = useState(startPlanOpen)
   const tier = ev.tier || 'C-PIN'
   const c = PIN_COLORS[tier] || PIN_COLORS['C-PIN']
   const start = eventStart(ev)
@@ -253,18 +255,27 @@ function PlanRow({
 }
 
 /** Everything on the calendar from today to 12 months out, soonest first, one row each. */
+function eventMatchesFocus(ev: PlanningTimelineEvent, focus: string): boolean {
+  if (!focus) return false
+  const f = focus.trim().toLowerCase()
+  return [ev.event_key, ev.id, ev.brief_id, ev.name].some((v) => String(v || '').trim().toLowerCase() === f)
+}
+
 export function PlanList({
   brandId,
   events,
   eventDetail,
   onOpenEvent,
   onCloseEvent,
+  focusEvent = '',
 }: {
   brandId: string
   events: PlanningTimelineEvent[]
   eventDetail: PlanningEventDetail | null
   onOpenEvent: (id: string) => void
   onCloseEvent: () => void
+  /** From ?event= / ?brief= — open this row's plan. */
+  focusEvent?: string
 }) {
   const rows = [...events].sort((a, b) => {
     const da = eventStart(a) || '9999'
@@ -300,6 +311,7 @@ export function PlanList({
             brandId={brandId}
             ev={ev}
             open={openId === ev.id}
+            startPlanOpen={eventMatchesFocus(ev, focusEvent)}
             heading={showHeading ? heading : null}
             headingCount={showHeading ? headingCounts[heading] : undefined}
             eventDetail={eventDetail}

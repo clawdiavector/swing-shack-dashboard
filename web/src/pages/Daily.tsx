@@ -10,6 +10,7 @@ import {
   Sun,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { GbpTodayCard } from '../components/GbpTodayCard'
 import '../fun.css'
 import { DeskRing, FunTile, Mascot } from '../components/fun'
 import { burstConfetti } from '../lib/confetti'
@@ -222,8 +223,16 @@ export function Daily() {
     fetchLearn()
       .then(setLearn)
       .catch(() => setLearn(null))
-    fetchVisualLibrary(focusBrandId || 'swing-shack')
+  }
+
+  // Six thumbnails are all Today shows, so ask for eight rows instead of the 200-image roster.
+  // Waits for the brand so it does not fetch twice (once as the default, once as the real brand).
+  useEffect(() => {
+    if (!focusBrandId) return
+    let live = true
+    fetchVisualLibrary(focusBrandId, 8)
       .then((payload) => {
+        if (!live) return
         const rows = (payload.images || []) as Array<{
           filename?: string
           url?: string
@@ -240,8 +249,13 @@ export function Daily() {
         }
         setLibraryThumbs(thumbs)
       })
-      .catch(() => setLibraryThumbs([]))
-  }
+      .catch(() => {
+        if (live) setLibraryThumbs([])
+      })
+    return () => {
+      live = false
+    }
+  }, [focusBrandId])
 
   useEffect(() => {
     load()
@@ -392,10 +406,6 @@ export function Daily() {
       </PageIntro>
 
       <AlertBanner brandId={isAll ? '' : focusBrandId || ''} />
-
-      <StoryReposts brandIds={isAll ? undefined : brandIds} />
-
-      <DailyBrandSocials rows={socialRows} />
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />
 
@@ -633,6 +643,7 @@ export function Daily() {
                       >
                         <Link
                           to={to}
+                          aria-label={`Open this ${(p.verdict || 'recent').toLowerCase()} post in Results`}
                           className="block rounded-xl border border-bd hover:border-ac/40"
                         >
                           <InsightPostThumb post={p} thumbKey={key} />
@@ -646,6 +657,7 @@ export function Daily() {
                     <Tip text="Visual library photo — open the library in Studio.">
                       <Link
                         to="/create/images?tab=library"
+                        aria-label="Open the visual library"
                         className="block overflow-hidden rounded-xl border border-bd hover:border-ac/40"
                       >
                         <img
@@ -664,6 +676,11 @@ export function Daily() {
         </section>
       </div>
 
+      <StoryReposts brandIds={isAll ? undefined : brandIds} />
+
+      <DailyBrandSocials rows={socialRows} />
+
+      {scope !== 'all' ? <GbpTodayCard brandId={scope} /> : null}
       <section>
         <h2 className="mb-3 font-display text-xl font-semibold">Shortcuts</h2>
         <div className="fun-shortcuts grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EventTypeIcon } from '../../../components/EventTypeIcon'
-import { notifyAlertsChanged, onAlertsChanged } from '../../../lib/calendarAlerts'
+import { notifyAlertsChanged, onAlertsChanged, planPageHref } from '../../../lib/calendarAlerts'
 import { KIND_LABEL, editPlanItem, formatRand } from '../../../lib/plan'
 import {
   fetchPlanSteps,
@@ -126,7 +126,7 @@ export function PlanStepChip({ s, brandId }: { s: PlanStep; brandId: string }) {
         <p className="text-xs text-tx3">To change it, reopen the plan in the Plan list.</p>
       )}
       <Link
-        to="/calendar/lanes"
+        to={planPageHref({ event_key: s.event_name, plan_id: s.plan_id })}
         data-testid="plan-step-open"
         className="inline-flex rounded-full border border-yel/40 bg-yel/15 px-3 py-1 text-xs font-semibold text-yel hover:bg-yel/25"
       >

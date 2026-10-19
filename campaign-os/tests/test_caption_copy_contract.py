@@ -30,6 +30,31 @@ class CaptionCopyContractTests(unittest.TestCase):
         )
         self.assertFalse(r["passed"])
 
+    def test_tpi_rejected_when_poster_is_off_the_rack(self):
+        from _lib.caption_copy_contract import (
+            build_copy_contract,
+            check_copy_contract,
+            check_poster_caption_alignment,
+        )
+
+        contract = build_copy_contract(
+            brand_id="swing-shack",
+            template_id="ss-service-promo",
+            post_type="service_promo",
+            lodge_title="Off-the-rack is for groceries",
+            user_brief="Off-the-rack is for groceries",
+        )
+        ctx = {"copy_contract": contract, "user_brief": contract["brief_blob"]}
+        bad = "Book a TPI assessment and get a full swing blueprint."
+        self.assertFalse(check_copy_contract(bad, ctx)["passed"])
+        r = check_poster_caption_alignment(
+            bad,
+            ctx,
+            {"poster_hook": "OFF-THE-RACK", "caption_body": bad},
+        )
+        self.assertFalse(r["passed"])
+        self.assertIn("tpi", r["reason"])
+
     def test_iron_template_rejects_putter_without_brief(self):
         from _lib.caption_copy_contract import build_copy_contract, check_copy_contract
 

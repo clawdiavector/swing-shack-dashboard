@@ -214,3 +214,10 @@ html[data-theme='play'] .text-sky-300 { color: #0369a1; }
 html[data-theme='play'] .text-orange-400 { color: #9a3412; }
 html[data-theme='play'] .text-amber-400 { color: #92400e; }
 html[data-theme='play'] .text-slate-400 { color: #475569; }
+
+/* Plan tier badges, lane tags and similar were written with fixed orange / teal hex colours
+   chosen for a dark page. Deeper shades on cream; the dark brand hero keeps its bright ones. */
+html[data-theme='play'] [class*='text-[#f0a030]'] { color: #7a4300; }
+html[data-theme='play'] [class*='text-[#14b8a6]'] { color: #0b5d55; }
+html[data-theme='play'] section[class*='from-[#0d0d0d]'] [class*='text-[#f0a030]'] { color: #f0a030; }
+html[data-theme='play'] section[class*='from-[#0d0d0d]'] [class*='text-[#14b8a6]'] { color: #14b8a6; }

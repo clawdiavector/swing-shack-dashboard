@@ -110,6 +110,10 @@ def _parse_inbox_ref(payload_ref: str) -> Optional[str]:
     if not payload_ref.startswith(prefix):
         return None
     item_id = payload_ref[len(prefix) :].strip()
+    if "#keep:" in item_id:
+        item_id = item_id.split("#keep:", 1)[0].strip()
+    elif "#" in item_id:
+        item_id = item_id.split("#", 1)[0].strip()
     return item_id or None
 
 
@@ -470,30 +474,39 @@ def _caption_pipeline_payload(
 ) -> dict[str, Any]:
     product_id: str | None = None
     service: str | None = None
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    lodge_title = calendar_title_for_item(brand_id, item_id) or str(calendar.get("title") or "")
+    title_l = lodge_title.lower()
+    calendar_products = calendar.get("products") if isinstance(calendar.get("products"), list) else []
     if ctx.products:
         first = ctx.products[0]
         pid = str(first.get("id") or "")
-        if pid.startswith("product-"):
+        name = str(first.get("name") or "").strip()
+        named_on_calendar = bool(calendar_products)
+        named_in_title = bool(name) and name.lower() in title_l
+        if pid.startswith("product-") and (named_on_calendar or named_in_title):
             product_id = pid
-        else:
-            service = str(first.get("name") or first.get("category") or "").strip() or None
+        elif name and (named_on_calendar or named_in_title):
+            service = name
     channel = primary_channel_for_item(brand_id, item_id, fallback="instagram")
     from _lib.archetypes_v2 import select_archetype  # noqa: PLC0415
     from _lib.poster_copy import poster_cta_cap, poster_hook_cap  # noqa: PLC0415
 
     archetype = select_archetype(brand_id, item_id)
-    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    angle = str(calendar.get("angle") or "")
+    post_type = str(calendar.get("post_type") or "").strip() or None
+    brief_bits = [bit for bit in (lodge_title, angle, post_type or "") if bit]
     payload: dict[str, Any] = {
         "brand_id": brand_id,
-        "user_brief": ctx.job,
+        "user_brief": " | ".join(brief_bits) or lodge_title or (ctx.job or ""),
         "channel": channel,
         "n_survivors": 3,
         "n_candidates": 12,
         "poster_hook_cap": poster_hook_cap(archetype),
         "poster_cta_cap": poster_cta_cap(archetype),
         "template_id": str(calendar.get("template_id") or "").strip() or None,
-        "post_type": str(calendar.get("post_type") or "").strip() or None,
-        "lodge_title": calendar_title_for_item(brand_id, item_id) or None,
+        "post_type": post_type,
+        "lodge_title": lodge_title or None,
     }
     if product_id:
         payload["product_id"] = product_id
@@ -529,9 +542,14 @@ def _process_caption_row(
     if _caption_unavailable(result):
         return None, "missing OPENAI_API_KEY"
 
+    keep_id = (keep_asset_id or _keep_asset_id_from_row(row) or "").strip()
     caption = _pick_caption(result)
     if not caption:
-        return None, "caption pipeline returned no survivors"
+        lodge = str(pipeline_in.get("lodge_title") or "").strip()
+        if keep_id and lodge:
+            caption = lodge
+        else:
+            return None, "caption pipeline returned no survivors"
 
     cal_title = calendar_title_for_item(brand_id, item_id)
     copy_package = _pick_copy_package(result)
@@ -598,7 +616,6 @@ def _process_caption_row(
             sidecar_extra["compose_cta"] = compose_cta
         if compose_body:
             sidecar_extra["compose_body"] = compose_body
-    keep_id = (keep_asset_id or _keep_asset_id_from_row(row) or "").strip()
     if keep_id:
         asset_id = _rewrite_caption_keep_image(
             asset_id=keep_id,
@@ -689,16 +706,20 @@ def _asset_has_persisted_image(asset: dict[str, Any]) -> bool:
 
 
 def _keep_asset_id_from_row(row: dict[str, Any]) -> str | None:
-    """Asset id embedded in a caption-only regen queue id (cap-keep-draft-…)."""
+    """Asset id for a caption-only rewrite. Prefer payload_ref #keep: (not truncated)."""
+    ref = str(row.get("payload_ref") or "")
+    if "#keep:" in ref:
+        asset_id = ref.split("#keep:", 1)[1].strip()
+        asset_id = asset_id.split("#", 1)[0].strip()
+        if asset_id:
+            return asset_id
     row_id = str(row.get("id") or "")
     marker = "cap-keep-"
     idx = row_id.find(marker)
     if idx < 0:
         return None
     asset_id = row_id[idx + len(marker) :].strip()
-    if asset_id.startswith("draft-") and len(asset_id) >= 18:
-        return asset_id
-    return None
+    return asset_id or None
 
 
 def _caption_keep_asset_id(rows_for_moment: list[tuple[dict[str, Any], str]]) -> str | None:
@@ -717,7 +738,8 @@ def _explicit_caption_regen(rows_for_moment: list[tuple[dict[str, Any], str]]) -
         if action != "draft_caption":
             continue
         row_id = str(row.get("id") or "")
-        if "cap-regen" in row_id or "cap-keep" in row_id:
+        ref = str(row.get("payload_ref") or "")
+        if "cap-regen" in row_id or "cap-keep" in row_id or "#keep:" in ref:
             return True
     return False
 
@@ -1143,7 +1165,11 @@ def _resolve_row_moment(row: dict[str, Any]) -> Optional[tuple[str, str]]:
         return None
     # A caption-only rewrite was asked for this draft. Scheduled posts are not
     # always status=approved, and the rewrite must still run.
-    if not _is_inbox_item_approved(item_id) and "cap-keep" not in str(row.get("id") or ""):
+    keep_asked = (
+        "cap-keep" in str(row.get("id") or "")
+        or "#keep:" in str(row.get("payload_ref") or "")
+    )
+    if not _is_inbox_item_approved(item_id) and not keep_asked:
         return None
     return brand_id, item_id
 
