@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
-import { useBrand } from './BrandSwitch'
-import { Tip } from './ui'
+import { useEffect, useState, type ReactNode } from 'react'
 import { getJson } from '../lib/api'
+
+export function Note({ children }: { children: ReactNode }) {
+  return <p className="rounded-xl border border-bd bg-bg2 p-3 text-sm text-tx2">{children}</p>
+}
 
 // Meta ads only exist for these two brands (see _ADS_BRIEF_BRANDS in campaign-os/app.py).
 export const ADS_BRANDS = ['swing-shack', 'stick']
@@ -68,10 +70,10 @@ export function AdsSection({ brandId, brandLabel }: { brandId: string; brandLabe
 
   if (error) {
     return (
-      <Tip>
+      <Note>
         No ad trends yet for {brandLabel || brandId} ({error}). The ads brief job writes them each day. Run it from
         the Ops page, or ask Kyle to check the job.
-      </Tip>
+      </Note>
     )
   }
   if (!data) return <div className="h-40 animate-pulse rounded-2xl bg-bg3" />
@@ -108,7 +110,7 @@ export function AdsSection({ brandId, brandLabel }: { brandId: string; brandLabe
       <section>
         <h3 className="mb-2 text-sm font-semibold text-tx">Spend by week</h3>
         {recentWeeks.length === 0 ? (
-          <Tip>No weekly data in this period yet.</Tip>
+          <Note>No weekly data in this period yet.</Note>
         ) : (
           <ul className="space-y-1">
             {recentWeeks.map((w) => (
@@ -129,7 +131,7 @@ export function AdsSection({ brandId, brandLabel }: { brandId: string; brandLabe
       <section>
         <h3 className="mb-2 text-sm font-semibold text-tx">Ads that worked</h3>
         {winnerGroups.length === 0 ? (
-          <Tip>No ad has a clear result yet. Ads need a few weeks of delivery before they are ranked.</Tip>
+          <Note>No ad has a clear result yet. Ads need a few weeks of delivery before they are ranked.</Note>
         ) : (
           <div className="space-y-4">
             {winnerGroups.map((g) => (

@@ -1,9 +1,9 @@
 import { TrendingUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
-import { ADS_BRANDS, AdsSection } from '../components/AdsTrends'
+import { ADS_BRANDS, AdsSection, Note } from '../components/AdsTrends'
 import { PageIntro } from '../components/chrome'
-import { Badge, Tip } from '../components/ui'
+import { Badge } from '../components/ui'
 import { getJson } from '../lib/api'
 import { ageDays, dateOnly } from '../lib/dataAge'
 
@@ -104,7 +104,7 @@ export function TrendsPage() {
         {hasAds && brandId ? (
           <AdsSection brandId={brandId} brandLabel={brandLabel} />
         ) : (
-          <Tip>Paid trends exist for Swing Shack and Stick only. Switch brand at the top to see them.</Tip>
+          <Note>Paid trends exist for Swing Shack and Stick only. Switch brand at the top to see them.</Note>
         )}
       </section>
 

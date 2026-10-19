@@ -149,8 +149,9 @@ def stock_items(
     approved_names: Iterable[str],
     taken_days: Iterable[str],
     today: _dt.date,
+    every: int = STOCK_EVERY_DAYS,
 ) -> List[Dict[str, Any]]:
-    """Stock-list suggestions for `month`: one line every STOCK_EVERY_DAYS, from today on.
+    """Stock-list suggestions for `month`: one line every `every` days, from today on.
 
     candidates   stock_pulse.candidates() for the brand, most urgent first
     decisions    the decisions file; approved, rejected and swapped lines are left out
@@ -163,7 +164,8 @@ def stock_items(
         return []
     taken = set(taken_days)
     approved = [k for k in (_key(n) for n in approved_names) if k]
-    days = [start + _dt.timedelta(days=i) for i in range(0, (last - start).days + 1, STOCK_EVERY_DAYS)]
+    every = max(1, int(every))
+    days = [start + _dt.timedelta(days=i) for i in range(0, (last - start).days + 1, every)]
     days = [d for d in days if d.isoformat() not in taken]
     open_lines = []
     for c in candidates:
