@@ -32,6 +32,7 @@ import { Todo } from './pages/Todo'
 import { WeekBoard } from './pages/WeekBoard'
 import { Week } from './pages/results/Week'
 import { Templates } from './pages/results/Templates'
+import { Trends } from './pages/results/Trends'
 import { Worked } from './pages/results/Worked'
 import { BrandVisuals } from './pages/BrandVisuals'
 import { Library } from './pages/Library'
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="results/worked" element={<Worked />} />
         <Route path="results/templates" element={<Templates />} />
         <Route path="results/seo" element={<SeoPage />} />
+        <Route path="results/trends" element={<Trends />} />
         <Route path="ops" element={<Ops />} />
         <Route path="geo" element={<GEO />} />
         <Route path="other" element={<Other />} />

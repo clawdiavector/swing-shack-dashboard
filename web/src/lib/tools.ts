@@ -210,7 +210,7 @@ export const TOOLS: ToolDef[] = [
     from: '/results',
     native: '/results/worked?tab=recipes',
   },
-  { slug: 'trends', page: 'trends', label: 'Trends', hint: 'What is moving', from: '/results' },
+  { slug: 'trends', label: 'Trends', hint: 'What is moving', from: '/results', native: '/results/trends' },
   {
     slug: 'seo',
     page: 'seo',
