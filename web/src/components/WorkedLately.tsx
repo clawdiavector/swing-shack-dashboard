@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { fetchTopPosts, type InsightPost, type InsightsPosts } from '../lib/api'
 import { useBrand } from './BrandSwitch'
 import { InsightPostThumb } from './InsightPostThumb'
+import { formatStamp } from '../lib/stamp'
 import { Badge } from './ui'
 
 // "What worked lately" on the Results page: the best recent Instagram posts,
@@ -58,13 +59,13 @@ function PostRow({ post, rank, average }: { post: InsightPost; rank: number; ave
       </div>
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 text-sm font-medium text-tx">
-          {post.caption_excerpt || 'Caption not saved for this post'}
+          {post.caption_excerpt || 'Post with no caption saved'}
         </p>
-        {post.timestamp ? <p className="mt-1 text-xs text-tx3">Posted {dateOnly(post.timestamp)}</p> : null}
+        {post.timestamp ? <p className="mt-1 text-xs text-tx3">{formatStamp(post.timestamp)}</p> : null}
         <p className="mt-1 text-sm text-tx2">
           {rate !== undefined ? `${rate.toFixed(2)}% engagement` : 'Engagement unknown'}
-          {multiple !== null ? ` — ${multiple.toFixed(1)}× your average` : ''}
-          {stats.length ? ` · ${stats.join(', ')}` : ''}
+          {multiple !== null && average ? ` · ${multiple.toFixed(1)}× the ${average.toFixed(2)}% average` : ''}
+          {stats.length ? ` · ${stats.join(' · ')}` : ''}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {post.verdict ? <Badge tone={verdictTone(post.verdict)}>{post.verdict}</Badge> : null}
@@ -153,7 +154,7 @@ export function WorkedLately() {
         </>
       ) : (
         <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-          No scored posts yet — open What worked, or wait for interpret to rank last week&apos;s feed.
+          No scored posts yet — open What worked, wait for interpret, or connect Instagram in Accounts.
         </p>
       )}
     </section>
