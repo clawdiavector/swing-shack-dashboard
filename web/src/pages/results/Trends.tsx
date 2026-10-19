@@ -29,7 +29,7 @@ type WinnerAd = {
 type AdsTrendsResponse = {
   ok: boolean
   trends: AdsTrends
-  winners: Record<string, { label: string; ads: WinnerAd[] }>
+  winners: { ranked?: Record<string, { label: string; ads: WinnerAd[] }> }
   period: { since?: string; until?: string }
   errors: unknown[]
 }
@@ -91,9 +91,9 @@ function AdsSection({ brandId, brandLabel }: { brandId: string; brandLabel?: str
   if (!data) return <div className="h-40 animate-pulse rounded-2xl bg-bg3" />
 
   const { trends, winners, period } = data
-  const recentWeeks = trends.weeks.slice(-12)
+  const recentWeeks = (trends.weeks ?? []).slice(-12)
   const maxSpend = Math.max(1, ...recentWeeks.map((w) => w.spend))
-  const winnerGroups = Object.values(winners)
+  const winnerGroups = Object.values(winners?.ranked ?? {}).filter((g) => g.ads?.length)
 
   return (
     <div className="space-y-6">
