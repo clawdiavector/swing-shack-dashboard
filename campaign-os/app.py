@@ -6850,6 +6850,58 @@ def lanes_campaign_one(campaign_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+def _photo_review_brand():
+    """Brand for the photo review routes. Required: brands are separate companies, so never default."""
+    brand_id = (request.args.get("brand_id") or (request.get_json(silent=True) or {}).get("brand_id") or "").strip()
+    if not brand_id or not re.fullmatch(r"[a-z0-9][a-z0-9-]*", brand_id):
+        return None
+    if not (Path(DATA_DIR) / "brand-directory" / brand_id).exists() and not (Path(BUNDLED_DATA_DIR) / "brand-directory" / brand_id).exists():
+        return None
+    return brand_id
+
+
+@app.route('/api/photos/review', methods=['GET'])
+def photos_review_list():
+    """GET /api/photos/review?brand_id=<id>[&status=needs-check] — product photos waiting for a person.
+
+    Each entry carries image_url (served by /brand-images/) so the page can show the photo.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from urllib.parse import quote
+    from _lib import photo_map as pm
+    status = (request.args.get("status") or "").strip()
+    entries = [e for e in pm.load(brand_id) if not status or e.get("status") == status]
+    for e in entries:
+        e["image_url"] = "/brand-images/%s/%s" % (brand_id, quote(e["file"]))
+    counts = {s: 0 for s in pm.STATUSES}
+    for e in pm.load(brand_id):
+        counts[e.get("status")] = counts.get(e.get("status"), 0) + 1
+    return jsonify({"ok": True, "brand_id": brand_id, "counts": counts, "entries": entries})
+
+
+@app.route('/api/photos/review', methods=['POST'])
+def photos_review_set():
+    """POST /api/photos/review {brand_id, file, status} — approve, reject or send a photo back to needs-check."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import photo_map as pm
+    body = request.get_json(silent=True) or {}
+    status = str(body.get("status") or "")
+    file = str(body.get("file") or "")
+    if status not in pm.STATUSES or not file:
+        return jsonify({"ok": False, "error": "file and a valid status required"}), 400
+    if not pm.set_status(brand_id, file, status, "dashboard"):
+        return jsonify({"ok": False, "error": "no such photo on the map"}), 404
+    return jsonify({"ok": True, "file": file, "status": status})
+
+
 @app.route('/api/lanes/stock/preview', methods=['POST'])
 def lanes_stock_preview():
     """POST /api/lanes/stock/preview — preview a CSV stock import."""
