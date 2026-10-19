@@ -305,8 +305,12 @@ def commit_smart_import(
     default_product_brand: Optional[str] = None,
     actor: str = "operator",
     mark_as_demo: bool = False,
+    snapshot_date: Optional[str] = None,
 ) -> dict:
     """Commit the smart import.
+
+    snapshot_date (YYYY-MM-DD) dates this week's stock snapshot; default is today. Re-importing a
+    list under the date it was first imported replaces that snapshot instead of adding a new one.
 
     Per user directive PHASE L-7: distinct STORE brand (Campaign OS context)
     from PRODUCT brand (the actual maker). For the example, store_brand=stick
@@ -426,7 +430,7 @@ def commit_smart_import(
     if not mark_as_demo:
         try:
             from _lib.stock_pulse import record_and_stamp
-            pulse = record_and_stamp(store_brand, csv_content, products)
+            pulse = record_and_stamp(store_brand, csv_content, products, on=snapshot_date)
         except Exception as e:  # never lose an import over the weekly history
             pulse = {"error": str(e)}
 

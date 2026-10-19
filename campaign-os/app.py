@@ -7421,6 +7421,13 @@ def lanes_stock_smart_commit():
             return jsonify({"ok": False, "error": "csv_base64 decode failed: " + str(e)}), 400
     if not csv_content:
         return jsonify({"ok": False, "error": "csv_content required"}), 400
+    snapshot_date = (body.get("snapshot_date") or "").strip() or None
+    if snapshot_date:
+        try:
+            if _dt.date.fromisoformat(snapshot_date) > _jhb_today():
+                raise ValueError("in the future")
+        except ValueError:
+            return jsonify({"ok": False, "error": "snapshot_date must be a past or present date, YYYY-MM-DD"}), 400
     try:
         from _lib.stock_importer import commit_smart_import
         result = commit_smart_import(
@@ -7429,6 +7436,7 @@ def lanes_stock_smart_commit():
             default_product_brand=body.get("default_product_brand"),
             actor=body.get("actor", "christelle"),
             mark_as_demo=body.get("mark_as_demo", False),
+            snapshot_date=snapshot_date,
         )
         return jsonify({"ok": True, **result}), 200
     except Exception as e:
