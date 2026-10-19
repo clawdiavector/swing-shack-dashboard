@@ -1634,9 +1634,11 @@ export type VisualLibraryPayload = {
   error?: string
 }
 
-export function fetchVisualLibrary(brand: string) {
+export function fetchVisualLibrary(brand: string, limit?: number) {
+  // The roster defaults to 200 rows with an inline thumbnail each (megabytes). Ask for less when you can.
+  const q = limit ? `?limit=${limit}` : ''
   return getJson<VisualLibraryPayload>(
-    `/api/visual-library/${encodeURIComponent(brand)}/images`,
+    `/api/visual-library/${encodeURIComponent(brand)}/images${q}`,
   )
 }
 
