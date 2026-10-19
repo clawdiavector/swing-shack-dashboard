@@ -2482,6 +2482,27 @@ export type StorySuggestion = {
   why?: string
 }
 
+export type StorySettings = {
+  daily_on: Record<string, boolean>
+  stock_stories: number
+  stock_every_days: number
+}
+
+export type StorySettingsResult = {
+  ok: boolean
+  brand: string
+  settings: StorySettings
+  limits: { stock_stories: [number, number]; stock_every_days: [number, number] }
+}
+
+export function fetchStorySettings(brand: string) {
+  return getJson<StorySettingsResult>(`/api/stories/settings?brand=${encodeURIComponent(brand)}`)
+}
+
+export function saveStorySettings(brand: string, changes: Partial<StorySettings>) {
+  return postJson<StorySettingsResult>('/api/stories/settings', { brand, ...changes })
+}
+
 export function fetchStorySuggestions() {
   return getJson<{ ok: boolean; suggestions: StorySuggestion[] }>('/api/stories/suggestion')
 }
