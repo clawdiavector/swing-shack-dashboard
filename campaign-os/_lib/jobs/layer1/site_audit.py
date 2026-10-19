@@ -15,6 +15,7 @@ JOB_NAME = "site_audit"
 
 SEO_OUTPUT = "seo-audit.json"
 GEO_OUTPUT = "geo-audit.json"
+FIX_QUEUE_OUTPUT = "seo-fix-queue.json"
 USER_AGENT = "SwingShackCampaignOS/1.0 (site audit; contact ops)"
 FETCH_TIMEOUT = 15
 MAX_BYTES = 80_000
@@ -353,4 +354,25 @@ def run(*, brand: str | None = None) -> dict:
 
     io.write(SEO_OUTPUT, seo_payload)
     io.write(GEO_OUTPUT, geo_payload)
+    _update_fix_queue(io, brand, all_seo_findings, all_geo_findings)
     return {"ok": True, "rows": len(all_seo_findings) + len(all_geo_findings)}
+
+
+def _update_fix_queue(io, brand, seo_findings, geo_findings) -> None:
+    """Keep the fix queue in step with today's audit. Never fails the audit."""
+    from ... import seo_fix_queue  # noqa: PLC0415
+
+    if brand not in seo_fix_queue.QUEUE_BRANDS:
+        return
+    try:
+        queue = seo_fix_queue.sync(
+            brand,
+            seo_findings,
+            geo_findings,
+            io.read(FIX_QUEUE_OUTPUT),
+            utc_now_iso(),
+            geo_fixes=_GEO_FIXES,
+        )
+        io.write(FIX_QUEUE_OUTPUT, queue)
+    except Exception:  # noqa: BLE001 — the queue is a convenience, the audit is the job
+        return
