@@ -20,7 +20,7 @@ const TABS: { href: string; label: string; hint: string; icon: LucideIcon }[] = 
   },
   { href: '/?page=performance', label: 'Reach', hint: 'Performance', icon: Activity },
   { href: '/results/worked?tab=recipes', label: 'Learnings', hint: 'Recipes', icon: BookOpen },
-  { href: '/?page=trends', label: 'Trends', hint: 'What is moving', icon: TrendingUp },
+  { href: '/results/trends', label: 'Trends', hint: 'What is moving', icon: TrendingUp },
   { href: '/results/seo', label: 'SEO', hint: 'Rankings and audit', icon: Search },
 ]
 
