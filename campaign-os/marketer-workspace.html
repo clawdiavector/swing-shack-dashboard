@@ -1319,9 +1319,33 @@ async function renderPhotosView() {
       <h2 style="font-size:22px;font-weight:700">Product photos</h2>
       <p style="color:var(--tx-3);font-size:13px;margin-top:4px">Approve a photo only if it shows the exact make and model. Approved photos are the only ones the planner uses. Brand: <b>${escapeHtml(MW.brand)}</b></p>
     </div>
-    <div id="photos-tabs" style="display:flex;gap:8px;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+      <div id="photos-tabs" style="display:flex;gap:8px"></div>
+      <div class="mw-spacer"></div>
+      <span id="photos-note" style="color:var(--tx-3);font-size:12px"></span>
+      <button id="photos-find" onclick="findNewPhotos()">Look for new photos</button>
+    </div>
     <div id="photos-grid"></div>`;
   await loadPhotos();
+}
+
+// Pulls new files from the brand's Drive folder onto the server, then attaches the SKU-named ones.
+async function findNewPhotos() {
+  const btn = document.getElementById('photos-find');
+  const note = document.getElementById('photos-note');
+  btn.disabled = true;
+  try {
+    note.textContent = 'Getting new files from Drive…';
+    await api('visual-dna/' + encodeURIComponent(MW.brand) + '/scrape-and-dissect', {method: 'POST', body: {}});
+    note.textContent = 'Matching photos to products…';
+    const r = await api('photos/scan', {method: 'POST', body: {brand_id: MW.brand}});
+    note.textContent = r.added + ' new photo(s) waiting.' + (r.unknown.length ? ' ' + r.unknown.length + ' not matched to a SKU.' : '');
+    await loadPhotos();
+  } catch (e) {
+    note.textContent = 'Could not finish: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function loadPhotos() {

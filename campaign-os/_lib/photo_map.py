@@ -28,6 +28,14 @@ STATUSES = ("needs-check", "approved", "rejected")
 
 
 def images_dir(brand_id: str) -> Path:
+    """The brand's images folder. On live that is the volume (DATA_DIR), where the Drive ingest writes;
+    locally it falls back to the repo copy."""
+    import os
+    data_dir = os.environ.get("DATA_DIR")
+    if data_dir:
+        vol = Path(data_dir) / "brand-directory" / brand_id / "images"
+        if vol.exists():
+            return vol
     return Path(__file__).resolve().parents[2] / "data" / "brand-directory" / brand_id / "images"
 
 

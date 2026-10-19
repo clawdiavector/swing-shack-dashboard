@@ -6902,6 +6902,28 @@ def photos_review_set():
     return jsonify({"ok": True, "file": file, "status": status})
 
 
+@app.route('/api/photos/scan', methods=['POST'])
+def photos_scan():
+    """POST /api/photos/scan {brand_id} — attach SKU-named photos already on the server to their products.
+
+    Uses the latest saved stock snapshot for the SKUs. New matches wait as needs-check; existing
+    approvals are kept. Run after the Drive ingest has pulled new files.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import photo_map as pm
+    from _lib import stock_pulse as sp
+    snaps = sp.load_snapshots(brand_id)
+    if not snaps:
+        return jsonify({"ok": False, "error": "no stock list saved for this brand yet"}), 409
+    out = pm.scan(brand_id, pm.sku_index(sp.analyse(snaps)))
+    return jsonify({"ok": True, "added": len(out["added"]), "unknown": out["unknown"],
+                    "ambiguous": out["ambiguous"], "total": out["total"]})
+
+
 @app.route('/api/lanes/stock/preview', methods=['POST'])
 def lanes_stock_preview():
     """POST /api/lanes/stock/preview — preview a CSV stock import."""

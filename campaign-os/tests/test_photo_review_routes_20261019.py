@@ -63,11 +63,34 @@ class PhotoReviewRouteTests(unittest.TestCase):
         r = self.client.post("/api/photos/review", json={"brand_id": "stick", "file": "nope.jpg", "status": "approved"})
         self.assertEqual(r.status_code, 404)
 
+    def test_scan_attaches_sku_named_files_from_the_volume(self):
+        from _lib import stock_pulse as sp
+        imgs = Path(tempfile.mkdtemp(prefix="cos-photo-scan-"))
+        (imgs / "Products").mkdir()
+        (imgs / "Products" / "ZZ001__front.jpg").write_bytes(b"x")
+        (imgs / "Products" / "NOPE9__front.jpg").write_bytes(b"x")
+        csv = ("Location,Product Name,Variant Choices,SKU,Movement Type,Quantity,Alert Level\n"
+               ",Takomo Zed wedge,,ZZ001,,7,2\n")
+        snaps = [{"date": "2026-10-19", "rows": sp.parse_stock_csv(csv)}]
+        with mock.patch.object(sp, "load_snapshots", lambda b: snaps),                 mock.patch.object(pm, "images_dir", lambda b: imgs):
+            r = self.client.post("/api/photos/scan", json={"brand_id": "stick"}).get_json()
+        self.assertEqual((r["ok"], r["added"]), (True, 1))
+        self.assertEqual(r["unknown"], ["Products/NOPE9__front.jpg"])
+        e = [x for x in pm.load("stick") if x["sku"] == "ZZ001"][0]
+        self.assertEqual((e["file"], e["status"]), ("Products/ZZ001__front.jpg", "needs-check"))
+
+    def test_scan_without_a_stock_list_says_so(self):
+        from _lib import stock_pulse as sp
+        with mock.patch.object(sp, "load_snapshots", lambda b: []):
+            r = self.client.post("/api/photos/scan", json={"brand_id": "stick"})
+        self.assertEqual(r.status_code, 409)
+
     def test_login_required(self):
         with mock.patch("app._is_authed", lambda: False):
             self.assertEqual(self.client.get("/api/photos/review?brand_id=stick").status_code, 401)
             r = self.client.post("/api/photos/review", json={"brand_id": "stick", "file": "x", "status": "approved"})
             self.assertEqual(r.status_code, 401)
+            self.assertEqual(self.client.post("/api/photos/scan", json={"brand_id": "stick"}).status_code, 401)
 
 
 if __name__ == "__main__":
