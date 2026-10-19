@@ -201,7 +201,14 @@ export const TOOLS: ToolDef[] = [
     from: '/results',
     native: '/results/templates',
   },
-  { slug: 'performance', page: 'performance', label: 'Reach', hint: 'Performance', from: '/results' },
+  {
+    slug: 'performance',
+    page: 'performance',
+    label: 'Reach',
+    hint: 'Performance',
+    from: '/results',
+    native: '/results/reach',
+  },
   {
     slug: 'learning',
     page: 'learning',
@@ -210,7 +217,14 @@ export const TOOLS: ToolDef[] = [
     from: '/results',
     native: '/results/worked?tab=recipes',
   },
-  { slug: 'trends', label: 'Trends', hint: 'What is moving', from: '/results', native: '/results/trends' },
+  {
+    slug: 'trends',
+    page: 'trends',
+    label: 'Trends',
+    hint: 'What is moving',
+    from: '/results',
+    native: '/results/trends',
+  },
   {
     slug: 'seo',
     page: 'seo',
