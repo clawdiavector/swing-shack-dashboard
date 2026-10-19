@@ -14716,18 +14716,40 @@ def stories_suggestion_route():
     from _lib import story_suggestion
     from _lib import stock_pulse as sp
 
+    from _lib import story_settings as ss
+
     brands = [request.args['brand']] if request.args.get('brand') else ['swing-shack', 'stick']
     day = datetime.now(ZoneInfo('Africa/Johannesburg')).date()
-    out = [s for b in brands for s in story_suggestion.suggest(b, day)]
+    out = []
     for b in brands:
+        settings = ss.read(b, story_suggestion.daily_ids(b))
+        out.extend(story_suggestion.suggest(b, day, settings))
         try:
-            stock = story_suggestion.stock_story(b, day, sp.candidates_for(b))
+            out.extend(story_suggestion.stock_stories(b, day, sp.candidates_for(b), settings["stock_stories"]))
         except Exception:
-            _app_log.exception("stock story failed for %s", b)
-            stock = None
-        if stock:
-            out.append(stock)
+            _app_log.exception("stock stories failed for %s", b)
     return jsonify({"ok": True, "suggestions": out})
+
+
+@app.route('/api/stories/settings', methods=['GET', 'POST'])
+def stories_settings_route():
+    """GET ?brand=<id> — the brand's Stories settings. POST {brand, daily_on?, stock_stories?, stock_every_days?}
+    saves them (values are clamped to their ranges)."""
+    from _lib import story_settings as ss
+    from _lib import story_suggestion
+    brand = (request.args.get('brand') if request.method == 'GET' else (request.get_json(silent=True) or {}).get('brand')) or ''
+    if brand not in ('swing-shack', 'stick', 'bag-drop'):
+        return jsonify({"ok": False, "error": f"brand_id '{brand}' invalid"}), 400
+    ids = story_suggestion.daily_ids(brand)
+    if request.method == 'POST':
+        body = request.get_json(silent=True) or {}
+        changes = {k: body[k] for k in ('daily_on', 'stock_stories', 'stock_every_days') if k in body}
+        saved = ss.write(brand, changes, ids)
+    else:
+        saved = ss.read(brand, ids)
+    return jsonify({"ok": True, "brand": brand, "settings": saved,
+                    "limits": {"stock_stories": list(ss.STOCK_STORIES_RANGE),
+                               "stock_every_days": list(ss.STOCK_EVERY_RANGE)}}), 200
 
 
 @app.route('/api/stories/candidates', methods=['GET'])
@@ -46549,7 +46571,10 @@ def _cs_items(brand_id, month):
     except Exception:
         _app_log.exception("stock suggestions failed for %s", brand_id)
         stock = []
-    items += cs.stock_items(brand_id, month, stock, decisions, names, [i["date"] for i in items], today)
+    from _lib import story_settings as ss
+    from _lib import story_suggestion as sug
+    every = ss.read(brand_id, sug.daily_ids(brand_id))["stock_every_days"]
+    items += cs.stock_items(brand_id, month, stock, decisions, names, [i["date"] for i in items], today, every)
     items.sort(key=lambda i: (i["date"], i["title"]))
     return items
 
