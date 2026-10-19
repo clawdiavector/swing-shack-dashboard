@@ -30,11 +30,21 @@ def _page(b: dict) -> dict:
             "facebook": b.get("facebook"), "look_for": b.get("look_for", "")}
 
 
-def suggest(brand: str, day: date) -> list[dict]:
-    """Today's set for one brand: a retail brand, a service, and a golf moment when pages exist."""
+def daily_ids(brand: str) -> list[str]:
+    """Brands that get a slot every day (story-brands.json "daily")."""
+    data = _load(brand) or {}
+    return list(data.get("daily") or [])
+
+
+def suggest(brand: str, day: date, settings: dict | None = None) -> list[dict]:
+    """Today's set for one brand: a retail brand, a service, and a golf moment when pages exist.
+
+    settings comes from story_settings.read(); a daily brand switched off there gets no slot.
+    """
     data = _load(brand)
     if not data:
         return []
+    on = (settings or {}).get("daily_on") or {}
     n = day.toordinal()
     retail = [b for b in data["retail"] if b.get("instagram") or b.get("facebook")]
     daily_ids = set(data.get("daily") or [])
@@ -44,6 +54,8 @@ def suggest(brand: str, day: date) -> list[dict]:
     moments = [m for m in data.get("moments") or [] if m.get("instagram") or m.get("facebook")]
     out = []
     for b in daily:
+        if not on.get(b["id"], True):
+            continue
         out.append({"brand": brand, "date": day.isoformat(), "kind": "daily",
                     "feature": b["name"], "repost_from": _page(b)})
     paired_id = None
@@ -75,3 +87,15 @@ def stock_story(brand: str, day: date, candidates: list[dict]) -> dict | None:
     why = c.get("reason") or ""
     return {"brand": brand, "date": day.isoformat(), "kind": "stock",
             "feature": c["name"], "repost_from": None, "why": why}
+
+
+def stock_stories(brand: str, day: date, candidates: list[dict], count: int) -> list[dict]:
+    """Up to `count` stock stories for the day, rotating through the candidates. Empty when none saved."""
+    if not candidates or count <= 0:
+        return []
+    out, n = [], day.toordinal()
+    for k in range(min(count, len(candidates))):
+        c = candidates[(n + k) % len(candidates)]
+        out.append({"brand": brand, "date": day.isoformat(), "kind": "stock",
+                    "feature": c["name"], "repost_from": None, "why": c.get("reason") or ""})
+    return out
