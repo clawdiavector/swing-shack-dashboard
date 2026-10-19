@@ -4,7 +4,7 @@ import { BrandProvider, BrandSwitch } from './BrandSwitch'
 import { PlanAlertDot } from './PlanAlertDot'
 import { PressIcon, Tip } from './ui'
 import { formatStamp } from '../lib/stamp'
-import { RAIL, SETTINGS, sectionFor, sectionPageFor, type RailItem } from '../lib/nav'
+import { KICKER_SUBPAGES, RAIL, SETTINGS, sectionFor, sectionPageFor, type RailItem } from '../lib/nav'
 import { TOOL_BY_SLUG, parentLabel } from '../lib/tools'
 import { useTheme } from '../lib/theme'
 
@@ -107,7 +107,7 @@ export function Shell() {
               <p className="hidden text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase lg:block">
                 {tool
                   ? `${parentLabel(tool.from)} · ${tool.label}`
-                  : `${current?.label || 'Tool'} · ${current?.hint || 'inside the desk'}`}
+                  : `${current?.label || 'Tool'} · ${KICKER_SUBPAGES[loc.pathname] ?? current?.hint ?? 'inside the desk'}`}
               </p>
               <p className="text-[13px] text-tx3">{formatStamp()}</p>
             </div>

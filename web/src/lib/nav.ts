@@ -105,6 +105,15 @@ function under(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}/`)
 }
 
+/**
+ * Header label for a sub-page, shown after the section name in the header
+ * ("Results · SEO" rather than "Results · What worked"). Only pages listed here
+ * change the header; everything else keeps the section's own hint.
+ */
+export const KICKER_SUBPAGES: Record<string, string> = {
+  '/results/seo': 'SEO',
+}
+
 /** The section a route belongs to. */
 export function sectionFor(path: string): RailItem | undefined {
   return [...RAIL, SETTINGS].find((item) => item.match.some((prefix) => under(path, prefix)))
