@@ -133,8 +133,95 @@ def test_caption_regen_keeps_poster(monkeypatch, tmp_path):
 
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     row_ids = [row["id"] for row in queue["rows"]]
-    assert any("cap-keep-draft-abc123def456" in row_id for row_id in row_ids)
+    refs = [row["payload_ref"] for row in queue["rows"]]
+    assert any("cap-keep" in row_id for row_id in row_ids)
+    assert any(f"#keep:{asset_id}" in ref for ref in refs)
     assert all(row["action"] != "compose_post" for row in queue["rows"])
+
+    again = regenerate_caption(
+        draft_id=f"draft_asset:cos-drafts-stick:{asset_id}",
+        reason="from review",
+        recompose=False,
+        run_now=False,
+    )
+    assert again["ok"] is True
+    queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
+    keep_rows = [row for row in queue["rows"] if row.get("action") == "draft_caption"]
+    assert len(keep_rows) == 2
+
+
+def test_caption_regen_paints_title_when_writer_writes_nothing(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    moment = "calendar_candidate:stick:cal-1"
+    asset_id = "draft-abc123def456"
+    (tmp_path / "draft-assets").mkdir()
+    (tmp_path / "draft-assets" / f"{asset_id}.json").write_text(
+        json.dumps(
+            {
+                "asset_id": asset_id,
+                "campaign_id": "cos-drafts-stick",
+                "brand_id": "stick",
+                "source_inbox_item_id": moment,
+                "action": "compose_post",
+                "title": "FREE CLUB ASSESSMENT @ stick",
+                "composed": {"instagram": "/brand-images/stick/old.png"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "campaign-data.json").write_text(
+        json.dumps(
+            {
+                "campaigns": {
+                    "cos-drafts-stick": {
+                        "identity": {"brand": "stick"},
+                        "assets": {
+                            asset_id: {
+                                "caption": "old",
+                                "composed": {"instagram": "/brand-images/stick/old.png"},
+                                "image_url": "/brand-images/stick/old.png",
+                            }
+                        },
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "_lib.jobs.layer5.draft_assets.run",
+        lambda brand=None: {"ok": True, "drafted": 0},
+    )
+
+    from _lib.draft_review_actions import regenerate_caption
+
+    result = regenerate_caption(
+        draft_id=f"draft_asset:cos-drafts-stick:{asset_id}",
+        reason="from review",
+        recompose=False,
+        run_now=True,
+    )
+    assert result["ok"] is True
+    assert result["drafted"] == 1
+    data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
+    assert (
+        data["campaigns"]["cos-drafts-stick"]["assets"][asset_id]["caption"]
+        == "FREE CLUB ASSESSMENT @ stick"
+    )
+
+
+def test_keep_asset_id_from_payload_ref_when_row_id_truncated():
+    from _lib.jobs.layer5.draft_assets import _keep_asset_id_from_row, _parse_inbox_ref
+
+    moment = "calendar_candidate:stick:long-calendar-id-that-used-to-eat-the-suffix"
+    asset_id = "asset-not-draft-prefix-xyz"
+    row = {
+        "id": "manual-stick-cos-caption-cap-keep-asset-not-d",
+        "payload_ref": f"inbox/{moment}#keep:{asset_id}",
+    }
+    assert _keep_asset_id_from_row(row) == asset_id
+    assert _parse_inbox_ref(row["payload_ref"]) == moment
+    assert _keep_asset_id_from_row({"id": "x-cap-keep-plain-id-99"}) == "plain-id-99"
 
 
 def test_restore_poster_from_publish(monkeypatch, tmp_path):

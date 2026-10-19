@@ -6,6 +6,7 @@ import {
   alertHeadline,
   fetchAlertsShared,
   notifyAlertsChanged,
+  planPageHref,
   type CalendarAlert,
 } from '../../../lib/calendarAlerts'
 import { EventTypeIcon } from '../../../components/EventTypeIcon'
@@ -92,7 +93,7 @@ export function AlertBanner({ brandId = '', refreshKey = 0 }: { brandId?: string
             ) : null}
             {(a.state !== 'no_plan' || done[a.event_key]) && (
               <Link
-                to="/calendar/lanes"
+                to={planPageHref(a)}
                 className="rounded-full border border-bd px-3 py-1 text-xs font-semibold text-tx2 hover:text-tx"
               >
                 {done[a.event_key] ? 'Open Plan' : alertAction(a.state)}

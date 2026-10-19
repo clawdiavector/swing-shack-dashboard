@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { approveBlocker, boostBudget, draftState, dueLabel, formatRand, splitItems, type Plan, type PlanItem } from './plan'
+import { approveBlocker, boostBudget, draftReviewHref, draftState, dueLabel, formatRand, splitItems, type Plan, type PlanItem } from './plan'
 
 const item = (over: Partial<PlanItem>): PlanItem => ({
   item_id: 'it-1',
@@ -55,8 +55,11 @@ describe('splitItems', () => {
 })
 
 describe('approveBlocker', () => {
-  it('blocks until the brief is approved', () => {
-    expect(approveBlocker(plan([item({})], 'draft'))).toMatch(/brief is not approved/)
+  it('lets a draft brief through as long as one exists', () => {
+    expect(approveBlocker(plan([item({})], 'draft'))).toBe('')
+  })
+  it('blocks when there is no brief', () => {
+    expect(approveBlocker({ ...plan([item({})]), brief_id: '' })).toMatch(/no brief/)
   })
   it('blocks a boost with no real video shoot', () => {
     expect(approveBlocker(plan([item({ kind: 'boost' })]))).toMatch(/real video/)
@@ -74,6 +77,17 @@ describe('approveBlocker', () => {
   })
   it('blocks an empty plan', () => {
     expect(approveBlocker(plan([item({ status: 'removed' })]))).toMatch(/removed/)
+  })
+})
+
+describe('draftReviewHref', () => {
+  it('opens Approve drafts on this post, not the next queue item', () => {
+    const it = item({
+      draft: { requested_at: '2026-10-16', by: 'Kyle', moment: 'calendar_candidate:stick:cal-1', queued: ['draft_caption'] },
+    })
+    expect(draftReviewHref(it, 'stick')).toBe(
+      '/review?brand=stick&moment=calendar_candidate%3Astick%3Acal-1',
+    )
   })
 })
 

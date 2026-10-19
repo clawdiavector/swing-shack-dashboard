@@ -1549,6 +1549,7 @@ function openStockUpload() {
     </div>
   `;
   document.body.appendChild(modal);
+  _uploadStep = 1; _uploadPreview = null; _uploadForm = null;
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   // Default the store brand
   document.getElementById('upload-store-brand').value = MW.brand;
@@ -1564,20 +1565,47 @@ function openStockUpload() {
 
 let _uploadPreview = null;
 
+let _uploadForm = null;
+let _uploadStep = 1;
+
+function _uploadMarkStep(from, to) {
+  const f = document.querySelector(`[data-step="${from}"]`);
+  f.classList.remove('active'); f.classList.add('done');
+  document.querySelector(`[data-step="${to}"]`).classList.add('active');
+}
+
 async function stockUploadNext() {
+  // Steps 2 and 3 no longer have the paste box on screen: the footer button must
+  // advance the wizard from what step 1 stored, not read the (gone) form again.
+  if (_uploadStep === 2 && _uploadPreview) {
+    renderSmartUploadStep(3, _uploadPreview);
+    _uploadMarkStep(2, 3);
+    _uploadStep = 3;
+    document.getElementById('upload-next-btn').textContent = 'Continue →';
+    return;
+  }
+  if (_uploadStep === 3 && _uploadPreview) {
+    renderSmartUploadStep(4, _uploadPreview);
+    _uploadMarkStep(3, 4);
+    _uploadStep = 4;
+    document.getElementById('upload-next-btn').style.display = 'none';
+    return;
+  }
   const csv = document.getElementById('csv-paste').value.trim();
   if (!csv) { toast('Paste CSV first', 'error'); return; }
   const store = document.getElementById('upload-store-brand').value;
   const productBrand = document.getElementById('upload-product-brand').value.trim() || null;
+  _uploadForm = {csv, store, productBrand,
+                 isDemo: document.getElementById('upload-mark-demo')?.checked || false};
   try {
     const preview = await api('lanes/stock/smart-preview', {method: 'POST', body: {
       brand_id: store, csv_content: csv, default_product_brand: productBrand,
     }});
     _uploadPreview = preview;
     renderSmartUploadStep(2, preview);
-    document.querySelector('[data-step="1"]').classList.remove('active');
-    document.querySelector('[data-step="1"]').classList.add('done');
-    document.querySelector('[data-step="2"]').classList.add('active');
+    _uploadMarkStep(1, 2);
+    _uploadStep = 2;
+    document.getElementById('upload-next-btn').textContent = 'Preview →';
   } catch (e) {
     toast('Recognition failed: ' + e.message, 'error');
   }
@@ -1768,13 +1796,7 @@ async function confirmStockImport() {
 }
 
 async function confirmSmartImport() {
-  const csv = document.getElementById('csv-paste').value.trim();
-  const store = document.getElementById('upload-store-brand').value;
-  const productBrand = document.getElementById('upload-product-brand').value.trim() || null;
-  const isDemo = document.getElementById('upload-mark-demo')?.checked || false;
-  document.querySelector('[data-step="3"]').classList.remove('active');
-  document.querySelector('[data-step="3"]').classList.add('done');
-  document.querySelector('[data-step="4"]').classList.add('active');
+  const {csv, store, productBrand, isDemo} = _uploadForm;
   try {
     const r = await api('lanes/stock/smart-commit', {method: 'POST', body: {
       brand_id: store, csv_content: csv, default_product_brand: productBrand,

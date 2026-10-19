@@ -617,10 +617,15 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
             f"Engagement {er:.2f}% vs your {avg_er:.2f}% average "
             f"({ratio:.1f}x{' above' if ratio > 1 else ' below'}). "
         )
-        if p.get("like_count"):
-            plain += f"{p['like_count']:,} likes, "
-        if p.get("comments_count"):
-            plain += f"{p['comments_count']:,} comments."
+        likes = int(p.get("like_count") or 0)
+        comments = int(p.get("comments_count") or 0)
+        reactions = []
+        if likes:
+            reactions.append(f"{likes:,} {'like' if likes == 1 else 'likes'}")
+        if comments:
+            reactions.append(f"{comments:,} {'comment' if comments == 1 else 'comments'}")
+        if reactions:
+            plain += ", ".join(reactions) + "."
         out_posts.append({
             "id": p.get("id"),
             "timestamp": p.get("timestamp"),

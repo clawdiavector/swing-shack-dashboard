@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -21,6 +22,25 @@ def _data_dir() -> Path:
     return Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
 
 
+def _draft_id_from_asset_id(asset_id: str) -> str | None:
+    """Map a bare asset id to draft_asset:<campaign>:<asset> when unique."""
+    from _lib import unified_inbox as ui
+
+    data = ui._load_campaign_data()  # noqa: SLF001
+    matches: list[str] = []
+    for cid, campaign in (data.get("campaigns") or {}).items():
+        if not isinstance(campaign, dict):
+            continue
+        assets = campaign.get("assets") or {}
+        if not isinstance(assets, dict):
+            continue
+        if asset_id in assets:
+            matches.append(f"draft_asset:{cid}:{asset_id}")
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
 def _normalize_draft_item_id(draft_id: str) -> str:
     raw = (draft_id or "").strip()
     if not raw:
@@ -29,6 +49,9 @@ def _normalize_draft_item_id(draft_id: str) -> str:
         return raw
     if ":" in raw:
         return f"draft_asset:{raw}"
+    resolved = _draft_id_from_asset_id(raw)
+    if resolved:
+        return resolved
     raise ValueError("draft id must be draft_asset:<campaign>:<asset>")
 
 
@@ -519,6 +542,50 @@ def clear_caption_keep_image(asset_id: str) -> bool:
     return True
 
 
+def _keep_caption_fallback(brand_id: str, moment_id: str, asset_id: str) -> str:
+    from _lib.jobs.layer5.image_draft_context import calendar_title_for_item
+
+    title = (calendar_title_for_item(brand_id, moment_id) or "").strip()
+    if title:
+        return title
+    sidecar = _load_sidecar(asset_id) or {}
+    composed = sidecar.get("composed")
+    if isinstance(composed, dict):
+        for key in ("headline", "title", "text"):
+            val = str(composed.get(key) or "").strip()
+            if val:
+                return val
+    return str(sidecar.get("title") or "").strip()
+
+
+def write_caption_keep_image(asset_id: str, caption: str) -> bool:
+    """Put caption text on an existing poster draft. Leave the image."""
+    from _lib import unified_inbox as ui
+
+    asset_id = (asset_id or "").strip()
+    caption = (caption or "").strip()
+    if not asset_id or not caption:
+        return False
+    sidecar = _load_sidecar(asset_id)
+    if not sidecar:
+        return False
+    data = ui._load_campaign_data()  # noqa: SLF001
+    found = False
+    for campaign in (data.get("campaigns") or {}).values():
+        if not isinstance(campaign, dict):
+            continue
+        asset = (campaign.get("assets") or {}).get(asset_id)
+        if isinstance(asset, dict):
+            asset["caption"] = caption
+            found = True
+    if not found:
+        return False
+    ui._write_campaign_data(data)  # noqa: SLF001
+    sidecar["title"] = caption
+    _save_sidecar(asset_id, sidecar)
+    return True
+
+
 def restore_poster_from_publish(
     draft_id: str,
     *,
@@ -698,9 +765,15 @@ def regenerate_caption(
             "brand": brand_id,
             "reason": reason_s,
             "action": "draft_caption",
-            "payload_ref": f"inbox/{resolved_moment}",
+            "payload_ref": (
+                f"inbox/{resolved_moment}#keep:{asset_id}"
+                if asset_id
+                else f"inbox/{resolved_moment}"
+            ),
             "dedupe_key": (
-                f"cap-regen-{stamp}-{item_hash}" if recompose else f"cap-keep-{asset_id}"
+                f"cap-regen-{stamp}-{item_hash}"
+                if recompose
+                else f"cap-keep-{time.time_ns()}-{item_hash}"
             ),
         }
     )
@@ -742,15 +815,31 @@ def regenerate_caption(
     if not recompose and run_now:
         writer = _kick_caption_keep(resolved_moment, brand_id)
 
+    writer_error = str(writer.get("error") or "").strip()
+    drafted = writer.get("drafted")
+    ok = True
+    if run_now and not recompose and drafted == 0 and asset_id:
+        fallback = _keep_caption_fallback(brand_id, resolved_moment, asset_id)
+        if fallback and write_caption_keep_image(asset_id, fallback):
+            drafted = 1
+            writer_error = ""
+    if run_now and not recompose:
+        if writer_error or writer.get("ok") is False:
+            ok = False
+        elif drafted == 0:
+            ok = False
+            writer_error = writer_error or "caption rewrite wrote nothing"
+
     return {
-        "ok": True,
+        "ok": ok,
         "brand_id": brand_id,
         "moment_id": resolved_moment,
         "retired_asset_ids": retired,
         "enqueued": enqueued,
         "started": bool(writer.get("started")),
-        "drafted": writer.get("drafted"),
-        "writer_error": writer.get("error"),
+        "drafted": drafted,
+        "writer_error": writer_error or None,
+        "error": writer_error or None,
     }
 
 

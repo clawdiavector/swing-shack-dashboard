@@ -1,0 +1,16 @@
+/* Touch and accessibility basics, both themes. */
+
+/* Fingers need about 44px. Only for touch screens; the mouse layout is untouched. */
+@media (pointer: coarse) {
+  button:not(.fun-day-pill):not(.step),
+  [role='button'],
+  select,
+  input[type='date'],
+  a.inline-flex {
+    min-height: 44px;
+  }
+  /* A hover tooltip cannot be summoned by touch, and one that sticks after a tap covers the page. */
+  .cos-tip-bubble {
+    display: none;
+  }
+}

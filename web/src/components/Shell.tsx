@@ -1,9 +1,10 @@
+import { useEffect } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { BrandProvider, BrandSwitch } from './BrandSwitch'
 import { PlanAlertDot } from './PlanAlertDot'
 import { PressIcon, Tip } from './ui'
 import { formatStamp } from '../lib/stamp'
-import { KICKER_SUBPAGES, RAIL, SETTINGS, sectionFor, type RailItem } from '../lib/nav'
+import { KICKER_SUBPAGES, RAIL, SETTINGS, sectionFor, sectionPageFor, type RailItem } from '../lib/nav'
 import { TOOL_BY_SLUG, parentLabel } from '../lib/tools'
 import { useTheme } from '../lib/theme'
 
@@ -47,6 +48,16 @@ export function Shell() {
   // A classic tool belongs to the section it was opened from.
   const current = sectionFor(tool ? tool.from : loc.pathname)
   const isDesk = loc.pathname.startsWith('/desk') || loc.pathname.startsWith('/tool')
+
+  // One title per page, so browser tabs and history can be told apart.
+  useEffect(() => {
+    const path = tool ? tool.from : loc.pathname
+    const section = sectionFor(path)
+    const pageTo = section ? sectionPageFor(section, path) : undefined
+    const page = section?.pages.find((p) => p.to === pageTo)?.label
+    const name = tool?.label ?? page ?? section?.label
+    document.title = name ? `${name} · Campaign OS` : 'Campaign OS'
+  }, [loc.pathname, tool])
 
   return (
     <BrandProvider>
