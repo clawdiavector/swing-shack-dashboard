@@ -7,26 +7,22 @@ import { Badge, ClassicLink } from '../../components/ui'
 import {
   fetchAdCorrelation,
   fetchContentTrafficCorrelation,
-  fetchIntelLearning,
   fetchLearn,
   fetchTopPosts,
   type AdCorrelation,
   type ContentTrafficCorrelation,
   type InsightPost,
   type InsightsPosts,
-  type IntelLearning,
   type LearnSummary,
-  type LearningRow,
 } from '../../lib/api'
 import { formatStamp } from '../../lib/stamp'
 
-type WorkedTab = 'posts' | 'recipes' | 'ctas' | 'patterns' | 'traffic'
+// Recipes, CTAs and Patterns were cut: they read flat, portfolio-wide files with stale dates.
+// They are still in Classic learnings until they are brand-scoped and dated.
+type WorkedTab = 'posts' | 'traffic'
 
 const TAB_OPTIONS = [
   { id: 'posts', label: 'Posts' },
-  { id: 'recipes', label: 'Recipes' },
-  { id: 'ctas', label: 'CTAs' },
-  { id: 'patterns', label: 'Patterns' },
   { id: 'traffic', label: 'Traffic' },
 ]
 
@@ -77,7 +73,7 @@ const LEARN_VERDICT_HELP: Record<string, string> = {
 }
 
 function resolveTab(raw: string | null): WorkedTab {
-  if (raw === 'recipes' || raw === 'ctas' || raw === 'patterns' || raw === 'traffic') return raw
+  if (raw === 'traffic') return raw
   return 'posts'
 }
 
@@ -91,39 +87,6 @@ function SkeletonBars({ n = 4 }: { n?: number }) {
   )
 }
 
-function DataAsOf({ map }: { map?: Record<string, string | null | undefined> }) {
-  if (!map) return null
-  const entries = Object.entries(map).filter(([, v]) => v)
-  if (!entries.length) return null
-  return (
-    <p className="text-xs text-tx3">
-      Data as of:{' '}
-      {entries.map(([k, v]) => (
-        <span key={k} className="mr-2">
-          {k.replace(/_/g, ' ')} {v ? formatStamp(String(v)) : '—'}
-        </span>
-      ))}
-    </p>
-  )
-}
-
-function learningList(rows: LearningRow[] | undefined, empty: string) {
-  if (!rows?.length) {
-    return <p className="text-sm text-tx3">{empty}</p>
-  }
-  return (
-    <ul className="space-y-2">
-      {rows.map((row, i) => (
-        <li key={i} className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm">
-          <p className="font-medium text-tx">{row.title || 'Untitled'}</p>
-          {row.why ? <p className="mt-1 text-tx2">{row.why}</p> : null}
-          {row.kind ? <Badge tone="mute">{row.kind}</Badge> : null}
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 export function Worked() {
   const { brandId: rawBrandId, brandLabel } = useBrand()
   const brandId: string = rawBrandId ?? 'swing-shack'
@@ -132,12 +95,10 @@ export function Worked() {
   const highlightPost = params.get('post') || params.get('hook_id') || ''
   const [posts, setPosts] = useState<InsightPost[] | null>(null)
   const [postsMeta, setPostsMeta] = useState<InsightsPosts['_meta'] | undefined>()
-  const [learning, setLearning] = useState<IntelLearning | null>(null)
   const [learnSummary, setLearnSummary] = useState<LearnSummary | null>(null)
   const [traffic, setTraffic] = useState<ContentTrafficCorrelation | null>(null)
   const [ads, setAds] = useState<AdCorrelation | null>(null)
   const [postsErr, setPostsErr] = useState('')
-  const [learningErr, setLearningErr] = useState('')
   const [trafficErr, setTrafficErr] = useState('')
   const rowRefs = useRef<Record<string, HTMLLIElement | null>>({})
 
@@ -152,7 +113,6 @@ export function Worked() {
 
   const reload = useCallback(() => {
     setPostsErr('')
-    setLearningErr('')
     setTrafficErr('')
     fetchTopPosts(brandId, 8)
       .then((payload) => {
@@ -162,12 +122,6 @@ export function Worked() {
       .catch((e: Error) => {
         setPosts(null)
         setPostsErr(e.message || 'GET /api/insights/top-instagram-posts failed')
-      })
-    fetchIntelLearning()
-      .then(setLearning)
-      .catch((e: Error) => {
-        setLearning(null)
-        setLearningErr(e.message || 'GET /api/intel/learning failed')
       })
     fetchLearn()
       .then(setLearnSummary)
@@ -204,8 +158,7 @@ export function Worked() {
     setParams(p, { replace: true })
   }, [highlightKey, params, setParams])
 
-  const loading = posts === null && learning === null && !postsErr && !learningErr
-  const portfolioTabs = tab !== 'posts' && tab !== 'traffic'
+  const loading = posts === null && !postsErr
 
   return (
     <div className="space-y-6">
@@ -215,7 +168,6 @@ export function Worked() {
 
       {loading ? <SkeletonBars n={5} /> : null}
       {postsErr ? <p className="text-sm text-red">{postsErr}</p> : null}
-      {learningErr ? <p className="text-sm text-red">{learningErr}</p> : null}
       {trafficErr && tab === 'traffic' ? <p className="text-sm text-red">{trafficErr}</p> : null}
 
       {learnSummary?.headline ? (
@@ -242,7 +194,9 @@ export function Worked() {
       {tab === 'posts' ? (
         <>
           {postsMeta?.fetched_at ? (
-            <p className="text-xs text-tx3">Instagram scan as of {formatStamp(postsMeta.fetched_at)}</p>
+            <p className="text-xs text-tx3">
+              Last 90 days · Instagram scan as of {formatStamp(postsMeta.fetched_at)}
+            </p>
           ) : null}
           {(() => {
             const good = (posts || []).filter((p) => p.verdict === 'Top performer' || p.verdict === 'Above average')
@@ -278,6 +232,7 @@ export function Worked() {
               const rate = post.engagementRate
               const avg = postsMeta?.average_engagement
               const ratio = rate != null && avg ? rate / avg : null
+              // Median over the last 90 days (backend: WORKED_WINDOW_DAYS in insights_correlator.py).
               const reactions = [
                 post.like_count ? `${post.like_count.toLocaleString()} ${post.like_count === 1 ? 'like' : 'likes'}` : null,
                 post.comments_count
@@ -307,7 +262,7 @@ export function Worked() {
                         {rate != null ? (
                           <span>
                             {rate.toFixed(2)}% engagement
-                            {ratio != null && avg != null ? ` · ${ratio.toFixed(1)}× the ${avg.toFixed(2)}% average` : ''}
+                            {ratio != null && avg != null ? ` · ${ratio.toFixed(1)}× the ${avg.toFixed(2)}% median` : ''}
                           </span>
                         ) : null}
                         {reactions ? <span>{reactions}</span> : null}
@@ -333,53 +288,6 @@ export function Worked() {
             <p className="text-sm text-yel">That post is not in the top 8 — open Classic insights for the full list.</p>
           ) : null}
         </>
-      ) : null}
-
-      {portfolioTabs ? (
-        <p className="rounded-2xl border border-bd/60 bg-bg2/40 px-4 py-3 text-sm text-tx2">
-          <span className="font-semibold text-tx">Portfolio-wide</span> — this tab reads flat learn files, not the brand
-          chip.
-          <DataAsOf map={learning?.data_as_of} />
-        </p>
-      ) : null}
-
-      {tab === 'recipes' && learning ? (
-        <div className="space-y-6">
-          {/* The weekly file mixes real results with counts (kind "signal"). Only results go under "What worked". */}
-          <div>
-            <h3 className="mb-2 font-semibold text-tx">What worked</h3>
-            {learningList(
-              (learning.what_worked || []).filter((r) => r.kind !== 'signal'),
-              'No scored winners yet. The Posts tab shows which Instagram posts have worked.',
-            )}
-          </div>
-          {(learning.what_worked || []).some((r) => r.kind === 'signal') ? (
-            <div>
-              <h3 className="mb-1 font-semibold text-tx">Weekly signals (not results)</h3>
-              <p className="mb-2 text-xs text-tx3">Counts from the weekly learnings file. They are not measured outcomes.</p>
-              {learningList((learning.what_worked || []).filter((r) => r.kind === 'signal'), '')}
-            </div>
-          ) : null}
-          <div>
-            <h3 className="mb-2 font-semibold text-tx">What failed</h3>
-            {learningList(learning.what_failed, 'No failures captured this cycle.')}
-          </div>
-        </div>
-      ) : null}
-
-      {tab === 'ctas' && learning ? (
-        <div>{renderGenericList(learning.cta_rankings, 'No CTA rankings in cta-performance.json yet.')}</div>
-      ) : null}
-
-      {tab === 'patterns' && learning ? (
-        <div className="space-y-4">
-          {renderGenericList(learning.failure_patterns, 'No failure patterns logged yet.')}
-          {learning.confidence_bands && Object.keys(learning.confidence_bands).length ? (
-            <pre className="overflow-x-auto rounded-xl bg-bg2/50 p-3 text-xs text-tx2">
-              {JSON.stringify(learning.confidence_bands, null, 2)}
-            </pre>
-          ) : null}
-        </div>
       ) : null}
 
       {tab === 'traffic' ? (

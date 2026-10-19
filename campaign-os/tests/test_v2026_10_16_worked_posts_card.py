@@ -67,3 +67,34 @@ class WorkedPostsSentenceTests(_insights.InsightsV2ApiTests):
     def test_plural_counts_with_thousands_separator(self):
         sentence = self._top_sentence({"like_count": 1200, "comments_count": 7})
         self.assertTrue(sentence.endswith("1,200 likes, 7 comments."), sentence)
+
+    def _top_payload(self, posts):
+        bundled_dir, orig_bundled = self._isolate_bundled()
+        try:
+            (self.tmpdir / "instagram.json").write_text(json.dumps({"updated": "2026-10-19T10:00:00Z", "posts": posts}))
+            r = self.client.get("/api/insights/top-instagram-posts?limit=8")
+            self.assertEqual(r.status_code, 200)
+            return r.get_json()
+        finally:
+            self._restore_bundled(bundled_dir, orig_bundled)
+
+    def test_average_is_median_not_mean(self):
+        from datetime import datetime, timedelta, timezone
+        recent = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+        posts = [{"id": f"p{i}", "engagementRate": er, "timestamp": recent, "media_type": "IMAGE"}
+                 for i, er in enumerate([1.0, 1.0, 1.0, 50.0])]
+        data = self._top_payload(posts)
+        self.assertEqual(data["_meta"]["average_kind"], "median")
+        self.assertEqual(data["_meta"]["average_engagement"], 1.0)
+
+    def test_posts_older_than_90_days_are_excluded(self):
+        from datetime import datetime, timedelta, timezone
+        old = (datetime.now(timezone.utc) - timedelta(days=200)).isoformat()
+        recent = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+        posts = [
+            {"id": "old", "engagementRate": 99.0, "timestamp": old, "media_type": "IMAGE"},
+            {"id": "new", "engagementRate": 2.0, "timestamp": recent, "media_type": "IMAGE"},
+        ]
+        data = self._top_payload(posts)
+        self.assertEqual([p["id"] for p in data["posts"]], ["new"])
+        self.assertEqual(data["_meta"]["total_scanned"], 1)
