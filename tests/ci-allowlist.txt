@@ -15,6 +15,7 @@ campaign-os/tests/jobs/test_redaction.py
 campaign-os/tests/test_brand_files_no_crossover.py
 campaign-os/tests/test_brand_knowledge_cta_isolation.py
 campaign-os/tests/test_brand_lint_gate.py
+campaign-os/tests/test_publish_writes_post_links.py
 campaign-os/tests/test_caption_brand_isolation.py
 campaign-os/tests/test_caption_brand_required.py
 campaign-os/tests/test_clear_history_button_location.py

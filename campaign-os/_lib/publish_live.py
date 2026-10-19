@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, Optional
 
+from _lib import post_links
 from _lib import publish_sandbox as sandbox
 from _lib.brand_validate import validate_brand_id
 from _lib.postiz_client import create_post, list_integrations, postiz_status, upload_media
 from _lib.publish_image import resolve_queue_upload_path
+
+_log = logging.getLogger(__name__)
 
 
 def _integration_for_platform(integrations: list[dict[str, Any]], platform: str) -> Optional[str]:
@@ -156,6 +160,7 @@ def _dispatch_row_live(
         )
     if not postiz_id:
         return {}, "no postiz id returned"
+    post_response = result if isinstance(result, dict) else {}
 
     receipt = {
         "schema": sandbox.RECEIPT_SCHEMA,
@@ -172,6 +177,18 @@ def _dispatch_row_live(
         "would_publish_at": row.get("would_publish_at"),
     }
     sandbox._append_jsonl(sandbox._receipts_path(), receipt)
+    # Record asset -> template -> post at publish time. Never fail the publish
+    # over the link: the post is already out, and the back-map can fill gaps.
+    try:
+        post_links.record_from_queue_row(
+            row,
+            brand_id=brand_id,
+            postiz_post_id=str(postiz_id),
+            post_response=post_response,
+            published_at=receipt.get("dispatched_at"),
+        )
+    except Exception:
+        _log.exception("publish link write failed for %s", key)
     return receipt, None
 
 
