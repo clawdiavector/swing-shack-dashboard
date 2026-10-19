@@ -120,7 +120,12 @@ def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
                     "permalink": p.get("permalink") or p.get("postUrl") or "",
                     "thumbnail_url": p.get("thumbnail_url") or p.get("thumbnailUrl")
                         or p.get("media_url") or p.get("mediaUrl") or "",
-                    "media_type": p.get("media_type") or p.get("mediaType") or "IMAGE",
+                    # The stores that predate media_type only have format_type
+                    # (reel / carousel / static). Defaulting everything to IMAGE
+                    # mislabelled reels as photos.
+                    "media_type": p.get("media_type") or p.get("mediaType")
+                        or {"reel": "VIDEO", "carousel": "CAROUSEL_ALBUM"}.get(
+                            str(p.get("format_type") or "").lower(), "IMAGE"),
                     "caption_excerpt": (
                         p.get("caption_excerpt") or p.get("captionPreview")
                         or p.get("hook_text") or p.get("caption") or ""
@@ -536,6 +541,23 @@ def get_ad_correlation_verdicts(brand_id: str | None = None, days: int = 30) -> 
     }
 
 
+def _external_publications() -> dict[str, dict[str, Any]]:
+    """Instagram posts the meta post index knows by media id (permalink, media type).
+
+    Used to fill a link and the real media type when the analytics store has
+    none. Empty when the index is missing or unreadable.
+    """
+    for base in _data_roots():
+        data = _read_json(base / "meta-post-index.json")
+        if not isinstance(data, dict):
+            continue
+        idx = data.get("index") if isinstance(data.get("index"), dict) else data
+        ext = idx.get("external_publications")
+        if isinstance(ext, dict) and ext:
+            return {str(k): v for k, v in ext.items() if isinstance(v, dict)}
+    return {}
+
+
 def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict[str, Any]:
     """Surface top IG posts with thumbnails + engagement + plain-English verdict.
 
@@ -592,9 +614,15 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
     scored.sort(key=lambda x: x["_er"], reverse=True)
     top = scored[:limit]
 
+    external = _external_publications()
     out_posts = []
     for p in top:
         er = p["_er"]
+        known = external.get(str(p.get("id"))) or {}
+        if not p.get("permalink") and known.get("permalink"):
+            p["permalink"] = known["permalink"]
+        if known.get("media_type"):
+            p["media_type"] = known["media_type"]
         if er >= avg_er * 2:
             verdict = "Top performer"
             emoji = "🟢"

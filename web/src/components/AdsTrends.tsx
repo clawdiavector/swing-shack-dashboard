@@ -1,15 +1,12 @@
-import { TrendingUp } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { useBrand } from '../../components/BrandSwitch'
-import { PageIntro } from '../../components/chrome'
-import { getJson } from '../../lib/api'
+import { getJson } from '../lib/api'
 
-function Note({ children }: { children: ReactNode }) {
+export function Note({ children }: { children: ReactNode }) {
   return <p className="rounded-xl border border-bd bg-bg2 p-3 text-sm text-tx2">{children}</p>
 }
 
 // Meta ads only exist for these two brands (see _ADS_BRIEF_BRANDS in campaign-os/app.py).
-const ADS_BRANDS = ['swing-shack', 'stick']
+export const ADS_BRANDS = ['swing-shack', 'stick']
 
 type WeekRow = { week: string; spend: number; leads: number; cost_per_lead: number | null; landing_page_views: number }
 type Block = { spend: number; leads: number; cost_per_lead: number | null; landing_page_views: number }
@@ -33,15 +30,6 @@ type AdsTrendsResponse = {
   period: { since?: string; until?: string }
   errors: unknown[]
 }
-type Signal = {
-  id: string
-  source: string
-  title: string
-  detail: string
-  relevance: number
-  suggested_response: string
-}
-type SignalsResponse = { ok: boolean; signals: Signal[] }
 
 const TILES: { key: keyof Block; label: string; lowerIsBetter?: boolean; money?: boolean }[] = [
   { key: 'spend', label: 'Spend', money: true },
@@ -68,7 +56,7 @@ function ChangeBadge({ change, lowerIsBetter }: { change: number | null | undefi
   return <span className={`text-xs font-semibold ${cls}`}>{text} vs prior 4 weeks</span>
 }
 
-function AdsSection({ brandId, brandLabel }: { brandId: string; brandLabel?: string }) {
+export function AdsSection({ brandId, brandLabel }: { brandId: string; brandLabel?: string }) {
   const [data, setData] = useState<AdsTrendsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -172,76 +160,6 @@ function AdsSection({ brandId, brandLabel }: { brandId: string; brandLabel?: str
           </div>
         )}
       </section>
-    </div>
-  )
-}
-
-function MarketSection() {
-  const [signals, setSignals] = useState<Signal[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    getJson<SignalsResponse>('/api/intel/trends_v2')
-      .then((d) => setSignals(d.signals || []))
-      .catch((e: Error) => setError(e.message))
-  }, [])
-
-  return (
-    <section className="space-y-3">
-      <div>
-        <h2 className="text-base font-semibold text-tx">Market signals</h2>
-        <p className="text-sm text-tx2">
-          A hand-picked list of marketing and golf news, with a suggested post for each. Nothing refreshes it
-          automatically, so check the date before you act on it.
-        </p>
-      </div>
-      {error ? (
-        <Note>Could not load market signals ({error}).</Note>
-      ) : !signals ? (
-        <div className="h-24 animate-pulse rounded-2xl bg-bg3" />
-      ) : signals.length === 0 ? (
-        <Note>No market signals saved yet.</Note>
-      ) : (
-        <ul className="space-y-3">
-          {signals.map((s) => (
-            <li key={s.id} className="rounded-2xl border border-white/10 bg-bg2/80 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <p className="font-semibold text-tx">{s.title}</p>
-                <span className="shrink-0 text-xs text-tx2">relevance {s.relevance}</span>
-              </div>
-              <p className="mt-1 text-sm text-tx2">{s.detail}</p>
-              <p className="mt-2 text-sm text-tx">
-                <span className="font-semibold">Try: </span>
-                {s.suggested_response}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  )
-}
-
-export function Trends() {
-  const { brandId, brandLabel } = useBrand()
-  const hasAds = !!brandId && ADS_BRANDS.includes(brandId)
-
-  return (
-    <div className="space-y-8">
-      <PageIntro title="Trends" icon={TrendingUp} here="/results/trends">
-        What is moving. Ads first, then the market.
-      </PageIntro>
-
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold text-tx">Paid movement</h2>
-        {hasAds && brandId ? (
-          <AdsSection brandId={brandId} brandLabel={brandLabel} />
-        ) : (
-          <Note>Paid trends exist for Swing Shack and Stick only. Switch brand at the top to see them.</Note>
-        )}
-      </section>
-
-      <MarketSection />
     </div>
   )
 }

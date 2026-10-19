@@ -1,6 +1,7 @@
 import { burstAtPointer } from '../../lib/confetti'
 import { MessageSquareText } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../../components/chrome'
 import { Badge, ClassicLink, Tip } from '../../components/ui'
@@ -29,7 +30,9 @@ const inputCls =
 export function Captions() {
   const { brandId } = useBrand()
   const scopeBrand = brandId ?? ''
-  const [brief, setBrief] = useState('')
+  // ?brief=... pre-fills the brief (used by "Make another like this" on Results).
+  const [params] = useSearchParams()
+  const [brief, setBrief] = useState(() => params.get('brief') ?? '')
   const [survivors, setSurvivors] = useState<Survivor[]>([])
   const [rejects, setRejects] = useState<Record<string, unknown[]> | null>(null)
   const [busy, setBusy] = useState(false)
