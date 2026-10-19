@@ -30,6 +30,36 @@ const TAB_OPTIONS = [
   { id: 'traffic', label: 'Traffic' },
 ]
 
+// Plain-language media type for the "why it worked" strip.
+function formatName(mediaType?: string): string | null {
+  const t = (mediaType || '').toUpperCase()
+  if (t === 'VIDEO') return 'Reels'
+  if (t === 'CAROUSEL_ALBUM') return 'carousels'
+  if (t === 'IMAGE') return 'photos'
+  return null
+}
+
+// Weekday in the brands' own timezone (both are South African).
+function weekdayName(timestamp?: string): string | null {
+  if (!timestamp) return null
+  const d = new Date(timestamp)
+  if (Number.isNaN(d.getTime())) return null
+  return `${d.toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'Africa/Johannesburg' })}s`
+}
+
+// Most common value, only if it covers at least two posts and beats a tie.
+function topShare(values: (string | null)[]): { value: string; count: number } | null {
+  const counts = new Map<string, number>()
+  for (const v of values) if (v) counts.set(v, (counts.get(v) || 0) + 1)
+  let best: { value: string; count: number } | null = null
+  for (const [value, count] of counts) {
+    if (!best || count > best.count) best = { value, count }
+  }
+  if (!best || best.count < 2) return null
+  const tied = [...counts.values()].filter((c) => c === best!.count).length > 1
+  return tied ? null : best
+}
+
 // Badge colour follows the verdict from get_top_instagram_posts; unknown verdicts stay neutral.
 function verdictTone(verdict: string): 'green' | 'gold' | 'red' | 'mute' {
   if (verdict === 'Top performer' || verdict === 'Above average') return 'green'
@@ -203,6 +233,33 @@ export function Worked() {
           {postsMeta?.fetched_at ? (
             <p className="text-xs text-tx3">Instagram scan as of {formatStamp(postsMeta.fetched_at)}</p>
           ) : null}
+          {(() => {
+            const good = (posts || []).filter((p) => p.verdict === 'Top performer' || p.verdict === 'Above average')
+            if (good.length < 3) return null
+            const format = topShare(good.map((p) => formatName(p.media_type)))
+            const day = topShare(good.map((p) => weekdayName(p.timestamp)))
+            return (
+              <div className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm">
+                <p className="font-medium text-tx">Why these worked (a guess from {good.length} good posts)</p>
+                {format || day ? (
+                  <p className="mt-1 flex flex-wrap gap-2 text-xs text-tx3">
+                    {format ? (
+                      <span>
+                        Mostly {format.value}: {format.count} of {good.length}
+                      </span>
+                    ) : null}
+                    {day ? (
+                      <span>
+                        Mostly posted on {day.value}: {day.count} of {good.length}
+                      </span>
+                    ) : null}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-tx3">No clear pattern yet across these posts.</p>
+                )}
+              </div>
+            )
+          })()}
           <ul className="space-y-2">
             {(posts || []).map((post, i) => {
               const key = post.id || String(i)
@@ -233,6 +290,7 @@ export function Worked() {
                     ) : null}
                     <div className="min-w-0 flex-1 text-sm">
                       <p className="line-clamp-2 font-medium text-tx">{post.caption_excerpt || 'Post with no caption saved'}</p>
+                      {brandLabel ? <p className="mt-0.5 text-xs text-tx3">{brandLabel}</p> : null}
                       <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-tx3">
                         {post.verdict ? <Badge tone={verdictTone(post.verdict)}>{post.verdict}</Badge> : null}
                         {rate != null ? (
