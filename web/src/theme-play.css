@@ -27,6 +27,8 @@ html[data-theme='play'] {
   --play-blue-ink: #2a1c66;
   --play-violet: #ff9ec0;
   --play-violet-ink: #5a1030;
+  --play-red: #ff7b6f;
+  --play-red-ink: #4a0d08;
 }
 
 html[data-theme='play'] body {
@@ -140,6 +142,7 @@ html[data-theme='play'] [data-tone='gold'] { --fill: var(--play-gold); --ink: va
 html[data-theme='play'] [data-tone='green'] { --fill: var(--play-green); --ink: var(--play-green-ink); }
 html[data-theme='play'] [data-tone='blue'] { --fill: var(--play-blue); --ink: var(--play-blue-ink); }
 html[data-theme='play'] [data-tone='violet'] { --fill: var(--play-violet); --ink: var(--play-violet-ink); }
+html[data-theme='play'] [data-tone='red'] { --fill: var(--play-red); --ink: var(--play-red-ink); }
 html[data-theme='play'] .fun-tile::after { background: rgba(255, 255, 255, 0.4); }
 html[data-theme='play'] .fun-tile__label,
 html[data-theme='play'] .fun-tile__value,

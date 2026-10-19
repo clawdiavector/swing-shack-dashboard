@@ -1,3 +1,4 @@
+import { burstAtPointer } from '../../lib/confetti'
 import { ImageIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -57,6 +58,7 @@ export function Images() {
         prompt: prompt || (spec.prompt as string) || '',
       })
       setResult({ spec, rendered })
+      burstAtPointer(50)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generate failed')
     } finally {

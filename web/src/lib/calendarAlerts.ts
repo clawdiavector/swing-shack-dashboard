@@ -56,6 +56,22 @@ export function alertAction(state: AlertState): string {
   return state === 'no_plan' ? 'Make a plan' : 'Open the plan'
 }
 
+/** List view, with this date's plan opened. `/calendar/lanes` alone stayed on the
+ *  month grid and never expanded the plan. */
+export function planPageHref(a: {
+  event_key?: string
+  plan_id?: string | null
+  brief_id?: string | null
+  name?: string
+}): string {
+  const p = new URLSearchParams({ tab: 'list' })
+  if (a.event_key) p.set('event', a.event_key)
+  else if (a.brief_id) p.set('brief', a.brief_id)
+  else if (a.plan_id) p.set('plan', a.plan_id)
+  else if (a.name) p.set('event', a.name)
+  return `/calendar/lanes?${p.toString()}`
+}
+
 const CHANGED = 'cos:alerts-changed'
 
 // Two menu dots (side rail and phone bar) and the banners all ask for the same

@@ -1427,7 +1427,38 @@ def _sa_context() -> Dict[str, Any]:
     }
 
 
-def _signal_pool() -> Dict[str, List[Any]]:
+def _default_brand_id() -> str:
+    reg = _load_brands_registry()
+    return str(reg.get("default_brand_id") or "swing-shack") if isinstance(reg, dict) else "swing-shack"
+
+
+def _signal_pool(brand: Optional[str] = None) -> Dict[str, List[Any]]:
+    """Signal files for one brand.
+
+    The flat data/<file> signals were written for the default brand (Swing
+    Shack: TrackMan, bookings, its own web pages). Another brand reads only
+    brands/<brand>/<file>, so its hooks never carry Swing Shack's angles.
+    brand=None reads the flat files, unscoped.
+
+    The live disk (DATA_DIR env, where the jobs write on Railway) is read
+    before the bundled snapshot (module DATA_DIR).
+    """
+    scoped = bool(brand) and brand != _default_brand_id()
+    roots = [r for r in (os.environ.get("DATA_DIR"), DATA_DIR) if r]
+    rels = [("brands", brand)] if scoped else ([("brands", brand), ()] if brand else [()])
+
+    def _signal_path(filename):
+        for root in roots:
+            for rel in rels:
+                cand = os.path.join(root, *rel, filename)
+                if os.path.isfile(cand):
+                    return cand
+        return None
+
+    def _read_signal(filename):
+        path = _signal_path(filename)
+        return _read_json(path) if path else None
+
     def _as_list(v, cap=200):
         if isinstance(v, list):
             return v[:cap]
@@ -1451,7 +1482,7 @@ def _signal_pool() -> Dict[str, List[Any]]:
     # nested under 'foo' or 'foo.bar' or 'foo.changes' is found whichever
     # path the writer used).  Returns [] if none of the keys are lists.
     def _read_with_keys(filename, *key_paths):
-        d = _read_json(os.path.join(DATA_DIR, filename)) or {}
+        d = _read_signal(filename) or {}
         if not isinstance(d, dict):
             return []
         for path in key_paths:
@@ -1507,8 +1538,8 @@ def _signal_pool() -> Dict[str, List[Any]]:
             "reddit-trends.json", "trends", "items"),
         "reddit_replies": _read_with_keys(
             "reddit-replies.json", "replies", "items"),
-        "seo_audit": [(_read_json(os.path.join(DATA_DIR, "seo-audit.json")) or {})],
-        "seo_rankings": [(_read_json(os.path.join(DATA_DIR, "seo-rankings.json")) or {})],
+        "seo_audit": [(_read_signal("seo-audit.json") or {})],
+        "seo_rankings": [(_read_signal("seo-rankings.json") or {})],
         "local_opportunities": _read_with_keys(
             "offer-opportunities.json", "offers", "items"),
         "seasonal_opportunities": _read_with_keys(
@@ -1529,7 +1560,68 @@ def _used_hooks() -> List[str]:
     return [h for h in used if isinstance(h, str)][:20]
 
 
-def generate_hooks(n: int = 10, _skip_dedup: bool = False) -> Dict[str, Any]:
+# To-do text from the recommendation jobs ("Create IG content targeting
+# "/bookings/" · 211 sessions with no social link"). It tells us what to post;
+# it is not a line a golfer should read.
+_RECOMMENDATION_RE = re.compile(
+    r"^\s*(create|schedule|post|publish|add|write|fix|update|target|launch|run)\b"
+    r"|\bIG (post|content)\b"
+    r"|\bsessions? with no\b"
+    r"|\btrending videos\b"
+    r"|\"/[^\"]*\"",
+    re.I,
+)
+
+# Evergreen hooks per brand, used to top up when signal hooks run short.
+# Stick and Bag Drop lines come from their BRAND-BIBLE.md (DRAFT, 2026-10-13).
+_EVERGREEN_HOOKS: Dict[str, List[str]] = {
+    "swing-shack": [
+        "The lie every golfer believes about the range",
+        "Why your slice won't fix itself in 2026",
+        "The 30-minute test that changed this golfer's game",
+        "What your TrackMan sees that you don't",
+        "Driver fitting: what nobody tells you about shafts",
+        "The real reason your iron shots fly short",
+        "How Johannesburg weather affects your swing speed",
+        "Why indoor practice beats range sessions",
+        "What fitting actually fixes (it's not the club)",
+    ],
+    "stick": [
+        "Fit first. Buy second.",
+        "Bring your current clubs.",
+        "Everything has to earn its place in the bag.",
+        "Clubs that are not fitted to you cost you shots.",
+    ],
+    "bag-drop": [
+        "Good gear doesn't need to be new.",
+        "Great golf gear, ready for another round.",
+        "Check here before you buy new.",
+        "Demo clubs, used golf gear and the essentials worth carrying.",
+    ],
+}
+
+
+def _is_recommendation(text: str) -> bool:
+    return bool(_RECOMMENDATION_RE.search(text or ""))
+
+
+def _clip(text: str, limit: int) -> str:
+    """Shorten to `limit` characters at a clause break that leaves at least
+    20 characters, otherwise on a word boundary, never mid-word."""
+    if len(text) <= limit:
+        return text
+    head = text[:limit]
+    cut = max(head.rfind(sep) for sep in (". ", " — ", " - ", ", ", "; ", ": "))
+    if cut < 20:
+        cut = head.rfind(" ")
+    return head[:cut].rstrip(" ,;:-—") if cut > 0 else head
+
+
+def generate_hooks(
+    n: int = 10,
+    _skip_dedup: bool = False,
+    brand: Optional[str] = None,
+) -> Dict[str, Any]:
     """Build hook ideas from signals, excluding recently used hooks for diversity.
 
     A per-process cache keyed by today's date prevents the same hooks from
@@ -1540,8 +1632,13 @@ def generate_hooks(n: int = 10, _skip_dedup: bool = False) -> Dict[str, Any]:
     Pass `_skip_dedup=True` to bypass the dedup cache. Used by the caption
     generator, which needs raw hook material (a hook already shown today is
     still good input for a new caption variant).
+
+    `brand` scopes the signals (see _signal_pool); it defaults to the
+    request's brand. Recommendation text never becomes a hook.
     """
-    pool = _signal_pool()
+    if brand is None:
+        brand = get_request_brand()
+    pool = _signal_pool(brand)
     out = []
     today = _now_iso()[:10]
 
@@ -1574,12 +1671,22 @@ def generate_hooks(n: int = 10, _skip_dedup: bool = False) -> Dict[str, Any]:
             # Keep cache bounded.
             recent[:] = recent[-200:]
 
-    def _add(h: str, source: str, kind: str):
-        """Add a hook dict to the output list."""
-        out.append({"hook": h, "source": source, "kind": kind})
+    def _add(h: str, source: str, kind: str, angle: Optional[str] = None):
+        """Add a hook dict to the output list, once, unless it is a to-do.
+
+        `angle` is the raw signal inside a framed hook ("The golf truth
+        nobody tells you: <angle>"). Captions use it, because their own
+        templates add a frame and two read badly.
+        """
+        if _is_recommendation(h) or any(o["hook"].lower() == h.lower() for o in out):
+            return
+        item = {"hook": h, "source": source, "kind": kind}
+        if angle:
+            item["angle"] = angle
+        out.append(item)
 
     # Mechanism prefixes — use a seeded shuffle so order varies per call.
-    seed_str = f"{today}|{n}|{get_request_brand() or ''}"
+    seed_str = f"{today}|{n}|{brand or ''}"
     seed_bytes = hashlib.sha256(seed_str.encode()).digest()
     rng = _random.Random(int.from_bytes(seed_bytes[:4], "big"))
 
@@ -1600,11 +1707,12 @@ def generate_hooks(n: int = 10, _skip_dedup: bool = False) -> Dict[str, Any]:
         if not isinstance(r, dict):
             continue
         ang = r.get("suggested_angle") or r.get("angle") or r.get("title") or r.get("pain_point") or r.get("trend_pain_point") or r.get("thread_topic") or ""
-        if isinstance(ang, str) and ang:
-            hook = f"The golf truth nobody tells you: {ang[:80]}"
+        if isinstance(ang, str) and ang and not _is_recommendation(ang):
+            angle = _clip(ang, 80)
+            hook = f"The golf truth nobody tells you: {angle}"
             if _is_fresh(hook):
                 _push(hook)
-                _add(hook, "reddit", "pain-point")
+                _add(hook, "reddit", "pain-point", angle)
 
     # From golf news.
     if len(out) < n:
@@ -1614,45 +1722,38 @@ def generate_hooks(n: int = 10, _skip_dedup: bool = False) -> Dict[str, Any]:
             if not isinstance(n_, dict):
                 continue
             t = n_.get("title") or n_.get("headline") or n_.get("name") or n_.get("summary") or ""
-            if isinstance(t, str) and t:
-                hook = f"While everyone is talking about {t[:60]}..."
+            if isinstance(t, str) and t and not _is_recommendation(t):
+                angle = _clip(t, 60)
+                hook = f"While everyone is talking about {angle}..."
                 if _is_fresh(hook):
                     _push(hook)
-                    _add(hook, "golf-news", "trend-jack")
+                    _add(hook, "golf-news", "trend-jack", angle)
 
-    # From missed opportunities.
+    # From missed opportunities. Only a row's own hook or title can be a
+    # hook; its suggested_fix / suggestion / issue fields are to-do text.
     if len(out) < n:
         for m in missed_shuffled:
             if len(out) >= n:
                 break
             if not isinstance(m, dict):
                 continue
-            t = m.get("hook") or m.get("title") or m.get("issue") or m.get("suggested_fix") or m.get("suggestion") or m.get("summary") or ""
-            if isinstance(t, str) and t and len(t) > 15:
-                if any(t.lower().startswith(w) for w in ['the ', 'why ', 'how ', 'what ', 'this ', 'have you', 'need to', 'stop ', 'your ', 'here']):
-                    hook = t[:120]
-                else:
-                    hook = f"You're losing bookings because: {t[:60]}"
+            t = m.get("hook") or m.get("title") or ""
+            if isinstance(t, str) and len(t) > 15 and not _is_recommendation(t):
+                if not any(t.lower().startswith(w) for w in ['the ', 'why ', 'how ', 'what ', 'this ', 'have you', 'need to', 'stop ', 'your ', 'here']):
+                    continue
+                hook = _clip(t, 120)
                 if _is_fresh(hook):
                     _push(hook)
                     _add(hook, "missed-opp", "gap-fix")
 
-    # Fallback to evergreen templates if still empty.
-    if not out:
-        templates = [
-            "The lie every golfer believes about the range",
-            "Why your slice won't fix itself in 2026",
-            "The 30-minute test that changed this golfer's game",
-            "What your TrackMan sees that you don't",
-            "Driver fitting: what nobody tells you about shafts",
-            "The real reason your iron shots fly short",
-            "How Johannesburg weather affects your swing speed",
-            "Why indoor practice beats range sessions",
-            "The mistake 80% of golfers make on the downswing",
-            "What fitting actually fixes (it's not the club)",
-        ]
+    # Top up with the brand's evergreen hooks when the signals run short
+    # (filtering out to-do text leaves some brands with only a few).
+    if len(out) < n:
+        templates = list(_EVERGREEN_HOOKS.get(brand or "", _EVERGREEN_HOOKS["swing-shack"]))
         rng.shuffle(templates)
-        for t in templates[:n]:
+        for t in templates:
+            if len(out) >= n:
+                break
             hook = t
             if _is_fresh(hook):
                 _push(hook)
@@ -1667,6 +1768,8 @@ def generate_hooks(n: int = 10, _skip_dedup: bool = False) -> Dict[str, Any]:
             if issues:
                 sa_issues.extend(issues)
                 h["hook"] = new_text
+            if isinstance(h.get("angle"), str):
+                h["angle"] = _sa_sanitize(h["angle"])[0]
 
     return {
         "ok": True,
@@ -1732,7 +1835,12 @@ def generate_captions(
     # perfectly good raw material for a caption variant. We use the full
     # pool so the captions generator doesn't silently produce 0 variants
     # once the hook dedup cache is full.
-    pool_raw = generate_hooks(20, _skip_dedup=True).get("generated", [])
+    # Each voice is one brand (voice ids are brand ids), so its hooks come
+    # from that brand's signals only.
+    vb = _load_voice_bible()
+    voices = vb.get("voices", {})
+    hook_brand = (voice if voice in voices else None) or campaign_brand_id or get_request_brand()
+    pool_raw = generate_hooks(20, _skip_dedup=True, brand=hook_brand).get("generated", [])
     if not pool_raw:
         # Last-resort fallback so the button is never silent.
         pool_raw = [
@@ -1741,7 +1849,6 @@ def generate_captions(
             {"hook": "Custom fitting changes the game."},
             {"hook": "Get the data, then make the call."},
             {"hook": "Why guess when you can measure?"},
-            {"hook": "Swing Shack makes improvement measurable."},
         ]
     # Shuffle the pool with the seeded RNG so order varies per call.
     shuffled_pool = list(pool_raw)
@@ -1767,8 +1874,6 @@ def generate_captions(
         base_caption = f"{name or campaign_name or 'Swing Shack'} · swingshack.co.za"
 
     # Resolve voice: if not explicitly passed, try to auto-detect from campaign brand.
-    vb = _load_voice_bible()
-    voices = vb.get("voices", {})
     resolved_voice = voice if (voice and voice in voices) else None
     if not resolved_voice and campaign_brand_id and campaign_brand_id in voices:
         resolved_voice = campaign_brand_id
@@ -1787,7 +1892,8 @@ def generate_captions(
 
     def _voice_cta(vid, idx=0):
         alts = voices.get(vid, {}).get("cta_alternatives", [])
-        cta_default = voices.get(vid, {}).get("cta_default", "Book a session → swingshack.co.za")
+        # No default: a missing CTA must not borrow another brand's website.
+        cta_default = voices.get(vid, {}).get("cta_default", "")
         if alts and idx < len(alts):
             return alts[idx]
         return cta_default
@@ -1796,23 +1902,26 @@ def generate_captions(
         prefix = _voice_prefix(vid)
         suffix = _voice_suffix(vid)
         cta = _voice_cta(vid, idx)
+        # Templates add their own punctuation after the hook.
+        hook_text = hook_text.rstrip(" .?!")
         # Frame the hook differently based on mechanism so each variant feels distinct.
         if mechanism == "problem-first":
             body = f"{prefix} The problem nobody talks about: {hook_text}. {suffix} {cta}"
         elif mechanism == "story":
-            body = f"{prefix} A golfer walked into Swing Shack and said: {hook_text}. {suffix} {cta}"
+            # Brand-neutral: this template runs for every voice.
+            body = f"{prefix} A golfer told us: {hook_text}. {suffix} {cta}"
         elif mechanism == "contrarian":
-            body = f"{prefix} Forget what you heard about {hook_text.split()[0] if hook_text else 'that'}. Here's the truth. {suffix} {cta}"
+            body = f"{prefix} Forget what you heard. {hook_text}. {suffix} {cta}"
         elif mechanism == "listicle":
-            body = f"{prefix} 3 things you didn't know about {hook_text.split()[0] if hook_text else 'golf'}. {suffix} {cta}"
+            body = f"{prefix} One thing you didn't know: {hook_text}. {suffix} {cta}"
         elif mechanism == "question":
             body = f"{prefix} {hook_text}? We asked the same thing. {suffix} {cta}"
         elif mechanism == "data-driven":
             body = f"{prefix} The data says: {hook_text}. {suffix} {cta}"
         elif mechanism == "controversy":
-            body = f"{prefix} Is {hook_text.split()[0] if hook_text else 'this'} actually true? {suffix} {cta}"
+            body = f"{prefix} Hot take: {hook_text}. Agree? {suffix} {cta}"
         elif mechanism == "authority":
-            body = f"{prefix} Here's what the experts say about {hook_text.split()[0] if hook_text else 'this'}: {suffix} {cta}"
+            body = f"{prefix} Ask anyone who does this for a living: {hook_text}. {suffix} {cta}"
         elif mechanism == "fomo":
             body = f"{prefix} Most golfers miss this: {hook_text}. Don't be one of them. {suffix} {cta}"
         elif mechanism == "before-after":
@@ -1826,7 +1935,8 @@ def generate_captions(
         if i >= len(shuffled_pool):
             break
         hook = shuffled_pool[i]
-        title = (hook.get("hook", "") or "") if isinstance(hook, dict) else ""
+        # The raw angle, not the framed hook: the templates below add a frame.
+        title = (hook.get("angle") or hook.get("hook", "") or "") if isinstance(hook, dict) else ""
         if not title:
             continue
 
@@ -4758,6 +4868,14 @@ def _cluster_ig_captions(this_week, prev_week):
 
 
 
+def _captions_for_active_brand() -> Dict[str, Any]:
+    """Captions in the active brand's voice; refuses when there is none."""
+    brand = get_request_brand()
+    if brand not in (_load_voice_bible().get("voices") or {}):
+        return {"ok": False, "error": f"No caption voice for brand {brand!r}", "variants": []}
+    return generate_captions(None, 5, voice=brand)
+
+
 # ─── INDEX ─────────────────────────────────────────────────────────────
 
 INTELLIGENCE_FUNCS = {
@@ -4771,7 +4889,7 @@ INTELLIGENCE_FUNCS = {
     "performance": performance_view,
     "learning": learning_view,
     "hooks_generate": lambda: generate_hooks(10),
-    "captions_generate": lambda: generate_captions(None, 5),
+    "captions_generate": _captions_for_active_brand,
     "ctas_generate": lambda: generate_ctas(5),
     "headlines_generate": lambda: generate_headlines(5),
     "reddit_outreach": reddit_outreach,

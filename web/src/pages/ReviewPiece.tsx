@@ -251,21 +251,24 @@ export function ReviewPiece() {
     setError('')
     setSuccess('')
     const before = caption.trim()
-    const campaignId = item.meta?.campaign_id
-    const assetId = item.meta?.asset_id
+    const draftParts = item.id.startsWith('draft_asset:')
+      ? item.id.slice('draft_asset:'.length).split(':')
+      : []
+    const campaignId = item.meta?.campaign_id || draftParts[0] || ''
+    const assetId =
+      item.meta?.asset_id || (draftParts.length > 1 ? draftParts.slice(1).join(':') : '')
     const reason = 'Regenerate caption from review'
     try {
       const result = await draftRegenerateCaption(draftId, reason, false)
       if (!result.ok) {
         setCaptionRegenerating(false)
-        setError(result.error || 'Could not queue caption regenerate')
+        setError(result.error || 'Could not rewrite this caption')
         return
       }
       setSuccess('Rewriting the caption. The image stays. About 30 seconds.')
       if (captionPoll.current != null) window.clearInterval(captionPoll.current)
       const started = Date.now()
       captionPoll.current = window.setInterval(() => {
-        if (!campaignId || !assetId) return
         if (Date.now() - started > 90_000) {
           if (captionPoll.current != null) window.clearInterval(captionPoll.current)
           captionPoll.current = null
@@ -273,6 +276,7 @@ export function ReviewPiece() {
           setSuccess('Still writing. Refresh this card in a minute.')
           return
         }
+        if (!campaignId || !assetId) return
         void fetchCampaign(campaignId)
           .then((c) => {
             const next = c.assets?.[assetId]?.caption?.trim() || ''
@@ -305,9 +309,9 @@ export function ReviewPiece() {
     setSuccess('')
     const note = 'Regenerate from review piece'
     try {
-      const assetId = item.meta?.asset_id
-      if (item.type === 'draft_asset' && assetId) {
-        const result = await draftRegeneratePhoto(assetId, note)
+      const draftId = reviewPieceDraftId(item)
+      if (draftId) {
+        const result = await draftRegeneratePhoto(draftId, note)
         if (!result.ok) {
           setError(result.error || 'Could not queue regenerate')
           if (result.at_cap && item.brand_id) {

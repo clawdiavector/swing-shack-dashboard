@@ -202,6 +202,24 @@ def _slug_from_candidate_id(cid: str) -> str:
     return _slugify_event_key(raw, max_len=48)
 
 
+def _slug_from_approved_candidate(candidate: Dict[str, Any]) -> str:
+    """Name the event from its title when the id is a generated calendar row.
+
+    Approving a faded month date first writes calendar_id
+    ``cal-swing-shack-cam-<ts>-<hex>``. Using that as the slug made every
+    Brief lookup miss (opportunity 'swing-shack:cal-…' not found).
+    """
+    cid = str(candidate.get("id") or candidate.get("calendar_id") or "")
+    title = str(candidate.get("name") or candidate.get("title") or "").strip()
+    if cid.startswith("cal-") or ":cal-" in cid:
+        return _slugify_event_key(title, max_len=48) if title else "event"
+    if cid:
+        return _slug_from_candidate_id(cid)
+    if title:
+        return _slugify_event_key(title, max_len=48)
+    return "event"
+
+
 def write_audit_entry(
     brand_id: str,
     action: str,
@@ -498,7 +516,7 @@ def _build_event_key_from_candidate(
     applicable ISO date. If neither is valid, raises ValueError because
     we cannot satisfy the season-year guard and must refuse to write.
     """
-    slug = _slug_from_candidate_id(candidate.get("id") or "")
+    slug = _slug_from_approved_candidate(candidate)
     for k in ("start", "public_peak"):
         raw = candidate.get(k)
         if not isinstance(raw, str) or not raw:

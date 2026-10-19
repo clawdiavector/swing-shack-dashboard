@@ -298,6 +298,9 @@ def _north_stars(brand_id: str) -> dict:
         # V1.3 §6: restore Psycho Bunny label when the
         # objective / metric / monthly_target_note clearly
         # references a specific product (e.g. Psycho Bunny).
+        if not target:
+            target = "not set (operator input required)"
+            status = "operator_input_required"
         label = p_cfg.get("name") or bare.title()
         if product_hint and product_hint.lower() not in label.lower():
             label = f"{label} ({product_hint})"
@@ -785,21 +788,27 @@ def get_brief_opportunities(brand_id: str) -> list:
         return []
     mc = _marketing_calendar_import()
     out = []
-    # Canonical calendar records (one per event_key, latest revision)
+    # One bad row must not empty the whole list: Make a plan then 404s every date.
     try:
-        for r in mc.canonical_records(brand_id) or []:
-            if r.get("status") == "watchlist":
-                continue  # skip watchlist in this loop
+        rows = mc.canonical_records(brand_id) or []
+    except Exception:
+        rows = []
+    for r in rows:
+        if r.get("status") == "watchlist":
+            continue
+        try:
             out.append(_map_canonical_to_opportunity(r, "calendar"))
-    except Exception:
-        pass
-    # Canonical watchlist records
+        except Exception:
+            continue
     try:
-        for r in (mc.canonical_records(brand_id, status_filter="watchlist")
-                  or []):
-            out.append(_map_canonical_to_opportunity(r, "watchlist"))
+        watch = mc.canonical_records(brand_id, status_filter="watchlist") or []
     except Exception:
-        pass
+        watch = []
+    for r in watch:
+        try:
+            out.append(_map_canonical_to_opportunity(r, "watchlist"))
+        except Exception:
+            continue
     return out
 
 
@@ -845,19 +854,26 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
                 event_start[:10], lead_time_class, cfg)
         except Exception:
             lead_time_schedule = None
-    # Date confidence
-    if event_start and event_end and r.get("source_origin") in (
-            "external", "scout"):
+    # Date confidence. An approved campaign/moment on the Main Calendar is the
+    # operator vouching for the date (Halloween / Joburg Open / TEST 1). The
+    # suggestion row often has no source_origin yet; without this, Make a plan
+    # dies on V1.3 §4 LOW/unknown.
+    origin = str(r.get("source_origin") or "").strip().lower()
+    rec_type = str(r.get("type") or "").strip().lower()
+    on_calendar = str(r.get("status") or "").strip().lower() == "approved"
+    if event_start and event_end and origin in ("external", "scout"):
         date_confidence = "HIGH"
     elif event_start and not event_end:
         date_confidence = "MEDIUM"
-    elif (event_start and r.get("type") == "campaign"
-            and r.get("source_origin") == "internal_strategy"
+    elif (event_start and rec_type == "campaign"
+            and origin == "internal_strategy"
             and r.get("trusted_for_planning") is True):
-        # A campaign the operator typed in and vouched for: they chose
-        # the date, so there is no external date left to verify. Other
-        # operator pins (content / moment / reminder) stay LOW.
         date_confidence = "MEDIUM"
+    elif event_start and on_calendar and rec_type in ("campaign", "moment"):
+        date_confidence = "MEDIUM"
+        if origin not in ("external", "scout", "internal_strategy",
+                          "deterministic_calendar"):
+            origin = "internal_strategy"
     else:
         date_confidence = "LOW"
     # Records written by the Calendar add-event path before it set
@@ -866,22 +882,24 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
     return {
         "id": event_key,
         "event_key": event_key,
+        "calendar_id": r.get("calendar_id") or "",
         "name": r.get("title") or r.get("name") or "",
         "year": (event_start or "")[:4] or "unknown",
         "pillars": pillars,
-        "lanes": list((r.get("lanes") or {}).keys())
+        "lanes": _lane_keys(r.get("lanes"))
         + (["watchlist"] if source == "watchlist" else []),
         "duration_days": duration_days,
         "date": event_start,
         "event_start": event_start,
         "event_end": event_end,
+        "public_peak": str(r.get("public_peak") or "")[:10],
         "live_window": (f"{event_start} → {event_end}"
                         if event_start and event_end
                         else event_start or ""),
         "lead_time_class": lead_time_class,
         "lead_time_schedule": lead_time_schedule,
         "date_confidence": date_confidence,
-        "source_origin": r.get("source_origin") or "unknown",
+        "source_origin": origin or "unknown",
         "source": source,  # "calendar" | "watchlist"
         "disposition": r.get("disposition") or "",
         "status": r.get("status") or "",
@@ -908,8 +926,82 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
 
 
 
+def _lane_keys(lanes) -> list:
+    """Lanes are a dict on spine events and a list on many calendar rows."""
+    if not lanes:
+        return []
+    if isinstance(lanes, dict):
+        return list(lanes.keys())
+    if isinstance(lanes, (list, tuple)):
+        return [str(x) for x in lanes if x]
+    return []
+
+
+def _record_matches_opportunity_id(r: dict, opportunity_id: str) -> bool:
+    """Approve-then-plan looks up a generated calendar row id, not the spine slug.
+
+    Keys we see: event_key, calendar_id, and
+    ``swing-shack:cal-swing-shack-cam-<ts>-<hex>:2026-11-07`` (colon or hyphen
+    before the date). Matching the cal- id inside that string is enough.
+    """
+    wanted = (opportunity_id or "").strip()
+    if not wanted or not isinstance(r, dict):
+        return False
+    meta = r.get("candidate_metadata") if isinstance(r.get("candidate_metadata"), dict) else {}
+    bits = [
+        r.get("event_key"),
+        r.get("calendar_id"),
+        r.get("id"),
+        (meta or {}).get("candidate_id"),
+    ]
+    for b in bits:
+        if not b:
+            continue
+        b = str(b)
+        if b == wanted:
+            return True
+        if b.startswith("cal-") and b in wanted:
+            return True
+    return False
+
+
+def _resolve_calendar_opportunity(brand_id: str, opportunity_id: str) -> dict:
+    """Find the Main Calendar row Make a plan was given, even when mapping skipped it."""
+    if not opportunity_id:
+        return {}
+    mc = _marketing_calendar_import()
+    rows = []
+    try:
+        rows = list(mc.canonical_records(brand_id) or [])
+    except Exception:
+        rows = []
+    if not any(_record_matches_opportunity_id(r, opportunity_id) for r in rows):
+        try:
+            rows = list(mc.list_records(brand_id) or [])
+        except Exception:
+            pass
+    hits = [r for r in rows if _record_matches_opportunity_id(r, opportunity_id)]
+    if not hits:
+        return {}
+
+    def _brief_score(r: dict) -> tuple:
+        o = str(r.get("source_origin") or "")
+        known = 1 if o in ("external", "scout", "internal_strategy",
+                           "deterministic_calendar") else 0
+        trusted = 1 if r.get("trusted_for_planning") is True else 0
+        approved = 1 if r.get("status") == "approved" else 0
+        return (known, trusted, approved, int(r.get("revision") or 1))
+
+    hit = max(hits, key=_brief_score)
+    src = "watchlist" if hit.get("status") == "watchlist" else "calendar"
+    try:
+        return _map_canonical_to_opportunity(hit, src)
+    except Exception:
+        return {}
+
+
 def _resolve_opportunity(brand_id: str, opportunity_id: str) -> dict:
-    """Look up a canonical opportunity by event_key (or id).
+    """Look up a canonical opportunity by event_key, calendar_id, or spine id.
 
     Brief V1.1 §2: reads from marketing_calendar canonical
     records, not from data/brand-planning/* files."""
@@ -917,8 +1009,59 @@ def _resolve_opportunity(brand_id: str, opportunity_id: str) -> dict:
         return {}
     for opp in get_brief_opportunities(brand_id):
         if opp.get("event_key") == opportunity_id \
-                or opp.get("id") == opportunity_id:
+                or opp.get("id") == opportunity_id \
+                or opp.get("calendar_id") == opportunity_id:
             return opp
+        if _record_matches_opportunity_id(opp, opportunity_id):
+            return opp
+    cal = _resolve_calendar_opportunity(brand_id, opportunity_id)
+    if cal:
+        return cal
+    return _resolve_spine_opportunity(brand_id, opportunity_id)
+
+
+def _resolve_spine_opportunity(brand_id: str, opportunity_id: str) -> dict:
+    """Fallback: a date on the yearly event spine
+    (data/brand-planning/<brand>-events-<year>.json) with no saved Calendar
+    record yet. The Plan alerts list these dates, so a plan must be makeable
+    from them. The spine is audited, so its date is trusted as MEDIUM (a LOW
+    date is a hard gate failure)."""
+    if not opportunity_id:
+        return {}
+    m = re.search(r"(20\d\d)$", opportunity_id)
+    year = m.group(1) if m else str(datetime.now(timezone.utc).year)
+    # Same search as the alerts route: the data dir (Railway volume) first, then
+    # the copy baked into the image. The volume may hold brand-planning/ without
+    # the events files, so a single-root lookup misses them.
+    here = os.path.dirname(os.path.abspath(__file__))
+    name = f"{brand_id}-events-{year}.json"
+    spine = {}
+    for base in (os.path.join(DATA_DIR_DEFAULT, "brand-planning"),
+                 os.path.join(here, "..", "..", "data", "brand-planning"),
+                 "/app/data/brand-planning"):
+        spine = _read_json(os.path.join(os.path.abspath(base), name)) or {}
+        if spine:
+            break
+    for e in spine.get("events") or []:
+        if e.get("id") != opportunity_id:
+            continue
+        start = e.get("start") or e.get("public_peak") or ""
+        opp = _map_canonical_to_opportunity({
+            "event_key": opportunity_id,
+            "brand_id": brand_id,
+            "title": e.get("name") or e.get("title") or "",
+            "event_start": start,
+            "event_end": e.get("end") or "",
+            "public_peak": e.get("public_peak") or "",
+            "pillars": list((e.get("pillars") or {}).keys()),
+            "lanes": e.get("lanes") or {},
+            "source_origin": "internal_strategy",
+            "status": "approved",
+            "purpose": e.get("commercial_push") or "",
+        }, "spine")
+        if opp.get("date_confidence") == "LOW" and start:
+            opp["date_confidence"] = "MEDIUM"
+        return opp
     return {}
 
 
@@ -1973,6 +2116,23 @@ def _find_opp_cluster(brand_id: str, event_key: str) -> "Optional[dict]":
 
 
 
+def _peak_of(opp: dict) -> str:
+    """The commercial peak day: public_peak when the calendar has one, else the start."""
+    return str(opp.get("public_peak") or opp.get("date") or "")[:10]
+
+
+def _t_minus(opp: dict, days: int) -> str:
+    """'T-21 days before the peak (2026-11-06) (recommended)'. Counts back from the peak,
+    not from the start of a multi-week window."""
+    from datetime import date, timedelta
+    peak = _peak_of(opp)
+    try:
+        d = date.fromisoformat(peak) - timedelta(days=days)
+    except ValueError:
+        return f"T-{days} days (recommended)"
+    return f"T-{days} days before peak {peak}: {d.isoformat()} (recommended)"
+
+
 def _derive_audience(brand_id: str, bp: dict) -> dict:
     """Pull audience definition from brand-planning if present."""
     audience = bp.get("audience") or {}
@@ -1980,12 +2140,13 @@ def _derive_audience(brand_id: str, bp: dict) -> dict:
         "primary": audience.get("primary") or audience.get("core") or "",
         "secondary": audience.get("secondary") or "",
         "specific_useful_definition": (
-            "Use the brand's audience definition from data/brand-planning/"
-            "<brand>.json (audience.primary + audience.secondary). Avoid "
-            "generic labels like 'golfers' unless that is genuinely the "
-            "intended definition."
+            " / ".join(x for x in (audience.get("primary") or audience.get("core") or "",
+                                   audience.get("secondary") or "") if x)
+            or (f"Not set: operator to define (data/brand-planning/{brand_id}.json "
+                "audience.primary + audience.secondary). Avoid generic labels like "
+                "'golfers' unless that is genuinely the intended definition.")
         ),
-        "source": "data/brand-planning/<brand>.json#audience",
+        "source": f"data/brand-planning/{brand_id}.json#audience",
     }
 
 
@@ -2248,13 +2409,15 @@ def create_brief(brand_id: str, opportunity_id: str,
         "type": "MEASURED_FACT",
         "confidence": "HIGH",
     })
-    evidence_pack.append({
-        "claim": ("Stick North Stars: Retail R350k/month, "
-                  "24 fittings/week, 24 coaching/week"),
-        "source": "Brief V1 §9 (Reporting V2 contract)",
-        "type": "MEASURED_FACT",
-        "confidence": "HIGH",
-    })
+    if brand_id == "stick":
+        # Stick's own targets (Retail R350k/month is Psycho Bunny). Never quoted on another brand.
+        evidence_pack.append({
+            "claim": ("Stick North Stars: Retail R350k/month, "
+                      "24 fittings/week, 24 coaching/week"),
+            "source": "Brief V1 §9 (Reporting V2 contract)",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
     if ri.get("data_coverage", {}).get("ga4") == "LIVE":
         ga = ri.get("website_performance", {}).get("metrics", {})
         evidence_pack.append({
@@ -2279,7 +2442,7 @@ def create_brief(brand_id: str, opportunity_id: str,
         })
     if cg.get("data_status") == "validated":
         evidence_pack.append({
-            "claim": f"Stick Visual DNA: {cg['validated_pattern']}",
+            "claim": f"{'Stick' if brand_id == 'stick' else brand_id} Visual DNA: {cg['validated_pattern']}",
             "source": cg.get("source"),
             "type": "SUPPORTED_INFERENCE",
             "confidence": "MEDIUM",
@@ -2307,6 +2470,7 @@ def create_brief(brand_id: str, opportunity_id: str,
             "lanes": opp.get("lanes"),
             "duration_days": opp.get("duration_days") or 0,
             "date": opp.get("date") or "",
+            "public_peak": opp.get("public_peak") or "",
             "year": str(opp.get("date") or "")[:4] or "unknown",
             "source": opp.get("source", "calendar"),
         },
@@ -2346,12 +2510,13 @@ def create_brief(brand_id: str, opportunity_id: str,
         },
         "timing": {
             "event_date": opp.get("date") or "",
+            "peak_date": _peak_of(opp),
             "event_live_window": (f"{opp.get('duration_days')} days"
                                   if opp.get("duration_days")
                                   else "operator to pin live window"),
-            "research_start": "T-21 days (recommended)",
-            "planning_start": "T-14 days (recommended)",
-            "production_deadline": "T-7 days (recommended)",
+            "research_start": _t_minus(opp, 21),
+            "planning_start": _t_minus(opp, 14),
+            "production_deadline": _t_minus(opp, 7),
             "campaign_live_window": "operator to pin live window",
             "note": ("Suggested lead-times follow brief §8; actual dates "
                      "depend on operator approval + production pipeline."),
@@ -2372,12 +2537,14 @@ def create_brief(brand_id: str, opportunity_id: str,
         "audience": audience,
         "problem_insight": system_drafts["problem_insight"],
         "strategic_proposition": system_drafts["strategic_proposition"],
+        **({"candidate_offers": system_drafts["candidate_offers"]}
+           if system_drafts.get("candidate_offers") else {}),
         "cta_strategy": system_drafts["cta_strategy"],
         "reasons_to_believe": {
             "items": [
-                ("Stick brand essence: "
+                (f"{'Stick' if brand_id == 'stick' else brand_id} brand essence: "
                  f"{bp.get('brand_essence', 'see data/brand-planning/stick.json')}"),
-                ("Stick mission: "
+                (f"{'Stick' if brand_id == 'stick' else brand_id} mission: "
                  f"{bp.get('brand_mission', 'see data/brand-planning/stick.json')[:240]}"),
                 ("Brand promise: "
                  f"{bp.get('brand_promise', 'see data/brand-planning/stick.json')}"),
@@ -2592,7 +2759,13 @@ def _generate_system_drafts(brand_id, opp, ri, pmx, pcov,
                          f"{ig_metrics.get('reach_30d', 0):,}.")
 
     # strategic_proposition draft
+    cand = None
     if pillar_supported == "retail":
+        from _lib import candidate_offers
+        cand = candidate_offers.build(brand_id)
+    if pillar_supported == "retail" and cand and cand.get("items"):
+        prop_text = candidate_offers.proposition_text(cand)
+    elif pillar_supported == "retail":
         prop_text = ("Promote the retail North Star via the strongest-"
                     "performing format from Visual DNA + cross-channel "
                     "engagement, with retail-specific CTAs to drive "
@@ -2626,6 +2799,8 @@ def _generate_system_drafts(brand_id, opp, ri, pmx, pcov,
         cta_text = "Operator to define during review."
 
     return {
+        "candidate_offers": (dict(cand, drafted_by="system", drafted_at=_now_iso())
+                             if cand else None),
         "problem_insight": {
             "problem": problem_text + ga_session_line + ig_reach_line,
             "insight": ("Strategic insight grounded in current data: "

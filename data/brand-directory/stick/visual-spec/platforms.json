@@ -131,7 +131,7 @@
       "label": "Education & Authority",
       "model_hints": [
         "swing golf club mid-motion, TrackMan data overlay, split-screen technique analysis",
-        "indoor golf simulator, Johannesburg, TrackMan launch monitor readings, clean studio lighting",
+        "indoor golf simulator, Paarl, TrackMan launch monitor readings, clean studio lighting",
         "golf instructor demonstrating grip, side-by-side swing comparison, professional setting"
       ],
       "negative_prompts": [
@@ -141,11 +141,11 @@
       ],
       "composition": {
         "primary_subject": "golfer mid-swing or instructor demonstrating technique",
-        "background": "clean indoor studio or driving range, Johannesburg cityscape subtly visible through window",
+        "background": "clean indoor studio or driving range, Paarl mountains subtly visible through window",
         "lighting": "natural daylight from left, soft fill from right, accent spotlight on clubhead",
         "overlays": [
           "pillar badge: EDUCATION",
-          "Swing Shack watermark (bottom right)"
+          "Stick watermark (bottom right)"
         ],
         "depth_of_field": "shallow \u2014 subject sharp, background softly blurred"
       },
@@ -156,7 +156,7 @@
         "gold accent",
         "professional blue"
       ],
-      "example_prompt_fragment": "Split-screen golf swing analysis, TrackMan data overlay, indoor Johannesburg studio, professional photography, ShotByJHB aesthetic, F/2.8 shallow depth of field, 35mm prime lens"
+      "example_prompt_fragment": "Split-screen golf swing analysis, TrackMan data overlay, indoor Paarl studio, professional photography, F/2.8 shallow depth of field, 35mm prime lens"
     },
     "club-fitting": {
       "label": "Club Fitting",
@@ -172,11 +172,11 @@
       ],
       "composition": {
         "primary_subject": "fitted golf club or fitting session with data screen",
-        "background": "Swing Shack fitting studio with TrackMan visible, clean precision aesthetic",
+        "background": "Stick fitting studio in Paarl with TrackMan visible, clean precision aesthetic",
         "lighting": "dramatic side lighting, slight lens flare from monitor glow, contrasty",
         "overlays": [
           "pillar badge: CLUB FITTING",
-          "Swing Shack logo (bottom right)"
+          "Stick logo (bottom right)"
         ],
         "depth_of_field": "medium \u2014 both club and fitting screen in focus"
       },
@@ -187,12 +187,12 @@
         "deep green",
         "data blue"
       ],
-      "example_prompt_fragment": "Golf club fitting session with TrackMan launch monitor, Johannesburg precision studio, professional product photography, ShotByJHB aesthetic, dramatic side lighting, 50mm portrait lens"
+      "example_prompt_fragment": "Golf club fitting session with TrackMan launch monitor, Paarl precision studio, professional product photography, dramatic side lighting, 50mm portrait lens"
     },
     "community": {
       "label": "Community",
       "model_hints": [
-        "group of golfers socialising at Swing Shack, warm Johannesburg evening light",
+        "group of golfers socialising at Stick, warm Winelands evening light",
         "golf community event, people laughing with clubs, outdoor course backdrop",
         "golfer high-fiving instructor after lesson, celebration moment, authentic candid"
       ],
@@ -203,11 +203,11 @@
       ],
       "composition": {
         "primary_subject": "people connecting over golf \u2014 genuine, candid-feeling moments",
-        "background": "Swing Shack venue or nearby Johannesburg golf course, warm evening golden hour",
+        "background": "Stick studio or a nearby Winelands golf course, warm evening golden hour",
         "lighting": "golden hour warm light, natural and flattering, slight lens flare",
         "overlays": [
           "pillar badge: COMMUNITY",
-          "Swing Shack community tag"
+          "Stick community tag"
         ],
         "depth_of_field": "shallow \u2014 subjects sharp, bokeh lights in background"
       },
@@ -218,14 +218,14 @@
         "grass green",
         "community blue"
       ],
-      "example_prompt_fragment": "Golf community social event, Johannesburg golden hour, genuine celebration moment, candid documentary photography, ShotByJHB aesthetic, warm color grading, 35mm street photography lens"
+      "example_prompt_fragment": "Golf community social event, Winelands golden hour, genuine celebration moment, candid documentary photography, warm color grading, 35mm street photography lens"
     },
     "events": {
       "label": "Events & Offers",
       "model_hints": [
-        "Swing Shack event banner in foreground, Johannesburg skyline, professional event photography",
+        "Stick event banner in foreground, Paarl mountain backdrop, professional event photography",
         "golfer celebrating a win with new fitted clubs, premium offer framing",
-        "promotional display at Swing Shack, trackman data visible, exclusive offer visual"
+        "promotional display at Stick, trackman data visible, exclusive offer visual"
       ],
       "negative_prompts": [
         "outdated promotional materials, low-res graphics, clip art",
@@ -234,11 +234,11 @@
       ],
       "composition": {
         "primary_subject": "event atmosphere or promotional offer with clear call-to-action",
-        "background": "Swing Shack event venue or Johannesburg skyline, professional event staging",
+        "background": "Stick studio or Paarl mountain backdrop, professional event staging",
         "lighting": "bright and energetic, event spotlights, high contrast for readability",
         "overlays": [
           "EVENT badge",
-          "Swing Shack offer framing"
+          "Stick offer framing"
         ],
         "depth_of_field": "medium to deep \u2014 offer text must be legible at all sizes"
       },
@@ -249,15 +249,14 @@
         "energetic warm",
         "promotional red"
       ],
-      "example_prompt_fragment": "Golf event promotional photography, Swing Shack Johannesburg venue, bold composition, ShotByJHB aesthetic, professional event lighting, 24mm wide-angle lens, high contrast color grading"
+      "example_prompt_fragment": "Golf event promotional photography, Stick Paarl studio, bold composition, professional event lighting, 24mm wide-angle lens, high contrast color grading"
     }
   },
   "brand_id": "stick",
   "brand_voice_for_images": {
     "always_include": [
       "high-contrast true-black field with signal-red accent",
-      "insider sarcastic golf energy without cruelty",
-      "Johannesburg Swing Shack sub-brand cross-reference in tone only"
+      "insider sarcastic golf energy without cruelty"
     ],
     "never_include": [
       "soft pastel luxury lifestyle",

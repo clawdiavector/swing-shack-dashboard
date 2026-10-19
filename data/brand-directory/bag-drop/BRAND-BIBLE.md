@@ -58,6 +58,8 @@ approver has not signed it.
 
 ## Decisions needed before this can be marked CONFIRMED
 
+Until this file is `CONFIRMED`, hashtag, emoji and unlisted call-to-action hits are warnings (`list_enforcement: warn` in Part 4). They become hard fails when that value is set to `hard`.
+
 | # | Decision | Recommendation | Evidence |
 |---|---|---|---|
 | 1 | **Replace the repo's Bag Drop identity.** Confirm no bag-storage service exists, then retire the old README, `voice/`, `copy/`, `knowledge.json` and `bible-visual.json` in favour of this bible. | Yes. Until then, do not generate Bag Drop copy from the old files. | Finding 1 above |
@@ -249,6 +251,7 @@ One per caption. The "how" is part of the CTA.
 | `Shop putters. Link in bio.` | A category (also `Shop balls. Link in bio.` and so on) | DRAFT |
 | `Join Drop Alerts.` | Only once a sign-up exists | UNKNOWN (decision 11) |
 | `Email hello@thebagdrop.co.za.` | Returns and order questions | CONFIRMED |
+| `Visit the online store or DM.` | The line 11 of 33 captions already use | DRAFT (observed 2026-10-15; decision 1 still open) |
 
 ### Banned for The Bag Drop (adds to L7)
 
@@ -551,6 +554,9 @@ Counted 2026-10-13 from `feedback/instagram-audit.json`: 33 posts (20 videos, 13
 
 ```yaml
 brand: bag-drop
+# Hashtag, emoji and unlisted-CTA hits warn until this bible is CONFIRMED.
+# Set to hard when the owners sign those lists. Other mechanical bans stay hard.
+list_enforcement: warn
 language: en-ZA
 serial_comma: false
 quotes: double-curly
@@ -581,6 +587,8 @@ ctas_allowed:                  # "*" matches any words
   - "Message us to order."
   - "Tell us what you are after."
   - "Email hello@thebagdrop.co.za."
+  - "Visit the online store or DM."
+  - "Visit the online store or DM us."
 cta_max: 1
 banned_universal: ref:L7
 banned_brand:

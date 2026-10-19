@@ -15,6 +15,7 @@ import {
   addPlanItem,
   approveBlocker,
   approvePlan,
+  draftReviewHref,
   placePlan,
   unplacePlan,
   dueLabel,
@@ -32,6 +33,7 @@ import {
   type PlanItem,
   type PlanItemKind,
   type PlanItemPatch,
+  type OperatorOffer,
   type PlanProfile,
   type PlanResult,
 } from '../../../lib/plan'
@@ -40,6 +42,14 @@ const btn =
   'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold disabled:opacity-60'
 const btnYel = `${btn} border-yel/40 bg-yel/15 text-yel hover:bg-yel/25`
 const btnQuiet = `${btn} border-bd text-tx2 hover:text-tx`
+function hasOfferOptions(item: PlanItem): boolean {
+  return Boolean(
+    (item.candidate_offers && item.candidate_offers.length) ||
+      (item.offer_catalogue && item.offer_catalogue.length) ||
+      (item.offer_services && item.offer_services.length),
+  )
+}
+
 const field = 'rounded border border-bd bg-bg px-2 py-1 text-sm text-tx'
 
 function ItemRow({
@@ -51,6 +61,7 @@ function ItemRow({
   eventKind,
   planApproved,
   onDraft,
+  brandId,
 }: {
   item: PlanItem
   /** The kind of date, for suggested shots. */
@@ -58,6 +69,7 @@ function ItemRow({
   planApproved?: boolean
   /** A post step: ask for a caption draft. Resolves to an error message, or null. */
   onDraft?: () => Promise<string | null>
+  brandId?: string
   today: string
   locked: boolean
   onSave: (patch: PlanItemPatch) => Promise<string | null>
@@ -70,6 +82,9 @@ function ItemRow({
   const [note, setNote] = useState(item.note)
   const [budget, setBudget] = useState(item.budget ? String(item.budget) : '')
   const [shots, setShots] = useState((item.shots && item.shots.length ? item.shots : defaultShots(eventKind, !!item.needs_real_video)).join('\n'))
+  const [offer, setOffer] = useState<OperatorOffer>(
+    item.operator_offer ?? { selected_name: '', price: '', discount: '' },
+  )
   const [err, setErr] = useState<string | null>(null)
   const [drafting, setDrafting] = useState(false)
   const done = item.status === 'done'
@@ -123,6 +138,90 @@ function ItemRow({
             </span>
           </label>
         ) : null}
+        {hasOfferOptions(item) ? (
+          <div className="space-y-2 text-xs text-tx2" data-testid="plan-offer-editor">
+            <label className="block">
+              Lead with (pick from the list, or type anything)
+              <input
+                aria-label="Lead with"
+                list={`offer-options-${item.item_id}`}
+                placeholder={item.offer_focus ? `Start typing, e.g. ${item.offer_focus}` : 'Start typing a product or service'}
+                className={`${field} mt-1 block w-full`}
+                value={offer.selected_name}
+                onChange={(e) => setOffer({ ...offer, selected_name: e.target.value })}
+              />
+              <datalist id={`offer-options-${item.item_id}`}>
+                {(item.candidate_offers ?? []).map((c) => (
+                  <option key={`s-${c.name}`} value={c.name} label={`Suggested · ${c.qty} on shelf`} />
+                ))}
+                {(item.offer_services ?? []).map((v) => (
+                  <option key={`v-${v.name}`} value={v.name} label="Service" />
+                ))}
+                {(item.offer_catalogue ?? []).filter((c) => !c.suggested).map((c) => (
+                  <option key={`c-${c.name}`} value={c.name} label={`${c.qty} on shelf · ${c.reason}`} />
+                ))}
+              </datalist>
+            </label>
+            {item.offer_focus ? (
+              <p className="text-[11px] text-tx3">
+                North Star product: <strong className="text-tx2">{item.offer_focus}</strong>. It is listed first when we hold it.
+              </p>
+            ) : null}
+            <details className="rounded border border-bd/40 bg-bg px-2 py-1" data-testid="plan-offer-all">
+              <summary className="cursor-pointer text-[11px] font-semibold text-tx2">
+                See everything ({(item.candidate_offers?.length ?? 0)} suggested,{' '}
+                {item.offer_services?.length ?? 0} services, {item.offer_catalogue?.length ?? 0} stock lines)
+              </summary>
+              <div className="mt-1 max-h-56 space-y-0.5 overflow-y-auto">
+                {(item.offer_services ?? []).map((v) => (
+                  <button
+                    key={`sv-${v.name}`}
+                    type="button"
+                    className="block w-full rounded px-1 py-0.5 text-left hover:bg-bg2"
+                    onClick={() => setOffer({ ...offer, selected_name: v.name })}
+                  >
+                    <span className="font-semibold text-tx">{v.name}</span>{' '}
+                    <span className="text-tx3">Service{v.detail && v.detail !== 'Pillar' ? ` · ${v.detail}` : ''}</span>
+                  </button>
+                ))}
+                {(item.offer_catalogue ?? []).map((c) => (
+                  <button
+                    key={`cat-${c.name}`}
+                    type="button"
+                    className="block w-full rounded px-1 py-0.5 text-left hover:bg-bg2"
+                    onClick={() => setOffer({ ...offer, selected_name: c.name })}
+                  >
+                    <span className={`font-semibold ${c.suggested ? 'text-emerald-400' : 'text-tx'}`}>{c.name}</span>{' '}
+                    <span className="text-tx3">
+                      {c.qty} on shelf · {c.suggested ? 'Suggested: ' : 'Not suggested: '}
+                      {c.reason}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </details>
+            {item.offer_note ? <p className="text-[11px] text-tx3">{item.offer_note}</p> : null}
+            <div className="flex flex-wrap gap-2">
+              <input
+                aria-label="Price"
+                placeholder="Price, e.g. R1,499"
+                className={`${field} w-40`}
+                value={offer.price}
+                onChange={(e) => setOffer({ ...offer, price: e.target.value })}
+              />
+              <input
+                aria-label="Discount"
+                placeholder="Discount, e.g. 15% off"
+                className={`${field} w-44`}
+                value={offer.discount}
+                onChange={(e) => setOffer({ ...offer, discount: e.target.value })}
+              />
+            </div>
+            <span className="block text-[11px] text-tx3">
+              Price and discount are yours to type. Nothing is suggested or published from here.
+            </span>
+          </div>
+        ) : null}
         {item.kind === 'boost' ? (
           <label className="block text-xs text-tx2">
             Planned budget (rand)
@@ -152,6 +251,7 @@ function ItemRow({
                 note,
                 ...(item.kind === 'boost' ? { budget } : {}),
                 ...(item.kind === 'shoot' ? { shots } : {}),
+                ...(hasOfferOptions(item) ? { operator_offer: offer } : {}),
               })
             }
           >
@@ -215,10 +315,29 @@ function ItemRow({
               <span className={draft.kind === 'asked' ? 'text-emerald-400' : 'text-tx3'}>{draft.text}</span>
             )}
             {draft.kind === 'asked' ? (
-              <Link to="/review" className="font-semibold text-yel hover:underline" data-testid="plan-draft-link">
+              <Link
+                to={draftReviewHref(item, brandId || '')}
+                className="font-semibold text-yel hover:underline"
+                data-testid="plan-draft-link"
+              >
                 Open Approve drafts
               </Link>
             ) : null}
+          </div>
+        ) : null}
+        {hasOfferOptions(item) ? (
+          <div className="mt-0.5 space-y-0.5" data-testid="plan-offer-info">
+            <p className="text-[11px] text-tx2">
+              {(item.candidate_offers?.length ?? 0) > 0
+                ? `Suggested: ${(item.candidate_offers ?? []).slice(0, 5).map((c) => c.name).join('; ')}${(item.candidate_offers?.length ?? 0) > 5 ? ` and ${(item.candidate_offers?.length ?? 0) - 5} more` : ''}.`
+                : 'No stock suggestions yet.'}{' '}
+              Use Change to choose anything: stock, a service, or your own idea.
+            </p>
+            <p className={`text-[11px] ${item.operator_offer?.selected_name ? 'text-emerald-400' : 'text-yel'}`}>
+              {item.operator_offer?.selected_name
+                ? `Leading with ${item.operator_offer.selected_name}${item.operator_offer.price ? ` at ${item.operator_offer.price}` : ''}${item.operator_offer.discount ? `, ${item.operator_offer.discount}` : ''}.`
+                : 'Nothing chosen yet. Use Change to pick one and add the price.'}
+            </p>
           </div>
         ) : null}
         {item.kind === 'shoot' ? (
@@ -479,6 +598,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
             key={it.item_id}
             item={it}
             today={today}
+            brandId={brandId}
             locked={approved}
             onSave={async (patch) => take(await editPlanItem(brandId, plan.plan_id, it.item_id, patch))}
             eventKind={plan.event_kind || plan.profile}

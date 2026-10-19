@@ -10,6 +10,7 @@ import {
   Sun,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { GbpTodayCard } from '../components/GbpTodayCard'
 import '../fun.css'
 import { DeskRing, FunTile, Mascot } from '../components/fun'
 import { burstConfetti } from '../lib/confetti'
@@ -679,6 +680,7 @@ export function Daily() {
 
       <DailyBrandSocials rows={socialRows} />
 
+      {scope !== 'all' ? <GbpTodayCard brandId={scope} /> : null}
       <section>
         <h2 className="mb-3 font-display text-xl font-semibold">Shortcuts</h2>
         <div className="fun-shortcuts grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

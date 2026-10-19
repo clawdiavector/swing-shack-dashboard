@@ -30,6 +30,14 @@ const TAB_OPTIONS = [
   { id: 'traffic', label: 'Traffic' },
 ]
 
+// Badge colour follows the verdict from get_top_instagram_posts; unknown verdicts stay neutral.
+function verdictTone(verdict: string): 'green' | 'gold' | 'red' | 'mute' {
+  if (verdict === 'Top performer' || verdict === 'Above average') return 'green'
+  if (verdict === 'Below average') return 'gold'
+  if (verdict === 'Underperformer') return 'red'
+  return 'mute'
+}
+
 function resolveTab(raw: string | null): WorkedTab {
   if (raw === 'recipes' || raw === 'ctas' || raw === 'patterns' || raw === 'traffic') return raw
   return 'posts'
@@ -199,6 +207,17 @@ export function Worked() {
             {(posts || []).map((post, i) => {
               const key = post.id || String(i)
               const selected = highlightKey === key
+              const rate = post.engagementRate
+              const avg = postsMeta?.average_engagement
+              const ratio = rate != null && avg ? rate / avg : null
+              const reactions = [
+                post.like_count ? `${post.like_count.toLocaleString()} ${post.like_count === 1 ? 'like' : 'likes'}` : null,
+                post.comments_count
+                  ? `${post.comments_count.toLocaleString()} ${post.comments_count === 1 ? 'comment' : 'comments'}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')
               return (
                 <li
                   key={key}
@@ -208,14 +227,21 @@ export function Worked() {
                   className={`glass rounded-2xl border px-4 py-3 ${selected ? 'border-yel/50 ring-1 ring-yel/30' : 'border-white/10'}`}
                 >
                   <div className="flex gap-3">
+                    <span className="pt-0.5 font-display text-sm font-semibold text-tx3">#{i + 1}</span>
                     {post.thumbnail_url ? (
                       <img src={post.thumbnail_url} alt="" className="h-16 w-16 rounded-lg object-cover" />
                     ) : null}
                     <div className="min-w-0 flex-1 text-sm">
-                      <p className="font-medium text-tx">{post.plain_english || post.caption_excerpt || 'Post'}</p>
-                      <p className="mt-1 flex flex-wrap gap-2 text-xs text-tx3">
-                        {post.verdict ? <Badge tone="green">{post.verdict}</Badge> : null}
-                        {post.engagementRate != null ? <span>{post.engagementRate.toFixed(2)}% engagement</span> : null}
+                      <p className="line-clamp-2 font-medium text-tx">{post.caption_excerpt || 'Post with no caption saved'}</p>
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-tx3">
+                        {post.verdict ? <Badge tone={verdictTone(post.verdict)}>{post.verdict}</Badge> : null}
+                        {rate != null ? (
+                          <span>
+                            {rate.toFixed(2)}% engagement
+                            {ratio != null && avg != null ? ` · ${ratio.toFixed(1)}× the ${avg.toFixed(2)}% average` : ''}
+                          </span>
+                        ) : null}
+                        {reactions ? <span>{reactions}</span> : null}
                         {post.timestamp ? <span>{formatStamp(post.timestamp)}</span> : null}
                       </p>
                       {post.permalink ? (
