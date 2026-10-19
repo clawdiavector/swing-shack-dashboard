@@ -68,6 +68,14 @@ function verdictTone(verdict: string): 'green' | 'gold' | 'red' | 'mute' {
   return 'mute'
 }
 
+// One line under the Learn verdict so "LATE" reads as a status, not a score.
+const LEARN_VERDICT_HELP: Record<string, string> = {
+  OK: 'Enough scored winners to build recipes from.',
+  LATE: 'Samples are in, but no recipe is ready yet. Not enough winners to call a pattern.',
+  FAILED: 'The latest proposal gate failed.',
+  NEVER: 'No samples yet.',
+}
+
 function resolveTab(raw: string | null): WorkedTab {
   if (raw === 'recipes' || raw === 'ctas' || raw === 'patterns' || raw === 'traffic') return raw
   return 'posts'
@@ -219,6 +227,9 @@ export function Worked() {
             {learnSummary.headline.winners ?? 0} winners · {learnSummary.headline.recipes ?? 0} recipes ·{' '}
             {learnSummary.headline.samples ?? 0} samples
           </p>
+          {LEARN_VERDICT_HELP[learnSummary.headline.verdict ?? ''] ? (
+            <p className="mt-1 text-xs text-tx3">{LEARN_VERDICT_HELP[learnSummary.headline.verdict ?? '']}</p>
+          ) : null}
           <p className="mt-2 text-xs text-tx3">
             <span className="font-semibold">Portfolio-wide</span> — from /api/ops/learn/summary (not brand-scoped).
             {learnSummary.generated_at ? ` As of ${formatStamp(learnSummary.generated_at)}.` : ''}
@@ -334,10 +345,21 @@ export function Worked() {
 
       {tab === 'recipes' && learning ? (
         <div className="space-y-6">
+          {/* The weekly file mixes real results with counts (kind "signal"). Only results go under "What worked". */}
           <div>
             <h3 className="mb-2 font-semibold text-tx">What worked</h3>
-            {learningList(learning.what_worked, 'No recipes yet — ship a few winners first.')}
+            {learningList(
+              (learning.what_worked || []).filter((r) => r.kind !== 'signal'),
+              'No scored winners yet. The Posts tab shows which Instagram posts have worked.',
+            )}
           </div>
+          {(learning.what_worked || []).some((r) => r.kind === 'signal') ? (
+            <div>
+              <h3 className="mb-1 font-semibold text-tx">Weekly signals (not results)</h3>
+              <p className="mb-2 text-xs text-tx3">Counts from the weekly learnings file. They are not measured outcomes.</p>
+              {learningList((learning.what_worked || []).filter((r) => r.kind === 'signal'), '')}
+            </div>
+          ) : null}
           <div>
             <h3 className="mb-2 font-semibold text-tx">What failed</h3>
             {learningList(learning.what_failed, 'No failures captured this cycle.')}
