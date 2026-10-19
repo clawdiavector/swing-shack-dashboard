@@ -2474,9 +2474,12 @@ export async function submitStoryLink(body: { brand: string; url: string; note?:
 export type StorySuggestion = {
   brand: string
   date: string
-  kind: 'retail' | 'service' | 'moment'
+  kind: 'daily' | 'retail' | 'service' | 'moment' | 'stock'
   feature: string
-  repost_from: { id: string; name: string; instagram: string | null; facebook: string | null; look_for: string }
+  /** Null for a stock story: it is our own product, not a repost. */
+  repost_from: { id: string; name: string; instagram: string | null; facebook: string | null; look_for: string } | null
+  /** Why this line, for a stock story. */
+  why?: string
 }
 
 export function fetchStorySuggestions() {

@@ -14714,10 +14714,19 @@ def stories_suggestion_route():
     from datetime import datetime
     from zoneinfo import ZoneInfo
     from _lib import story_suggestion
+    from _lib import stock_pulse as sp
 
     brands = [request.args['brand']] if request.args.get('brand') else ['swing-shack', 'stick']
     day = datetime.now(ZoneInfo('Africa/Johannesburg')).date()
     out = [s for b in brands for s in story_suggestion.suggest(b, day)]
+    for b in brands:
+        try:
+            stock = story_suggestion.stock_story(b, day, sp.candidates_for(b))
+        except Exception:
+            _app_log.exception("stock story failed for %s", b)
+            stock = None
+        if stock:
+            out.append(stock)
     return jsonify({"ok": True, "suggestions": out})
 
 
@@ -46527,12 +46536,22 @@ def _cs_items(brand_id, month):
     important-dates list, minus anything already on the calendar."""
     from zoneinfo import ZoneInfo
     from _lib import calendar_suggestions as cs
+    from _lib import stock_pulse as sp
     first, last = cs.month_bounds(month)
     today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
     note_rows, names = _cs_inputs(brand_id, sorted({first.year, last.year}))
-    return cs.month_items(
+    decisions = cs.read_decisions(brand_id)
+    items = cs.month_items(
         brand_id, month, _operator_pending_suggestions(brand_id), _typed_by_operator,
-        note_rows, cs.read_decisions(brand_id), names, today)
+        note_rows, decisions, names, today)
+    try:
+        stock = sp.candidates_for(brand_id)
+    except Exception:
+        _app_log.exception("stock suggestions failed for %s", brand_id)
+        stock = []
+    items += cs.stock_items(brand_id, month, stock, decisions, names, [i["date"] for i in items], today)
+    items.sort(key=lambda i: (i["date"], i["title"]))
+    return items
 
 
 @app.route("/api/calendar-suggestions/<brand_id>/triage", methods=["GET"])
@@ -46615,13 +46634,13 @@ def calendar_suggestions_approve(brand_id):
     actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
     cid, made = item.get("calendar_id"), False
     pillars = [p for p in (body.get("pillars") or []) if isinstance(p, str) and p]
-    if item["source"] != "date" and pillars and not item.get("pillars"):
+    if item["source"] not in cs.DECIDED_SOURCES and pillars and not item.get("pillars"):
         # A row with no pillar can still be approved, but could never get a brief.
         try:
             mc.set_pillars(brand_id, cid, pillars, reason=f"pillar chosen when approved by {actor}")
         except ValueError as e:
             return jsonify({"ok": False, "error": str(e)}), 400
-    if item["source"] == "date":
+    if item["source"] in cs.DECIDED_SOURCES:
         why = item.get("why") or ""
         try:
             rec = mc.add_candidate(brand_id, {
@@ -46651,7 +46670,7 @@ def calendar_suggestions_approve(brand_id):
         if made:
             mc.transition_status(brand_id, cid, "ignored", reason="approval failed; not kept")
         return jsonify({"ok": False, "error": data.get("error") or "could not approve it"}), (code if code >= 400 else 400)
-    if item["source"] == "date":
+    if item["source"] in cs.DECIDED_SOURCES:
         cs.record_decision(brand_id, item["key"], "approved", actor, calendar_id=cid,
                            event_key=data.get("event_key"))
     undo = {"kind": "approve", "key": item["key"], "source": item["source"],
@@ -46676,13 +46695,37 @@ def calendar_suggestions_reject(brand_id):
     if not item:
         return jsonify({"ok": False, "error": "that suggestion is no longer there"}), 404
     actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
-    if item["source"] == "date":
+    if item["source"] in cs.DECIDED_SOURCES:
         cs.record_decision(brand_id, item["key"], "rejected", actor)
     else:
         mc.transition_status(brand_id, item["calendar_id"], "ignored",
                              reason=f"rejected from the calendar view by {actor}")
     undo = {"kind": "reject", "key": item["key"], "source": item["source"],
             "calendar_id": item.get("calendar_id"), "month": body.get("month")}
+    undo["token"] = cs.issue_undo(brand_id, undo)
+    return jsonify({"ok": True, "undo": undo}), 200
+
+
+@app.route("/api/calendar-suggestions/<brand_id>/swap", methods=["POST"])
+def calendar_suggestions_swap(brand_id):
+    """Different product: this stock line is set aside for the month and the same
+    day is offered the next line on the list. Undo brings it back."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    body = request.get_json(silent=True) or {}
+    try:
+        item = _cs_find(brand_id, body)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    if not item or item["source"] != "stock":
+        return jsonify({"ok": False, "error": "that is not a stock line on this month"}), 404
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    cs.record_decision(brand_id, item["key"], "swapped", actor)
+    # Undo reverses it the same way as a reject: the decision is cleared.
+    undo = {"kind": "reject", "key": item["key"], "source": "stock", "calendar_id": None,
+            "month": body.get("month")}
     undo["token"] = cs.issue_undo(brand_id, undo)
     return jsonify({"ok": True, "undo": undo}), 200
 
@@ -46708,7 +46751,7 @@ def calendar_suggestions_undo(brand_id):
     if kind == "later":
         cs.clear_decision(brand_id, key)
     elif kind == "reject":
-        if source == "date":
+        if source in cs.DECIDED_SOURCES:
             cs.clear_decision(brand_id, key)
         elif cid:
             mc.transition_status(brand_id, cid, "candidate", reason="reject undone")
@@ -46716,9 +46759,9 @@ def calendar_suggestions_undo(brand_id):
         if event_key:
             mc.transition_status(brand_id, event_key, "ignored", reason="approval undone")
         if cid:
-            mc.transition_status(brand_id, cid, "ignored" if source == "date" else "candidate",
+            mc.transition_status(brand_id, cid, "ignored" if source in cs.DECIDED_SOURCES else "candidate",
                                  reason="approval undone")
-        if source == "date":
+        if source in cs.DECIDED_SOURCES:
             cs.clear_decision(brand_id, key)
     cs.drop_undo(brand_id, token)
     # A draft plan made when this date was approved goes with it. The id comes from

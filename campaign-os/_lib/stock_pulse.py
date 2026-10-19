@@ -508,3 +508,20 @@ def match_photos(product_name: str, images_dir: Path) -> Dict[str, Any]:
         "exact": exact,
         "candidates": [p for _, p in partial[:3]],
     }
+
+
+def candidates(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Lines worth a post now: stuck or still first, then the deep shelf. Each name once."""
+    seen, out = set(), []
+    for r in push_list(results) + heavy_shelf(results):
+        if r["name"] in seen:
+            continue
+        seen.add(r["name"])
+        out.append(r)
+    return out
+
+
+def candidates_for(brand_id: str) -> List[Dict[str, Any]]:
+    """The brand's current candidates, straight from its saved stock lists. Empty when none saved."""
+    snaps = load_snapshots(brand_id)
+    return candidates(analyse(snaps)) if snaps else []
