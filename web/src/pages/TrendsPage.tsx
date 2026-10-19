@@ -1,8 +1,9 @@
 import { TrendingUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
+import { ADS_BRANDS, AdsSection } from '../components/AdsTrends'
 import { PageIntro } from '../components/chrome'
-import { Badge } from '../components/ui'
+import { Badge, Tip } from '../components/ui'
 import { getJson } from '../lib/api'
 import { ageDays, dateOnly } from '../lib/dataAge'
 
@@ -72,6 +73,7 @@ function AsOf({ label, iso }: { label: string; iso?: string }) {
 export function TrendsPage() {
   const { brandId, brandLabel } = useBrand()
   const isSwingShack = brandId === 'swing-shack'
+  const hasAds = !!brandId && ADS_BRANDS.includes(brandId)
   const [catcher, setCatcher] = useState<TrendCatcher | null>(null)
   const [signals, setSignals] = useState<TrendsV2 | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -94,8 +96,17 @@ export function TrendsPage() {
   return (
     <div className="space-y-6">
       <PageIntro icon={TrendingUp} badge="Results" here="/results/trends" title="Trends">
-        What is moving in golf and in the competitor set, and what to do about it.
+        What is moving: ads first, then golf and the competitor set, and what to do about it.
       </PageIntro>
+
+      <section className="space-y-3">
+        <h2 className="font-display text-xl font-semibold">Paid movement</h2>
+        {hasAds && brandId ? (
+          <AdsSection brandId={brandId} brandLabel={brandLabel} />
+        ) : (
+          <Tip>Paid trends exist for Swing Shack and Stick only. Switch brand at the top to see them.</Tip>
+        )}
+      </section>
 
       {!isSwingShack ? (
         <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">

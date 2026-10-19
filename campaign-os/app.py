@@ -52780,6 +52780,21 @@ def meta_ads_history(brand_id):
     return jsonify({"ok": True, "history": history}), 200
 
 
+@app.route("/api/meta/ads/trends/<brand_id>", methods=["GET"])
+def meta_ads_trends(brand_id):
+    """GET /api/meta/ads/trends/<brand_id> — week-by-week totals and per-ad winners, from the last ads_brief run."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    latest = _ads_lane_load(brand_id, "ads-history/latest.json")
+    if latest is None:
+        return jsonify({"ok": False, "error": "no ads trends yet — run the ads_brief job"}), 404
+    return jsonify({"ok": True, "trends": latest.get("trends") or {}, "winners": latest.get("winners") or {},
+                    "period": latest.get("period") or {}, "errors": latest.get("errors") or []}), 200
+
+
 @app.route("/api/meta/ads/library/<brand_id>", methods=["GET"])
 def meta_ads_library(brand_id):
     """GET /api/meta/ads/library/<brand_id>[?refresh=1] — other advertisers' ads."""
