@@ -104,9 +104,15 @@ def test_bad_token_401(job_app):
     assert resp.status_code == 401
 
 
-def test_v1_candidates_still_session_only(job_app):
+def test_v1_candidates_bearer_not_401(job_app):
     client, _ = job_app
     resp = client.post("/api/calendar/candidates", headers=_auth(), json={})
+    assert resp.status_code != 401
+
+
+def test_v1_candidates_anon_401(job_app):
+    client, _ = job_app
+    resp = client.post("/api/calendar/candidates", json={})
     assert resp.status_code == 401
 
 

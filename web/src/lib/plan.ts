@@ -1,6 +1,6 @@
 // Client for /api/plan/v1: a dated, editable checklist built from a brief.
 // Every call resolves to {ok, error?}; none throws, so the panel can show
-// the server's own plain-language refusal ("the brief is not approved yet").
+// the server's own plain-language refusal.
 
 export type PlanItemKind =
   | 'research'
@@ -13,6 +13,30 @@ export type PlanItemKind =
   | 'boost'
 
 export type PlanItemStatus = 'proposed' | 'kept' | 'removed' | 'done'
+
+export type CandidateOffer = {
+  name: string
+  category?: string
+  qty: number
+  days_unchanged: number
+  status: string
+  reason: string
+  idea?: string
+}
+
+export type OfferOption = {
+  name: string
+  category?: string
+  qty: number
+  status: string
+  reason: string
+  suggested: boolean
+  north_star_product?: boolean
+}
+
+export type OfferService = { name: string; detail?: string }
+
+export type OperatorOffer = { selected_name: string; price: string; discount: string }
 
 export type PlanItem = {
   item_id: string
@@ -36,6 +60,17 @@ export type PlanItem = {
   draft?: { requested_at: string; by: string; moment: string; queued: string[] } | null
   /** Set once the step is on the Main Calendar; '' otherwise. */
   calendar_id?: string
+  /** An offer step: stock-driven candidates from the brief (system draft, read-only). */
+  candidate_offers?: CandidateOffer[]
+  /** An offer step: every stock line sold as-is, each with why it is or is not suggested. */
+  offer_catalogue?: OfferOption[]
+  /** An offer step: the brand's services (fitting, coaching...). */
+  offer_services?: OfferService[]
+  /** An offer step: the product the Retail North Star is about, e.g. Psycho Bunny. */
+  offer_focus?: string
+  offer_note?: string
+  /** An offer step: what the operator chose. Price and discount are only ever typed by them. */
+  operator_offer?: OperatorOffer
   source: 'template' | 'operator'
 }
 
@@ -137,7 +172,7 @@ export const proposePlan = (brand: string, briefId: string, force = false, profi
   call('POST', `${base(brand)}/propose`, { brief_id: briefId, force, ...(profile ? { profile } : {}) })
 
 /** What can be changed on a step. A budget may be typed ("1,500"); the server reads it. */
-export type PlanItemPatch = Partial<Omit<PlanItem, 'budget' | 'shots' | 'asked'>> & {
+export type PlanItemPatch = Partial<Omit<PlanItem, 'budget' | 'shots' | 'asked' | 'candidate_offers' | 'offer_catalogue' | 'offer_services'>> & {
   budget?: number | string | null
   /** A list, or text with one shot per line. */
   shots?: string[] | string
@@ -160,6 +195,16 @@ export const requestDraft = (brand: string, planId: string, itemId: string, name
   call('POST', `${base(brand)}/${encodeURIComponent(planId)}/item/${encodeURIComponent(itemId)}/draft`, {}, {
     'X-Actor-Display-Name': name,
   })
+
+/** Approve drafts, opened on this post's caption — not the next unrelated one. */
+export function draftReviewHref(item: PlanItem, brandId: string): string {
+  const q = new URLSearchParams()
+  if (brandId) q.set('brand', brandId)
+  if (item.draft?.moment) q.set('moment', item.draft.moment)
+  else if (item.calendar_id) q.set('calendar', item.calendar_id)
+  const qs = q.toString()
+  return qs ? `/review?${qs}` : '/review'
+}
 
 /** What a post step shows about its draft: the button, or what happened. */
 export function draftState(
@@ -247,8 +292,8 @@ export function splitItems(items: PlanItem[]): { active: PlanItem[]; removed: Pl
 
 /** Why Approve is disabled, in words, or '' when it can go ahead. */
 export function approveBlocker(plan: Plan): string {
-  if (plan.brief_status !== 'approved') {
-    return 'The brief is not approved yet. Approve the brief first, then this plan.'
+  if (!plan.brief_id) {
+    return 'This plan has no brief.'
   }
   const { active } = splitItems(plan.items)
   if (!active.length) return 'Every step is removed.'

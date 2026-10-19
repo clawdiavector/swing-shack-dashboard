@@ -28,6 +28,10 @@ pipeline calls today. That gate reads the old `voice/do-say-dont-say.md` files; 
 one reads the bibles. `lint()` is importable so the two can be joined once the owners
 confirm the bibles.
 
+While a bible sets `list_enforcement: warn`, hashtag, emoji and unlisted call-to-action
+hits are warnings. Banned phrases, names, the sign-off, dashes and the other mechanical
+bans stay hard fails. Set `list_enforcement: hard` when those lists are confirmed.
+
 Exit status (single caption): 0 no hard fails, 1 hard fails, 2 bad usage.
 """
 from __future__ import annotations
@@ -196,6 +200,21 @@ RULES_INDEX = {
 # --------------------------------------------------------------------------- #
 # Loading the brand's rules
 # --------------------------------------------------------------------------- #
+# Allow-lists the owners have not confirmed. While list_enforcement is "warn",
+# these still report, but they are not Gate hard fails. Banned phrases, names,
+# sign-off, dashes and the other mechanical bans stay hard.
+_LIST_CODES = frozenset({
+    "hashtag-count", "hashtag-allowed", "emoji-count", "emoji-allowed", "cta-unlisted",
+})
+
+
+def list_level(rules: dict, code: str, level: str) -> str:
+    """Downgrade an unconfirmed allow-list hit from HARD to WARN."""
+    if level == HARD and code in _LIST_CODES and str(rules.get("list_enforcement", "hard")).lower() == "warn":
+        return WARN
+    return level
+
+
 def load_rules(brand: str, bible: Path | None = None) -> dict:
     path = Path(bible) if bible else BRAND_DIR / brand / "BRAND-BIBLE.md"
     if not path.exists():
@@ -568,9 +587,9 @@ def lint(brand: str, text: str, *, rules: dict | None = None, lane: str | None =
     if tags:
         hmax = rules.get("hashtags_max")
         if hmax is not None and len(tags) > int(hmax):
-            F.add("hashtag-count", HARD, f"{len(tags)} hashtags, the limit is {hmax}", " ".join(tags[:8]))
+            F.add("hashtag-count", list_level(rules, "hashtag-count", HARD), f"{len(tags)} hashtags, the limit is {hmax}", " ".join(tags[:8]))
         elif len(tags) > 5:
-            F.add("hashtag-count", HARD, f"{len(tags)} hashtags is a wall", " ".join(tags[:8]))
+            F.add("hashtag-count", list_level(rules, "hashtag-count", HARD), f"{len(tags)} hashtags is a wall", " ".join(tags[:8]))
         allowed = {a.lower(): a for a in (rules.get("hashtags_allowed") or [])}
         bad = []
         for t in tags:
@@ -580,7 +599,7 @@ def lint(brand: str, text: str, *, rules: dict | None = None, lane: str | None =
             elif allowed and rules.get("hashtags_camelcase") and core != allowed[core.lower()]:
                 bad.append(f"{t} (write #{allowed[core.lower()]})")
         if bad:
-            F.add("hashtag-allowed", HARD, "Hashtags: " + "; ".join(bad[:4]), "")
+            F.add("hashtag-allowed", list_level(rules, "hashtag-allowed", HARD), "Hashtags: " + "; ".join(bad[:4]), "")
         if not letters(plain):
             F.add("only-tags", WARN, "The caption is only hashtags", "")
 
@@ -594,14 +613,14 @@ def lint(brand: str, text: str, *, rules: dict | None = None, lane: str | None =
             if int(emax) == 0:
                 # None allowed, except the few on the allowed list.
                 if stray:
-                    F.add("emoji-allowed", HARD,
+                    F.add("emoji-allowed", list_level(rules, "emoji-allowed", HARD),
                           "No emoji allowed here" + (" except " + "".join(rules["emoji_allowed"]) if allowed_e else ""),
                           "".join(dict.fromkeys(stray)))
             else:
                 if len(ems) > int(emax):
-                    F.add("emoji-count", HARD, f"{len(ems)} emoji, the limit is {emax}", "".join(e.group(0) for e in ems[:6]))
+                    F.add("emoji-count", list_level(rules, "emoji-count", HARD), f"{len(ems)} emoji, the limit is {emax}", "".join(e.group(0) for e in ems[:6]))
                 if stray and allowed_e:
-                    F.add("emoji-allowed", HARD, "Emoji not on the allowed list: " + "".join(dict.fromkeys(stray)), "")
+                    F.add("emoji-allowed", list_level(rules, "emoji-allowed", HARD), "Emoji not on the allowed list: " + "".join(dict.fromkeys(stray)), "")
         if rules.get("emoji_requires_space_before"):
             for e in ems:
                 if e.start() > 0 and not raw[e.start() - 1].isspace() and not EMOJI_RE.fullmatch(raw[e.start() - 1]):
@@ -616,7 +635,7 @@ def lint(brand: str, text: str, *, rules: dict | None = None, lane: str | None =
     if n_cta > cta_max:
         F.add("cta-multiple", HARD, f"{n_cta} calls to action, the limit is {cta_max}", " | ".join((listed + unlisted)[:3]))
     for u in unlisted:
-        F.add("cta-unlisted", HARD, "Call to action not on the approved list", u[:90])
+        F.add("cta-unlisted", list_level(rules, "cta-unlisted", HARD), "Call to action not on the approved list", u[:90])
     if lane_rules.get("cta_required") and n_cta == 0:
         F.add("cta-missing", WARN, f"The '{lane}' lane needs a call to action", "")
 

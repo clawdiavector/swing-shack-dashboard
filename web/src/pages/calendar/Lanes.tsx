@@ -366,6 +366,7 @@ export function Lanes() {
           eventDetail={eventDetail}
           onOpenEvent={openEvent}
           onCloseEvent={closeEvent}
+          focusEvent={params.get('event') || params.get('brief') || params.get('plan') || ''}
         />
       ) : null}
 

@@ -1,0 +1,122 @@
+{
+  "note": "Where each stocked brand's official product images live and how to get them. Learned 2026-10-15 by scouting both shops' stock lists. Update when a site changes.",
+  "rules": [
+    "Official brand image first. Never a retailer's copy, never anything generated or redrawn.",
+    "Look at the picture (contact sheet) before trusting a page title: Callaway's titles and headings disagree.",
+    "A standard model image for a custom build is saved with exact_build=false and shown as 'standard image'.",
+    "Nothing reaches the feed until a person approves it on the photo map."
+  ],
+  "brands": {
+    "Titleist": {
+      "site": "https://www.titleist.com",
+      "method": "browser pane; images saved with the browser's own download (anchor with a download name), which lands on the Desktop, then moved into the photo map",
+      "images": "https://www.titleist.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-titleist-master/default/<hash>/<code>_01.png?sw=2000&sh=2000&sm=fit&sfrm=png (2000px)",
+      "blocked": "Scripts get 403 from the image server, so a script cannot fetch them. The browser pane can: fetch the image inside the page and trigger a normal download, wait a few seconds, then read the file from the Desktop. Downloads can drop silently when several fire at once: space them 4 s apart and check the Desktop. Do not relay bytes through a local server (denied)."
+    },
+    "Srixon": {
+      "site": "https://ca.dunlopsports.com",
+      "method": "Shopify /collections/<name>/products.json",
+      "images": "870px packshots (SX25-Balls-*)",
+      "note": "srixon.com US now errors; the Dunlop Sports Canada store carries Srixon's own images. 870px: run the faithful Topaz upscale before use."
+    },
+    "Callaway": {
+      "site": "https://www.callawaygolf.com",
+      "method": "image path pattern",
+      "images": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792042806975/sits/balls-<year>-<model>/balls-<year>-<model>_2___1.jpg?sw=2000&q=90&bgcolor=F7F7F7&sfrm=png",
+      "note": "Listing pages hang a hidden browser pane; open product pages in a fresh tab. Titles and headings can disagree. 2026 images exist for chrome-tour, chrome-tour-x, chrome-tour-td, chrome-soft; confirm the stock generation. Quantum Mini (2026) image: .../sits/drivers-2026-quantum-mini/drivers-2026-quantum-mini___1.png?sw=2000."
+    },
+    "Vice Golf": {
+      "site": "https://www.vicegolf.com",
+      "method": "page scrape (no /products.json)",
+      "images": "cdn.shopify.com dozen-box shots, full size when the width parameter is dropped",
+      "note": "Balls found. Clubs, bags and junior sets not found yet. Stock is sleeves; the site shows dozen boxes."
+    },
+    "Takomo": {
+      "site": "https://takomogolf.com",
+      "method": "Shopify products.json",
+      "images": "transparent PNG, 1200px",
+      "note": "301 CB, MB and Combo are separate products; the stock just says '301'."
+    },
+    "L.A.B. Golf": {
+      "site": "https://labgolf.com",
+      "method": "Shopify products.json",
+      "images": "1800px head shots on black",
+      "note": "Standard black models only. Custom shaft and colour builds are not online."
+    },
+    "Vessel": {
+      "site": "https://vesselgolf.com",
+      "method": "Shopify /products.json",
+      "images": "2048px",
+      "note": "Full current catalogue incl. Player V Stand and Prime 2.0 Staff."
+    },
+    "Mileseey": {
+      "site": "https://mileseeygolf.com",
+      "method": "browser pane for the product list, og:image on each product page",
+      "images": "img-va.myshopline.com, w=1600 (S1 source is 800px). Downloads fine from a script.",
+      "note": "GenePro G1 and S1, GeneSonic Pro, IONME2 all found. Some images carry award badges (Red Dot, MyGolfSpy, TIME): crop before use."
+    },
+    "Golf Pride": {
+      "site": "https://www.golfpride.com",
+      "method": "browser pane",
+      "note": "Opens in the pane. The only large images on the grip pages are macro texture banners (no colour, no whole grip), not product shots; product shots come from images.eaton.com with coded part numbers and cannot be told apart by colour. Treat Golf Pride as a shoot-in-store brand."
+    },
+    "GripDrip": {
+      "site": "https://gripdripgolf.com",
+      "method": "Shopify /products.json",
+      "images": "2400x1800 and larger, one product per colourway",
+      "note": "The real store (gripdrip.com is parked). Names match the stock lists exactly, towels included."
+    },
+    "RipIt": {
+      "site": "https://ripitgrips.com",
+      "method": "Shopify /products.json",
+      "images": "2100x2900, one image per DESIGN",
+      "note": "The feed does not tie an image to a colourway, so every colourway of a design gets the same picture. Use one design image per range; shoot the colourways."
+    },
+    "Not scouted yet": [
+      "Jordan bags",
+      "Vice clubs, bags and junior sets (site has no product feed)",
+      "AJM GripCo, Lamkin, Icon, Star Grip, Pure Grip (no site found)",
+      "Titleist gloves, Vokey SM10, Scotty Cameron",
+      "Srixon gloves"
+    ],
+    "Psycho Bunny": {
+      "site": "https://psychobunny.com",
+      "method": "Shopify /products.json; match the style code in the title to the SKU prefix, then the Color option",
+      "images": "1500x1870 on a grey background or on a model",
+      "note": "Current season only. Past-season styles (Denis and Dale graphic tees, Kingston polo, caps, umbrella, Top Grey) are gone from the site."
+    },
+    "Herschel": {
+      "site": "https://herschel.com",
+      "method": "Shopify /products.json",
+      "images": "3500px",
+      "note": "Watt Stand, Watt Sunday, Watt Light Stand and Realtree versions."
+    },
+    "TaylorMade": {
+      "site": "https://www.taylormadegolf.co.za",
+      "note": "Qi10 fairway is a past model, not on the maker's site. Retailer pages only, so not used."
+    },
+    "FootJoy": {
+      "site": "https://www.footjoy.com",
+      "method": "browser pane",
+      "note": "Gloves saved the same way as Titleist (browser download, then moved). Hero images are glove plus retail pack, 2000px. StaSof, WeatherSof, RainGrip, SofJoy, SciFlex found; the old Hyper Flex is not on the site."
+    },
+    "Odyssey": {
+      "site": "https://odyssey.callawaygolf.com",
+      "method": "browser pane (the site is on Callaway's platform); page og:image",
+      "images": "https://prd-sfcc.callawaygolf.com/.../sits/<slug>/<slug>___1.png?sw=2000 (2000px, downloads from a script)",
+      "note": "Ai-One Double Wide CH, Rossie DB (US site) and Milled Seven T (Odyssey Europe page) found. Stock names do not give the hosel (CH or DB), so each is flagged to confirm. odysseygolf.com itself returns 429 to scripts; odyssey.callawaygolf.com works in the pane."
+    },
+    "Ping": {
+      "site": "https://ping.com/en-us",
+      "method": "browser pane for the pages; images from api.next.ping.com/media/catalog/product/c/l/<file>.png",
+      "images": "1600x1600 PNG, top-down address views and angled face views; downloads from a script with a ping.com referrer",
+      "note": "Anser 2D and DS72 each exist as PLD Milled, 2023 and Scottsdale versions and the stock name does not say which, so all three are saved as separate views per SKU (address-2023, address-scottsdale, face-pld-milled): approve one, reject the others. ping.com itself 404s plain requests."
+    },
+    "LA Golf": {
+      "site": "https://lagolfglobal.co.uk",
+      "method": "browser pane; Shopify /products.json and /products/<handle>.js (the .com site returns 409 to scripts)",
+      "images": "cdn.shopify.com, 1500px; the pictures are address views on a dark background",
+      "note": "Bel-Air II (stainless) and Bel-Air XT found. Malibu X and XT pages now 404 on the live UK store (search results are old), so they look discontinued: shoot them. 'LA Golf Driver' in the stock does not say which series (Gold, A, G, DJ, Bryson), so it cannot be matched."
+    }
+  }
+}

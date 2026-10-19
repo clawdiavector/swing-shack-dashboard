@@ -67,6 +67,8 @@ approver has not signed it.
 
 Each has a recommendation and the evidence.
 
+Until this file is `CONFIRMED`, hashtag, emoji and unlisted call-to-action hits are warnings (`list_enforcement: warn` in Part 4). They become hard fails when that value is set to `hard`. The hashtag cap, the allowed tags and the emoji list are unchanged.
+
 | # | Decision | Recommendation | Evidence |
 |---|---|---|---|
 | 1 | **Unsubstantiated claims** (finding 1). | Stop using every figure on the list above. Ask the owners whether any came from real data. Nothing goes back in without a row in the Proof bank. | Section 7 |
@@ -625,6 +627,9 @@ The best writing in the feed is in register 4 and the plainer half of register 3
 
 ```yaml
 brand: swing-shack
+# Hashtag, emoji and unlisted-CTA hits warn until this bible is CONFIRMED.
+# Set to hard when the owners sign those lists. Other mechanical bans stay hard.
+list_enforcement: warn
 language: en-ZA
 serial_comma: false
 quotes: double-curly

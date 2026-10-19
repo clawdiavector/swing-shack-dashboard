@@ -21,6 +21,7 @@ Linux desk (omarchy)     Mac (fives-mac-mini)
 | Calendar scout / cos-* | Mac Hermes |
 | Railway redeploy | Mac via mac-bridge |
 | Tickets / manifests | Linux agent-control (foreman only) |
+| Suggest Date / named window | Foreman skill `campaign-os-campaign` → `suggest_campaign.py` POSTs a candidate (Waiting for you). Not Main Calendar until a human adds it. |
 | Lodge one dated post | Foreman (Telegram or Mac `cos-foreman`) via `operator-post.md` → calendar + Create queue; Review only when complete |
 
 Full doc *(Kyle’s desk only)*: `~/finder-workspace/repos/work/agent-control/context/campaign-os-hosts.md`  

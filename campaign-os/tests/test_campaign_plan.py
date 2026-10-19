@@ -76,9 +76,17 @@ def test_edit_change_date_and_remove_and_add():
     assert a["ok"] and len(a["plan"]["items"]) == len(p["items"]) + 1
 
 
-def test_approve_needs_approved_brief():
+def test_approve_with_a_draft_brief():
     p = cp.propose_plan("stick", brief("draft"), today=TODAY)["plan"]
-    assert not cp.approve_plan("stick", p["plan_id"])["ok"]
+    assert cp.approve_plan("stick", p["plan_id"])["ok"]
+
+
+def test_approve_refuses_a_plan_with_no_brief():
+    p = cp.propose_plan("stick", brief("draft"), today=TODAY)["plan"]
+    p["brief_id"] = ""
+    cp._write_plan(p)
+    r = cp.approve_plan("stick", p["plan_id"])
+    assert not r["ok"] and "no brief" in r["error"]
 
 
 def test_approve_locks_then_reopen():
@@ -103,10 +111,8 @@ def test_boost_without_video_blocks_approval():
 
 def test_sync_brief_status_unsticks_a_plan():
     p = cp.propose_plan("stick", brief("draft"), today=TODAY)["plan"]
-    assert not cp.approve_plan("stick", p["plan_id"])["ok"]
     cp.sync_brief_status(cp.get_plan("stick", p["plan_id"]), brief("approved"))
     assert cp.get_plan("stick", p["plan_id"])["brief_status"] == "approved"
-    assert cp.approve_plan("stick", p["plan_id"])["ok"]
 
 
 def _approved_plan():
@@ -143,6 +149,8 @@ def test_place_creates_content_and_reminders_once():
     assert types["post"] == "moment" and types["story"] == "content"   # a post is a moment the Create pipeline can draft
     assert types["shoot"] == "reminder" and types["boost"] == "reminder"
     assert all(row["status"] == "approved" for row in cal.rows)
+    keys = [row["event_key"] for row in cal.rows]
+    assert all(k.startswith("stick:plan-") for k in keys) and len(set(keys)) == len(keys)
     again = cp.place_on_calendar("stick", pid, add_record=cal.add)
     assert again["placed"] == 0 and len(cal.rows) == r["placed"]
 

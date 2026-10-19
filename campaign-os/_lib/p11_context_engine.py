@@ -136,11 +136,11 @@ SERVICE_KEYWORDS = {
     "driver fitting": ["driver", "shaft", "swing speed", "attack angle", "smash factor"],
     "iron fitting": ["iron", "7-iron", "carry", "trajectory"],
     "wedge fitting": ["wedge", "bounce", "loft", "short game"],
-    "coaching": ["coach", "lesson", "swing", "tempo", "drill"],
-    "tpi assessment": ["tpi", "body", "swing", "physical", "assessment"],
-    "trackman session": ["trackman", "session", "data", "numbers"],
-    "membership": ["membership", "member", "join", "social"],
-    "fitting": ["fitting", "club", "shaft", "custom"],
+    "coaching": ["coaching", "coach", "lesson", "drill"],
+    "tpi assessment": ["tpi", "tpi assessment", "titleist performance"],
+    "trackman session": ["trackman"],
+    "membership": ["membership"],
+    "fitting": ["fitting", "fitted", "club fitting", "club assessment"],
 }
 
 
@@ -1028,22 +1028,41 @@ def _load_performance_evidence(brand_id: str) -> List[dict]:
 
 
 # ─── Brief subject detection ───────────────────────────────────────────
+def _keyword_in_brief(kw: str, text: str) -> bool:
+    needle = (kw or "").strip().lower()
+    hay = (text or "").lower()
+    if not needle or not hay:
+        return False
+    if " " in needle:
+        return needle in hay
+    return bool(re.search(rf"\b{re.escape(needle)}\b", hay))
+
+
 def _detect_brief_subject(brief: str, service: str = None, product_id: str = None) -> str:
     """Return the dominant subject of the brief (e.g. 'putter fitting')."""
     text = (brief or "").lower()
-    # Service param wins if explicit
+    # Named service wins only when it is a known subject, not a photo-job leftover.
     if service:
-        return service.lower()
+        svc = service.lower().strip()
+        if svc in SERVICE_KEYWORDS:
+            return svc
+        for key, kws in SERVICE_KEYWORDS.items():
+            if svc == key or any(_keyword_in_brief(kw, svc) for kw in kws):
+                return key
     # First try to detect a service keyword from the brief text
     for svc, kws in SERVICE_KEYWORDS.items():
-        if any(kw in text for kw in kws):
+        if any(_keyword_in_brief(kw, text) for kw in kws):
             return svc
     # If a product_id is supplied AND the brief mentions that product,
     # combine them. Otherwise return the product_id as the subject.
     if product_id:
         return product_id.lower()
-    # Fallback: most distinctive noun-ish word in brief
-    words = re.findall(r"\b[a-z]{4,}\b", text)
+    # Fallback: distinctive noun from the lodge title, not "free" / "this".
+    stop = {
+        "free", "your", "this", "that", "with", "from", "stick", "shack",
+        "golf", "today", "book", "just", "when", "have", "been",
+    }
+    words = [w for w in re.findall(r"\b[a-z]{4,}\b", text) if w not in stop]
     if words:
         return words[0]
     return ""
@@ -1109,7 +1128,7 @@ def build_generation_context(
         brief_subject = str(override)
 
     vb = _load_voice_bible()
-    voice = vb.get("voices", {}).get(brand_id, {})
+    voice = dict(vb.get("voices", {}).get(brand_id, {}))
     brand_rules = _load_brand_rules(brand_id)
     banned = _extract_banned_terms(brand_id)
     required = _extract_required_terms(brand_id)
@@ -1122,7 +1141,14 @@ def build_generation_context(
 
     from _lib.brand_bible import bible_copy_slice  # noqa: PLC0415
 
-    bible_slice = bible_copy_slice(brand_id, "caption").get("copy_system") or {}
+    bible_fields = bible_copy_slice(brand_id, "caption")
+    bible_slice = bible_fields.get("copy_system") or {}
+    markdown_voice = bible_fields.get("markdown_voice") or {}
+    if markdown_voice.get("voice_description"):
+        voice["description"] = markdown_voice["voice_description"]
+    if markdown_voice.get("personality"):
+        voice["personality"] = markdown_voice["personality"]
+    rules_excerpt = markdown_voice.get("rules_excerpt") or brand_rules.get("voice", "")[:1500]
 
     # ── Split facts by relevance to brief_subject ───────────────────
     GLOBAL_FACTS = {
@@ -1136,7 +1162,7 @@ def build_generation_context(
         "cta_default": voice.get("cta_default", ""),
         "cta_alternatives": voice.get("cta_alternatives", []),
         "hashtag_suggestions": voice.get("hashtag_suggestions", []),
-        "rules_excerpt": brand_rules.get("voice", "")[:1500],
+        "rules_excerpt": rules_excerpt,
         "tone_rules_excerpt": brand_rules.get("tone", "")[:1500],
         "punctuation_excerpt": brand_rules.get("punctuation", "")[:1000],
         "linked_brand_note": (
@@ -1281,11 +1307,11 @@ def build_generation_context(
             "voice_notes": "Data-driven hook in line 1. CTA in last line. Hashtags at end (3-6).",
         },
         "instagram_feed": {
-            "format": "Static or carousel. Caption can be 100-300 words. First line = hook.",
+            "format": "Static or carousel. Caption body: 1-2 sentences, max 220 characters. CTA is appended. First line = hook.",
             "voice_notes": "Lead with the data point or the contradiction. Don't bury the lede.",
         },
         "facebook": {
-            "format": "Longer caption acceptable. Slightly more conversational.",
+            "format": "Same length as Instagram feed. Slightly more conversational.",
             "voice_notes": "Same brand voice. Less hashtag-heavy. CTA more explicit.",
         },
         "paid_meta": {
@@ -1617,7 +1643,8 @@ def _en_za_locale_block(*, hook_cap: int, cta_cap: int) -> str:
         "Register: plain, dry, understated. No US hype openers — no Spoiler "
         "alert, Let's be real, Here's the thing, Game-changer, Level up, "
         "Unlock, Elevate your game, Pro tip.\n"
-        f"LENGTH: caption_body at most 3 sentences and 320 characters.\n"
+        f"LENGTH: caption_body at most 2 sentences and 220 characters. "
+        f"Do not write a booking/CTA line; the pipeline appends the brand CTA.\n"
         f"poster_hook at most {hook_cap} characters, at most 6 words, and must "
         f"read correctly in ALL CAPS. cta_line at most {cta_cap} characters.\n"
     )
@@ -1656,7 +1683,7 @@ def _check_locale(
     hook_cap: int = 72,
     cta_cap: int = 48,
 ) -> dict:
-    """Hard-fail US spellings/hype; soft warnings for length."""
+    """Hard-fail US spellings/hype and over-long caption bodies."""
     warnings: list[str] = []
     if not copy_package:
         return {"passed": True, "reason": "no_package", "warnings": warnings}
@@ -1676,11 +1703,11 @@ def _check_locale(
     if re.search(r"\$\s*\d", blob):
         return {"passed": False, "reason": "usd_currency", "warnings": warnings}
     body = copy_package.get("caption_body") or ""
-    if len(body) > 320:
-        warnings.append("caption_body_over_320")
+    if len(body) > 220:
+        return {"passed": False, "reason": "caption_body_over_220", "warnings": warnings}
     sentences = [s for s in re.split(r"[.!?]+", body) if s.strip()]
-    if len(sentences) > 3:
-        warnings.append("caption_body_over_3_sentences")
+    if len(sentences) > 2:
+        return {"passed": False, "reason": "caption_body_over_2_sentences", "warnings": warnings}
     hook = copy_package.get("poster_hook") or ""
     if len(hook) > hook_cap:
         warnings.append("poster_hook_over_cap")
@@ -1843,7 +1870,12 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
             "do not assert them as permanent brand truth."
         )
     contract = ctx.get("copy_contract") if isinstance(ctx.get("copy_contract"), dict) else {}
-    if contract.get("focus") or contract.get("preferred_terms"):
+    if (
+        contract.get("focus")
+        or contract.get("preferred_terms")
+        or contract.get("forbidden_unless_in_brief")
+        or contract.get("lodge_title")
+    ):
         user_parts.append("\nTEMPLATE / MOMENT COPY CONTRACT (must obey):")
         if contract.get("template_id"):
             user_parts.append(f"- Template: {contract['template_id']}")
@@ -1851,6 +1883,9 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
             user_parts.append(f"- Post type: {contract['post_type']}")
         if contract.get("lodge_title"):
             user_parts.append(f"- Lodge title (visual headline source): {contract['lodge_title']}")
+            user_parts.append(
+                "- Caption must be about that title / poster, not a different service."
+            )
         if contract.get("focus"):
             user_parts.append(f"- Stay on: {contract['focus']}")
         preferred = contract.get("preferred_terms") or []

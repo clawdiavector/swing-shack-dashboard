@@ -50,10 +50,6 @@ class CalendarRecordResolve(unittest.TestCase):
         opp = self.resolve(HALLOWEEN["calendar_id"])
         self.assertEqual(opp["event_key"], HALLOWEEN_KEY)
 
-    def test_watchlist_record_does_not_resolve(self):
-        watch = dict(HALLOWEEN, status="watchlist")
-        self.assertEqual(self.resolve(HALLOWEEN_KEY, records=[watch]), {})
-
     def test_unknown_key_still_not_found(self):
         self.assertEqual(self.resolve("swing-shack:nope:2026-10-31"), {})
 

@@ -112,6 +112,9 @@ DUAL_AUTH_PATHS = frozenset({
     '/api/posts/channels',
     # Story reposts: Foreman adds links from Telegram with bearer only.
     '/api/stories',
+    # Suggest Date: Telegram Foreman loads a candidate (Waiting for you).
+    # Exact POST path only — GET /api/calendar/candidates/<brand> stays session.
+    '/api/calendar/candidates',
 })
 
 # Dynamic-segment dual-auth prefixes. Each MUST end in '/' — see _gate comment.
@@ -15934,6 +15937,10 @@ def gbp_daily_poster_pending_route():
             "pillar": pending.get("pillar"),
             "integrity_ok": integrity_ok,
             "integrity_violations": violations,
+            "draft_id": pending.get("draft_id"),
+            "has_photo": bool(pending.get("image_url")),
+            "photo_url": (f"/api/intel/gmb/draft/{pending.get('draft_id')}/photo-file"
+                          if pending.get("draft_id") and pending.get("image_url") else None),
         },
         "plan_id": plan.get("plan_id") or plan.get("build_started_at"),
         "plan_path": plan.get("file_path"),
@@ -15982,6 +15989,11 @@ def gbp_daily_poster_approve_route():
         return jsonify({"ok": False, "brand_id": brand_id,
                         "error": "all_actioned",
                         "reason": "no pending post to approve"}), 409
+    # The Today card names the post it shows; refuse if the queue moved on since.
+    shown = (request.get_json(silent=True) or {}).get("draft_id")
+    if shown and shown != target.get("draft_id"):
+        return jsonify({"ok": False, "brand_id": brand_id, "error": "stale",
+                        "reason": "the queue changed; refresh to see the next post"}), 409
     # Publish via the integrity gate.
     publish_date = _dt_cls.now(_tz.utc).isoformat()
     try:
@@ -15989,6 +16001,8 @@ def gbp_daily_poster_approve_route():
     except Exception as exc:
         result = {"ok": False, "error": f"publish failed: {exc}",
                   "post_status": "ERROR"}
+    if result.get("ok") and target.get("draft_id"):
+        _gdp.set_draft_status(target["draft_id"], "published", drafts_dir=GMB_DRAFTS_DIR)
     # Update the plan file with the publish result.
     target["post_status"] = result.get("post_status", "ERROR")
     target["publish_result"] = result
@@ -16051,6 +16065,8 @@ def gbp_daily_poster_dismiss_route():
         return jsonify({"ok": False, "brand_id": brand_id,
                         "error": "all_actioned"}), 409
     target["post_status"] = "REMOVED"
+    if target.get("draft_id"):
+        _gdp.set_draft_status(target["draft_id"], "draft", drafts_dir=GMB_DRAFTS_DIR)
     target["publish_result"] = {"ok": False, "post_status": "REMOVED",
                                  "reason": "operator_dismissed"}
     try:
@@ -16138,6 +16154,8 @@ def _gbp_daily_publish(*, brand: str | None = None):
     except Exception as exc:
         result = {"ok": False, "error": f"publish failed: {exc}",
                   "post_status": "ERROR"}
+    if result.get("ok") and post.get("draft_id"):
+        _gdp.set_draft_status(post["draft_id"], "published", drafts_dir=GMB_DRAFTS_DIR)
     # 4. Update the plan file with the publish result so the UI shows
     # "published 9:01 SAST" or "removed: integrity_violation".
     pub_log = plan.setdefault("publish", {})
@@ -16460,6 +16478,7 @@ def gmb_create_draft():
         "cta": cta,
         "link": link,
         "imageUrl": image_url,
+        "targetQuery": (body.get('targetQuery') or '').strip()[:100],
         "brand": brand,
         "status": "draft",
         "createdAt": _now_iso(),
@@ -16485,9 +16504,13 @@ def gmb_edit_draft(draft_id):
     except Exception as exc:
         return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
     body = request.get_json(silent=True) or {}
-    for field in ('title', 'body', 'cta', 'link', 'imageUrl', 'status'):
+    for field in ('title', 'body', 'cta', 'link', 'imageUrl', 'targetQuery'):
         if field in body:
             draft[field] = body[field]
+    # An edited draft has not been re-reviewed, so it goes back to draft.
+    if draft.get('status') == 'approved':
+        draft['status'] = 'draft'
+        draft.pop('approvedAt', None)
     draft['updatedAt'] = _now_iso()
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(draft, f, indent=2, ensure_ascii=False)
@@ -16505,6 +16528,9 @@ def gmb_schedule_draft(draft_id):
             draft = json.load(f)
     except Exception as exc:
         return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
+    if draft.get('status') != 'approved':
+        return jsonify({"ok": False, "error": "draft must be approved before it is published",
+                        "status": draft.get('status')}), 409
     postiz_id = None
     err = None
     if not _POSTIZ_CLIENT_AVAILABLE:
@@ -16535,7 +16561,7 @@ def gmb_schedule_draft(draft_id):
                      "Connect GBP inside Postiz and retry, or pass integration_id in body.",
         }), 400
     # Build the post payload. GBP allows ~1500 char body, optional image.
-    text = (draft.get('body') or draft.get('title') or '')[:1500]
+    text = _gdp.gbp_post_text(_gdp.draft_post({**draft, "id": draft_id}))
     media_ids: list[str] = []
     image_url = draft.get('imageUrl') or draft.get('image')
     if image_url:
@@ -16574,6 +16600,136 @@ def gmb_schedule_draft(draft_id):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(draft, f, indent=2, ensure_ascii=False)
     return jsonify({"ok": True, "draft": draft, "postizId": postiz_id}), 200
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/approve', methods=['POST'])
+def gmb_approve_draft(draft_id):
+    """Approve a GBP draft so the daily plan can use it.
+
+    Refused with 409 and the list of problems until the draft has a body, a
+    link on its brand's site, a photo, and passes the text gate.
+    """
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            draft = json.load(f)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
+    problems = _gdp.review_problems({**draft, "id": draft_id})
+    if problems:
+        return jsonify({"ok": False, "error": "draft is not ready to approve", "problems": problems}), 409
+    if not (request.get_json(silent=True) or {}).get('photoMatch') is True:
+        return jsonify({"ok": False, "error": "confirm the photo shows what the text says",
+                        "problems": ["photo_match_not_confirmed"]}), 409
+    _gdp.set_draft_status(draft_id, "approved", drafts_dir=GMB_DRAFTS_DIR,
+                          photoMatchAt=_now_iso())
+    # Rebuild the plan now so the approval reaches the Today card without waiting for 06:00.
+    rebuilt = False
+    try:
+        _gdp.save_plan(_gdp.rebuild_plan(brand_id_of(draft), previous=_gdp.latest_plan(brand_id_of(draft)), drafts_dir=GMB_DRAFTS_DIR))
+        rebuilt = True
+    except Exception as exc:
+        _app_log.warning("gbp approve: plan rebuild failed: %s", exc)
+    return jsonify({"ok": True, "draft_id": draft_id, "status": "approved", "plan_rebuilt": rebuilt}), 200
+
+
+def brand_id_of(draft):
+    return (draft.get("brand") or "swing-shack").strip().lower()
+
+
+@app.route('/api/intel/gmb/search-terms', methods=['GET'])
+def gmb_search_terms():
+    """Top Search Console queries for a brand, to choose a draft's target term from."""
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip().lower()
+    return jsonify(_gdp.search_terms(brand_id)), 200
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/photo', methods=['POST'])
+def gmb_upload_draft_photo(draft_id):
+    """Attach a photo to a GBP draft. Saved where the publish step can read it.
+
+    Changing the photo sends the draft back to review, like any edit.
+    """
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    f = request.files.get('file')
+    if not f or not f.filename:
+        return jsonify({"ok": False, "error": "no photo in form"}), 400
+    ext = os.path.splitext(f.filename)[1].lower()
+    if ext not in _gdp.PHOTO_EXTENSIONS:
+        return jsonify({"ok": False, "error": "photo must be a jpg, png or webp"}), 400
+    data = f.read(_gdp.PHOTO_MAX_BYTES + 1)
+    if len(data) > _gdp.PHOTO_MAX_BYTES:
+        return jsonify({"ok": False, "error": "photo is over 8 MB"}), 413
+    if not _gdp.looks_like_photo(data, ext):
+        return jsonify({"ok": False, "error": "file is not a real jpg, png or webp"}), 400
+    os.makedirs(ASSET_MEDIA_DIR, exist_ok=True)
+    stamp = f"gbp-{secure_filename(draft_id)}-{int(time.time())}"
+    original_path = os.path.join(ASSET_MEDIA_DIR, f"{stamp}-original{ext}")
+    with open(original_path, 'wb') as fh:
+        fh.write(data)
+    # Post copy is resized for the upload; the original is kept beside it.
+    out_path = os.path.join(ASSET_MEDIA_DIR, f"{stamp}.jpg")
+    try:
+        _gdp.resize_photo(original_path, out_path)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"could not read this photo: {exc}"}), 400
+    with open(path, 'r', encoding='utf-8') as fh:
+        draft = json.load(fh)
+    draft['imageUrl'] = out_path
+    draft['originalPhoto'] = original_path
+    draft.pop('photoMatchAt', None)
+    if draft.get('status') == 'approved':
+        draft['status'] = 'draft'
+        draft.pop('approvedAt', None)
+    draft['updatedAt'] = _now_iso()
+    with open(path, 'w', encoding='utf-8') as fh:
+        json.dump(draft, fh, indent=2, ensure_ascii=False)
+    return jsonify({"ok": True, "draft": draft}), 200
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/photo-file', methods=['GET'])
+def gmb_draft_photo_file(draft_id):
+    """The draft's post photo, for the thumbnail on the drafts page."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    with open(path, 'r', encoding='utf-8') as fh:
+        draft = json.load(fh)
+    real = os.path.realpath(draft.get('imageUrl') or '')
+    root = os.path.realpath(ASSET_MEDIA_DIR)
+    if not real.startswith(root + os.sep) or not os.path.isfile(real):
+        return jsonify({"ok": False, "error": "no photo"}), 404
+    return send_from_directory(root, os.path.basename(real), max_age=0)
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/unapprove', methods=['POST'])
+def gmb_unapprove_draft(draft_id):
+    """Take a GBP draft back out of the daily plan queue."""
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _gdp.set_draft_status(draft_id, "draft", drafts_dir=GMB_DRAFTS_DIR):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    return jsonify({"ok": True, "draft_id": draft_id, "status": "draft"}), 200
 
 
 @app.route('/api/intel/gmb/draft/<draft_id>', methods=['DELETE'])
@@ -25188,7 +25344,8 @@ def _plan_event_meta(brand_id, brief):
                     meta = {"tier": e.get("tier"), "category": e.get("category"),
                             "shopping_moment": bool(e.get("shopping_moment")),
                             "pillars": e.get("pillars"),
-                            "start": e.get("start"), "end": e.get("end")}
+                            "start": e.get("start"), "end": e.get("end"),
+                            "public_peak": e.get("public_peak")}
                     break
             if meta:
                 break
@@ -25198,7 +25355,8 @@ def _plan_event_meta(brand_id, brief):
                 if (r.get("event_key") or r.get("calendar_id")) == key:
                     meta = {"tier": r.get("tier"), "category": r.get("category"),
                             "lead_time_class": r.get("lead_time_class"),
-                            "start": r.get("event_start"), "end": r.get("event_end")}
+                            "start": r.get("event_start"), "end": r.get("event_end"),
+                            "public_peak": r.get("public_peak")}
                     if meta["lead_time_class"] == "normal_campaign":
                         meta["lead_time_class"] = None  # the default, not a choice
                     break
@@ -34884,8 +35042,8 @@ def api_captions_v2_recipe():
         "product_brands": _P11_PRODUCT_BRANDS,
         "channel_rules": {
             "instagram_reel": "Vertical video. Caption can be longer; first 1-2 lines are the hook above the 'more' cut.",
-            "instagram_feed": "Static or carousel. Caption can be 100-300 words. First line = hook.",
-            "facebook": "Longer caption acceptable. Slightly more conversational.",
+            "instagram_feed": "Static or carousel. Caption body: 1-2 sentences, max 220 characters. CTA is appended. First line = hook.",
+            "facebook": "Same length as Instagram feed. Slightly more conversational.",
             "paid_meta": "Tighter. First 3 words matter most. 1-2 sentence body max.",
             "gbp": "Short post. Local context. No hashtags.",
         },
@@ -44335,7 +44493,14 @@ def planning_month_view(brand_id):
             if _dup_key in _op_seen:
                 continue
             _op_seen.add(_dup_key)
-            lane = r.get("lane") or "operator"
+            _pillars = r.get("pillars") or r.get("pillar")
+            if isinstance(_pillars, list) and _pillars:
+                _pillar0 = str(_pillars[0] or "")
+            elif isinstance(_pillars, str):
+                _pillar0 = _pillars
+            else:
+                _pillar0 = ""
+            lane = r.get("lane") or _pillar0 or ""
             item = {
                 "id": ek or start_iso,
                 "title": r.get("title") or r.get("name") or "(operator-approved)",
@@ -44370,6 +44535,7 @@ def planning_month_view(brand_id):
                 "source": "operator-store",
                 "channel": "main-calendar",
                 "kind": item["kind"],
+                "event_key": ek,
             })
             # Also surface in days_extended for the three-layer panel.
             if start_iso in days_extended:
@@ -45714,6 +45880,14 @@ def planning_timeline(brand_id):
             for record in mc_records:
                 ek = record.get("event_key")
                 if not ek:
+                    cid = record.get("calendar_id")
+                    ek = f"{brand_id}:{cid}" if cid else None
+                if not ek:
+                    continue
+                # Check / shoot / edit reminders stay on the month grid and
+                # inside the plan. The list is for the campaign and its posts.
+                step_kind = record.get("plan_item_kind")
+                if step_kind and step_kind not in ("post", "story"):
                     continue
                 # V2.6 — write-gate defence-in-depth.
                 #
@@ -45740,7 +45914,10 @@ def planning_timeline(brand_id):
                 except Exception:
                     continue
                 if r_end >= start_d and r_start <= end_d:
-                    combined_events[ek] = _operator_record_as_timeline_event(record)
+                    mapped = _operator_record_as_timeline_event(record)
+                    mapped["event_key"] = ek
+                    mapped.setdefault("id", ek)
+                    combined_events[ek] = mapped
             try:
                 sources.append(f"marketing_calendar[{brand_id}].jsonl")
             except Exception:

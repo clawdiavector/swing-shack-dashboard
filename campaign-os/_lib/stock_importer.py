@@ -183,7 +183,8 @@ def preview_smart_import(
         header_row: [str],
       }
     """
-    reader = csv.DictReader(io.StringIO(csv_content))
+    from _lib.stock_pulse import strip_excel_sep
+    reader = csv.DictReader(io.StringIO(strip_excel_sep(csv_content)))
     header = reader.fieldnames or []
     rows = list(reader)
 
@@ -319,7 +320,8 @@ def commit_smart_import(
         _extended_products_path,
     )
 
-    reader = csv.DictReader(io.StringIO(csv_content))
+    from _lib.stock_pulse import strip_excel_sep
+    reader = csv.DictReader(io.StringIO(strip_excel_sep(csv_content)))
     header = reader.fieldnames or []
     rows = list(reader)
     fmt = _recognise_format(header)
@@ -420,10 +422,19 @@ def commit_smart_import(
         except Exception as e:
             errors.append({"row": idx + 1, "error": str(e)})
 
+    pulse: Dict[str, Any] = {}
+    if not mark_as_demo:
+        try:
+            from _lib.stock_pulse import record_and_stamp
+            pulse = record_and_stamp(store_brand, csv_content, products)
+        except Exception as e:  # never lose an import over the weekly history
+            pulse = {"error": str(e)}
+
     _save_extended_products(store_brand, products)
 
     return {
         "ok": True,
+        "stock_pulse": pulse,
         "created": len(created),
         "updated": len(updated),
         "skipped": len(skipped),
