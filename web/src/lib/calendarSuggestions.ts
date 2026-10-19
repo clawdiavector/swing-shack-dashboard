@@ -2,7 +2,7 @@
 // Calls resolve to {ok, error?}; none throws, so the card can show the
 // server's own words.
 
-export type SuggestionSource = 'yours' | 'scout' | 'date'
+export type SuggestionSource = 'yours' | 'scout' | 'date' | 'stock'
 
 export type Suggestion = {
   key: string
@@ -39,6 +39,7 @@ export const SOURCE_LABEL: Record<SuggestionSource, string> = {
   yours: 'Your suggestion',
   scout: 'Found by the scout',
   date: 'From your important dates',
+  stock: 'From the stock list',
 }
 
 async function call(method: string, path: string, body?: unknown, name?: string): Promise<Result> {
@@ -87,6 +88,10 @@ export async function fetchPillars(brand: string): Promise<PillarOption[]> {
 
 export const rejectSuggestion = (brand: string, month: string, key: string, name: string) =>
   call('POST', `${base(brand)}/reject`, { month, key }, name)
+
+/** Different product: set this stock line aside and offer the same day the next one. */
+export const swapSuggestion = (brand: string, month: string, key: string, name: string) =>
+  call('POST', `${base(brand)}/swap`, { month, key }, name)
 
 /** Important dates still waiting for a yes or no, soonest first. */
 export const fetchTriage = (brand: string) => call('GET', `${base(brand)}/triage`)

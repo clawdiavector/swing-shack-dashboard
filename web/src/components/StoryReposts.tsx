@@ -138,20 +138,34 @@ export function StoryReposts({
             >
               <BrandChip brandId={i.brand} />
               <span className="font-semibold text-tx">
-                {i.kind === 'moment' ? 'Golf moment' : i.kind === 'service' ? 'Service' : 'Retail'}: {i.feature}
+                {i.kind === 'stock'
+                  ? 'Stock'
+                  : i.kind === 'daily'
+                    ? 'Daily'
+                    : i.kind === 'moment'
+                      ? 'Golf moment'
+                      : i.kind === 'service'
+                        ? 'Service'
+                        : 'Retail'}
+                : {i.feature}
               </span>
-              <span>· repost from {i.repost_from.name}</span>
-              {i.repost_from.instagram ? (
-                <a href={i.repost_from.instagram} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
-                  Instagram
-                </a>
+              {i.repost_from ? null : <span>· our product, make the post from our photo{i.why ? ` (${i.why})` : ''}</span>}
+              {i.repost_from ? <span>· repost from {i.repost_from.name}</span> : null}
+              {i.repost_from ? (
+                <>
+                {i.repost_from.instagram ? (
+                  <a href={i.repost_from.instagram} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
+                    Instagram
+                  </a>
+                ) : null}
+                {i.repost_from.facebook ? (
+                  <a href={i.repost_from.facebook} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
+                    Facebook
+                  </a>
+                ) : null}
+                {i.repost_from.look_for ? <span className="w-full text-xs text-tx3">{i.repost_from.look_for}</span> : null}
+                </>
               ) : null}
-              {i.repost_from.facebook ? (
-                <a href={i.repost_from.facebook} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
-                  Facebook
-                </a>
-              ) : null}
-              {i.repost_from.look_for ? <span className="w-full text-xs text-tx3">{i.repost_from.look_for}</span> : null}
             </li>
           ))}
         </ul>
