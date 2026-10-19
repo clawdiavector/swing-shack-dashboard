@@ -1,9 +1,12 @@
 import { TrendingUp } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useBrand } from '../../components/BrandSwitch'
 import { PageIntro } from '../../components/chrome'
-import { Tip } from '../../components/ui'
 import { getJson } from '../../lib/api'
+
+function Note({ children }: { children: ReactNode }) {
+  return <p className="rounded-xl border border-bd bg-bg2 p-3 text-sm text-tx2">{children}</p>
+}
 
 // Meta ads only exist for these two brands (see _ADS_BRIEF_BRANDS in campaign-os/app.py).
 const ADS_BRANDS = ['swing-shack', 'stick']
@@ -79,10 +82,10 @@ function AdsSection({ brandId, brandLabel }: { brandId: string; brandLabel?: str
 
   if (error) {
     return (
-      <Tip>
+      <Note>
         No ad trends yet for {brandLabel || brandId} ({error}). The ads brief job writes them each day. Run it from
         the Ops page, or ask Kyle to check the job.
-      </Tip>
+      </Note>
     )
   }
   if (!data) return <div className="h-40 animate-pulse rounded-2xl bg-bg3" />
@@ -119,7 +122,7 @@ function AdsSection({ brandId, brandLabel }: { brandId: string; brandLabel?: str
       <section>
         <h3 className="mb-2 text-sm font-semibold text-tx">Spend by week</h3>
         {recentWeeks.length === 0 ? (
-          <Tip>No weekly data in this period yet.</Tip>
+          <Note>No weekly data in this period yet.</Note>
         ) : (
           <ul className="space-y-1">
             {recentWeeks.map((w) => (
@@ -140,7 +143,7 @@ function AdsSection({ brandId, brandLabel }: { brandId: string; brandLabel?: str
       <section>
         <h3 className="mb-2 text-sm font-semibold text-tx">Ads that worked</h3>
         {winnerGroups.length === 0 ? (
-          <Tip>No ad has a clear result yet. Ads need a few weeks of delivery before they are ranked.</Tip>
+          <Note>No ad has a clear result yet. Ads need a few weeks of delivery before they are ranked.</Note>
         ) : (
           <div className="space-y-4">
             {winnerGroups.map((g) => (
@@ -193,11 +196,11 @@ function MarketSection() {
         </p>
       </div>
       {error ? (
-        <Tip>Could not load market signals ({error}).</Tip>
+        <Note>Could not load market signals ({error}).</Note>
       ) : !signals ? (
         <div className="h-24 animate-pulse rounded-2xl bg-bg3" />
       ) : signals.length === 0 ? (
-        <Tip>No market signals saved yet.</Tip>
+        <Note>No market signals saved yet.</Note>
       ) : (
         <ul className="space-y-3">
           {signals.map((s) => (
@@ -225,7 +228,7 @@ export function Trends() {
 
   return (
     <div className="space-y-8">
-      <PageIntro title="Trends" icon={TrendingUp}>
+      <PageIntro title="Trends" icon={TrendingUp} here="/results/trends">
         What is moving. Ads first, then the market.
       </PageIntro>
 
@@ -234,7 +237,7 @@ export function Trends() {
         {hasAds && brandId ? (
           <AdsSection brandId={brandId} brandLabel={brandLabel} />
         ) : (
-          <Tip>Paid trends exist for Swing Shack and Stick only. Switch brand at the top to see them.</Tip>
+          <Note>Paid trends exist for Swing Shack and Stick only. Switch brand at the top to see them.</Note>
         )}
       </section>
 
