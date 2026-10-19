@@ -26,6 +26,20 @@ function verdictTone(verdict?: string): 'green' | 'gold' | 'red' | 'mute' {
   return 'mute'
 }
 
+// The brief Caption studio opens with for "Make another like this".
+function briefFor(post: InsightPost, multiple: number | null): string {
+  const result =
+    post.engagementRate !== undefined
+      ? ` (${post.engagementRate.toFixed(2)}% engagement${multiple !== null ? `, ${multiple.toFixed(1)}x our average` : ''})`
+      : ''
+  return (
+    `Write a fresh take on a post that worked well${result}. Same topic, a different angle or format, in our voice.
+
+` +
+    `Original caption: ${post.caption_excerpt}`
+  )
+}
+
 function PostRow({ post, rank, average }: { post: InsightPost; rank: number; average?: number }) {
   const key = post.id || String(rank)
   const rate = post.engagementRate
@@ -63,6 +77,15 @@ function PostRow({ post, rank, average }: { post: InsightPost; rank: number; ave
             >
               Open on Instagram <ExternalLink className="h-3 w-3" strokeWidth={2.5} />
             </a>
+          ) : null}
+          {post.caption_excerpt ? (
+            <Link
+              to={`/create/captions?brief=${encodeURIComponent(briefFor(post, multiple))}`}
+              title="Open Caption studio with this post as the brief"
+              className="inline-flex items-center gap-1 rounded-full bg-yel px-3 py-1 text-xs font-semibold text-bg hover:bg-yel/90"
+            >
+              <Sparkles className="h-3 w-3" strokeWidth={2.5} /> Make another like this
+            </Link>
           ) : null}
           {post.id ? (
             <Link

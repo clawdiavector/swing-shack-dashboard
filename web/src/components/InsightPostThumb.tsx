@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchSocialsOembed, type InsightPost } from '../lib/api'
 
 export function insightPostThumbSrc(post: InsightPost): string {
@@ -24,25 +24,36 @@ export function InsightPostThumb({
   void _placeholderClassName
   const [brokenPrimary, setBrokenPrimary] = useState(false)
   const [oembedThumb, setOembedThumb] = useState('')
-  const [oembedTried, setOembedTried] = useState(false)
+  const oembedTried = useRef(false)
 
   const primary = insightPostThumbSrc(post)
   const src = oembedThumb || (primary && !brokenPrimary ? primary : '')
 
-  async function handleError() {
-    if (oembedTried || !post.permalink) {
-      setBrokenPrimary(true)
-      return
-    }
-    setOembedTried(true)
-    setBrokenPrimary(true)
+  // Ask Instagram's oEmbed for a picture from the permalink, once.
+  async function loadOembed(permalink: string) {
+    oembedTried.current = true
     try {
-      const res = await fetchSocialsOembed(post.permalink)
+      const res = await fetchSocialsOembed(permalink)
       if (res.ok && res.thumbnail_url) {
         setOembedThumb(res.thumbnail_url)
       }
     } catch {
       /* keep placeholder */
+    }
+  }
+
+  // No stored image at all: go straight to oEmbed instead of showing nothing.
+  useEffect(() => {
+    if (!primary && post.permalink && !oembedTried.current) {
+      void loadOembed(post.permalink)
+    }
+  }, [primary, post.permalink])
+
+  // The stored image link stopped loading (Instagram CDN links expire).
+  function handleError() {
+    setBrokenPrimary(true)
+    if (!oembedTried.current && post.permalink) {
+      void loadOembed(post.permalink)
     }
   }
 
@@ -53,9 +64,7 @@ export function InsightPostThumb({
         src={src}
         alt=""
         loading="lazy"
-        onError={() => {
-          void handleError()
-        }}
+        onError={handleError}
         className={className}
       />
     )
