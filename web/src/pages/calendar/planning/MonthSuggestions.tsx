@@ -234,7 +234,7 @@ export function GhostChip({
           </select>
         </label>
       ) : null}
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex flex-wrap items-center gap-2 pt-1">
         <button
           type="button"
           disabled={busy || (needsPillar && !pillar)}
@@ -261,7 +261,7 @@ export function GhostChip({
             disabled={busy}
             onClick={onSwap}
             data-testid="ghost-swap"
-            className="rounded-full border border-bd px-3 py-1 text-xs font-semibold text-tx2 hover:text-tx disabled:opacity-60"
+            className="rounded-full border border-bd px-3 py-1 text-xs font-semibold whitespace-nowrap text-tx2 hover:text-tx disabled:opacity-60"
           >
             Different product
           </button>

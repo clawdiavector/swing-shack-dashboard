@@ -39,8 +39,8 @@ function linkProblem(raw: string): string {
 }
 
 /** How many stock stories a day, and how often a stock line goes on the month grid. Saves on change. */
-function StorySettingsPanel() {
-  const [brand, setBrand] = useState('stick')
+function StorySettingsPanel({ initialBrand }: { initialBrand: string }) {
+  const [brand, setBrand] = useState(initialBrand)
   const [loaded, setLoaded] = useState<{ settings: StorySettings; limits: { stock_stories: [number, number]; stock_every_days: [number, number] } } | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -79,8 +79,10 @@ function StorySettingsPanel() {
           <div className="flex flex-wrap gap-2" role="group" aria-label="Which brand's settings">
             {STORY_BRANDS.map((id) => (
               <button key={id} type="button" aria-pressed={brand === id} onClick={() => setBrand(id)}
-                className="rounded-full border border-bd px-3 py-1 text-xs font-semibold aria-pressed:bg-bg">
-                {id.replace(/-/g, ' ')}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold capitalize ${
+                  brand === id ? 'border-ac bg-ac/15 text-ac' : 'border-bd text-tx2 hover:text-tx'
+                }`}>
+                {brand === id ? '✓ ' : ''}{id.replace(/-/g, ' ')}
               </button>
             ))}
           </div>
@@ -302,7 +304,7 @@ export function Stories() {
         </form>
       </div>
 
-      <StorySettingsPanel />
+      <StorySettingsPanel initialBrand={!isAll && brandIds?.length && STORY_BRANDS.includes(brandIds[0]) ? brandIds[0] : 'swing-shack'} />
       <StoryReposts brandIds={isAll ? undefined : brandIds} refreshKey={refresh} alwaysShow />
     </div>
   )
