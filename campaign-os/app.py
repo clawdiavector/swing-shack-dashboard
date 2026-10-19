@@ -28178,6 +28178,33 @@ def seo_insights_full():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/seo/fix-queue', methods=['GET'])
+def seo_fix_queue_get():
+    """Queued SEO/GEO fixes from the daily site audit. Read-only: nothing here
+    publishes. ?brand= is required; only brands with a queue are served."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_fix_queue
+        from _lib.jobs.layer1._io import io_for_job
+        brand = (request.args.get('brand') or '').strip()
+        if not brand:
+            return jsonify({"ok": False, "error": "brand is required"}), 400
+        if brand not in seo_fix_queue.QUEUE_BRANDS:
+            return jsonify({
+                "ok": False,
+                "error": f"no SEO fix queue for brand {brand!r}",
+                "supported": list(seo_fix_queue.QUEUE_BRANDS),
+            }), 400
+        queue = io_for_job("site_audit", brand).read("seo-fix-queue.json")
+        if not queue:
+            return jsonify({"ok": True, "queue": None,
+                            "note": "No queue yet. It is built after the next site_audit run."}), 200
+        return jsonify({"ok": True, "queue": queue}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/seo/keywords/<category>', methods=['GET'])
 def seo_keywords_category(category):
     """winning | leaking | missing | quick_wins"""
