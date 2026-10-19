@@ -225,12 +225,12 @@ export function Daily() {
       .catch(() => setLearn(null))
   }
 
-  // Six thumbnails are all Today shows, so ask for a dozen rows instead of the 200-image roster.
+  // Six thumbnails are all Today shows, so ask for eight rows instead of the 200-image roster.
   // Waits for the brand so it does not fetch twice (once as the default, once as the real brand).
   useEffect(() => {
     if (!focusBrandId) return
     let live = true
-    fetchVisualLibrary(focusBrandId, 12)
+    fetchVisualLibrary(focusBrandId, 8)
       .then((payload) => {
         if (!live) return
         const rows = (payload.images || []) as Array<{
