@@ -977,6 +977,8 @@ export type InsightPost = {
 export type InsightsPosts = {
   ok?: boolean
   posts?: InsightPost[]
+  requested_brand_id?: string
+  data_source_brand_id?: string
   _meta?: { average_engagement?: number; total_scanned?: number; fetched_at?: string; reason?: string }
 }
 
