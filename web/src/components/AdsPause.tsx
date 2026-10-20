@@ -68,7 +68,7 @@ export function PauseView({ adName, state, handlers }: { adName: string; state: 
   }
 }
 
-async function call<T>(path: string, body?: unknown): Promise<T> {
+export async function call<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method: 'POST',
     credentials: 'same-origin',
