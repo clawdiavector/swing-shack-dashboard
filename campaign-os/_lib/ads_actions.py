@@ -144,6 +144,9 @@ def apply(brand_id: str, ticket: str, *, graph, token: str, account_id: str, sig
         raise ActionRefused("That confirmation has expired. Open the preview again.", 400) from None
     if t.get("b") != brand_id:
         raise ActionRefused("That confirmation is for a different brand.", 403)
+    if t.get("k") == "budget":
+        return _apply_budget(brand_id, t, graph=graph, token=token, account_id=account_id,
+                             read=read, write=write, by=by)
     if t.get("k") == "end_date":
         return _apply_end_date(brand_id, t, graph=graph, token=token, account_id=account_id,
                                read=read, write=write, by=by)
@@ -177,6 +180,9 @@ def undo(brand_id: str, action_id: str, *, graph, token: str, account_id: str,
         raise ActionRefused("No such change.", 404)
     if entry.get("undone_at"):
         raise ActionRefused("That change was already undone.", 409)
+    if entry.get("kind") == "set_adset_budget":
+        return _undo_budget(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
+                            write=write, by=by)
     if entry.get("kind") == "pause_adset":
         return _undo_adset_pause(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
                                  write=write, by=by)
@@ -308,6 +314,86 @@ def _undo_adset_pause(brand_id, entries, entry, *, graph, token, account_id, wri
     res = graph("POST", entry["ad_id"], token, {"status": "ACTIVE"})
     if not res.get("success"):
         raise ActionRefused("Meta did not confirm the undo. Check Ads Manager.", 502)
+    entry["undone_at"] = _now()
+    entry["undone_by"] = by
+    _save(brand_id, entries, write)
+    return entry
+
+
+# ── set_adset_budget ────────────────────────────────────────────────────────
+
+# One step may move a daily budget by at most half either way. Bigger moves are several steps, each looked at.
+MAX_BUDGET_STEP = 0.5
+_BUDGET_FIELDS = "id,name,account_id,effective_status,daily_budget,lifetime_budget,campaign{id,name}"
+
+
+def _read_budget_adset(graph, token: str, account_id: str, ad_id=None, adset_id=None) -> dict:
+    """The ad set (by its own id, or the one an ad belongs to), checked against the brand's account."""
+    if ad_id and not adset_id:
+        ad = graph("GET", _valid_ad_id(ad_id), token, {"fields": "id,account_id,adset_id"})
+        _check_ad(ad, str(ad_id), account_id)
+        adset_id = ad.get("adset_id")
+    adset_id = _valid_ad_id(adset_id)
+    a = graph("GET", adset_id, token, {"fields": _BUDGET_FIELDS})
+    if f"act_{a.get('account_id')}" != account_id:
+        raise ActionRefused("That ad set does not belong to this brand's ad account.", 403)
+    return a
+
+
+def preview_budget(brand_id: str, *, ad_id=None, adset_id=None, pct=None, daily_budget=None, graph, token: str,
+                   account_id: str, signer, context: dict | None = None) -> dict:
+    """What changing the ad set's daily budget would do. Reads only. Give ``pct`` (0.2 = up a fifth) or
+    ``daily_budget`` in rand."""
+    a = _read_budget_adset(graph, token, account_id, ad_id, adset_id)
+    before = int(a.get("daily_budget") or 0)
+    if not before:
+        raise ActionRefused("This ad set has no daily budget of its own (it is a lifetime budget, or the budget "
+                            "is set on the campaign), so it cannot be changed here.")
+    if a.get("effective_status") not in ("ACTIVE", "PAUSED", "CAMPAIGN_PAUSED", "ADSET_PAUSED"):
+        raise ActionRefused(f"This ad set is {str(a.get('effective_status')).lower()}.")
+    try:
+        after = int(round(float(daily_budget) * 100)) if daily_budget is not None else int(round(before * (1 + float(pct)) / 100) * 100)
+    except (TypeError, ValueError):
+        raise ActionRefused("Give a percentage or a daily budget in rand.") from None
+    if after <= 0 or after == before:
+        raise ActionRefused("That would not change the budget.")
+    if abs(after / before - 1) > MAX_BUDGET_STEP + 1e-9:
+        raise ActionRefused(f"One step can change a daily budget by at most {int(MAX_BUDGET_STEP * 100)}%. "
+                            "Make a smaller change, then another.")
+    ticket = signer.dumps({"k": "budget", "b": brand_id, "adset": str(a["id"]), "before": before, "after": after})
+    return {
+        "kind": "set_adset_budget", "adset_id": str(a["id"]), "adset_name": a.get("name"),
+        "campaign": (a.get("campaign") or {}).get("name"), "status": a.get("effective_status"),
+        "before": before / 100, "after": after / 100, "change_pct": round(100 * (after / before - 1), 1),
+        "per_day": (after - before) / 100, "ticket": ticket, "ticket_valid_minutes": TICKET_MAX_AGE // 60,
+        "writes_enabled": writes_enabled(), "context": context or {},
+    }
+
+
+def _apply_budget(brand_id, t, *, graph, token, account_id, read, write, by) -> dict:
+    a = _read_budget_adset(graph, token, account_id, adset_id=t.get("adset"))
+    if int(a.get("daily_budget") or 0) != int(t["before"]):
+        raise ActionRefused("The budget changed since you looked. Open the preview again.", 409)
+    res = graph("POST", str(a["id"]), token, {"daily_budget": str(int(t["after"]))})
+    if not res.get("success"):
+        raise ActionRefused("Meta did not confirm the budget change. Check Ads Manager.", 502)
+    entry = {"id": uuid.uuid4().hex[:12], "at": _now(), "by": by, "kind": "set_adset_budget",
+             "ad_id": str(a["id"]), "ad_name": a.get("name"), "adset_id": str(a["id"]),
+             "before": int(t["before"]) / 100, "after": int(t["after"]) / 100, "undone_at": None}
+    entries = load_log(brand_id, read)
+    entries.append(entry)
+    _save(brand_id, entries, write)
+    return entry
+
+
+def _undo_budget(brand_id, entries, entry, *, graph, token, account_id, write, by) -> dict:
+    a = _read_budget_adset(graph, token, account_id, adset_id=entry["adset_id"])
+    if int(a.get("daily_budget") or 0) != int(round(entry["after"] * 100)):
+        raise ActionRefused("The budget is no longer the one we set, so it was changed somewhere else. "
+                            "Check Ads Manager.", 409)
+    res = graph("POST", str(a["id"]), token, {"daily_budget": str(int(round(entry["before"] * 100)))})
+    if not res.get("success"):
+        raise ActionRefused("Meta did not confirm putting the budget back. Check Ads Manager.", 502)
     entry["undone_at"] = _now()
     entry["undone_by"] = by
     _save(brand_id, entries, write)

@@ -83,7 +83,9 @@ def _live_budgets(adsets: list[dict], today: _dt.date, month_end: _dt.date) -> t
                 daily_today += d_daily
             rows.append({"id": key, "name": name, "kind": "daily", "amount": d_daily,
                          "days_left": days, "expected": round(expected, 2),
-                         "ends": end.isoformat() if end else None})
+                         "ends": end.isoformat() if end else None,
+                         "level": "adset" if key == s.get("id") else "campaign",
+                         "objective": camp.get("objective")})
             future += expected
         else:
             total_days = max(1, ((end or month_end) - today).days + 1)
@@ -92,7 +94,9 @@ def _live_budgets(adsets: list[dict], today: _dt.date, month_end: _dt.date) -> t
             expected = max(0.0, rem) * share
             rows.append({"id": key, "name": name, "kind": "lifetime", "amount": d_life,
                          "days_left": month_days, "expected": round(expected, 2),
-                         "ends": end.isoformat() if end else None})
+                         "ends": end.isoformat() if end else None,
+                         "level": "adset" if key == s.get("id") else "campaign",
+                         "objective": camp.get("objective")})
             future += expected
     return rows, daily_today, future
 
@@ -175,7 +179,7 @@ def add_action(daily: dict, ev: dict, limit: int = 3) -> None:
 # ── Meta read (read-only) ───────────────────────────────────────────────────
 
 _ADSET_FIELDS = ("id,name,effective_status,daily_budget,lifetime_budget,budget_remaining,start_time,end_time,"
-                 "campaign_id,campaign{id,name,daily_budget,lifetime_budget}")
+                 "campaign_id,campaign{id,name,objective,daily_budget,lifetime_budget}")
 
 
 def fetch_figures(account_id: str, token: str, *, today: _dt.date, api_version: str | None = None,
