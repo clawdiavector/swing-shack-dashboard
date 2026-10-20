@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom'
 import { BrandChip } from '../components/BrandChip'
 import { BrandSwitch, useBrand, useBrandScope } from '../components/BrandSwitch'
 import { DailyBrandSocials } from '../components/DailyBrandSocials'
+import { MomentsToday } from '../components/MomentsToday'
 import { StoryReposts } from '../components/StoryReposts'
 import { AlertBanner } from './calendar/planning/AlertBanner'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
@@ -143,7 +144,7 @@ function mergeLayersPayloads(parts: LayersPayload[]): LayersPayload {
 }
 
 export function Daily() {
-  const { brandId: focusBrandId, brands: brandRows } = useBrand()
+  const { brandId: focusBrandId, brandLabel, brands: brandRows } = useBrand()
   const { isAll, brandIds, scope } = useBrandScope()
   const [data, setData] = useState<TodayPanel | null>(null)
   const [layers, setLayers] = useState<LayersPayload | null>(null)
@@ -406,6 +407,8 @@ export function Daily() {
       </PageIntro>
 
       <AlertBanner brandId={isAll ? '' : focusBrandId || ''} />
+
+      <MomentsToday brandLabel={isAll ? undefined : brandLabel} />
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />
 
