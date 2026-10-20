@@ -76,6 +76,8 @@ def build(entries: List[Dict[str, Any]], read_text: Callable[[str], Optional[str
                 "url": f"https://drive.google.com/file/d/{e['id']}/view",
                 "parsed": parse_name(e["name"]),
                 "has_caption_file": cap is not None,
+                "caption_file_id": cap["id"] if cap is not None else None,
+                "caption_url": f"https://drive.google.com/file/d/{cap['id']}/view" if cap is not None else None,
                 "caption": text,
             })
         stages.append({"stage": key, "label": label, "videos": videos})
