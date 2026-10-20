@@ -72,8 +72,11 @@ def graph_call(method: str, path: str, token: str, params: dict | None = None,
             body = json.loads(e.read().decode() or "{}")
         except ValueError:
             body = {}
-        msg = (body.get("error") or {}).get("message") or f"Meta answered HTTP {e.code}"
-        raise ActionRefused(f"Meta said: {msg[:200]}", 502) from None
+        err = body.get("error") or {}
+        # Meta's plain-language reason is in error_user_msg; "Invalid parameter" alone says nothing.
+        msg = err.get("error_user_msg") or err.get("message") or f"Meta answered HTTP {e.code}"
+        title = err.get("error_user_title")
+        raise ActionRefused(f"Meta said: {title + ': ' if title and err.get('error_user_msg') else ''}{msg[:240]}", 502) from None
     except (urllib.error.URLError, TimeoutError, ValueError):
         raise ActionRefused("Could not reach Meta. Nothing was changed.", 502) from None
 
