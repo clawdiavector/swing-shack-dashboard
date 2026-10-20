@@ -280,7 +280,7 @@ export function Worked() {
             })}
             {!posts?.length && !postsErr ? (
               <li className="rounded-2xl border border-dashed border-bd px-4 py-8 text-sm text-tx3">
-                No scored posts yet — wait for interpret or connect Instagram in Accounts.
+                {postsMeta?.reason || 'No scored posts yet — wait for interpret or connect Instagram in Accounts.'}
               </li>
             ) : null}
           </ul>

@@ -12780,6 +12780,24 @@ _OEMBED_CACHE: dict = {}
 # Truth-before-cleverness: every verdict cites a real timestamp + data
 # source. We do not fabricate "the ad worked" stories.
 
+# The Instagram stores (ig-analytics.json, instagram.json,
+# analytics/instagram-analytics.json) all come from this one account.
+IG_STORE_HANDLE = "swingshack"
+
+
+def _norm_ig_handle(handle) -> str:
+    return str(handle or "").strip().lstrip("@").lower()
+
+
+def _top_posts_brand_mismatch_reason(brand_id: str):
+    """Plain reason when `brand_id` is not the account the IG stores belong to, else None."""
+    brand = ((load_brands_registry().get("brands") or {}).get(brand_id) or {})
+    if _norm_ig_handle(brand.get("instagram_handle")) == IG_STORE_HANDLE:
+        return None
+    name = brand.get("display_name") or brand_id
+    return f"No Instagram data for {name} yet."
+
+
 @app.route('/api/insights/top-instagram-posts', methods=['GET'])
 def insights_top_instagram_posts():
     """GET /api/insights/top-instagram-posts?limit=8&brand_id=...
@@ -12795,6 +12813,22 @@ def insights_top_instagram_posts():
         limit = min(int(request.args.get("limit", 8)), 25)
         bid = request.args.get("brand_id") or get_brand_id()
         data_bid = resolve_data_brand(bid)
+        # The IG stores hold one account (@swingshack). Never show it under a
+        # brand whose own Instagram handle is a different account.
+        reason = _top_posts_brand_mismatch_reason(bid)
+        if reason:
+            return jsonify({
+                "ok": True,
+                "posts": [],
+                "_meta": {
+                    "total_scanned": 0,
+                    "average_engagement": None,
+                    "source": None,
+                    "reason": reason,
+                },
+                "requested_brand_id": bid,
+                "data_source_brand_id": None,
+            }), 200
         out = _ic.get_top_instagram_posts(brand_id=data_bid, limit=limit)
         out['requested_brand_id'] = bid
         out['data_source_brand_id'] = data_bid
