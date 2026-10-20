@@ -7162,30 +7162,37 @@ def photos_video_draft():
         return jsonify({"ok": False, "error": "Postiz not reachable: %s" % exc}), 502
     if err:
         return jsonify({"ok": False, "error": "postiz API %s: %s" % err}), 502
-    # On the Campaign OS calendar, in South African time. The same video re-sent updates its item.
+    # On the Campaign OS calendar (the Plan month grid reads the calendar records), in South African
+    # time. The same video re-sent updates the same record.
     local_when = _dt.datetime.fromisoformat(when_iso.replace("Z", "+00:00")).astimezone(ZoneInfo("Africa/Johannesburg"))
-    item_id = "vid-" + file_id[:12]
-    calendar_ok = True
+    topic = (parsed["topic"] or stem).replace("-", " ")
+    event_key = "%s:video-%s" % (brand_id, file_id[:12])
+    calendar_error = None
     try:
-        from _lib.marketing_lanes import add_content_item
-        add_content_item(brand_id, {
-            "id": item_id, "brand_id": brand_id, "lane": "human",
-            "status": "draft" if mode == "draft" else "queued",
-            "publish_date": local_when.date().isoformat(), "publish_time": local_when.strftime("%H:%M"),
-            "platforms": ["instagram"], "platform": "instagram",
-            "format": "story" if fmt.startswith("story") else "reel",
-            "title": (parsed["topic"] or stem).replace("-", " "),
-            "caption": caption, "media_kind": "video", "drive_url": video_url_for(file_id),
-            "source": "video-list", "owner": "operator", "postiz": post,
+        from _lib.marketing_calendar import upsert_event
+        upsert_event(brand_id, {
+            "event_key": event_key, "brand_id": brand_id, "type": "moment",
+            # The Plan grid and This week show approved moments.
+            "status": "approved",
+            "title": ("Video draft: %s" % topic) if mode == "draft"
+                     else ("Video %s: %s" % (local_when.strftime("%H:%M"), topic)),
+            "event_date": local_when.date().isoformat(), "event_start": local_when.date().isoformat(),
+            "event_end": local_when.date().isoformat(),
+            "source_type": "operator", "source_origin": "internal_strategy", "created_by": "operator",
+            "primary_channel": "instagram", "channel": "instagram", "post_type": "operator-video",
+            "lane": "human", "media_kind": "video", "caption": caption,
+            "drive_url": video_url_for(file_id), "publish_time": local_when.strftime("%H:%M"),
+            "postiz_mode": mode, "postiz": post,
         })
-    except Exception:
-        calendar_ok = False
-        _app_log.exception("video draft: calendar item not saved")
+    except Exception as exc:
+        calendar_error = "%s: %s" % (type(exc).__name__, exc)
+        _app_log.exception("video draft: calendar record not saved")
     _app_log.info("video %s in Postiz for %s: %s at %s", mode, brand_id, video["name"], when_iso)
     return jsonify({"ok": True, "brand_id": brand_id, "mode": mode, "channel": channel.get("name"),
                     "post_type": settings["post_type"], "publish_at": when_iso,
                     "publish_at_local": local_when.strftime("%Y-%m-%d %H:%M"), "moved_to_minimum": moved,
-                    "calendar_item": item_id if calendar_ok else None, "postiz": post,
+                    "calendar_item": None if calendar_error else event_key, "calendar_error": calendar_error,
+                    "postiz": post,
                     "open": "https://platform.postiz.com/launches"})
 
 
