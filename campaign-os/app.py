@@ -53264,12 +53264,82 @@ def _ads_actions_ctx(brand_id):
 # A person sets one monthly budget per brand; the ads_brief job keeps the month's figures
 # (_lib/ads_budget.py). Setting a budget changes nothing in Meta.
 
+def _ads_cap_sync(brand_id):
+    """Put Meta's account spending limit where the budget says. Only when the hard stop is on."""
+    from _lib import ads_cap as _cap, ads_budget as _ab
+    from _lib.ads_brief import sast_today
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return {"error": "no Meta ads token for this brand"}
+    settings = _ads_lane_load(brand_id, "ads-budget/settings.json") or {}
+    account = _cap.read_account(c["graph"], c["token"], c["account_id"])
+    figures = _ab.fetch_figures(c["account_id"], c["token"], today=sast_today(),
+                                api_version=_META_GRAPH_API_VERSION)
+    p = _cap.plan(settings, account, figures)
+    entry = _cap.apply_plan(brand_id, p, settings, graph=c["graph"], token=c["token"],
+                            account_id=c["account_id"], read=c["read"], write=c["write"])
+    if entry:
+        c["write"](f"brands/{brand_id}/ads-budget/settings.json", settings)
+        _app_log.warning("ads hard stop: %s account limit set to %s", brand_id, p["cap"])
+    return {"plan": p, "set": bool(entry)}
+
+
+@app.route("/api/meta/ads/<brand_id>/hard-stop", methods=["POST"])
+def meta_ads_hard_stop(brand_id):
+    """POST {on, confirm} — turn Meta's account spending limit on or off as the monthly hard stop.
+
+    on without confirm only previews (reads Meta, changes nothing). on with confirm sets the limit. off puts
+    back the limit the account had before.
+    """
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    from _lib import ads_cap as _cap, ads_budget as _ab
+    from _lib.ads_brief import sast_today
+    body = request.get_json(silent=True) or {}
+    settings = _ads_lane_load(brand_id, "ads-budget/settings.json") or {}
+    try:
+        account = _cap.read_account(c["graph"], c["token"], c["account_id"])
+        if body.get("on"):
+            if not settings.get("monthly_budget"):
+                return jsonify({"ok": False, "error": "Set a monthly budget first."}), 400
+            figures = _ab.fetch_figures(c["account_id"], c["token"], today=sast_today(),
+                                        api_version=_META_GRAPH_API_VERSION)
+            p = _cap.plan(dict(settings, hard_stop=True), account, figures)
+            if not body.get("confirm"):
+                return jsonify({"ok": True, "preview": {
+                    "plan": p, "budget": settings["monthly_budget"], "mtd_spend": (figures or {}).get("mtd_spend"),
+                    "amount_spent": account["amount_spent"], "current_cap": account["spend_cap"],
+                    "writes_enabled": c["aa"].writes_enabled()}}), 200
+            if p["action"] == "blocked":
+                return jsonify({"ok": False, "error": p["reason"]}), 409
+            if p["action"] == "none" and "could not be read" in p.get("reason", ""):
+                return jsonify({"ok": False, "error": p["reason"]}), 502
+            settings["hard_stop"] = True
+            _cap.apply_plan(brand_id, p, settings, graph=c["graph"], token=c["token"],
+                            account_id=c["account_id"], read=c["read"], write=c["write"])
+            c["write"](f"brands/{brand_id}/ads-budget/settings.json", settings)
+            _app_log.warning("ads hard stop: ON for %s (%s)", brand_id, p)
+        else:
+            _cap.release(brand_id, settings, account, graph=c["graph"], token=c["token"],
+                         account_id=c["account_id"], read=c["read"], write=c["write"])
+            settings["hard_stop"] = False
+            c["write"](f"brands/{brand_id}/ads-budget/settings.json", settings)
+            _app_log.warning("ads hard stop: OFF for %s", brand_id)
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    return jsonify(_ads_budget_view(brand_id)), 200
+
+
 def _ads_budget_view(brand_id):
     from _lib import ads_budget as _ab
     settings = _ads_lane_load(brand_id, "ads-budget/settings.json") or {}
     figures = _ads_lane_load(brand_id, "ads-budget/figures.json")
     ev = _ab.evaluate(figures, settings.get("monthly_budget")) if figures else None
-    return {"ok": True, "settings": settings, "budget": ev}
+    from _lib import ads_cap as _cap
+    account = (figures or {}).get("account")
+    hs = _cap.view(settings, account, _cap.plan(settings, account, figures) if account and figures else None)
+    return {"ok": True, "settings": settings, "budget": ev, "hard_stop": hs}
 
 
 @app.route("/api/meta/ads/<brand_id>/budget", methods=["GET"])
@@ -53297,10 +53367,21 @@ def meta_ads_budget_set(brand_id):
     if not (0 <= amount <= 1_000_000):
         return jsonify({"ok": False, "error": "monthly_budget must be between 0 and 1,000,000"}), 400
     from _lib.jobs.layer1._io import atomic_write
-    atomic_write(f"brands/{brand_id}/ads-budget/settings.json",
-                 {"monthly_budget": amount or None, "currency": "ZAR", "set_at": _now_iso()})
+    settings = _ads_lane_load(brand_id, "ads-budget/settings.json") or {}
+    settings.update({"monthly_budget": amount or None, "currency": "ZAR", "set_at": _now_iso()})
+    atomic_write(f"brands/{brand_id}/ads-budget/settings.json", settings)
     _app_log.warning("ads budget: %s monthly budget set to %s", brand_id, amount)
-    return jsonify(_ads_budget_view(brand_id)), 200
+    note = None
+    if settings.get("hard_stop"):
+        # The Meta limit follows the budget at once, not tomorrow.
+        try:
+            note = _ads_cap_sync(brand_id)
+        except Exception as e:  # the budget is saved either way
+            note = {"error": str(e)[:200]}
+    out = _ads_budget_view(brand_id)
+    if note:
+        out["hard_stop_sync"] = note
+    return jsonify(out), 200
 
 
 @app.route("/api/meta/ads/<brand_id>/tracking", methods=["GET"])
