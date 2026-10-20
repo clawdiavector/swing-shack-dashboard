@@ -16401,6 +16401,32 @@ def gbp_daily_poster_latest_route():
     return jsonify(plan), 200
 
 
+def _gbp_suggestion(brand_id):
+    """Draft to offer on the Today card when nothing is approved, or None."""
+    try:
+        found = _gdp.suggest_draft(brand_id, drafts_dir=GMB_DRAFTS_DIR)
+    except Exception as exc:
+        _app_log.warning("gbp suggestion failed: %s", exc)
+        return None
+    d = found.get("draft")
+    if not d:
+        return {"post": None, "ready_count": 0, "blocked_count": found.get("blocked_count", 0)}
+    return {
+        "post": {
+            "draft_id": d["id"],
+            "title": d.get("title"),
+            "body": d.get("body"),
+            "cta": d.get("cta"),
+            "cta_url": d.get("link") or None,
+            "has_photo": True,
+            "photo_url": f"/api/intel/gmb/draft/{d['id']}/photo-file",
+        },
+        "why": found.get("why"),
+        "ready_count": found.get("ready_count", 1),
+        "blocked_count": found.get("blocked_count", 0),
+    }
+
+
 @app.route('/api/gbp/daily-poster/pending', methods=['GET'])
 def gbp_daily_poster_pending_route():
     """GET /api/gbp/daily-poster/pending?brand_id=<id> — today's post awaiting
@@ -16426,6 +16452,7 @@ def gbp_daily_poster_pending_route():
     if not plan or not plan.get("posts"):
         return jsonify({"ok": True, "brand_id": brand_id, "post": None,
                         "reason": "no_plan",
+                        "suggestion": _gbp_suggestion(brand_id),
                         "configured_integration_id": configured_integration_id,
                         "display_name": profile.get("display_name", brand_id)}), 200
     if not configured_integration_id:
@@ -16469,6 +16496,7 @@ def gbp_daily_poster_pending_route():
     if not pending:
         return jsonify({"ok": True, "brand_id": brand_id, "post": None,
                         "reason": "all_actioned",
+                        "suggestion": _gbp_suggestion(brand_id),
                         "configured_integration_id": configured_integration_id,
                         "display_name": profile.get("display_name", brand_id)}), 200
     # Re-run integrity check so the UI knows if the post is even publishable.
