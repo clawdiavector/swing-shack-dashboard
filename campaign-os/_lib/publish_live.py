@@ -10,7 +10,7 @@ from typing import Any, Optional
 from _lib import post_links
 from _lib import publish_sandbox as sandbox
 from _lib.brand_validate import validate_brand_id
-from _lib.postiz_client import create_post, list_integrations, postiz_status, upload_media
+from _lib.postiz_client import create_post, list_integrations, postiz_status, scheduled_at_least, upload_media
 from _lib.publish_image import resolve_queue_upload_path
 
 _log = logging.getLogger(__name__)
@@ -137,6 +137,8 @@ def _dispatch_row_live(
     publish_date = row.get("would_publish_at")
     if publish_date and not str(publish_date).endswith("Z"):
         publish_date = str(publish_date)
+    # Never hand Postiz "now": it has failed on posts whose media had not finished loading.
+    publish_date, _moved = scheduled_at_least(str(publish_date) if publish_date else None)
 
     result, err = create_post(
         integration_id=integration_id,

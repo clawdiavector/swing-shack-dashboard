@@ -107,17 +107,50 @@ function Thumb({ url, viewable, name }: { url: string; viewable?: boolean; name:
   )
 }
 
+/** Tomorrow 09:00 in the browser's own time, as a datetime-local value. */
+function tomorrowAt9(): string {
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  d.setHours(9, 0, 0, 0)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
   const [copied, setCopied] = useState('')
   const [confirming, setConfirming] = useState('')
   const [sending, setSending] = useState('')
   const [result, setResult] = useState<Record<string, string>>({})
+  const [mode, setMode] = useState<'draft' | 'schedule'>('draft')
+  const [asap, setAsap] = useState(false)
+  const [when, setWhen] = useState(tomorrowAt9())
   const sendDraft = async (v: VideoRow) => {
     setSending(v.id)
     setConfirming('')
     try {
-      const r = await call<{ channel?: string }>('/api/photos/videos/draft', { brand_id: brand, file_id: v.id })
-      setResult((prev) => ({ ...prev, [v.id]: `Draft created in Postiz${r.channel ? ` for ${r.channel}` : ''}. Nothing is published.` }))
+      const r = await call<{
+        channel?: string
+        publish_at_local?: string
+        moved_to_minimum?: boolean
+        calendar_item?: string | null
+      }>('/api/photos/videos/draft', {
+        brand_id: brand,
+        file_id: v.id,
+        mode,
+        asap: mode === 'schedule' && asap,
+        // the browser's own time zone travels with the time, so 9:00 means 9:00 where you are
+        publish_at: mode === 'schedule' && !asap ? new Date(when).toISOString() : undefined,
+      })
+      const channel = r.channel ? ` for ${r.channel}` : ''
+      const text =
+        mode === 'draft'
+          ? `Draft created in Postiz${channel}. Nothing is published.`
+          : `Scheduled in Postiz${channel} for ${r.publish_at_local} (South African time).` +
+            (r.moved_to_minimum ? ' That was too soon, so it was moved to 5 minutes from now.' : '')
+      setResult((prev) => ({
+        ...prev,
+        [v.id]: text + (r.calendar_item ? ' It is on the calendar.' : ' It could not be added to the calendar.'),
+      }))
     } catch (e) {
       setResult((prev) => ({ ...prev, [v.id]: e instanceof Error ? e.message : 'Could not send' }))
     } finally {
@@ -169,15 +202,54 @@ function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
                   {stage.stage === '2-ready-to-publish' ? (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       {confirming === v.id ? (
-                        <>
-                          <span className="text-sm">Create a draft in Postiz for Instagram? Nothing will be published.</span>
-                          <button type="button" className={pillOn} onClick={() => void sendDraft(v)}>
-                            Yes, create the draft
-                          </button>
-                          <button type="button" className={pill} onClick={() => setConfirming('')}>
-                            Cancel
-                          </button>
-                        </>
+                        <div className="w-full space-y-3 rounded-xl bg-white/5 p-3">
+                          <div className="flex flex-wrap gap-4 text-sm">
+                            <label className="flex items-center gap-2">
+                              <input type="radio" checked={mode === 'draft'} onChange={() => setMode('draft')} />
+                              Save as a draft in Postiz (nothing is published)
+                            </label>
+                            <label className="flex items-center gap-2">
+                              <input type="radio" checked={mode === 'schedule'} onChange={() => setMode('schedule')} />
+                              Schedule it to post by itself
+                            </label>
+                          </div>
+                          {mode === 'schedule' ? (
+                            <div className="flex flex-wrap items-center gap-3 text-sm">
+                              <input
+                                type="datetime-local"
+                                className={field + ' !w-auto'}
+                                value={when}
+                                disabled={asap}
+                                onChange={(e) => setWhen(e.target.value)}
+                              />
+                              <label className="flex items-center gap-2">
+                                <input type="checkbox" checked={asap} onChange={(e) => setAsap(e.target.checked)} />
+                                As soon as possible (5 minutes from now)
+                              </label>
+                              <span className="text-xs text-tx2">
+                                Never sooner than 5 minutes ahead, so Postiz has time to load the video.
+                              </span>
+                            </div>
+                          ) : null}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm">
+                              {mode === 'draft'
+                                ? 'Create a draft on Instagram?'
+                                : 'This will post to Instagram by itself at that time. Schedule it?'}
+                            </span>
+                            <button
+                              type="button"
+                              className={pillOn}
+                              disabled={mode === 'schedule' && !asap && !when}
+                              onClick={() => void sendDraft(v)}
+                            >
+                              {mode === 'draft' ? 'Yes, create the draft' : 'Yes, schedule it'}
+                            </button>
+                            <button type="button" className={pill} onClick={() => setConfirming('')}>
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
                       ) : (
                         <button
                           type="button"
@@ -185,7 +257,7 @@ function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
                           className={pill}
                           onClick={() => setConfirming(v.id)}
                         >
-                          {sending === v.id ? 'Sending to Postiz…' : 'Send to Postiz as draft'}
+                          {sending === v.id ? 'Sending to Postiz…' : 'Send to Postiz'}
                         </button>
                       )}
                       {result[v.id] ? <span className="text-sm text-tx2">{result[v.id]}</span> : null}
