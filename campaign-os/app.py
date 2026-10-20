@@ -49835,8 +49835,11 @@ def _ga4_run_report(creds, dimensions, metrics, date_ranges,
         from google.analytics.data_v1beta import BetaAnalyticsDataClient
         from google.analytics.data_v1beta.types import (
             DateRange, Dimension, Metric, RunReportRequest,
-            Filter, FilterExpression, StringFilter,
+            Filter, FilterExpression,
         )
+        # StringFilter is nested in Filter, not exported at package level
+        # (the old top-level import failed every GA4 report, 2026-09-23 on).
+        StringFilter = Filter.StringFilter
         client = BetaAnalyticsDataClient.from_service_account_file(
             creds["credentials_path"])
         kwargs: dict = dict(
