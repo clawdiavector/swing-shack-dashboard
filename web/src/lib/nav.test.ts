@@ -25,6 +25,7 @@ describe('rail sections', () => {
     ['/review', 'Today'],
     ['/review/long-form/abc', 'Today'],
     ['/inbox', 'Today'],
+    ['/photos', 'Today'],
     ['/week', 'Plan'],
     ['/todo', 'Plan'],
     ['/calendar', 'Plan'],
