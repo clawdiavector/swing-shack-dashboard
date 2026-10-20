@@ -97,7 +97,7 @@ def _slim(f: dict, first_seen: str, today: _dt.date) -> dict:
     return {
         "key": finding_key(f), "rule": f["rule"], "status": f.get("status"),
         "severity": f["severity"], "level": f["level"],
-        "ad_name": f.get("ad_name"), "campaign_name": f.get("campaign_name"),
+        "ad_id": f.get("ad_id"), "ad_name": f.get("ad_name"), "campaign_name": f.get("campaign_name"),
         "what": f["what"], "action": f["action"],
         "first_seen": first_seen,
         "days_open": (today - _dt.date.fromisoformat(first_seen)).days,
