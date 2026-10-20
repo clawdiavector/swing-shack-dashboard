@@ -6995,6 +6995,72 @@ def photos_inbox_set():
     return jsonify({"ok": True, "plan": entry})
 
 
+_VIDEO_LIST_CACHE = {}
+
+
+def _drive_listing(brand_id, ttl=60):
+    """The brand's public Drive listing, kept for a minute so tab clicks do not re-crawl Drive."""
+    import time as _t
+    hit = _VIDEO_LIST_CACHE.get(brand_id)
+    if hit and _t.time() - hit[0] < ttl:
+        return hit[1]
+    import sys as _sys
+    from pathlib import Path as _P
+    scripts_dir = str(_P(__file__).resolve().parent / "scripts")
+    if scripts_dir not in _sys.path:
+        _sys.path.insert(0, scripts_dir)
+    from ingest_public_drive_folder import BRAND_PUBLIC_ROOTS
+    from _lib import google_drive as gd
+    root = BRAND_PUBLIC_ROOTS.get(brand_id)
+    if not root:
+        return None
+    entries = gd.list_public_folder(root)
+    _VIDEO_LIST_CACHE[brand_id] = (_t.time(), entries)
+    return entries
+
+
+def _drive_text(file_id):
+    """Text of a small public Drive file (a caption), or None."""
+    import tempfile
+    import time as _t
+    from pathlib import Path as _P
+    from _lib import google_drive as gd
+    hit = _VIDEO_LIST_CACHE.get("text:" + file_id)
+    if hit and _t.time() - hit[0] < 60:
+        return hit[1]
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = gd.download_public_file(file_id, _P(tmp) / "caption.txt", timeout=30)
+            text = dest.read_text(encoding="utf-8-sig", errors="replace").strip()
+    except Exception:
+        _app_log.exception("caption read failed for %s", file_id)
+        return None
+    _VIDEO_LIST_CACHE["text:" + file_id] = (_t.time(), text)
+    return text
+
+
+@app.route('/api/photos/videos', methods=['GET'])
+def photos_videos():
+    """GET /api/photos/videos?brand_id=<id> — the brand's Drive videos by stage, with captions."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import video_list
+    if request.args.get("refresh"):
+        for k in [k for k in _VIDEO_LIST_CACHE if k == brand_id or k.startswith("text:")]:
+            _VIDEO_LIST_CACHE.pop(k, None)
+    try:
+        entries = _drive_listing(brand_id)
+    except Exception as exc:
+        _app_log.exception("video list: drive listing failed")
+        return jsonify({"ok": False, "error": "Could not read Drive: " + str(exc)}), 502
+    if entries is None:
+        return jsonify({"ok": False, "error": "no Drive folder is set up for this brand"}), 400
+    return jsonify({"ok": True, "brand_id": brand_id, **video_list.build(entries, _drive_text)})
+
+
 @app.route('/api/lanes/stock/preview', methods=['POST'])
 def lanes_stock_preview():
     """POST /api/lanes/stock/preview — preview a CSV stock import."""
