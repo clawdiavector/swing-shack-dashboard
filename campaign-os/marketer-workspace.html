@@ -227,6 +227,7 @@ label{display:block;font-size:11px;color:var(--tx-3);text-transform:uppercase;le
   <nav class="mw-nav" id="mw-nav">
     <button data-view="calendar" class="active">Calendar</button>
     <button data-view="stock">Stock</button>
+    <button data-view="photos">Photos</button>
     <button data-view="products">Products</button>
     <button data-view="references">References</button>
     <button data-view="bible">Brand Bible</button>
@@ -284,6 +285,7 @@ label{display:block;font-size:11px;color:var(--tx-3);text-transform:uppercase;le
 
     <!-- Stock view -->
     <div id="view-stock" style="display:none"></div>
+    <div id="view-photos" style="display:none"></div>
 
     <!-- Products view -->
     <div id="view-products" style="display:none"></div>
@@ -1284,7 +1286,7 @@ function renderCampaignFilter() {
 function setupNavigation() {
   // Show/hide views. ALL views must be in this list — the bible view was
   // previously missing which made Brand Bible unclickable.
-  const ALL_VIEWS = ['calendar', 'stock', 'products', 'references', 'bible', 'morning'];
+  const ALL_VIEWS = ['calendar', 'stock', 'photos', 'products', 'references', 'bible', 'morning'];
   document.querySelectorAll('#mw-nav button').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#mw-nav button').forEach(b => b.classList.remove('active'));
@@ -1296,12 +1298,113 @@ function setupNavigation() {
         if (el) el.style.display = v === view ? 'block' : 'none';
       });
       if (view === 'stock') renderStockView();
+      if (view === 'photos') renderPhotosView();
       if (view === 'products') renderProductsView();
       if (view === 'references') renderReferencesView();
       if (view === 'bible') renderBibleView();
       if (view === 'morning') renderMorningBrief();
     });
   });
+}
+
+// ─── Photos view: approve product photos ────────────────────────────────
+// Only approved photos reach the planner. Photos arrive from the in-store
+// SKU__view.jpg naming scan and the image scout, and wait here as "needs-check".
+const PH = { status: 'needs-check', data: null };
+
+async function renderPhotosView() {
+  const el = document.getElementById('view-photos');
+  el.innerHTML = `
+    <div style="margin-bottom:14px">
+      <h2 style="font-size:22px;font-weight:700">Product photos</h2>
+      <p style="color:var(--tx-3);font-size:13px;margin-top:4px">Approve a photo only if it shows the exact make and model. Approved photos are the only ones the planner uses. Brand: <b>${escapeHtml(MW.brand)}</b></p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+      <div id="photos-tabs" style="display:flex;gap:8px"></div>
+      <div class="mw-spacer"></div>
+      <span id="photos-note" style="color:var(--tx-3);font-size:12px"></span>
+      <button id="photos-find" onclick="findNewPhotos()">Look for new photos</button>
+    </div>
+    <div id="photos-grid"></div>`;
+  await loadPhotos();
+}
+
+// Pulls new files from the brand's Drive folder onto the server, then attaches the SKU-named ones.
+async function findNewPhotos() {
+  const btn = document.getElementById('photos-find');
+  const note = document.getElementById('photos-note');
+  btn.disabled = true;
+  try {
+    note.textContent = 'Getting new files from Drive…';
+    await api('visual-dna/' + encodeURIComponent(MW.brand) + '/scrape-and-dissect', {method: 'POST', body: {}});
+    note.textContent = 'Matching photos to products…';
+    const r = await api('photos/scan', {method: 'POST', body: {brand_id: MW.brand}});
+    note.textContent = r.added + ' new photo(s) waiting.' + (r.unknown.length ? ' ' + r.unknown.length + ' not matched to a SKU.' : '');
+    await loadPhotos();
+  } catch (e) {
+    note.textContent = 'Could not finish: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadPhotos() {
+  const grid = document.getElementById('photos-grid');
+  grid.innerHTML = '<p style="color:var(--tx-3)">Loading…</p>';
+  try {
+    PH.data = await api('photos/review?brand_id=' + encodeURIComponent(MW.brand));
+  } catch (e) {
+    grid.innerHTML = `<p style="color:var(--org)">Could not load photos: ${escapeHtml(e.message)}</p>`;
+    return;
+  }
+  drawPhotos();
+}
+
+function drawPhotos() {
+  const c = PH.data.counts || {};
+  const tabs = [['needs-check', 'Waiting'], ['approved', 'Approved'], ['rejected', 'Rejected']];
+  document.getElementById('photos-tabs').innerHTML = tabs.map(([k, label]) =>
+    `<button class="${PH.status === k ? 'primary' : ''}" onclick="PH.status='${k}';drawPhotos()">${label} (${c[k] || 0})</button>`).join('');
+  const list = PH.data.entries.filter(e => e.status === PH.status)
+    .sort((a, b) => (a.product || '').localeCompare(b.product || '') || a.file.localeCompare(b.file));
+  const grid = document.getElementById('photos-grid');
+  if (!list.length) {
+    grid.innerHTML = `<p style="color:var(--tx-3)">${PH.status === 'needs-check' ? 'Nothing is waiting. New photos appear here after the next scan.' : 'None here yet.'}</p>`;
+    return;
+  }
+  grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px">${list.map(e => {
+    const f = escapeHtml(e.file).replace(/'/g, '&#39;');
+    const img = e.viewable === false
+      ? '<div style="height:180px;display:flex;align-items:center;justify-content:center;color:var(--tx-3);font-size:12px;text-align:center;padding:8px">HEIC: convert to view</div>'
+      : `<img src="${escapeHtml(e.image_url)}" loading="lazy" style="width:100%;height:180px;object-fit:contain;background:#fff" onerror="this.outerHTML='<div style=&quot;height:180px;display:flex;align-items:center;justify-content:center;color:var(--tx-3);font-size:12px;text-align:center;padding:8px&quot;>Photo not on this server yet</div>'">`;
+    const btn = (st, label, cls) => `<button ${cls ? 'class="' + cls + '"' : ''} onclick="setPhotoStatus('${f}','${st}')">${label}</button>`;
+    const actions = e.status === 'needs-check' ? btn('approved', 'Approve', 'primary') + btn('rejected', 'Reject')
+      : e.status === 'approved' ? btn('rejected', 'Reject') + btn('needs-check', 'Back to waiting')
+      : btn('approved', 'Approve') + btn('needs-check', 'Back to waiting');
+    return `<div style="border:1px solid var(--bd,#ddd);border-radius:8px;overflow:hidden">
+      ${img}
+      <div style="padding:10px">
+        <div style="font-weight:600;font-size:13px">${escapeHtml(e.product || '')}</div>
+        <div style="color:var(--tx-3);font-size:11px;margin:2px 0 8px">${escapeHtml(e.sku || '')} · ${escapeHtml(e.view || '')} · ${escapeHtml(e.source || '')}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${actions}</div>
+      </div></div>`;
+  }).join('')}</div>`;
+}
+
+async function setPhotoStatus(file, status) {
+  try {
+    await api('photos/review', {method: 'POST', body: {brand_id: MW.brand, file, status}});
+  } catch (e) {
+    alert('Could not save: ' + e.message);
+    return;
+  }
+  const hit = PH.data.entries.find(x => x.file === file);
+  if (hit) {
+    PH.data.counts[hit.status] = (PH.data.counts[hit.status] || 1) - 1;
+    hit.status = status;
+    PH.data.counts[status] = (PH.data.counts[status] || 0) + 1;
+  }
+  drawPhotos();
 }
 
 // ─── Stock view ────────────────────────────────────────────────────────
@@ -2345,6 +2448,7 @@ async function refreshAllViews() {
   // Re-render any active views
   const active = document.querySelector('#mw-nav button.active')?.dataset.view;
   if (active === 'stock') renderStockView();
+  if (active === 'photos') renderPhotosView();
   if (active === 'products') renderProductsView();
   if (active === 'references') renderReferencesView();
   if (active === 'morning') renderMorningBrief();
