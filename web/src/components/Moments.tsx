@@ -26,6 +26,9 @@ type LiveItem = {
   act_today: boolean
   why: string
   starter_line: string
+  angle?: string
+  lines?: Record<string, string>
+  skip_joke?: boolean
 }
 
 export type MomentsData = {
@@ -34,6 +37,37 @@ export type MomentsData = {
   live?: LiveItem[]
   hidden_sensitive?: number
   errors?: string[]
+}
+
+const BRAND_NAMES: Record<string, string> = { 'swing-shack': 'Swing Shack', stick: 'Stick' }
+
+/** The take on a story: the drafted angle and line for the brand in view, or the template as a fallback. */
+export function Take({ item, brandId, brandLabel }: { item: LiveItem; brandId?: string; brandLabel?: string }) {
+  if (item.skip_joke) {
+    return <p className="mt-1 text-tx3">Not one to joke about. Skip it, or say something kind.</p>
+  }
+  const drafted = item.lines ?? {}
+  const own = brandId ? drafted[brandId] : undefined
+  const rows: { who?: string; text: string }[] = own
+    ? [{ text: own }]
+    : !brandId
+      ? Object.entries(drafted).map(([id, text]) => ({ who: BRAND_NAMES[id] ?? id, text }))
+      : []
+  return (
+    <>
+      <p className="mt-1 text-tx2">{item.angle || item.why}</p>
+      {rows.length > 0 ? (
+        rows.map((r) => (
+          <p key={r.who ?? 'line'} className="mt-1 text-ac">
+            Draft, edit before use: {r.who ? <span className="font-semibold">{r.who}: </span> : null}
+            {r.text}
+          </p>
+        ))
+      ) : (
+        <p className="mt-1 text-ac">Starter line, edit before use: {fillStarter(item.starter_line, brandLabel)}</p>
+      )}
+    </>
+  )
 }
 
 // The templates end with the brand's name. With no brand picked, drop the sign-off rather than write "us".
@@ -48,7 +82,7 @@ export function ageLabel(h?: number | null) {
   return `${Math.round(h / 24)}d ago`
 }
 
-export function Moments({ brandLabel }: { brandLabel?: string }) {
+export function Moments({ brandLabel, brandId }: { brandLabel?: string; brandId?: string }) {
   const [data, setData] = useState<MomentsData | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,10 +94,18 @@ export function Moments({ brandLabel }: { brandLabel?: string }) {
 
   if (error) return <Note>Moments are not available right now ({error}).</Note>
   if (!data) return <div className="h-32 animate-pulse rounded-2xl bg-bg3" />
-  return <MomentsView data={data} brandLabel={brandLabel} />
+  return <MomentsView data={data} brandLabel={brandLabel} brandId={brandId} />
 }
 
-export function MomentsView({ data, brandLabel }: { data: MomentsData; brandLabel?: string }) {
+export function MomentsView({
+  data,
+  brandLabel,
+  brandId,
+}: {
+  data: MomentsData
+  brandLabel?: string
+  brandId?: string
+}) {
   const upcoming = data.upcoming ?? []
   const live = data.live ?? []
 
@@ -110,10 +152,7 @@ export function MomentsView({ data, brandLabel }: { data: MomentsData; brandLabe
                   {l.traffic ? ` · ${l.traffic} searches` : ''}
                   {l.age_hours != null ? ` · ${ageLabel(l.age_hours)}` : ''}
                 </p>
-                <p className="mt-1 text-tx2">{l.why}</p>
-                <p className="mt-1 text-ac">
-                  Starter line, edit before use: {fillStarter(l.starter_line, brandLabel)}
-                </p>
+                <Take item={l} brandId={brandId} brandLabel={brandLabel} />
                 {l.link ? (
                   <a
                     href={l.link}

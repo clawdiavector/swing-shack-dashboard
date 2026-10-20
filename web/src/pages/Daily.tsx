@@ -408,7 +408,7 @@ export function Daily() {
 
       <AlertBanner brandId={isAll ? '' : focusBrandId || ''} />
 
-      <MomentsToday brandLabel={isAll ? undefined : brandLabel} />
+      <MomentsToday brandLabel={isAll ? undefined : brandLabel} brandId={isAll ? undefined : focusBrandId} />
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />
 

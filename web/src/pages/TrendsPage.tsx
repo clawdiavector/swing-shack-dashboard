@@ -149,7 +149,7 @@ export function TrendsPage() {
           Dates to plan around and what South Africa is talking about today. Starter lines are ideas to edit, and
           nothing posts from here.
         </p>
-        <Moments brandLabel={brandLabel} />
+        <Moments brandLabel={brandLabel} brandId={brandId} />
       </section>
 
       {!isSwingShack ? (

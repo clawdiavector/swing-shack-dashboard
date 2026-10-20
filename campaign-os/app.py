@@ -53692,7 +53692,13 @@ def moments_desk():
         except (KeyError, ValueError):
             pass
     try:
-        fresh = _moments.build()
+        def _moments_chat(messages):
+            # The app's default model id is retired on OpenRouter (404), so name a current one. The
+            # headroom in max_tokens is for the model's own thinking, which counts against it.
+            return _openrouter_chat_completion(
+                messages, model=os.environ.get("MOMENTS_MODEL") or "anthropic/claude-sonnet-5.5",
+                temperature=0.8, max_tokens=1500, timeout=40)
+        fresh = _moments.build(chat=_moments_chat, previous=saved)
     except Exception:
         _app_log.exception("moments build failed")
         if saved:
