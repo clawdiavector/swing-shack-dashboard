@@ -83,8 +83,8 @@ export function HardStopView({
             <>
               <p className="text-tx">
                 Budget {rand(state.preview.budget)}, spent this month {rand(state.preview.mtd_spend)}. Campaign OS would
-                set the account&apos;s spending limit to <span className="font-semibold">{rand(cents(state.preview.plan.cap))}</span>{' '}
-                (lifetime spend now {rand(cents(state.preview.amount_spent))}).
+                set the account&apos;s spending limit to <span className="font-semibold">{rand(state.preview.plan.cap)}</span>,
+                counted from now (the room left in this month&apos;s budget).
               </p>
               {state.preview.plan.stops_now ? (
                 <p className="mt-1 font-semibold text-red">
@@ -92,7 +92,7 @@ export function HardStopView({
                   stopped until the 1st of next month or until you change the budget.
                 </p>
               ) : (
-                <p className="mt-1 text-tx2">Ads keep running until {rand(cents(state.preview.plan.room))} more has been spent.</p>
+                <p className="mt-1 text-tx2">Ads keep running until {rand(state.preview.plan.room)} more has been spent.</p>
               )}
               <p className="mt-1 text-xs text-tx3">
                 Meta can go a little past a limit before it catches up. Turning this off puts back the limit the account

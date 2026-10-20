@@ -31,7 +31,7 @@ describe('HardStopView', () => {
       {
         step: 'confirm',
         preview: {
-          plan: { action: 'set', cap: 3_492_103, stops_now: true, room: 0 },
+          plan: { action: 'set', cap: 1, stops_now: true, room: 1 },
           budget: 1000,
           mtd_spend: 2230,
           amount_spent: 3_492_103,

@@ -59,10 +59,10 @@ class HardStopInTheJob(base._JobCase):
         lane = self._settings(monthly_budget=2000, hard_stop=True)
         with mock.patch("_lib.ads_actions.graph_call", return_value={"success": True}) as post:
             self.assertTrue(self._run()["ok"])
-        # lifetime 1,000,000 cents, 300.00 spent this month, budget 2000.00: cap = 1,000,000 - 30,000 + 200,000
-        self.assertEqual(post.call_args[0][3], {"spend_cap": "1170000"})
+        # R300 spent this month of a R2,000 budget: Meta's limit is the R1,700 left, in whole rand
+        self.assertEqual(post.call_args[0][3], {"spend_cap": "1700"})
         settings = json.loads((lane / "settings.json").read_text(encoding="utf-8"))
-        self.assertEqual(settings["cap_managed"]["last_set"], 1_170_000)
+        self.assertEqual(settings["cap_managed"]["last_set"], 1700)
         log = json.loads((Path(self.tmp.name) / "brands" / "stick" / "ads-actions" / "log.json").read_text(encoding="utf-8"))
         self.assertEqual(log["entries"][0]["kind"], "set_spend_cap")
         self.assertEqual(self.read("latest.json")["budget"]["hard_stop"]["set"], True)
@@ -72,6 +72,6 @@ class HardStopInTheJob(base._JobCase):
         self.addCleanup(os.environ.pop, "ADS_WRITES_ENABLED", None)
         self._settings(monthly_budget=2000, hard_stop=True)
         with mock.patch("_lib.ads_actions.graph_call") as post:
-            self.assertTrue(self._run(spend_cap="5000000")["ok"])
+            self.assertTrue(self._run(spend_cap="500000")["ok"])
         post.assert_not_called()
         self.assertEqual(self.read("latest.json")["budget"]["hard_stop"]["plan"]["action"], "blocked")

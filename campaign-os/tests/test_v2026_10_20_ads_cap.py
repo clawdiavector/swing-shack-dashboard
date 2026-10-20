@@ -4,9 +4,7 @@ import pytest
 from _lib import ads_actions as aa
 from _lib import ads_cap as cap
 
-SPENT = 3_492_103  # R34,921.03 lifetime, in cents (Swing Shack on 2026-10-20)
-
-
+SPENT = 0  # Meta counts spend from when a limit is set, so a fresh account reads 0
 class Store:
     def __init__(self):
         self.data = {}
@@ -20,15 +18,20 @@ class Store:
 
 
 class FakeMeta:
+    """Meta as the live test on 2026-10-20 showed it: POST takes rand, GET returns cents, 0 is ignored, an action deletes."""
+
     def __init__(self, spend_cap=0):
-        self.spend_cap = spend_cap
+        self.spend_cap = spend_cap  # cents
         self.posts = []
 
     def __call__(self, method, path, token, params=None):
         if method == "GET":
             return {"amount_spent": str(SPENT), "spend_cap": str(self.spend_cap), "currency": "ZAR", "account_status": 1}
         self.posts.append((path, dict(params)))
-        self.spend_cap = int(params["spend_cap"])
+        if params.get("spend_cap_action") == "delete":
+            self.spend_cap = 0
+        elif int(params.get("spend_cap", 0)):
+            self.spend_cap = int(params["spend_cap"]) * 100
         return {"success": True}
 
 
@@ -41,17 +44,18 @@ def on(monkeypatch):
     monkeypatch.setenv("ADS_WRITES_ENABLED", "1")
 
 
-def test_cap_is_lifetime_spend_at_month_start_plus_budget():
-    # month started at 3,492,103 - 222,997 = 3,269,106; plus R3,000 of budget
-    assert cap.desired_cap(SPENT, 2229.97, 3000) == 3_569_106
+def test_cap_is_the_room_left_this_month_in_whole_rand():
+    assert cap.desired_cap(2229.97, 3000) == 770
+    assert cap.desired_cap(0.0, 1000) == 1000          # first of the month: a fresh budget
 
 
-def test_budget_already_spent_stops_everything_now_not_below_spend():
-    assert cap.desired_cap(SPENT, 2229.97, 1000) == SPENT
+def test_budget_already_spent_leaves_r1_so_everything_stops_almost_now():
+    assert cap.desired_cap(2229.97, 1000) == 1
+    assert cap.desired_cap(1000.0, 1000) == 1
 
 
-def test_first_of_the_month_gives_a_fresh_budget():
-    assert cap.desired_cap(SPENT, 0.0, 1000) == SPENT + 100_000
+def test_rounded_down_so_the_limit_never_allows_more_than_the_budget():
+    assert cap.desired_cap(10.50, 100) == 89
 
 
 def test_plan_does_nothing_unless_asked_and_able():
@@ -62,15 +66,15 @@ def test_plan_does_nothing_unless_asked_and_able():
 
 
 def test_plan_will_not_replace_a_limit_someone_else_set():
-    p = cap.plan({"hard_stop": True, "monthly_budget": 3000}, dict(ACCT, spend_cap=5_000_000), FIG)
+    p = cap.plan({"hard_stop": True, "monthly_budget": 3000}, dict(ACCT, spend_cap=500_000), FIG)
     assert p["action"] == "blocked" and "did not set" in p["reason"]
 
 
 def test_plan_sets_and_says_when_it_stops_everything_now():
     p = cap.plan({"hard_stop": True, "monthly_budget": 1000}, ACCT, FIG)
-    assert p["action"] == "set" and p["stops_now"] is True and p["cap"] == SPENT
+    assert p["action"] == "set" and p["stops_now"] is True and p["cap"] == 1
     q = cap.plan({"hard_stop": True, "monthly_budget": 3000}, ACCT, FIG)
-    assert q["stops_now"] is False and q["room"] == 3_569_106 - SPENT
+    assert q["stops_now"] is False and q["room"] == 770 and q["cap"] == 770
 
 
 def test_apply_sets_the_cap_logs_and_remembers_the_old_one(on):
@@ -78,7 +82,7 @@ def test_apply_sets_the_cap_logs_and_remembers_the_old_one(on):
     settings = {"hard_stop": True, "monthly_budget": 3000}
     p = cap.plan(settings, ACCT, FIG)
     entry = cap.apply_plan("stick", p, settings, graph=meta, token="t", account_id="act_1", read=store.read, write=store.write)
-    assert meta.posts == [("act_1", {"spend_cap": "3569106"})]
+    assert meta.posts == [("act_1", {"spend_cap": "770"})]
     assert entry["kind"] == "set_spend_cap" and settings["cap_managed"]["previous_cap"] == 0
     assert len(aa.load_log("stick", store.read)) == 1
 
@@ -100,6 +104,9 @@ def test_a_second_run_with_the_same_numbers_changes_nothing(on):
                    read=store.read, write=store.write)
     again = cap.plan(settings, dict(ACCT, spend_cap=meta.spend_cap), FIG)
     assert again["action"] == "none" and again["reason"] == "The limit is already right."
+    # with more spend read later the room shrinks, so the limit is set again
+    later = cap.plan(settings, dict(ACCT, spend_cap=meta.spend_cap), {"mtd_spend": 2300.0, "complete": True})
+    assert later["action"] == "set" and later["cap"] == 700
 
 
 def test_release_puts_back_the_previous_limit(on):
@@ -110,6 +117,8 @@ def test_release_puts_back_the_previous_limit(on):
     acct = cap.read_account(meta, "t", "a")
     entry = cap.release("stick", settings, acct, graph=meta, token="t", account_id="a", read=store.read, write=store.write)
     assert meta.spend_cap == 0 and entry["after"] == 0 and "cap_managed" not in settings
+    # Meta ignores spend_cap=0: removal must use the delete action
+    assert meta.posts[-1] == ("a", {"spend_cap_action": "delete"})
 
 
 def test_release_refuses_if_the_limit_was_changed_elsewhere(on):
@@ -117,7 +126,7 @@ def test_release_refuses_if_the_limit_was_changed_elsewhere(on):
     settings = {"hard_stop": True, "monthly_budget": 3000}
     cap.apply_plan("stick", cap.plan(settings, ACCT, FIG), settings, graph=meta, token="t", account_id="a",
                    read=store.read, write=store.write)
-    meta.spend_cap = 9_999_999
+    meta.spend_cap = 999_999_900
     with pytest.raises(aa.ActionRefused) as e:
         cap.release("stick", settings, cap.read_account(meta, "t", "a"), graph=meta, token="t", account_id="a",
                     read=store.read, write=store.write)
