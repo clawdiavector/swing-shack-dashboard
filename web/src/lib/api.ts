@@ -2530,6 +2530,16 @@ export type StoryCandidate = {
   image: string | null
   caption: string
   score: number
+  stock?: 'match' | 'none' | 'brand-unlisted' | 'unknown'
+  stock_name?: string | null
+}
+
+export function fetchStoryMarks() {
+  return getJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks')
+}
+
+export function setStoryMark(key: string, state: 'shared' | 'skipped' | 'clear') {
+  return postJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks', { key, state })
 }
 
 export function fetchStoryCandidates(brand: string) {
