@@ -979,7 +979,13 @@ export type InsightsPosts = {
   posts?: InsightPost[]
   requested_brand_id?: string
   data_source_brand_id?: string
-  _meta?: { average_engagement?: number; total_scanned?: number; fetched_at?: string; reason?: string }
+  _meta?: {
+    average_engagement?: number
+    total_scanned?: number
+    fetched_at?: string
+    reason?: string
+    window_days?: number
+  }
 }
 
 export function fetchTopPosts(brand?: string, limit = 3) {

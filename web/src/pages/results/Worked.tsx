@@ -193,11 +193,10 @@ export function Worked() {
 
       {tab === 'posts' ? (
         <>
-          {postsMeta?.fetched_at ? (
-            <p className="text-xs text-tx3">
-              Last 90 days · Instagram scan as of {formatStamp(postsMeta.fetched_at)}
-            </p>
-          ) : null}
+          <p className="text-xs text-tx3">
+            Last {postsMeta?.window_days ?? 90} days
+            {postsMeta?.fetched_at ? ` · Instagram scan as of ${formatStamp(postsMeta.fetched_at)}` : ''}
+          </p>
           {(() => {
             const good = (posts || []).filter((p) => p.verdict === 'Top performer' || p.verdict === 'Above average')
             if (good.length < 3) return null
