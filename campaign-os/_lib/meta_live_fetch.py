@@ -204,6 +204,11 @@ def _normalise_ig_post(post: dict) -> dict:
         "hook_text": hook[:120], "hook_id": post["id"],
         "permalink": post.get("permalink") or "",
         "media_type": post.get("media_type") or "",
+        # Graph returns thumbnail_url for videos and media_url for photos. These
+        # are signed CDN links that expire, so the UI also falls back to oEmbed
+        # from the permalink when one stops loading.
+        "thumbnail_url": post.get("thumbnail_url") or "",
+        "media_url": post.get("media_url") or "",
         "format_type": fmt, "topic_cluster": pillar, "reach": reach,
         "likes": likes, "comments": comments, "saves": saves, "shares": shares,
         "metrics": {"reach": reach, "likes": likes, "comments": comments,
@@ -247,7 +252,7 @@ def fetch_all(*, brand: str | None = None) -> dict:
 
     # 3. IG posts + per-post engagement
     metrics = "impressions,reach,replies,saved,likes,comments,shares,total_interactions,profile_visits"
-    url = f"https://graph.facebook.com/v19.0/{ig_id}/media?fields=id,caption,media_type,permalink,timestamp,insights.metric({metrics})&limit=30&access_token={tok}"
+    url = f"https://graph.facebook.com/v19.0/{ig_id}/media?fields=id,caption,media_type,permalink,thumbnail_url,media_url,timestamp,insights.metric({metrics})&limit=30&access_token={tok}"
     body, err = _http(url)
     if err:
         return {"ok": False, "error": f"IG posts fetch failed: {err}"}

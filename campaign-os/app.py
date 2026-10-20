@@ -6850,6 +6850,151 @@ def lanes_campaign_one(campaign_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+def _photo_review_brand():
+    """Brand for the photo review routes. Required: brands are separate companies, so never default."""
+    brand_id = (request.args.get("brand_id") or (request.get_json(silent=True) or {}).get("brand_id") or "").strip()
+    if not brand_id or not re.fullmatch(r"[a-z0-9][a-z0-9-]*", brand_id):
+        return None
+    if not (Path(DATA_DIR) / "brand-directory" / brand_id).exists() and not (Path(BUNDLED_DATA_DIR) / "brand-directory" / brand_id).exists():
+        return None
+    return brand_id
+
+
+@app.route('/api/photos/review', methods=['GET'])
+def photos_review_list():
+    """GET /api/photos/review?brand_id=<id>[&status=needs-check] — product photos waiting for a person.
+
+    Each entry carries image_url (served by /brand-images/) so the page can show the photo.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from urllib.parse import quote
+    from _lib import photo_map as pm
+    status = (request.args.get("status") or "").strip()
+    entries = [e for e in pm.load(brand_id) if not status or e.get("status") == status]
+    for e in entries:
+        e["image_url"] = "/brand-images/%s/%s" % (brand_id, quote(e["file"]))
+    counts = {s: 0 for s in pm.STATUSES}
+    for e in pm.load(brand_id):
+        counts[e.get("status")] = counts.get(e.get("status"), 0) + 1
+    return jsonify({"ok": True, "brand_id": brand_id, "counts": counts, "entries": entries})
+
+
+@app.route('/api/photos/review', methods=['POST'])
+def photos_review_set():
+    """POST /api/photos/review {brand_id, file, status} — approve, reject or send a photo back to needs-check."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import photo_map as pm
+    body = request.get_json(silent=True) or {}
+    status = str(body.get("status") or "")
+    file = str(body.get("file") or "")
+    if status not in pm.STATUSES or not file:
+        return jsonify({"ok": False, "error": "file and a valid status required"}), 400
+    if not pm.set_status(brand_id, file, status, "dashboard"):
+        return jsonify({"ok": False, "error": "no such photo on the map"}), 404
+    return jsonify({"ok": True, "file": file, "status": status})
+
+
+@app.route('/api/photos/scan', methods=['POST'])
+def photos_scan():
+    """POST /api/photos/scan {brand_id} — attach SKU-named photos already on the server to their products.
+
+    Uses the latest saved stock snapshot for the SKUs. New matches wait as needs-check; existing
+    approvals are kept. Run after the Drive ingest has pulled new files.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import photo_map as pm
+    from _lib import stock_pulse as sp
+    snaps = sp.load_snapshots(brand_id)
+    if not snaps:
+        return jsonify({"ok": False, "error": "no stock list saved for this brand yet"}), 409
+    out = pm.scan(brand_id, pm.sku_index(sp.analyse(snaps)))
+    return jsonify({"ok": True, "added": len(out["added"]), "unknown": out["unknown"],
+                    "ambiguous": out["ambiguous"], "total": out["total"]})
+
+
+def _inbox_state(brand_id):
+    """The brand's Inbox files, with what can be guessed and any saved plan."""
+    import json as _json
+    from urllib.parse import quote
+    from _lib import inbox_sort as ib
+    from _lib import photo_map as pm
+    from _lib import stock_pulse as sp
+    root = pm.images_dir(brand_id)
+    mpath = root.parent / "ingest-manifest.json"
+    try:
+        manifest = _json.loads(mpath.read_text(encoding="utf-8")) if mpath.exists() else {}
+    except Exception:
+        manifest = {}
+    snaps = sp.load_snapshots(brand_id)
+    skus = pm.sku_index(sp.analyse(snaps)) if snaps else {}
+    plans = {e["file"]: e for e in ib.load(brand_id)}
+    items = []
+    for f in ib.inbox_files(brand_id, root, manifest):
+        items.append({
+            "file": f["file"], "drive_id": f["drive_id"], "viewable": f["viewable"],
+            "image_url": ("/brand-images/%s/%s" % (brand_id, quote(f["file"]))) if f["viewable"] else "",
+            "guess": ib.guess(f["file"], f["path"], skus), "plan": plans.get(f["file"]),
+        })
+    return items, skus
+
+
+@app.route('/api/photos/inbox', methods=['GET'])
+def photos_inbox_list():
+    """GET /api/photos/inbox?brand_id=<id> — files dropped in the brand's Drive Inbox, waiting to be sorted."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import inbox_sort as ib
+    items, _ = _inbox_state(brand_id)
+    return jsonify({"ok": True, "brand_id": brand_id, "items": items,
+                    "kinds": list(ib.KINDS), "areas": list(ib.AREAS)})
+
+
+@app.route('/api/photos/inbox', methods=['POST'])
+def photos_inbox_set():
+    """POST /api/photos/inbox {brand_id, file, kind, date, area, what, sku} — save where an Inbox file goes
+    and what it is renamed to. With {status: "moved"} instead, mark a planned file as moved in Drive."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import inbox_sort as ib
+    body = request.get_json(silent=True) or {}
+    file = str(body.get("file") or "")
+    items, skus = _inbox_state(brand_id)
+    item = next((i for i in items if i["file"] == file), None)
+    if not item:
+        return jsonify({"ok": False, "error": "that file is not in the Inbox"}), 404
+    try:
+        if body.get("status"):
+            if not ib.set_status(brand_id, file, str(body["status"])):
+                return jsonify({"ok": False, "error": "no plan saved for that file yet"}), 404
+            return jsonify({"ok": True, "file": file, "status": body["status"]})
+        kind = str(body.get("kind") or "")
+        plan = ib.plan_name([e for e in ib.load(brand_id) if e["file"] != file], file, kind, date=str(body.get("date") or ""),
+                            area=str(body.get("area") or ""), what=str(body.get("what") or ""),
+                            sku=str(body.get("sku") or ""), sku_to_product=skus or None)
+    except ib.SortError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    entry = ib.save_plan(brand_id, file, plan, kind, item["drive_id"])
+    return jsonify({"ok": True, "plan": entry})
+
+
 @app.route('/api/lanes/stock/preview', methods=['POST'])
 def lanes_stock_preview():
     """POST /api/lanes/stock/preview — preview a CSV stock import."""
@@ -7421,6 +7566,13 @@ def lanes_stock_smart_commit():
             return jsonify({"ok": False, "error": "csv_base64 decode failed: " + str(e)}), 400
     if not csv_content:
         return jsonify({"ok": False, "error": "csv_content required"}), 400
+    snapshot_date = (body.get("snapshot_date") or "").strip() or None
+    if snapshot_date:
+        try:
+            if _dt.date.fromisoformat(snapshot_date) > _jhb_today():
+                raise ValueError("in the future")
+        except ValueError:
+            return jsonify({"ok": False, "error": "snapshot_date must be a past or present date, YYYY-MM-DD"}), 400
     try:
         from _lib.stock_importer import commit_smart_import
         result = commit_smart_import(
@@ -7429,6 +7581,7 @@ def lanes_stock_smart_commit():
             default_product_brand=body.get("default_product_brand"),
             actor=body.get("actor", "christelle"),
             mark_as_demo=body.get("mark_as_demo", False),
+            snapshot_date=snapshot_date,
         )
         return jsonify({"ok": True, **result}), 200
     except Exception as e:
@@ -14714,11 +14867,42 @@ def stories_suggestion_route():
     from datetime import datetime
     from zoneinfo import ZoneInfo
     from _lib import story_suggestion
+    from _lib import stock_pulse as sp
+
+    from _lib import story_settings as ss
 
     brands = [request.args['brand']] if request.args.get('brand') else ['swing-shack', 'stick']
     day = datetime.now(ZoneInfo('Africa/Johannesburg')).date()
-    out = [s for b in brands for s in story_suggestion.suggest(b, day)]
+    out = []
+    for b in brands:
+        settings = ss.read(b, story_suggestion.daily_ids(b))
+        out.extend(story_suggestion.suggest(b, day, settings))
+        try:
+            out.extend(story_suggestion.stock_stories(b, day, sp.candidates_for(b), settings["stock_stories"]))
+        except Exception:
+            _app_log.exception("stock stories failed for %s", b)
     return jsonify({"ok": True, "suggestions": out})
+
+
+@app.route('/api/stories/settings', methods=['GET', 'POST'])
+def stories_settings_route():
+    """GET ?brand=<id> — the brand's Stories settings. POST {brand, daily_on?, stock_stories?, stock_every_days?}
+    saves them (values are clamped to their ranges)."""
+    from _lib import story_settings as ss
+    from _lib import story_suggestion
+    brand = (request.args.get('brand') if request.method == 'GET' else (request.get_json(silent=True) or {}).get('brand')) or ''
+    if brand not in ('swing-shack', 'stick', 'bag-drop'):
+        return jsonify({"ok": False, "error": f"brand_id '{brand}' invalid"}), 400
+    ids = story_suggestion.daily_ids(brand)
+    if request.method == 'POST':
+        body = request.get_json(silent=True) or {}
+        changes = {k: body[k] for k in ('daily_on', 'stock_stories', 'stock_every_days') if k in body}
+        saved = ss.write(brand, changes, ids)
+    else:
+        saved = ss.read(brand, ids)
+    return jsonify({"ok": True, "brand": brand, "settings": saved,
+                    "limits": {"stock_stories": list(ss.STOCK_STORIES_RANGE),
+                               "stock_every_days": list(ss.STOCK_EVERY_RANGE)}}), 200
 
 
 @app.route('/api/stories/candidates', methods=['GET'])
@@ -28143,6 +28327,33 @@ def seo_insights_full():
         from _lib import seo_insights
         insights = seo_insights.build_full_insights()
         return jsonify({"ok": True, "insights": insights}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/fix-queue', methods=['GET'])
+def seo_fix_queue_get():
+    """Queued SEO/GEO fixes from the daily site audit. Read-only: nothing here
+    publishes. ?brand= is required; only brands with a queue are served."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_fix_queue
+        from _lib.jobs.layer1._io import io_for_job
+        brand = (request.args.get('brand') or '').strip()
+        if not brand:
+            return jsonify({"ok": False, "error": "brand is required"}), 400
+        if brand not in seo_fix_queue.QUEUE_BRANDS:
+            return jsonify({
+                "ok": False,
+                "error": f"no SEO fix queue for brand {brand!r}",
+                "supported": list(seo_fix_queue.QUEUE_BRANDS),
+            }), 400
+        queue = io_for_job("site_audit", brand).read("seo-fix-queue.json")
+        if not queue:
+            return jsonify({"ok": True, "queue": None,
+                            "note": "No queue yet. It is built after the next site_audit run."}), 200
+        return jsonify({"ok": True, "queue": queue}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -46527,12 +46738,25 @@ def _cs_items(brand_id, month):
     important-dates list, minus anything already on the calendar."""
     from zoneinfo import ZoneInfo
     from _lib import calendar_suggestions as cs
+    from _lib import stock_pulse as sp
     first, last = cs.month_bounds(month)
     today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
     note_rows, names = _cs_inputs(brand_id, sorted({first.year, last.year}))
-    return cs.month_items(
+    decisions = cs.read_decisions(brand_id)
+    items = cs.month_items(
         brand_id, month, _operator_pending_suggestions(brand_id), _typed_by_operator,
-        note_rows, cs.read_decisions(brand_id), names, today)
+        note_rows, decisions, names, today)
+    try:
+        stock = sp.candidates_for(brand_id)
+    except Exception:
+        _app_log.exception("stock suggestions failed for %s", brand_id)
+        stock = []
+    from _lib import story_settings as ss
+    from _lib import story_suggestion as sug
+    every = ss.read(brand_id, sug.daily_ids(brand_id))["stock_every_days"]
+    items += cs.stock_items(brand_id, month, stock, decisions, names, [i["date"] for i in items], today, every)
+    items.sort(key=lambda i: (i["date"], i["title"]))
+    return items
 
 
 @app.route("/api/calendar-suggestions/<brand_id>/triage", methods=["GET"])
@@ -46615,13 +46839,13 @@ def calendar_suggestions_approve(brand_id):
     actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
     cid, made = item.get("calendar_id"), False
     pillars = [p for p in (body.get("pillars") or []) if isinstance(p, str) and p]
-    if item["source"] != "date" and pillars and not item.get("pillars"):
+    if item["source"] not in cs.DECIDED_SOURCES and pillars and not item.get("pillars"):
         # A row with no pillar can still be approved, but could never get a brief.
         try:
             mc.set_pillars(brand_id, cid, pillars, reason=f"pillar chosen when approved by {actor}")
         except ValueError as e:
             return jsonify({"ok": False, "error": str(e)}), 400
-    if item["source"] == "date":
+    if item["source"] in cs.DECIDED_SOURCES:
         why = item.get("why") or ""
         try:
             rec = mc.add_candidate(brand_id, {
@@ -46651,7 +46875,7 @@ def calendar_suggestions_approve(brand_id):
         if made:
             mc.transition_status(brand_id, cid, "ignored", reason="approval failed; not kept")
         return jsonify({"ok": False, "error": data.get("error") or "could not approve it"}), (code if code >= 400 else 400)
-    if item["source"] == "date":
+    if item["source"] in cs.DECIDED_SOURCES:
         cs.record_decision(brand_id, item["key"], "approved", actor, calendar_id=cid,
                            event_key=data.get("event_key"))
     undo = {"kind": "approve", "key": item["key"], "source": item["source"],
@@ -46676,13 +46900,37 @@ def calendar_suggestions_reject(brand_id):
     if not item:
         return jsonify({"ok": False, "error": "that suggestion is no longer there"}), 404
     actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
-    if item["source"] == "date":
+    if item["source"] in cs.DECIDED_SOURCES:
         cs.record_decision(brand_id, item["key"], "rejected", actor)
     else:
         mc.transition_status(brand_id, item["calendar_id"], "ignored",
                              reason=f"rejected from the calendar view by {actor}")
     undo = {"kind": "reject", "key": item["key"], "source": item["source"],
             "calendar_id": item.get("calendar_id"), "month": body.get("month")}
+    undo["token"] = cs.issue_undo(brand_id, undo)
+    return jsonify({"ok": True, "undo": undo}), 200
+
+
+@app.route("/api/calendar-suggestions/<brand_id>/swap", methods=["POST"])
+def calendar_suggestions_swap(brand_id):
+    """Different product: this stock line is set aside for the month and the same
+    day is offered the next line on the list. Undo brings it back."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import calendar_suggestions as cs
+    body = request.get_json(silent=True) or {}
+    try:
+        item = _cs_find(brand_id, body)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    if not item or item["source"] != "stock":
+        return jsonify({"ok": False, "error": "that is not a stock line on this month"}), 404
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    cs.record_decision(brand_id, item["key"], "swapped", actor)
+    # Undo reverses it the same way as a reject: the decision is cleared.
+    undo = {"kind": "reject", "key": item["key"], "source": "stock", "calendar_id": None,
+            "month": body.get("month")}
     undo["token"] = cs.issue_undo(brand_id, undo)
     return jsonify({"ok": True, "undo": undo}), 200
 
@@ -46708,7 +46956,7 @@ def calendar_suggestions_undo(brand_id):
     if kind == "later":
         cs.clear_decision(brand_id, key)
     elif kind == "reject":
-        if source == "date":
+        if source in cs.DECIDED_SOURCES:
             cs.clear_decision(brand_id, key)
         elif cid:
             mc.transition_status(brand_id, cid, "candidate", reason="reject undone")
@@ -46716,9 +46964,9 @@ def calendar_suggestions_undo(brand_id):
         if event_key:
             mc.transition_status(brand_id, event_key, "ignored", reason="approval undone")
         if cid:
-            mc.transition_status(brand_id, cid, "ignored" if source == "date" else "candidate",
+            mc.transition_status(brand_id, cid, "ignored" if source in cs.DECIDED_SOURCES else "candidate",
                                  reason="approval undone")
-        if source == "date":
+        if source in cs.DECIDED_SOURCES:
             cs.clear_decision(brand_id, key)
     cs.drop_undo(brand_id, token)
     # A draft plan made when this date was approved goes with it. The id comes from
@@ -52737,6 +52985,21 @@ def meta_ads_history(brand_id):
     return jsonify({"ok": True, "history": history}), 200
 
 
+@app.route("/api/meta/ads/trends/<brand_id>", methods=["GET"])
+def meta_ads_trends(brand_id):
+    """GET /api/meta/ads/trends/<brand_id> — week-by-week totals and per-ad winners, from the last ads_brief run."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    latest = _ads_lane_load(brand_id, "ads-history/latest.json")
+    if latest is None:
+        return jsonify({"ok": False, "error": "no ads trends yet — run the ads_brief job"}), 404
+    return jsonify({"ok": True, "trends": latest.get("trends") or {}, "winners": latest.get("winners") or {},
+                    "period": latest.get("period") or {}, "errors": latest.get("errors") or []}), 200
+
+
 @app.route("/api/meta/ads/library/<brand_id>", methods=["GET"])
 def meta_ads_library(brand_id):
     """GET /api/meta/ads/library/<brand_id>[?refresh=1] — other advertisers' ads."""
@@ -52749,6 +53012,106 @@ def meta_ads_library(brand_id):
     if library is None:
         return jsonify({"ok": False, "error": "not checked yet — add ?refresh=1"}), 404
     return jsonify({"ok": True, "library": library}), 200
+
+
+# ─── ADS ACTIONS: one-click pause with confirm and undo ───────────────
+# The only place Campaign OS changes a Meta ad (see _lib/ads_actions.py). Session
+# only. Off unless ADS_WRITES_ENABLED=1; preview works either way.
+
+def _ads_actions_ctx(brand_id):
+    """(error_response, ctx) for the ads-actions routes."""
+    if not _is_authed():
+        return (jsonify({"ok": False, "error": "auth required"}), 401), None
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return (jsonify({"ok": False,
+                         "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400), None
+    _label, token = _v23_resolve_ads_token(brand_id)
+    account_id = _v23_resolve_ads_account(brand_id)
+    if not token or not account_id:
+        return (jsonify({"ok": False, "error": "no Meta ads token for this brand"}), 503), None
+    from _lib import ads_actions as _aa
+    from _lib.jobs.layer1._io import atomic_write, data_dir as _job_data_dir
+
+    def _read(rel):
+        try:
+            with open(_job_data_dir() / rel, encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            return None
+
+    def _graph(method, path, tok, params=None):
+        return _aa.graph_call(method, path, tok, params, version=_META_GRAPH_API_VERSION)
+
+    return None, {"aa": _aa, "token": token, "account_id": account_id, "read": _read,
+                  "write": atomic_write, "graph": _graph,
+                  "signer": URLSafeTimedSerializer(SESSION_SECRET, salt=_aa.TICKET_SALT)}
+
+
+@app.route("/api/meta/ads/<brand_id>/write-status", methods=["GET"])
+def meta_ads_write_status(brand_id):
+    """GET — whether one-click ad changes are switched on."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import ads_actions as _aa
+    return jsonify({"ok": True, "enabled": _aa.writes_enabled()}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/pause/preview", methods=["POST"])
+def meta_ads_pause_preview(brand_id):
+    """POST {ad_id} — what pausing would change. Reads Meta, changes nothing."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        out = c["aa"].preview(brand_id, body.get("ad_id"), graph=c["graph"], token=c["token"],
+                              account_id=c["account_id"], signer=c["signer"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    return jsonify({"ok": True, "preview": out}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/pause", methods=["POST"])
+def meta_ads_pause(brand_id):
+    """POST {ticket} — pause the ad the preview named, and log it."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        entry = c["aa"].apply(brand_id, body.get("ticket") or "", graph=c["graph"], token=c["token"],
+                              account_id=c["account_id"], signer=c["signer"],
+                              read=c["read"], write=c["write"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    _app_log.warning("ads action: paused ad %s for %s (%s)", entry["ad_id"], brand_id, entry["id"])
+    return jsonify({"ok": True, "action": entry}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/actions", methods=["GET"])
+def meta_ads_actions_log(brand_id):
+    """GET — changes made from the dashboard, newest first."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    entries = c["aa"].load_log(brand_id, c["read"])
+    return jsonify({"ok": True, "enabled": c["aa"].writes_enabled(),
+                    "actions": list(reversed(entries))[:50]}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/actions/<action_id>/undo", methods=["POST"])
+def meta_ads_action_undo(brand_id, action_id):
+    """POST — put an ad back as it was, if nothing else has touched it."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    try:
+        entry = c["aa"].undo(brand_id, action_id, graph=c["graph"], token=c["token"],
+                             account_id=c["account_id"], read=c["read"], write=c["write"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    _app_log.warning("ads action: undid %s for %s", action_id, brand_id)
+    return jsonify({"ok": True, "action": entry}), 200
 
 
 @app.route("/ads-brief", methods=["GET"])

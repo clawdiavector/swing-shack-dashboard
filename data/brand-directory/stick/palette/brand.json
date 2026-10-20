@@ -1,9 +1,9 @@
 {
   "schema": "https://campaign-os/brand-directory/palette/v1",
   "brand_id": "stick",
-  "version": "2.0",
-  "updated": "2026-09-25T00:00:00Z",
-  "source": "measured",
+  "version": "3.0",
+  "updated": "2026-10-20T00:00:00Z",
+  "source": "designer's colour document (brand-guide/stick-colour-font.pdf, supplied by Christelle 2026-10-20); measured feed tokens kept for existing templates",
   "tokens": {
     "navy_deep": "#073C52",
     "teal": "#00B3BA",
@@ -14,23 +14,38 @@
     "white": "#FFFFFF",
     "grey_light": "#D1D1D1",
     "gradient_sky": "#D6E4EC",
-    "gradient_fog": "#EAEEF1"
+    "gradient_fog": "#EAEEF1",
+    "brand_navy": "#003D54",
+    "brand_grey": "#D2D2D2"
   },
   "palette": {
     "primary": {
-      "hex": "#073C52",
-      "name": "navy deep",
-      "usage": "dominant backgrounds"
+      "hex": "#003D54",
+      "name": "brand navy",
+      "usage": "designer's main colour: dominant fields, headlines on light tiles, the logo colour"
     },
-    "accent": {
-      "hex": "#00B3BA",
-      "name": "teal",
-      "usage": "CTA bands, accent headlines"
+    "neutral_mid": {
+      "hex": "#D2D2D2",
+      "name": "brand grey",
+      "usage": "designer's second colour: light tiles, secondary shapes, dividers"
     },
     "neutral_light": {
       "hex": "#FFFFFF",
       "name": "white",
-      "usage": "text on dark fields"
-    }
+      "usage": "text on navy, white logo on navy and photos"
+    },
+    "accent": {
+      "hex": "#00B3BA",
+      "name": "teal",
+      "usage": "optional accent where a design calls for it (Christelle, 2026-10-20). Not in the designer's two-colour document; measured from the feed"
+    },
+    "supporting": [
+      {
+        "hex": "#24FFAF",
+        "name": "mint",
+        "usage": "optional accent, sparingly. Measured from the feed, not in the designer's document"
+      }
+    ],
+    "accent_rule": "Navy and grey are the brand. Teal and mint are acceptable accents only where a design calls for it."
   }
 }

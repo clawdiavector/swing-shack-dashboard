@@ -225,6 +225,31 @@ class BallModelTests(unittest.TestCase):
         self.assertIn("firmer", res[0]["idea"].lower())
 
 
+class ModelNameTests(unittest.TestCase):
+    def test_model_variants_do_not_repeat_words(self):
+        self.assertEqual(sp.product_key("Callaway Chrome Tour", "Chrome Tour"), "Callaway Chrome Tour")
+        self.assertEqual(sp.product_key("Callaway Chrome Tour", "Chrome Tour X"), "Callaway Chrome Tour X")
+        self.assertEqual(sp.product_key("Callaway Chrome Tour", "Chrome Tour Triple Diamond"),
+                         "Callaway Chrome Tour Triple Diamond")
+
+    def test_variant_with_no_overlap_keeps_brackets(self):
+        self.assertEqual(sp.product_key("Some Club", "Left Hand"), "Some Club (Left Hand)")
+
+    def test_sizes_and_colours_still_roll_up(self):
+        self.assertEqual(sp.product_key("Mens Classic Polo", "White;3"), "Mens Classic Polo")
+        self.assertEqual(sp.product_key("Glove", "M/L"), "Glove")
+
+    def test_the_three_chrome_tour_lines_stay_three_products(self):
+        rows = sp.parse_stock_csv(HEADER + chr(10).join([
+            ",Callaway Chrome Tour,Chrome Tour,CT,,16,",
+            ",Callaway Chrome Tour,Chrome Tour Triple Diamond,CTTD,,16,",
+            ",Callaway Chrome Tour,Chrome Tour X,X,,15,"]))
+        self.assertEqual(sorted({r["name"] for r in rows}),
+                         ["Callaway Chrome Tour", "Callaway Chrome Tour Triple Diamond", "Callaway Chrome Tour X"])
+        for r in rows:
+            self.assertEqual(sp.ball_profile(r["name"])["model"], r["name"])
+
+
 class PhotoTests(unittest.TestCase):
     def setUp(self):
         self.dir = Path(tempfile.mkdtemp(prefix="cos-photos-"))

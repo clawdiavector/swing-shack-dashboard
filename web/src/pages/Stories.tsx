@@ -4,7 +4,7 @@ import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Chomper } from '../components/fun'
 import { StoryReposts } from '../components/StoryReposts'
-import { submitStoryLink } from '../lib/api'
+import { fetchStorySettings, saveStorySettings, submitStoryLink, type StorySettings } from '../lib/api'
 import { toneFor } from '../lib/brandTone'
 import { burstConfetti } from '../lib/confetti'
 
@@ -36,6 +36,92 @@ function linkProblem(raw: string): string {
   return HOSTS.some((h) => host === h || host.endsWith(`.${h}`))
     ? ''
     : 'I only eat Instagram and Facebook links. Picky, I know.'
+}
+
+/** How many stock stories a day, and how often a stock line goes on the month grid. Saves on change. */
+function StorySettingsPanel({ initialBrand }: { initialBrand: string }) {
+  const [brand, setBrand] = useState(initialBrand)
+  const [loaded, setLoaded] = useState<{ settings: StorySettings; limits: { stock_stories: [number, number]; stock_every_days: [number, number] } } | null>(null)
+  const [status, setStatus] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoaded(null)
+    void fetchStorySettings(brand).then((r) => {
+      if (!cancelled && r.ok) setLoaded({ settings: r.settings, limits: r.limits })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [brand])
+
+  async function save(changes: Partial<StorySettings>) {
+    if (!loaded) return
+    setLoaded({ ...loaded, settings: { ...loaded.settings, ...changes, daily_on: { ...loaded.settings.daily_on, ...(changes.daily_on || {}) } } })
+    setStatus('Saving…')
+    try {
+      const r = await saveStorySettings(brand, changes)
+      setLoaded({ settings: r.settings, limits: r.limits })
+      setStatus('Saved.')
+    } catch {
+      setStatus('Could not save. Try again.')
+    }
+  }
+
+  return (
+    <section className="space-y-3 rounded-xl border border-bd p-4 text-sm">
+      <button type="button" className="font-semibold text-tx" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        Story settings {open ? '▴' : '▾'}
+      </button>
+      {open ? (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Which brand's settings">
+            {STORY_BRANDS.map((id) => (
+              <button key={id} type="button" aria-pressed={brand === id} onClick={() => setBrand(id)}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold capitalize ${
+                  brand === id ? 'border-ac bg-ac/15 text-ac' : 'border-bd text-tx2 hover:text-tx'
+                }`}>
+                {brand === id ? '✓ ' : ''}{id.replace(/-/g, ' ')}
+              </button>
+            ))}
+          </div>
+          {!loaded ? (
+            <p className="text-tx3">Loading…</p>
+          ) : (
+            <>
+              {Object.keys(loaded.settings.daily_on).map((id) => (
+                <label key={id} className="flex items-center gap-2">
+                  <input type="checkbox" checked={loaded.settings.daily_on[id]}
+                    onChange={(e) => void save({ daily_on: { [id]: e.target.checked } })} />
+                  {id.replace(/-/g, ' ')} every day
+                </label>
+              ))}
+              <label className="flex items-center gap-2">
+                Stock stories a day
+                <select value={loaded.settings.stock_stories} className="rounded border border-bd px-2 py-1"
+                  onChange={(e) => void save({ stock_stories: Number(e.target.value) })}>
+                  {Array.from({ length: loaded.limits.stock_stories[1] - loaded.limits.stock_stories[0] + 1 }, (_, i) => i + loaded.limits.stock_stories[0]).map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex items-center gap-2">
+                Stock lines on the month grid: every
+                <select value={loaded.settings.stock_every_days} className="rounded border border-bd px-2 py-1"
+                  onChange={(e) => void save({ stock_every_days: Number(e.target.value) })}>
+                  {Array.from({ length: loaded.limits.stock_every_days[1] - loaded.limits.stock_every_days[0] + 1 }, (_, i) => i + loaded.limits.stock_every_days[0]).map((n) => (
+                    <option key={n} value={n}>{n} {n === 1 ? 'day' : 'days'}</option>
+                  ))}
+                </select>
+              </label>
+              <p className="text-xs text-tx3" role="status">{status}</p>
+            </>
+          )}
+        </div>
+      ) : null}
+    </section>
+  )
 }
 
 export function Stories() {
@@ -218,6 +304,7 @@ export function Stories() {
         </form>
       </div>
 
+      <StorySettingsPanel initialBrand={!isAll && brandIds?.length && STORY_BRANDS.includes(brandIds[0]) ? brandIds[0] : 'swing-shack'} />
       <StoryReposts brandIds={isAll ? undefined : brandIds} refreshKey={refresh} alwaysShow />
     </div>
   )

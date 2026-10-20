@@ -128,6 +128,17 @@ SIZE_VARIANT = re.compile(
     r"extra large|medium large|\d{1,2}t?|\d{1,2}/\d{1,2}|[sml]/\d|xl/\d)$", re.I)
 
 
+def _join_model(name: str, variant: str) -> str:
+    """Add a model-name variant to its product without repeating words:
+    "Callaway Chrome Tour" + "Chrome Tour Triple Diamond" -> "Callaway Chrome Tour Triple Diamond";
+    "Callaway Chrome Tour" + "Chrome Tour" -> "Callaway Chrome Tour". No overlap: "Name (variant)"."""
+    n, v = name.split(), variant.split()
+    for k in range(min(len(n), len(v)), 0, -1):
+        if [w.lower() for w in n[-k:]] == [w.lower() for w in v[:k]]:
+            return " ".join(n + v[k:])
+    return f"{name} ({variant})"
+
+
 def product_key(name: str, variant: str) -> str:
     """A size or colour-and-size variant belongs to its product. Any other variant is a
     different model ("Callaway Chrome Tour" / "Chrome Tour Triple Diamond"), kept apart."""
@@ -137,7 +148,7 @@ def product_key(name: str, variant: str) -> str:
         name = re.sub(rf"\s+-\s+({BALL_COLOURS})$", "", name.strip(), flags=re.I)
     if not v or ";" in v or SIZE_VARIANT.match(v):
         return name
-    return f"{name} ({v})"
+    return _join_model(name, v)
 
 
 def parse_stock_csv(text: str) -> List[Dict[str, Any]]:
@@ -508,3 +519,20 @@ def match_photos(product_name: str, images_dir: Path) -> Dict[str, Any]:
         "exact": exact,
         "candidates": [p for _, p in partial[:3]],
     }
+
+
+def candidates(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Lines worth a post now: stuck or still first, then the deep shelf. Each name once."""
+    seen, out = set(), []
+    for r in push_list(results) + heavy_shelf(results):
+        if r["name"] in seen:
+            continue
+        seen.add(r["name"])
+        out.append(r)
+    return out
+
+
+def candidates_for(brand_id: str) -> List[Dict[str, Any]]:
+    """The brand's current candidates, straight from its saved stock lists. Empty when none saved."""
+    snaps = load_snapshots(brand_id)
+    return candidates(analyse(snaps)) if snaps else []

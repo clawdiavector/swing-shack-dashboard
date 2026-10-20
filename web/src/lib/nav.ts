@@ -39,12 +39,13 @@ export const RAIL: RailItem[] = [
     label: 'Today',
     hint: 'What needs you',
     icon: Sun,
-    match: ['/daily', '/review', '/inbox', '/stories'],
+    match: ['/daily', '/review', '/inbox', '/stories', '/photos'],
     pages: [
       { to: '/daily', label: 'Today' },
       { to: '/review', label: 'Approve drafts' },
       { to: '/inbox', label: 'Inbox' },
       { to: '/stories', label: 'Stories' },
+      { to: '/photos', label: 'Photos' },
     ],
   },
   {
@@ -103,6 +104,15 @@ export const SETTINGS: RailItem = {
 
 function under(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}/`)
+}
+
+/**
+ * Header label for a sub-page, shown after the section name in the header
+ * ("Results · SEO" rather than "Results · What worked"). Only pages listed here
+ * change the header; everything else keeps the section's own hint.
+ */
+export const KICKER_SUBPAGES: Record<string, string> = {
+  '/results/seo': 'SEO',
 }
 
 /** The section a route belongs to. */

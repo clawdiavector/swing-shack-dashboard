@@ -977,6 +977,8 @@ export type InsightPost = {
 export type InsightsPosts = {
   ok?: boolean
   posts?: InsightPost[]
+  requested_brand_id?: string
+  data_source_brand_id?: string
   _meta?: { average_engagement?: number; total_scanned?: number; fetched_at?: string; reason?: string }
 }
 
@@ -2474,9 +2476,33 @@ export async function submitStoryLink(body: { brand: string; url: string; note?:
 export type StorySuggestion = {
   brand: string
   date: string
-  kind: 'retail' | 'service' | 'moment'
+  kind: 'daily' | 'retail' | 'service' | 'moment' | 'stock'
   feature: string
-  repost_from: { id: string; name: string; instagram: string | null; facebook: string | null; look_for: string }
+  /** Null for a stock story: it is our own product, not a repost. */
+  repost_from: { id: string; name: string; instagram: string | null; facebook: string | null; look_for: string } | null
+  /** Why this line, for a stock story. */
+  why?: string
+}
+
+export type StorySettings = {
+  daily_on: Record<string, boolean>
+  stock_stories: number
+  stock_every_days: number
+}
+
+export type StorySettingsResult = {
+  ok: boolean
+  brand: string
+  settings: StorySettings
+  limits: { stock_stories: [number, number]; stock_every_days: [number, number] }
+}
+
+export function fetchStorySettings(brand: string) {
+  return getJson<StorySettingsResult>(`/api/stories/settings?brand=${encodeURIComponent(brand)}`)
+}
+
+export function saveStorySettings(brand: string, changes: Partial<StorySettings>) {
+  return postJson<StorySettingsResult>('/api/stories/settings', { brand, ...changes })
 }
 
 export function fetchStorySuggestions() {

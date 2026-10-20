@@ -28,6 +28,7 @@ import { Queue } from './pages/publish/Queue'
 import { SandboxPreview } from './pages/publish/SandboxPreview'
 import { Socials } from './pages/publish/Socials'
 import { InboxPage } from './pages/InboxPage'
+import { Photos } from './pages/Photos'
 import { Todo } from './pages/Todo'
 import { WeekBoard } from './pages/WeekBoard'
 import { Week } from './pages/results/Week'
@@ -36,7 +37,9 @@ import { Worked } from './pages/results/Worked'
 import { BrandVisuals } from './pages/BrandVisuals'
 import { Library } from './pages/Library'
 import GEO from './pages/GEO'
+import { ReachPage } from './pages/ReachPage'
 import { SeoPage } from './pages/SeoPage'
+import { TrendsPage } from './pages/TrendsPage'
 
 export default function App() {
   return (
@@ -45,6 +48,7 @@ export default function App() {
         <Route index element={<Navigate to="/daily" replace />} />
         <Route path="daily" element={<Daily />} />
         <Route path="inbox" element={<InboxPage />} />
+        <Route path="photos" element={<Photos />} />
         <Route path="stories" element={<Stories />} />
         <Route path="week" element={<WeekBoard />} />
         <Route path="todo" element={<Todo />} />
@@ -77,6 +81,8 @@ export default function App() {
         <Route path="results/worked" element={<Worked />} />
         <Route path="results/templates" element={<Templates />} />
         <Route path="results/seo" element={<SeoPage />} />
+        <Route path="results/reach" element={<ReachPage />} />
+        <Route path="results/trends" element={<TrendsPage />} />
         <Route path="ops" element={<Ops />} />
         <Route path="geo" element={<GEO />} />
         <Route path="other" element={<Other />} />

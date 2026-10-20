@@ -89,11 +89,20 @@ def run(*, brand: str | None = None) -> dict:
     try:
         mod = _load_ubersuggest_module()
         argv_old = sys.argv[:]
+        brand_old = os.environ.get("STRATEGY_BRAND")
         try:
+            # fetch_ubersuggest names its output files from STRATEGY_BRAND,
+            # not from --domain. Without this, the Stick run writes its data
+            # into the unsuffixed Swing Shack files every day.
+            os.environ["STRATEGY_BRAND"] = brand or "swing-shack"
             sys.argv = ["fetch_ubersuggest", "--domain", domain]
             exit_code = mod.main()
         finally:
             sys.argv = argv_old
+            if brand_old is None:
+                os.environ.pop("STRATEGY_BRAND", None)
+            else:
+                os.environ["STRATEGY_BRAND"] = brand_old
     except SystemExit as exc:
         code = exc.code if isinstance(exc.code, int) else 1
         if code == 2:
