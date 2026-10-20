@@ -1703,8 +1703,9 @@ export type PostizStatus = {
   error?: string
 }
 
-export async function fetchPostizStatus(): Promise<PostizStatus & { httpStatus?: number }> {
-  const res = await fetch('/api/postiz/status', { credentials: 'same-origin' })
+export async function fetchPostizStatus(brandId?: string): Promise<PostizStatus & { httpStatus?: number }> {
+  const q = brandId ? `?brand_id=${encodeURIComponent(brandId)}` : ''
+  const res = await fetch(`/api/postiz/status${q}`, { credentials: 'same-origin' })
   if (res.status === 401) {
     window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
     throw new Error('auth required')
@@ -1720,8 +1721,9 @@ export type PostizChannels = {
   error?: string
 }
 
-export async function fetchPostizChannels(): Promise<PostizChannels & { httpStatus?: number }> {
-  const res = await fetch('/api/postiz/channels', { credentials: 'same-origin' })
+export async function fetchPostizChannels(brandId?: string): Promise<PostizChannels & { httpStatus?: number }> {
+  const q = brandId ? `?brand_id=${encodeURIComponent(brandId)}` : ''
+  const res = await fetch(`/api/postiz/channels${q}`, { credentials: 'same-origin' })
   if (res.status === 401) {
     window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
     throw new Error('auth required')

@@ -7061,6 +7061,86 @@ def photos_videos():
     return jsonify({"ok": True, "brand_id": brand_id, **video_list.build(entries, _drive_text)})
 
 
+def _postiz_provider(item):
+    for key in ("identifier", "providerIdentifier", "provider", "type", "channelType", "platform"):
+        v = item.get(key)
+        if v and isinstance(v, str):
+            return v.lower()
+    return ""
+
+
+@app.route('/api/photos/videos/draft', methods=['POST'])
+def photos_video_draft():
+    """POST /api/photos/videos/draft {brand_id, file_id} — save a ready-to-publish Drive video in Postiz
+    as a DRAFT on the brand's Instagram channel, with its caption. Nothing is published or scheduled.
+
+    Refuses to run unless the brand has its own Postiz key (never the shared key, which belongs to
+    another brand's account)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _postiz_lib.has_brand_key(brand_id):
+        return jsonify({"ok": False, "error": "no Postiz key is set up for %s" % brand_id}), 409
+    from pathlib import Path as _P
+    import tempfile
+    from _lib import video_list
+    from _lib import google_drive as gd
+    file_id = str((request.get_json(silent=True) or {}).get("file_id") or "")
+    try:
+        entries = _drive_listing(brand_id)
+    except Exception as exc:
+        _app_log.exception("video draft: drive listing failed")
+        return jsonify({"ok": False, "error": "Could not read Drive: " + str(exc)}), 502
+    video = next((e for e in (entries or []) if e["id"] == file_id), None)
+    if not video or video_list.stage_of(video.get("folder", "")) != "2-ready-to-publish":
+        return jsonify({"ok": False, "error": "only a video in Video/2-ready-to-publish can be sent"}), 404
+    stem = _P(video["name"]).stem
+    cap = next((e for e in entries if e.get("folder") == video["folder"] and e["name"] == stem + ".txt"), None)
+    caption = _drive_text(cap["id"]) if cap else None
+    if not caption:
+        return jsonify({"ok": False, "error": "add a caption file (same name, ending .txt) next to the video first"}), 409
+    try:
+        data, err = _postiz_lib.list_integrations(brand_id=brand_id)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": "Postiz not reachable: %s" % exc}), 502
+    if err:
+        return jsonify({"ok": False, "error": "postiz API %s: %s" % err}), 502
+    items = data if isinstance(data, list) else ((data or {}).get("integrations") or (data or {}).get("identities") or [])
+    channel = next((i for i in items if isinstance(i, dict) and not i.get("disabled")
+                    and _postiz_provider(i).startswith("instagram")), None)
+    if not channel:
+        return jsonify({"ok": False, "error": "no Instagram channel is connected in Postiz for %s" % brand_id}), 409
+    fmt = video_list.parse_name(video["name"])["format"] or ""
+    settings = {"post_type": "story" if fmt.startswith("story") else "post"}
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            local = gd.download_public_file(file_id, _P(tmp) / video["name"], timeout=300)
+            if local.stat().st_size > 200 * 1024 * 1024:
+                return jsonify({"ok": False, "error": "video is over 200 MB"}), 413
+            up, err = _postiz_lib.upload_media(str(local), brand_id=brand_id)
+    except Exception as exc:
+        _app_log.exception("video draft: download/upload failed")
+        return jsonify({"ok": False, "error": "Could not upload the video: %s" % exc}), 502
+    if err or not up or not up.get("id") or not up.get("path"):
+        return jsonify({"ok": False, "error": "Postiz upload failed: %s" % (str(err or up),)}), 502
+    try:
+        post, err = _postiz_lib.create_post(
+            channel.get("id"), caption, [{"id": up["id"], "path": up["path"]}],
+            brand_id=brand_id, platform_settings=settings, draft=True)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": "Postiz not reachable: %s" % exc}), 502
+    if err:
+        return jsonify({"ok": False, "error": "postiz API %s: %s" % err}), 502
+    _app_log.info("video draft created in Postiz for %s: %s", brand_id, video["name"])
+    return jsonify({"ok": True, "brand_id": brand_id, "channel": channel.get("name"),
+                    "post_type": settings["post_type"], "postiz": post,
+                    "open": "https://platform.postiz.com/launches"})
+
+
 @app.route('/api/lanes/stock/preview', methods=['POST'])
 def lanes_stock_preview():
     """POST /api/lanes/stock/preview — preview a CSV stock import."""
@@ -14711,7 +14791,9 @@ def postiz_status_route():
         return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
     if not _is_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
-    status = _postiz_lib.postiz_status()
+    brand_q = (request.args.get("brand_id") or "").strip() or None
+    status = _postiz_lib.postiz_status(brand_q)
+    status["brand_key"] = _postiz_lib.has_brand_key(brand_q) if brand_q else None
     # Augment with per-brand OAuth token presence (read-only directory walk)
     try:
         path = Path(os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials/postiz-oauth"))
@@ -14748,11 +14830,14 @@ def postiz_channels_route():
         return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
     if not _is_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
-    status = _postiz_lib.postiz_status()
+    brand_q = (request.args.get("brand_id") or "").strip() or None
+    status = _postiz_lib.postiz_status(brand_q)
     if not status["api_key_present"]:
         return jsonify({"ok": False, "error": "POSTIZ_API_KEY not configured", "detail": status}), 503
+    if brand_q and not _postiz_lib.has_brand_key(brand_q):
+        return jsonify({"ok": False, "error": "no Postiz key is set up for %s" % brand_q}), 409
     try:
-        data, err = _postiz_lib.list_integrations()
+        data, err = _postiz_lib.list_integrations(brand_id=brand_q)
     except Exception as exc:
         return jsonify({"ok": False, "error": f"transport error: {exc}"}), 502
     if err:

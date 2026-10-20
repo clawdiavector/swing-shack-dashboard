@@ -36,6 +36,7 @@ type InboxItem = {
 type InboxPayload = { ok: boolean; items: InboxItem[]; kinds: string[]; areas: string[] }
 
 type VideoRow = {
+  id: string
   name: string
   url: string
   parsed: {
@@ -106,8 +107,23 @@ function Thumb({ url, viewable, name }: { url: string; viewable?: boolean; name:
   )
 }
 
-function VideoList({ data }: { data: VideoPayload }) {
+function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
   const [copied, setCopied] = useState('')
+  const [confirming, setConfirming] = useState('')
+  const [sending, setSending] = useState('')
+  const [result, setResult] = useState<Record<string, string>>({})
+  const sendDraft = async (v: VideoRow) => {
+    setSending(v.id)
+    setConfirming('')
+    try {
+      const r = await call<{ channel?: string }>('/api/photos/videos/draft', { brand_id: brand, file_id: v.id })
+      setResult((prev) => ({ ...prev, [v.id]: `Draft created in Postiz${r.channel ? ` for ${r.channel}` : ''}. Nothing is published.` }))
+    } catch (e) {
+      setResult((prev) => ({ ...prev, [v.id]: e instanceof Error ? e.message : 'Could not send' }))
+    } finally {
+      setSending('')
+    }
+  }
   const copy = async (name: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -150,6 +166,31 @@ function VideoList({ data }: { data: VideoPayload }) {
                       Open in Drive
                     </a>
                   </div>
+                  {stage.stage === '2-ready-to-publish' ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {confirming === v.id ? (
+                        <>
+                          <span className="text-sm">Create a draft in Postiz for Instagram? Nothing will be published.</span>
+                          <button type="button" className={pillOn} onClick={() => void sendDraft(v)}>
+                            Yes, create the draft
+                          </button>
+                          <button type="button" className={pill} onClick={() => setConfirming('')}>
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={sending === v.id || !v.caption}
+                          className={pill}
+                          onClick={() => setConfirming(v.id)}
+                        >
+                          {sending === v.id ? 'Sending to Postiz…' : 'Send to Postiz as draft'}
+                        </button>
+                      )}
+                      {result[v.id] ? <span className="text-sm text-tx2">{result[v.id]}</span> : null}
+                    </div>
+                  ) : null}
                   {stage.stage !== '1-raw' ? (
                     v.caption ? (
                       <div className="mt-3 space-y-2">
@@ -424,7 +465,7 @@ export function Photos() {
                   {videoBusy ? 'Reading Drive…' : 'Refresh'}
                 </button>
               </div>
-              {video ? <VideoList data={video} /> : videoBusy ? <p className="text-tx2">Reading Drive…</p> : null}
+              {video ? <VideoList data={video} brand={brand} /> : videoBusy ? <p className="text-tx2">Reading Drive…</p> : null}
             </div>
           ) : tab === 'inbox' ? (
             !inbox || inbox.items.length === 0 ? (
