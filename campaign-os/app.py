@@ -44922,13 +44922,15 @@ def planning_month_view(brand_id):
             else:
                 _pillar0 = ""
             lane = r.get("lane") or _pillar0 or ""
+            # A video that is already in Postiz reads as scheduled (or a Postiz draft), not just approved.
+            _item_status = {"schedule": "SCHEDULED", "draft": "DRAFT"}.get(r.get("postiz_mode"), "APPROVED")
             item = {
                 "id": ek or start_iso,
                 "title": r.get("title") or r.get("name") or "(operator-approved)",
                 "subtitle": r.get("summary") or r.get("relevance_reason") or "",
                 "lane": lane,
                 "channel": r.get("channel") or "main-calendar",
-                "status": "APPROVED",
+                "status": _item_status,
                 "cta": r.get("cta") or "",
                 "purpose": r.get("purpose") or "Operator-approved Main Calendar event",
                 "is_paid_supported": bool(r.get("is_paid_supported")),
@@ -44950,7 +44952,7 @@ def planning_month_view(brand_id):
                 "lane": lane,
                 "title": item["title"],
                 "subtitle": item["subtitle"],
-                "status": "APPROVED",
+                "status": _item_status,
                 "is_demo": False,
                 "execution_type": "operator_approved",
                 "source": "operator-store",
@@ -46820,6 +46822,11 @@ def _alerts_for_brand(brand_id):
             continue  # steps a plan put there are the plan's, not content made for the date
         kind = r.get("type")
         start = r.get("event_start") or r.get("event_date") or r.get("public_peak")
+        if r.get("postiz_mode") in ("draft", "schedule"):
+            # A video already in Postiz is made and booked: it counts as content for its date,
+            # not as a date still needing a plan.
+            content_dates.append(start)
+            continue
         if kind in ("campaign", "moment"):
             # Someone chose this date for the calendar, so it is never quieter than B.
             events.append({"event_key": r.get("event_key") or r.get("calendar_id"),
