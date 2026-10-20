@@ -53014,6 +53014,106 @@ def meta_ads_library(brand_id):
     return jsonify({"ok": True, "library": library}), 200
 
 
+# ─── ADS ACTIONS: one-click pause with confirm and undo ───────────────
+# The only place Campaign OS changes a Meta ad (see _lib/ads_actions.py). Session
+# only. Off unless ADS_WRITES_ENABLED=1; preview works either way.
+
+def _ads_actions_ctx(brand_id):
+    """(error_response, ctx) for the ads-actions routes."""
+    if not _is_authed():
+        return (jsonify({"ok": False, "error": "auth required"}), 401), None
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return (jsonify({"ok": False,
+                         "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400), None
+    _label, token = _v23_resolve_ads_token(brand_id)
+    account_id = _v23_resolve_ads_account(brand_id)
+    if not token or not account_id:
+        return (jsonify({"ok": False, "error": "no Meta ads token for this brand"}), 503), None
+    from _lib import ads_actions as _aa
+    from _lib.jobs.layer1._io import atomic_write, data_dir as _job_data_dir
+
+    def _read(rel):
+        try:
+            with open(_job_data_dir() / rel, encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            return None
+
+    def _graph(method, path, tok, params=None):
+        return _aa.graph_call(method, path, tok, params, version=_META_GRAPH_API_VERSION)
+
+    return None, {"aa": _aa, "token": token, "account_id": account_id, "read": _read,
+                  "write": atomic_write, "graph": _graph,
+                  "signer": URLSafeTimedSerializer(SESSION_SECRET, salt=_aa.TICKET_SALT)}
+
+
+@app.route("/api/meta/ads/<brand_id>/write-status", methods=["GET"])
+def meta_ads_write_status(brand_id):
+    """GET — whether one-click ad changes are switched on."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import ads_actions as _aa
+    return jsonify({"ok": True, "enabled": _aa.writes_enabled()}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/pause/preview", methods=["POST"])
+def meta_ads_pause_preview(brand_id):
+    """POST {ad_id} — what pausing would change. Reads Meta, changes nothing."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        out = c["aa"].preview(brand_id, body.get("ad_id"), graph=c["graph"], token=c["token"],
+                              account_id=c["account_id"], signer=c["signer"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    return jsonify({"ok": True, "preview": out}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/pause", methods=["POST"])
+def meta_ads_pause(brand_id):
+    """POST {ticket} — pause the ad the preview named, and log it."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        entry = c["aa"].apply(brand_id, body.get("ticket") or "", graph=c["graph"], token=c["token"],
+                              account_id=c["account_id"], signer=c["signer"],
+                              read=c["read"], write=c["write"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    _app_log.warning("ads action: paused ad %s for %s (%s)", entry["ad_id"], brand_id, entry["id"])
+    return jsonify({"ok": True, "action": entry}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/actions", methods=["GET"])
+def meta_ads_actions_log(brand_id):
+    """GET — changes made from the dashboard, newest first."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    entries = c["aa"].load_log(brand_id, c["read"])
+    return jsonify({"ok": True, "enabled": c["aa"].writes_enabled(),
+                    "actions": list(reversed(entries))[:50]}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/actions/<action_id>/undo", methods=["POST"])
+def meta_ads_action_undo(brand_id, action_id):
+    """POST — put an ad back as it was, if nothing else has touched it."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    try:
+        entry = c["aa"].undo(brand_id, action_id, graph=c["graph"], token=c["token"],
+                             account_id=c["account_id"], read=c["read"], write=c["write"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    _app_log.warning("ads action: undid %s for %s", action_id, brand_id)
+    return jsonify({"ok": True, "action": entry}), 200
+
+
 @app.route("/ads-brief", methods=["GET"])
 def ads_brief_page():
     """GET /ads-brief[?kind=weekly|trends|research] — both brands on one page."""

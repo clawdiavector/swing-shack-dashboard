@@ -121,6 +121,7 @@ def top_actions(open_findings: list, limit: int = 3) -> list:
                 "rule": rule, "status": group[0].get("status"), "severity": group[0]["severity"],
                 "action": action, "why": group[0]["what"],
                 "ads": [f["ad_name"] for f in group if f.get("ad_name")],
+                "ad_ids": [f["ad_id"] for f in group if f.get("ad_id")],
                 "days_open": max(f["days_open"] for f in group),
             })
             if len(out) == limit:
