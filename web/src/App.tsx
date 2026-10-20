@@ -28,6 +28,7 @@ import { Queue } from './pages/publish/Queue'
 import { SandboxPreview } from './pages/publish/SandboxPreview'
 import { Socials } from './pages/publish/Socials'
 import { InboxPage } from './pages/InboxPage'
+import { Photos } from './pages/Photos'
 import { Todo } from './pages/Todo'
 import { WeekBoard } from './pages/WeekBoard'
 import { Week } from './pages/results/Week'
@@ -47,6 +48,7 @@ export default function App() {
         <Route index element={<Navigate to="/daily" replace />} />
         <Route path="daily" element={<Daily />} />
         <Route path="inbox" element={<InboxPage />} />
+        <Route path="photos" element={<Photos />} />
         <Route path="stories" element={<Stories />} />
         <Route path="week" element={<WeekBoard />} />
         <Route path="todo" element={<Todo />} />
