@@ -53416,6 +53416,48 @@ def meta_ads_action_undo(brand_id, action_id):
     return jsonify({"ok": True, "action": entry}), 200
 
 
+# ─── MOMENTS DESK ─────────────────────────────────────────────────────
+# What is happening now that a brand can join in, and what is coming. Read only:
+# fetched on demand from public feeds, kept 30 minutes. See _lib/moments.py.
+
+_MOMENTS_TTL_SECONDS = 30 * 60
+
+
+@app.route("/api/moments", methods=["GET"])
+def moments_desk():
+    """GET /api/moments[?refresh=1] — upcoming dates and today's South African talking points."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import moments as _moments
+    from _lib.jobs.layer1._io import atomic_write, data_dir as _job_data_dir
+    path = _job_data_dir() / "moments" / "latest.json"
+    try:
+        with open(path, encoding="utf-8") as f:
+            saved = json.load(f)
+    except (OSError, ValueError):
+        saved = None
+    if saved and request.args.get("refresh") != "1":
+        try:
+            at = _dt_cls.fromisoformat(saved["generated_at"])
+            if (_dt_cls.now(_tz.utc) - at).total_seconds() < _MOMENTS_TTL_SECONDS:
+                return jsonify({"ok": True, "moments": saved, "cached": True}), 200
+        except (KeyError, ValueError):
+            pass
+    try:
+        fresh = _moments.build()
+    except Exception:
+        _app_log.exception("moments build failed")
+        if saved:
+            return jsonify({"ok": True, "moments": saved, "cached": True, "stale": True}), 200
+        return jsonify({"ok": False, "error": "could not build moments"}), 502
+    # All feeds down must not wipe a good copy.
+    if fresh["feeds_read"] == 0 and saved:
+        return jsonify({"ok": True, "moments": dict(saved, errors=fresh["errors"]),
+                        "cached": True, "stale": True}), 200
+    atomic_write("moments/latest.json", fresh)
+    return jsonify({"ok": True, "moments": fresh, "cached": False}), 200
+
+
 @app.route("/ads-brief", methods=["GET"])
 def ads_brief_page():
     """GET /ads-brief[?kind=weekly|trends|research] — both brands on one page."""
