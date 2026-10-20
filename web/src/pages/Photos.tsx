@@ -35,7 +35,27 @@ type InboxItem = {
 
 type InboxPayload = { ok: boolean; items: InboxItem[]; kinds: string[]; areas: string[] }
 
-type Tab = Status | 'inbox'
+type VideoRow = {
+  name: string
+  url: string
+  parsed: {
+    date: string | null
+    topic: string | null
+    what: string | null
+    format: string | null
+    version: string | null
+    follows_rules: boolean
+  }
+  has_caption_file: boolean
+  caption: string | null
+}
+
+type VideoPayload = {
+  ok: boolean
+  stages: { stage: string; label: string; videos: VideoRow[] }[]
+}
+
+type Tab = Status | 'inbox' | 'video'
 
 const TAB_LABEL: Record<Status, string> = {
   'needs-check': 'Waiting',
@@ -83,6 +103,76 @@ function Thumb({ url, viewable, name }: { url: string; viewable?: boolean; name:
       onError={() => setFailed(true)}
       className="h-44 w-full bg-white object-contain"
     />
+  )
+}
+
+function VideoList({ data }: { data: VideoPayload }) {
+  const [copied, setCopied] = useState('')
+  const copy = async (name: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(name)
+      window.setTimeout(() => setCopied(''), 2000)
+    } catch {
+      /* clipboard blocked: the caption is still on screen to select */
+    }
+  }
+  return (
+    <div className="space-y-8">
+      {data.stages.map((stage) => (
+        <section key={stage.stage} className="space-y-3">
+          <h2 className="font-display text-2xl font-semibold">
+            {stage.label} <span className="text-base text-tx2">({stage.videos.length})</span>
+          </h2>
+          {stage.videos.length === 0 ? (
+            <p className="text-sm text-tx2">
+              Nothing in <code>Video/{stage.stage}</code> yet.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {stage.videos.map((v) => (
+                <div key={v.name} className="glass rounded-2xl border border-white/10 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold break-all">{v.name}</span>
+                    {v.parsed.follows_rules ? (
+                      <>
+                        <Badge>{v.parsed.date}</Badge>
+                        <Badge>{v.parsed.topic}</Badge>
+                        {v.parsed.format ? <Badge tone="blue">{v.parsed.format}</Badge> : null}
+                        {v.parsed.version ? <Badge>{v.parsed.version}</Badge> : null}
+                        {v.parsed.what ? <Badge>{v.parsed.what}</Badge> : null}
+                      </>
+                    ) : (
+                      <Badge tone="gold">Name does not follow the rules</Badge>
+                    )}
+                    <div className="flex-1" />
+                    <a className={pill} href={v.url} target="_blank" rel="noreferrer">
+                      Open in Drive
+                    </a>
+                  </div>
+                  {stage.stage !== '1-raw' ? (
+                    v.caption ? (
+                      <div className="mt-3 space-y-2">
+                        <div className="rounded-lg bg-white/5 p-3 text-sm whitespace-pre-wrap">{v.caption}</div>
+                        <button type="button" className={pill} onClick={() => copy(v.name, v.caption || '')}>
+                          {copied === v.name ? 'Copied' : 'Copy caption'}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-tx2">
+                        {v.has_caption_file
+                          ? 'The caption file is empty.'
+                          : 'No caption file. Add a .txt with the same name next to the video.'}
+                      </p>
+                    )
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
   )
 }
 
@@ -211,6 +301,8 @@ export function Photos() {
   const [tab, setTab] = useState<Tab>('needs-check')
   const [review, setReview] = useState<ReviewPayload | null>(null)
   const [inbox, setInbox] = useState<InboxPayload | null>(null)
+  const [video, setVideo] = useState<VideoPayload | null>(null)
+  const [videoBusy, setVideoBusy] = useState(false)
   const [error, setError] = useState('')
   const [note, setNote] = useState('')
   const [finding, setFinding] = useState(false)
@@ -230,9 +322,28 @@ export function Photos() {
   useEffect(() => {
     setReview(null)
     setInbox(null)
+    setVideo(null)
     setNote('')
     void load()
   }, [load])
+
+  // Videos come from a live look at Drive, so they load when the tab is opened.
+  const loadVideo = useCallback(async (fresh = false) => {
+    if (!brand) return
+    setVideoBusy(true)
+    setError('')
+    try {
+      setVideo(await call<VideoPayload>(`/api/photos/videos?brand_id=${encodeURIComponent(brand)}${fresh ? '&refresh=1' : ''}`))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not read the videos')
+    } finally {
+      setVideoBusy(false)
+    }
+  }, [brand])
+
+  useEffect(() => {
+    if (tab === 'video' && !video) void loadVideo()
+  }, [tab, video, loadVideo])
 
   const setStatus = async (file: string, status: Status) => {
     try {
@@ -289,6 +400,9 @@ export function Photos() {
             <button type="button" className={tab === 'inbox' ? pillOn : pill} onClick={() => setTab('inbox')}>
               Drive Inbox ({waitingInbox})
             </button>
+            <button type="button" className={tab === 'video' ? pillOn : pill} onClick={() => setTab('video')}>
+              Video
+            </button>
             <div className="flex-1" />
             {note ? <span className="text-xs text-tx2">{note}</span> : null}
             <button type="button" disabled={finding} className={pill} onClick={findNew}>
@@ -298,7 +412,21 @@ export function Photos() {
 
           {error ? <div className="text-sm text-red">{error}</div> : null}
 
-          {tab === 'inbox' ? (
+          {tab === 'video' ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-tx2">
+                  Videos in this brand&apos;s Drive <code>Video</code> folder, by stage. The folder is the status.
+                  Posting is still done by hand.
+                </p>
+                <div className="flex-1" />
+                <button type="button" disabled={videoBusy} className={pill} onClick={() => void loadVideo(true)}>
+                  {videoBusy ? 'Reading Drive…' : 'Refresh'}
+                </button>
+              </div>
+              {video ? <VideoList data={video} /> : videoBusy ? <p className="text-tx2">Reading Drive…</p> : null}
+            </div>
+          ) : tab === 'inbox' ? (
             !inbox || inbox.items.length === 0 ? (
               <p className="text-tx2">
                 The Inbox is empty. Drop files in this brand&apos;s Drive Inbox folder, then press Look for new
