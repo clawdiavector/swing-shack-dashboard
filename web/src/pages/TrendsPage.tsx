@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
 import { AdsBudget } from '../components/AdsBudget'
 import { AdsNext } from '../components/AdsNext'
+import { AdsTracking } from '../components/AdsTracking'
 import { ADS_BRANDS, AdsSection, Note } from '../components/AdsTrends'
 import { PageIntro } from '../components/chrome'
 import { Badge } from '../components/ui'
@@ -131,6 +132,13 @@ export function TrendsPage() {
         <section className="space-y-3">
           <h2 className="font-display text-xl font-semibold">What to do next</h2>
           <AdsNext brandId={brandId} />
+        </section>
+      ) : null}
+
+      {hasAds && brandId ? (
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-semibold">Ad links and tracking</h2>
+          <AdsTracking brandId={brandId} />
         </section>
       ) : null}
 

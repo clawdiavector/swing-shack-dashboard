@@ -53296,6 +53296,19 @@ def meta_ads_budget_set(brand_id):
     return jsonify(_ads_budget_view(brand_id)), 200
 
 
+@app.route("/api/meta/ads/<brand_id>/tracking", methods=["GET"])
+def meta_ads_tracking(brand_id):
+    """GET — per running ad: where it goes, what its UTMs say, what GA4 saw. From the last ads_brief run."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    data = _ads_lane_load(brand_id, "ads-tracking/latest.json")
+    if data is None:
+        return jsonify({"ok": False, "error": "no tracking check yet — run the ads_brief job"}), 404
+    return jsonify({"ok": True, "tracking": data}), 200
+
+
 @app.route("/api/meta/ads/<brand_id>/write-status", methods=["GET"])
 def meta_ads_write_status(brand_id):
     """GET — whether one-click ad changes are switched on."""
