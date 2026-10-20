@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getJson, postJson } from '../lib/api'
+import { rand } from '../lib/rand'
+import { HardStop, type HardStopInfo } from './AdsHardStop'
 import { Badge } from './ui'
 
 // Monthly ad budget for one brand: where the month stands and a box to set the budget.
@@ -32,9 +34,7 @@ const LABEL: Record<BudgetEval['status'], string> = {
   OVER: 'Over budget',
 }
 
-export function rand(n: number | null | undefined): string {
-  return n == null ? '—' : `R${Math.round(n).toLocaleString('en-ZA')}`
-}
+export { rand }
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -53,6 +53,7 @@ export function BudgetView({
   error,
   onInput,
   onSave,
+  hardStop,
 }: {
   ev: BudgetEval | null
   input: string
@@ -60,6 +61,7 @@ export function BudgetView({
   error: string | null
   onInput: (v: string) => void
   onSave: () => void
+  hardStop?: React.ReactNode
 }) {
   const budget = ev?.budget ?? null
   const max = Math.max(budget ?? 0, ev?.projected_total ?? 0, ev?.mtd_spend ?? 0, 1)
@@ -124,27 +126,36 @@ export function BudgetView({
         {error ? <span className="text-xs text-red">{error}</span> : null}
       </div>
       <p className="text-xs text-tx3">Saving a budget changes nothing in Meta. It only sets the line this page and the daily brief warn against.</p>
+      {hardStop}
     </div>
   )
 }
 
 export function AdsBudget({ brandId }: { brandId: string }) {
   const [ev, setEv] = useState<BudgetEval | null>(null)
+  const [hs, setHs] = useState<HardStopInfo>({ on: false })
   const [input, setInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    setEv(null)
-    setInput('')
-    setError(null)
-    getJson<{ budget: BudgetEval | null; settings?: { monthly_budget?: number | null } }>(`/api/meta/ads/${brandId}/budget`)
+  type Reply = { budget: BudgetEval | null; settings?: { monthly_budget?: number | null }; hard_stop?: HardStopInfo }
+  const load = () =>
+    getJson<Reply>(`/api/meta/ads/${brandId}/budget`)
       .then((r) => {
         setEv(r.budget)
+        setHs(r.hard_stop ?? { on: false })
         const b = r.settings?.monthly_budget
         setInput(b ? String(b) : '')
       })
       .catch((e: Error) => setError(e.message))
+
+  useEffect(() => {
+    setEv(null)
+    setHs({ on: false })
+    setInput('')
+    setError(null)
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandId])
 
   const save = () => {
@@ -155,11 +166,24 @@ export function AdsBudget({ brandId }: { brandId: string }) {
     }
     setSaving(true)
     setError(null)
-    postJson<{ budget: BudgetEval | null }>(`/api/meta/ads/${brandId}/budget`, { monthly_budget: n })
-      .then((r) => setEv(r.budget))
+    postJson<Reply>(`/api/meta/ads/${brandId}/budget`, { monthly_budget: n })
+      .then((r) => {
+        setEv(r.budget)
+        setHs(r.hard_stop ?? { on: false })
+      })
       .catch((e: Error) => setError(e.message))
       .finally(() => setSaving(false))
   }
 
-  return <BudgetView ev={ev} input={input} saving={saving} error={error} onInput={setInput} onSave={save} />
+  return (
+    <BudgetView
+      ev={ev}
+      input={input}
+      saving={saving}
+      error={error}
+      onInput={setInput}
+      onSave={save}
+      hardStop={<HardStop brandId={brandId} info={hs} budget={ev} onChange={() => void load()} />}
+    />
+  )
 }
