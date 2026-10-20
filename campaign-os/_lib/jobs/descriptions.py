@@ -220,6 +220,16 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Writes brands/<brand>/ads-brief/. Shown at /ads-brief. Never changes an ad."
         ),
     },
+    "ads_budget_guard": {
+        "title": "Ads budget guard",
+        "summary": "Hourly: pauses a brand's running ad sets when its monthly ad budget is used up.",
+        "detail": (
+            "Reads this month's spend and the running ad sets from Meta. Acts only for a brand that has "
+            "switched auto-pause on (brands/<brand>/ads-budget/settings.json) and only while one-click ad "
+            "changes are on; otherwise it just records what it would pause (brands/<brand>/ads-budget/guard.json). "
+            "Each pause is logged in ads-actions/log.json and can be undone. It never resumes an ad set."
+        ),
+    },
     "retry_failed_images": {
         "title": "Retry failed images",
         "summary": "Auto-enqueue operator calendar pairs and reset empty image queue rows.",

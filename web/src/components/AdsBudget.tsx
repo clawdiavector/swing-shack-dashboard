@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getJson, postJson } from '../lib/api'
 import { rand } from '../lib/rand'
+import { BudgetGuard } from './AdsGuard'
 import { HardStop, type HardStopInfo } from './AdsHardStop'
 import { Badge } from './ui'
 
@@ -183,7 +184,12 @@ export function AdsBudget({ brandId }: { brandId: string }) {
       error={error}
       onInput={setInput}
       onSave={save}
-      hardStop={<HardStop brandId={brandId} info={hs} budget={ev} onChange={() => void load()} />}
+      hardStop={
+        <>
+          <BudgetGuard brandId={brandId} hasBudget={!!ev?.budget} />
+          <HardStop brandId={brandId} info={hs} budget={ev} onChange={() => void load()} />
+        </>
+      }
     />
   )
 }

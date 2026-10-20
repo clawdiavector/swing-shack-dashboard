@@ -1,0 +1,35 @@
+name: Ads budget guard hourly
+
+# Checks each brand's monthly ad budget against this month's spend and, for a brand that has switched
+# auto-pause on, pauses its running ad sets when the budget is used up. Brands with auto-pause off only
+# get a dry run recorded. Top of every hour UTC (= top of every hour SAST).
+
+on:
+  schedule:
+    - cron: '5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ads-budget-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
+      BASE: https://swing-shack-dashboard-production.up.railway.app
+    steps:
+      - name: Preflight — COS_JOB_TOKEN required
+        run: |
+          set -euo pipefail
+          if [ -z "${COS_JOB_TOKEN:-}" ]; then
+            echo "::error::COS_JOB_TOKEN secret is not set"
+            exit 1
+          fi
+
+      - name: ads_budget_guard
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/ads_budget_guard?all=1" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/ads_budget_guard.json
+          python3 -c "import json; d=json.load(open('/tmp/ads_budget_guard.json')); print(d.get('status'), d.get('ok'), d.get('error'))"

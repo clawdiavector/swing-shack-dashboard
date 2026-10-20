@@ -177,6 +177,9 @@ def undo(brand_id: str, action_id: str, *, graph, token: str, account_id: str,
         raise ActionRefused("No such change.", 404)
     if entry.get("undone_at"):
         raise ActionRefused("That change was already undone.", 409)
+    if entry.get("kind") == "pause_adset":
+        return _undo_adset_pause(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
+                                 write=write, by=by)
     if entry.get("kind") == "set_end_date":
         return _undo_end_date(brand_id, entries, entry, graph=graph, token=token,
                               account_id=account_id, write=write, by=by)
@@ -287,6 +290,24 @@ def _undo_end_date(brand_id, entries, entry, *, graph, token, account_id, write,
     res = graph("POST", str(adset["id"]), token, {"end_time": "0"})
     if not res.get("success"):
         raise ActionRefused("Meta did not confirm removing the end date. Check Ads Manager.", 502)
+    entry["undone_at"] = _now()
+    entry["undone_by"] = by
+    _save(brand_id, entries, write)
+    return entry
+
+
+# ── pause_adset (made by the budget guard) ─────────────────────────────────
+
+def _undo_adset_pause(brand_id, entries, entry, *, graph, token, account_id, write, by) -> dict:
+    adset = graph("GET", entry["ad_id"], token, {"fields": "id,name,status,account_id"})
+    if f"act_{adset.get('account_id')}" != account_id:
+        raise ActionRefused("That ad set does not belong to this brand's ad account.", 403)
+    if adset.get("status") != "PAUSED":
+        raise ActionRefused(f"The ad set is now {str(adset.get('status')).lower()}, not paused, so it was changed "
+                            "somewhere else. Check Ads Manager.", 409)
+    res = graph("POST", entry["ad_id"], token, {"status": "ACTIVE"})
+    if not res.get("success"):
+        raise ActionRefused("Meta did not confirm the undo. Check Ads Manager.", 502)
     entry["undone_at"] = _now()
     entry["undone_by"] = by
     _save(brand_id, entries, write)

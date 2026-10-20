@@ -53325,6 +53325,63 @@ def _ads_cap_sync(brand_id):
     return {"plan": p, "set": bool(entry)}
 
 
+def _ads_guard_view(brand_id, c=None):
+    """What the page shows about the budget guard, from the last hourly check and the log. No Meta call."""
+    from _lib import ads_actions as _aa, ads_guard as _g
+    settings = _ads_lane_load(brand_id, "ads-budget/settings.json") or {}
+    last = _ads_lane_load(brand_id, "ads-budget/guard.json")
+    log = (_ads_lane_load(brand_id, "ads-actions/log.json") or {}).get("entries") or []
+    return {"ok": True, "auto_pause": bool(settings.get("auto_pause")), "budget": settings.get("monthly_budget"),
+            "writes_enabled": _aa.writes_enabled(), "last": last, "paused": _g.guarded(log)[:20]}
+
+
+@app.route("/api/meta/ads/<brand_id>/guard", methods=["GET"])
+def meta_ads_guard(brand_id):
+    """GET — the budget guard: on or off, the last hourly check (a dry run when off), and what it paused."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    return jsonify(_ads_guard_view(brand_id)), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/guard", methods=["POST"])
+def meta_ads_guard_set(brand_id):
+    """POST {on, confirm} — switch the budget guard on or off for a brand.
+
+    on without confirm is a dry run: reads Meta and says what would be paused, changes nothing. on with confirm
+    switches it on; the hourly job then pauses the running ad sets when the budget is used up. Off switches it off
+    (it never resumes anything).
+    """
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    from _lib import ads_guard as _g, ads_budget as _ab
+    from _lib.ads_brief import sast_today
+    from _lib.jobs.layer1._io import atomic_write
+    body = request.get_json(silent=True) or {}
+    settings = _ads_lane_load(brand_id, "ads-budget/settings.json") or {}
+    if body.get("on"):
+        if not settings.get("monthly_budget"):
+            return jsonify({"ok": False, "error": "Set a monthly budget first."}), 400
+        if not body.get("confirm"):
+            figures = _ab.fetch_figures(c["account_id"], c["token"], today=sast_today(),
+                                        api_version=_META_GRAPH_API_VERSION)
+            now = datetime.datetime.now(datetime.timezone.utc)
+            running, e = _g.fetch_running(c["account_id"], c["token"], now=now, api_version=_META_GRAPH_API_VERSION)
+            if e:
+                figures["complete"] = False
+            p = _g.plan(dict(settings, auto_pause=True), figures, running)
+            return jsonify({"ok": True, "preview": {"plan": p, "budget": settings["monthly_budget"],
+                                                    "mtd_spend": figures.get("mtd_spend")}}), 200
+        settings["auto_pause"] = True
+    else:
+        settings["auto_pause"] = False
+    atomic_write(f"brands/{brand_id}/ads-budget/settings.json", settings)
+    _app_log.warning("ads budget guard: %s auto_pause %s", brand_id, settings["auto_pause"])
+    return jsonify(_ads_guard_view(brand_id)), 200
+
+
 @app.route("/api/meta/ads/<brand_id>/hard-stop", methods=["POST"])
 def meta_ads_hard_stop(brand_id):
     """POST {on, confirm} — turn Meta's account spending limit on or off as the monthly hard stop.
