@@ -1,0 +1,22 @@
+{
+ "sku": "LDSB001",
+ "route": "turf_shadow",
+ "backdrop_id": 28,
+ "seed": 20261022,
+ "idea_id": 57,
+ "idea_line": "Right or left hand.",
+ "caption": "L.A.B. Golf DF3. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 65.2,
+  "word_visible": 1.0,
+  "text_overlap": 0.006,
+  "product_inside": 1.0,
+  "mean_luma": 58.6
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

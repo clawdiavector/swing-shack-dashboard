@@ -1,0 +1,23 @@
+{
+ "sku": "RGM2-I001",
+ "route": "turf_shadow",
+ "backdrop_id": 30,
+ "seed": 20261029,
+ "idea_id": 39,
+ "idea_line": "It is not obsessive if it is gear.",
+ "caption": "Ripit grips. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 98.0,
+  "word_visible": 1.0,
+  "text_overlap": 0.018,
+  "product_inside": 1.0,
+  "mean_luma": 92.3
+ },
+ "confirm_before_posting": [
+  "in_stock",
+  "tone_check"
+ ],
+ "tried_first": []
+}

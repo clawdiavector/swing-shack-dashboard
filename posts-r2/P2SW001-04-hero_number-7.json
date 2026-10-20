@@ -1,0 +1,22 @@
+{
+ "sku": "P2SW001",
+ "route": "hero_number",
+ "backdrop_id": 19,
+ "seed": 20261023,
+ "idea_id": 7,
+ "idea_line": "New brand on the wall.",
+ "caption": "Vessel Prime 2.0. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 111.4,
+  "word_visible": 0.85,
+  "text_overlap": 0.007,
+  "product_inside": 1.0,
+  "mean_luma": 134.6
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

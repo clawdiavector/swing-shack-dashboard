@@ -1,0 +1,28 @@
+{
+ "sku": "LOS001",
+ "route": "turf_shadow",
+ "backdrop_id": 28,
+ "seed": 20261031,
+ "idea_id": 77,
+ "idea_line": "Dad is easy. Just add a putter.",
+ "caption": "L.A.B. Golf OZ.1. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 65.2,
+  "word_visible": 1.0,
+  "text_overlap": 0.0,
+  "product_inside": 1.0,
+  "mean_luma": 61.4
+ },
+ "confirm_before_posting": [
+  "in_stock",
+  "tone_check"
+ ],
+ "tried_first": [
+  {
+   "route": "crop_word",
+   "why": "backdrop is too dark (mean luma 19)"
+  }
+ ]
+}

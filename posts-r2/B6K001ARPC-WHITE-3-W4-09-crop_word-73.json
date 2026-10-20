@@ -1,0 +1,22 @@
+{
+ "sku": "B6K001ARPC-WHITE-3-W4",
+ "route": "crop_word",
+ "backdrop_id": 25,
+ "seed": 20261028,
+ "idea_id": 73,
+ "idea_line": "Tee up a present.",
+ "caption": "Psycho Bunny polo. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 72.2,
+  "word_visible": 1.0,
+  "text_overlap": 0.0,
+  "product_inside": 1.0,
+  "mean_luma": 107.9
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

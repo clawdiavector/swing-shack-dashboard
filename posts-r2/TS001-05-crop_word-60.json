@@ -1,0 +1,23 @@
+{
+ "sku": "TS001",
+ "route": "crop_word",
+ "backdrop_id": 2,
+ "seed": 20261024,
+ "idea_id": 60,
+ "idea_line": "Check the numbers. Then check them again.",
+ "caption": "Takomo SF002. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 33.5,
+  "word_visible": 1.0,
+  "text_overlap": 0.016,
+  "product_inside": 1.0,
+  "mean_luma": 65.9
+ },
+ "confirm_before_posting": [
+  "in_stock",
+  "tone_check"
+ ],
+ "tried_first": []
+}

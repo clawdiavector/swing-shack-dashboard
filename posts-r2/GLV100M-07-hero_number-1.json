@@ -1,0 +1,27 @@
+{
+ "sku": "GLV100M",
+ "route": "hero_number",
+ "backdrop_id": 7,
+ "seed": 20261026,
+ "idea_id": 1,
+ "idea_line": "Just landed. Already tempting.",
+ "caption": "Takomo Glove 100. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 87.2,
+  "word_visible": 1.0,
+  "text_overlap": 0.008,
+  "product_inside": 1.0,
+  "mean_luma": 120.3
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": [
+  {
+   "route": "crop_word",
+   "why": "backdrop is too dark (mean luma 27)"
+  }
+ ]
+}
