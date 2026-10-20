@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getJson } from '../lib/api'
 import { Badge } from './ui'
-import { ageLabel, fillStarter, type MomentsData } from './Moments'
+import { ageLabel, Take, type MomentsData } from './Moments'
 
 // The morning alert, on the page you open first: only the Moments marked "act today", and
 // dates that need preparing now. Shows nothing at all on a quiet day. Read only; nothing posts.
 
 const MAX_ITEMS = 3
 
-export function MomentsToday({ brandLabel }: { brandLabel?: string }) {
+export function MomentsToday({ brandLabel, brandId }: { brandLabel?: string; brandId?: string }) {
   const [data, setData] = useState<MomentsData | null>(null)
 
   useEffect(() => {
@@ -19,10 +19,18 @@ export function MomentsToday({ brandLabel }: { brandLabel?: string }) {
       .catch(() => setData(null))
   }, [])
 
-  return data ? <MomentsTodayView data={data} brandLabel={brandLabel} /> : null
+  return data ? <MomentsTodayView data={data} brandLabel={brandLabel} brandId={brandId} /> : null
 }
 
-export function MomentsTodayView({ data, brandLabel }: { data: MomentsData; brandLabel?: string }) {
+export function MomentsTodayView({
+  data,
+  brandLabel,
+  brandId,
+}: {
+  data: MomentsData
+  brandLabel?: string
+  brandId?: string
+}) {
   const hot = (data.live ?? []).filter((l) => l.act_today).slice(0, MAX_ITEMS)
   const prep = (data.upcoming ?? []).filter((u) => u.status === 'prepare now')
   if (hot.length === 0 && prep.length === 0) return null
@@ -47,8 +55,7 @@ export function MomentsTodayView({ data, brandLabel }: { data: MomentsData; bran
                 <Badge tone="red">act today</Badge>
                 {l.age_hours != null ? <span className="text-xs text-tx3">{ageLabel(l.age_hours)}</span> : null}
               </div>
-              <p className="mt-1 text-tx2">{l.why}</p>
-              <p className="mt-1 text-ac">Starter line, edit before use: {fillStarter(l.starter_line, brandLabel)}</p>
+              <Take item={l} brandId={brandId} brandLabel={brandLabel} />
             </li>
           ))}
         </ul>

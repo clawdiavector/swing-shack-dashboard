@@ -157,11 +157,53 @@ def _category(text: str):
     return None
 
 
+# Club business is not a moment: transfers, contracts, coaches, injuries. Golf is exempt (a player
+# "joins" a field), and so is a national-team match, which the EVENT words below let through.
+_CLUB_BUSINESS_RE = re.compile(
+    r"\b(?:signing|signs|signed|transfer|contract|terminated|appointed|appoints|sacked|coach|coaching staff|"
+    r"leaves|joins|extends|extension|loan|rumour|rumours|targets|bid)\b", re.I)
+# Words that say something is actually being played or decided.
+_EVENT_RE = re.compile(
+    r"\b(?:vs|v|test|final|semi-final|quarter-final|series|match|tour|wicket|century|hat-trick|try|"
+    r"squad|named|beat|beats|defeat|draw|win|wins|world cup|grand slam|champion|champions|leaderboard|day [1-5])\b",
+    re.I)
+_NATIONAL_RE = re.compile(r"\b(?:springboks?|proteas|bafana|banyana|blitzboks)\b", re.I)
+# A search that is only a sport's name is not news.
+_GENERIC_TOPICS = {
+    "rugby", "rugby union", "cricket", "soccer", "football", "tennis", "golf", "sport", "sports",
+    "formula 1", "f1", "olympics", "weather", "holiday", "public holiday",
+}
+
+
+def _is_generic(title: str) -> bool:
+    return re.sub(r"[^a-z0-9 ]", "", title.lower()).strip() in _GENERIC_TOPICS
+
+
+def _display_title(it: dict) -> str:
+    """Google Trends names a search ("marco jansen"); its news headline says what happened."""
+    ctx = it.get("context") or []
+    if it.get("kind") == "trends" and ctx:
+        return ctx[0]
+    return it["title"]
+
+
+def _is_act_today(name: str, score: int, age, traffic_pts: int, blob: str) -> bool:
+    """A flyover or a golf story is hot for a day. Other sport only when a team is actually playing."""
+    if age is not None and age > 24:
+        return False
+    if name in ("flyover", "golf"):
+        return score >= 95
+    if name == "big_sport":
+        return bool(traffic_pts >= 15 and (age is None or age <= 12)
+                    and (_NATIONAL_RE.search(blob) or _EVENT_RE.search(blob)))
+    return False
+
+
 def live(items: list[dict], *, now: _dt.datetime, limit: int = 12) -> dict:
-    """Keep what has an angle, drop what is sensitive or old, rank by angle, buzz and freshness."""
+    """Keep what has an angle, drop what is sensitive, old, generic or club business, rank the rest."""
     kept, hidden, seen = [], 0, set()
     for it in items:
-        title = it["title"]
+        title = _display_title(it)
         key = re.sub(r"\W+", "", title.lower())[:60]
         if key in seen:
             continue
@@ -171,7 +213,9 @@ def live(items: list[dict], *, now: _dt.datetime, limit: int = 12) -> dict:
             age = (now - it["published"]).total_seconds() / 3600
             if age > MAX_AGE_HOURS:
                 continue
-        blob = " ".join([title] + list(it.get("context") or []))
+        if _is_generic(it["title"]):
+            continue
+        blob = " ".join([it["title"], title] + list(it.get("context") or []))
         cat = _category(blob)
         if not cat:
             continue
@@ -179,14 +223,17 @@ def live(items: list[dict], *, now: _dt.datetime, limit: int = 12) -> dict:
             hidden += 1
             continue
         name, base, why, line = cat
-        score = base + _traffic_points(it.get("traffic"))
+        if name != "golf" and _CLUB_BUSINESS_RE.search(blob) and not _EVENT_RE.search(blob):
+            continue
+        pts = _traffic_points(it.get("traffic"))
+        score = base + pts
         if age is not None:
             score += 15 if age <= 6 else 8 if age <= 24 else -10 if age > 48 else 0
         kept.append({
             "title": title, "source": it["source"], "link": it.get("link"), "category": name,
             "score": score, "traffic": it.get("traffic"),
             "age_hours": None if age is None else round(age, 1),
-            "act_today": bool(score >= 90 and (age is None or age <= 24)),
+            "act_today": _is_act_today(name, score, age, pts, blob),
             "why": why, "starter_line": line, "context": it.get("context") or [],
         })
     kept.sort(key=lambda r: -r["score"])
@@ -235,11 +282,14 @@ def upcoming(events: list[dict], *, today: _dt.date, horizon_days: int = 60) -> 
     return out
 
 
-def build(*, now: _dt.datetime | None = None, get=http_get, calendar: list[dict] | None = None) -> dict:
+def build(*, now: _dt.datetime | None = None, get=http_get, calendar: list[dict] | None = None,
+          chat=None, previous: dict | None = None) -> dict:
     now = now or _dt.datetime.now(_dt.timezone.utc)
     sast_today = (now + _dt.timedelta(hours=2)).date()
     items, errors = fetch_all(get)
     result = live(items, now=now)
+    if chat is not None:
+        draft_lines(result["items"], chat=chat, previous=(previous or {}).get("live"))
     events = calendar if calendar is not None else load_calendar()
     return {
         "schema": "https://campaign-os/moments/v1",
@@ -250,3 +300,87 @@ def build(*, now: _dt.datetime | None = None, get=http_get, calendar: list[dict]
         "feeds_read": len(items),
         "errors": errors,
     }
+
+
+# ---------- voice: the take, drafted per brand ----------
+
+VOICE_SYSTEM = (
+    "You write one-line social posts for two South African golf businesses. Voice: Nando's. Quick, cheeky, "
+    "says out loud what everyone is already thinking, always on the side of the ordinary person. Dry, never mean. "
+    "Punch at the situation, never at a person, a fan base, a victim, a religion, a race, a party or a tragedy. "
+    "Never mock or praise an individual by name. If the story involves a death, injury, crime, politics, money "
+    "trouble or anything that could hurt someone, answer {\"skip\": true}. "
+    "No made-up facts about the business: no prices, offers, opening hours, results or claims. "
+    "No hashtags, no links, at most one emoji. Each line is 140 characters or fewer, plain South African English "
+    "with a local feel (lekker is fine, sparingly). Do not put the business name in the line. "
+    "The line must tie the news to golf, practising, indoor bays or club fitting in a way that makes people smile. "
+    "Businesses: swing-shack is indoor golf simulator bays in Johannesburg, social and playful. "
+    "stick is a golf club fitting and lessons studio in Paarl, calm and dry, still cheeky. "
+    "Return only JSON: {\"angle\": \"one short sentence on the take\", \"swing-shack\": \"line\", \"stick\": \"line\"}"
+)
+DRAFT_BRANDS = ("swing-shack", "stick")
+MAX_LINE = 140
+_JSON_RE = re.compile(r"\{.*\}", re.S)
+
+
+def parse_draft(text: str | None) -> dict | None:
+    """The model's JSON, checked. None when unusable; {"skip": True} when it declined the story."""
+    m = _JSON_RE.search(text or "")
+    if not m:
+        return None
+    try:
+        data = json.loads(m.group(0))
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    if data.get("skip"):
+        return {"skip": True}
+    lines = {}
+    for b in DRAFT_BRANDS:
+        line = str(data.get(b) or "").strip().strip('"')
+        if not line or len(line) > MAX_LINE or "#" in line or "http" in line.lower() or is_sensitive(line):
+            continue
+        lines[b] = line
+    if not lines:
+        return None
+    return {"skip": False, "lines": lines, "angle": str(data.get("angle") or "").strip()[:200]}
+
+
+def draft_lines(items: list[dict], *, chat, previous: list[dict] | None = None, limit: int = 3) -> None:
+    """Add ``lines`` (per brand) and ``angle`` to the strongest items, in place.
+
+    ``chat(messages)`` returns (text, error). Lines already drafted for the same headline are reused, so
+    a refresh costs nothing and the text does not change under someone's feet. A failure leaves the
+    template line in place; it never breaks the page.
+    """
+    old = {p.get("title"): p for p in (previous or []) if p.get("lines") or p.get("skip_joke")}
+    todo = []
+    for it in items[:limit]:
+        prev = old.get(it["title"])
+        if prev:
+            for k in ("lines", "angle", "skip_joke"):
+                if k in prev:
+                    it[k] = prev[k]
+        else:
+            todo.append(it)
+
+    def one(it):
+        user = (f"Headline: {it['title']}\nAlso reported: {' | '.join(it.get('context') or []) or 'n/a'}\n"
+                f"Source: {it['source']}\nKind of moment: {it['category']}")
+        try:
+            text, err = chat([{"role": "system", "content": VOICE_SYSTEM}, {"role": "user", "content": user}])
+        except Exception:
+            return it, None
+        return it, (None if err else parse_draft(text))
+
+    if not todo:
+        return
+    with ThreadPoolExecutor(max_workers=min(4, len(todo))) as pool:
+        for it, draft in pool.map(one, todo):
+            if not draft:
+                continue
+            if draft.get("skip"):
+                it["skip_joke"] = True
+            else:
+                it["lines"], it["angle"] = draft["lines"], draft["angle"]
