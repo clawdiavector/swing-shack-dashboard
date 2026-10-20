@@ -53157,6 +53157,39 @@ def meta_ads_pause(brand_id):
     return jsonify({"ok": True, "action": entry}), 200
 
 
+@app.route("/api/meta/ads/<brand_id>/end-date/preview", methods=["POST"])
+def meta_ads_end_date_preview(brand_id):
+    """POST {ad_id, end_date} — what a decision date on the ad's ad set would change. Reads only."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        out = c["aa"].preview_end_date(brand_id, body.get("ad_id"), body.get("end_date"),
+                                       graph=c["graph"], token=c["token"],
+                                       account_id=c["account_id"], signer=c["signer"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    return jsonify({"ok": True, "preview": out}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/end-date", methods=["POST"])
+def meta_ads_end_date(brand_id):
+    """POST {ticket} — set the decision date the preview named, and log it."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        entry = c["aa"].apply(brand_id, body.get("ticket") or "", graph=c["graph"], token=c["token"],
+                              account_id=c["account_id"], signer=c["signer"],
+                              read=c["read"], write=c["write"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    _app_log.warning("ads action: %s on ad %s for %s (%s)", entry["kind"], entry["ad_id"], brand_id, entry["id"])
+    return jsonify({"ok": True, "action": entry}), 200
+
+
 @app.route("/api/meta/ads/<brand_id>/actions", methods=["GET"])
 def meta_ads_actions_log(brand_id):
     """GET — changes made from the dashboard, newest first."""

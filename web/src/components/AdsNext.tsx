@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getJson } from '../lib/api'
 import { Note } from './AdsTrends'
+import { SetDecisionDate } from './AdsDecisionDate'
 import { PauseAd } from './AdsPause'
 import { Badge } from './ui'
 
@@ -18,11 +19,23 @@ type TopAction = {
   ad_ids?: string[]
 }
 
+type OpenItem = {
+  rule?: string
+  action: string
+  status?: string
+  severity?: string
+  ad_id?: string
+  ad_name?: string
+  days_open?: number
+  what?: string
+}
+
 export type Brief = {
   date?: string
   note?: string
   headline?: { actions?: number; new?: number; open?: number; resolved?: number }
   top_actions?: TopAction[]
+  open?: OpenItem[] | number
 }
 
 const SEVERITY_TONE: Record<string, 'red' | 'gold' | 'mute'> = { high: 'red', medium: 'gold' }
@@ -58,6 +71,9 @@ export function AdsNextView({
   canChange?: boolean
 }) {
   const actions = brief.top_actions ?? []
+  // Open items the top three do not already name (same rule and status), so nothing is listed twice.
+  const shown = new Set(actions.map((a) => `${a.rule}|${a.status ?? ''}`))
+  const others = (Array.isArray(brief.open) ? brief.open : []).filter((o) => !shown.has(`${o.rule}|${o.status ?? ''}`))
   const h = brief.headline
 
   return (
@@ -83,6 +99,9 @@ export function AdsNextView({
                   {a.ad_ids.map((id, j) => (
                     <li key={id} className="flex flex-wrap items-center gap-2 text-xs text-tx2">
                       <span>{a.ads?.[j] ?? id}</span>
+                      {a.status === 'DECISION_DATE' ? (
+                        <SetDecisionDate brandId={brandId} adId={id} adName={a.ads?.[j] ?? id} />
+                      ) : null}
                       <PauseAd brandId={brandId} adId={id} adName={a.ads?.[j] ?? id} />
                     </li>
                   ))}
@@ -92,6 +111,31 @@ export function AdsNextView({
           ))}
         </ul>
       )}
+      {others.length > 0 ? (
+        <details className="rounded-xl border border-white/10 px-3 py-2 text-sm">
+          <summary className="cursor-pointer font-semibold text-tx">More open items ({others.length})</summary>
+          <ul className="mt-2 space-y-2">
+            {others.map((o, i) => (
+              <li key={`${o.ad_id ?? o.ad_name ?? 'o'}-${i}`} className="border-t border-white/5 pt-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-tx">{o.action}</span>
+                  {o.severity ? <Badge tone={SEVERITY_TONE[o.severity] ?? 'mute'}>{o.severity}</Badge> : null}
+                </div>
+                {o.ad_name ? <p className="text-xs text-tx2">{o.ad_name}</p> : null}
+                {o.what ? <p className="text-xs text-tx3">{o.what}</p> : null}
+                {canChange && brandId && o.ad_id ? (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    {o.status === 'DECISION_DATE' ? (
+                      <SetDecisionDate brandId={brandId} adId={o.ad_id} adName={o.ad_name ?? o.ad_id} />
+                    ) : null}
+                    <PauseAd brandId={brandId} adId={o.ad_id} adName={o.ad_name ?? o.ad_id} />
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
       {/* A server-rendered page outside the SPA, so a plain link, not a router Link. */}
       <a href="/ads-brief" className="inline-block text-sm font-semibold text-ac hover:underline">
         See the full ads brief
