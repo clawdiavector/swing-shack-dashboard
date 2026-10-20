@@ -53662,6 +53662,44 @@ def meta_ads_pause(brand_id):
     return jsonify({"ok": True, "action": entry}), 200
 
 
+@app.route("/api/meta/ads/<brand_id>/budget-change/preview", methods=["POST"])
+def meta_ads_budget_change_preview(brand_id):
+    """POST {ad_id | adset_id, pct | daily_budget} — what changing an ad set's daily budget would do. Reads only."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    view = _ads_budget_view(brand_id)
+    ev = view.get("budget") or {}
+    try:
+        out = c["aa"].preview_budget(
+            brand_id, ad_id=body.get("ad_id"), adset_id=body.get("adset_id"), pct=body.get("pct"),
+            daily_budget=body.get("daily_budget"), graph=c["graph"], token=c["token"],
+            account_id=c["account_id"], signer=c["signer"],
+            context={"month_status": ev.get("status"), "budget": ev.get("budget"), "mtd_spend": ev.get("mtd_spend"),
+                     "guard_on": bool((view.get("settings") or {}).get("auto_pause"))})
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    return jsonify({"ok": True, "preview": out}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/budget-change", methods=["POST"])
+def meta_ads_budget_change(brand_id):
+    """POST {ticket} — change the ad set's daily budget the preview named, and log it."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        entry = c["aa"].apply(brand_id, body.get("ticket") or "", graph=c["graph"], token=c["token"],
+                              account_id=c["account_id"], signer=c["signer"],
+                              read=c["read"], write=c["write"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    _app_log.warning("ads action: %s on ad set %s for %s (%s)", entry["kind"], entry["ad_id"], brand_id, entry["id"])
+    return jsonify({"ok": True, "action": entry}), 200
+
+
 @app.route("/api/meta/ads/<brand_id>/end-date/preview", methods=["POST"])
 def meta_ads_end_date_preview(brand_id):
     """POST {ad_id, end_date} — what a decision date on the ad's ad set would change. Reads only."""

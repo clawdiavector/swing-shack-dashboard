@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getJson } from '../lib/api'
 import { Note } from './AdsTrends'
+import { ChangeBudget, MoveBudget } from './AdsBudgetChange'
 import { SetDecisionDate } from './AdsDecisionDate'
 import { PauseAd } from './AdsPause'
 import { Badge } from './ui'
@@ -102,11 +103,15 @@ export function AdsNextView({
                       {a.status === 'DECISION_DATE' ? (
                         <SetDecisionDate brandId={brandId} adId={id} adName={a.ads?.[j] ?? id} />
                       ) : null}
+                      {a.rule === 'best_lead_ad' ? (
+                        <ChangeBudget brandId={brandId} label="Raise budget by 20%" target={{ ad_id: id, pct: 0.2 }} />
+                      ) : null}
                       <PauseAd brandId={brandId} adId={id} adName={a.ads?.[j] ?? id} />
                     </li>
                   ))}
                 </ul>
               ) : null}
+              {canChange && brandId && a.rule === 'spend_mix' ? <MoveBudget brandId={brandId} /> : null}
             </li>
           ))}
         </ul>
@@ -128,9 +133,13 @@ export function AdsNextView({
                     {o.status === 'DECISION_DATE' ? (
                       <SetDecisionDate brandId={brandId} adId={o.ad_id} adName={o.ad_name ?? o.ad_id} />
                     ) : null}
+                    {o.rule === 'best_lead_ad' ? (
+                      <ChangeBudget brandId={brandId} label="Raise budget by 20%" target={{ ad_id: o.ad_id, pct: 0.2 }} />
+                    ) : null}
                     <PauseAd brandId={brandId} adId={o.ad_id} adName={o.ad_name ?? o.ad_id} />
                   </div>
                 ) : null}
+                {canChange && brandId && o.rule === 'spend_mix' ? <MoveBudget brandId={brandId} /> : null}
               </li>
             ))}
           </ul>

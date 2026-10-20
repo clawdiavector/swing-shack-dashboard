@@ -49,7 +49,7 @@ export function HardStopView({
   return (
     <div className="space-y-2 rounded-xl border border-white/10 p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-tx">Hard stop in Meta</span>
+        <span className="text-sm font-semibold text-tx">Meta spending limit (backup, does not pause ads)</span>
         <span className={`text-xs font-semibold ${info.on ? 'text-ac' : 'text-tx3'}`}>{info.on ? 'ON' : 'OFF'}</span>
       </div>
       <p className="text-xs text-tx2">
