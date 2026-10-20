@@ -145,6 +145,12 @@ def eligible_ideas(ideas: List[dict], product: Product, facts: Optional[set] = N
     for i in ideas:
         if i.get("status") != "yes" or i.get("pool") != "product":
             continue
+        if i.get("multi"):
+            continue  # a lineup or range idea needs several products in one post
+        if i.get("brands") and product.name not in i["brands"]:
+            continue  # the line names a brand
+        if i.get("needs_number") and not product.model_number:
+            continue
         pts = i.get("product_types") or []
         if pts and product.category not in pts:
             continue
@@ -253,6 +259,14 @@ def wrap(text: str, font_path: str, size: int, maxw: int) -> List[str]:
     if cur:
         lines.append(cur)
     return lines
+
+
+def draw_text(d, xy, text, font, fill) -> None:
+    """Text with a soft dark under-stroke so it stays readable on grass and metal."""
+    x, y = xy
+    for dx, dy in ((2, 2), (-1, 2), (2, -1)):
+        d.text((x + dx, y + dy), text, font=font, fill=(0, 20, 30, 150))
+    d.text((x, y), text, font=font, fill=tuple(fill) + (255,))
 
 
 def split_headline(text: str) -> List[str]:
@@ -475,7 +489,7 @@ def render_route(route: str, product: Product, plan: Plan, brand: str, backdrops
         for l in lines:
             put(bg, text_layer(l, size, WHITE, path, shear), (60, y))
             y += int(size * 1.12)
-        ImageDraw.Draw(bg).text((64, H - 110), caption, font=ImageFont.truetype(light, 36), fill=WHITE + (255,))
+        draw_text(ImageDraw.Draw(bg), (64, H - 110), caption, ImageFont.truetype(light, 38), WHITE)
 
     elif route == "hero_number":
         dark = product_luma(product.cutout) > 170
@@ -491,7 +505,8 @@ def render_route(route: str, product: Product, plan: Plan, brand: str, backdrops
         nl = text_layer(num, s, col, path, shear)
         npos = (-int(nl.width * 0.04), 40)
         nmask = mask_of(nl, npos)
-        cap_rect = (60, H - 150, 700, H - 60)
+        txt_lines = wrap(line, light, 42, 600)[:2]
+        cap_rect = (60, H - 60 - 52 * (len(txt_lines) + 1) - 10, 700, H - 50)
         base_long, rot, cx, cy = {"tall": (1080, -8, 0.72, 0.62), "wide": (820, -6, 0.62, 0.66), "square": (900, -6, 0.64, 0.64)}[product.shape]
         ir, pos, c = _place_checked(bg, product, base_long, rot, cx, cy, [cap_rect, LOGO_RECT], nmask,
                                     CHECKS["word_visible_min"]["hero_number"], CHECKS["product_inside_min"]["hero_number"])
@@ -499,9 +514,12 @@ def render_route(route: str, product: Product, plan: Plan, brand: str, backdrops
         put(bg, nl, npos)
         shadow(bg, ir, pos, 36, 56, 6, 34, 0.4)
         put(bg, ir, pos)
-        f2 = ImageFont.truetype(light, 44)
-        ImageDraw.Draw(bg).text((64, H - 140), line if len(line) < 26 else product.display_name or product.name, font=f2, fill=col + (255,))
-        ImageDraw.Draw(bg).text((64, H - 86), caption, font=f2, fill=col + (255,))
+        f2 = ImageFont.truetype(light, 42)
+        d2 = ImageDraw.Draw(bg)
+        y2 = H - 60 - 52 * (len(txt_lines) + 1)
+        for tl in txt_lines + [caption]:
+            draw_text(d2, (64, y2), tl, f2, col)
+            y2 += 52
     else:
         raise LayoutFailed("unknown route %s" % route)
 
@@ -533,7 +551,7 @@ def _kicker_and_caption(bg, kicker, cap_lines, light, path, size, colour, H):
     f = ImageFont.truetype(light, size)
     y = H - 120 - 48 * (len(cap_lines) - 1)
     for l in cap_lines:
-        d.text((64, y), l, font=f, fill=colour + (255,))
+        draw_text(d, (64, y), l, f, colour)
         y += 48
 
 

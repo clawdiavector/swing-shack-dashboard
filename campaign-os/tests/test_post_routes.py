@@ -62,6 +62,29 @@ class IdeaSelectionTests(unittest.TestCase):
         self.assertEqual(len(pr.eligible_ideas(putter_only, product(category="putters"))), 1)
 
 
+class PairingTests(unittest.TestCase):
+    def setUp(self):
+        self.ideas = pr.load_ideas("stick")
+
+    def ids(self, **kw):
+        return {i["id"] for i in pr.eligible_ideas(self.ideas, product(**kw))}
+
+    def test_lines_that_name_a_brand_stay_with_that_brand(self):
+        self.assertNotIn(66, self.ids(name="L.A.B. Golf", category="putters"))
+        self.assertIn(66, self.ids(name="Psycho Bunny", category="apparel"))
+
+    def test_lineup_ideas_are_not_used_for_a_single_product(self):
+        self.assertFalse({11, 12, 16, 17, 18, 19, 20} & self.ids())
+
+    def test_style_lines_are_for_apparel(self):
+        self.assertNotIn(61, self.ids(category="irons"))
+        self.assertIn(61, self.ids(category="apparel", name="Psycho Bunny"))
+
+    def test_number_lines_need_a_model_number(self):
+        self.assertNotIn(60, self.ids(model_number=None))
+        self.assertIn(60, self.ids(model_number="101U"))
+
+
 class ChoosingTests(unittest.TestCase):
     def setUp(self):
         self.ideas = pr.load_ideas("stick")
@@ -82,10 +105,12 @@ class ChoosingTests(unittest.TestCase):
             mem.add(plan, "T1001")
             last = plan.route
 
-    def test_idea_not_reused_within_window(self):
+    def test_idea_not_reused_until_the_pool_runs_out(self):
+        pool = len(pr.eligible_ideas(self.ideas, product()))
+        self.assertGreater(pool, 5)
         mem = pr.RouteMemory()
         seen = []
-        for seed in range(10):
+        for seed in range(pool):
             plan = pr.choose(product(), self.ideas, self.backdrops, mem, seed)
             self.assertNotIn(plan.idea["id"], seen)
             seen.append(plan.idea["id"])

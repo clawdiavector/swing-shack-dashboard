@@ -150,7 +150,8 @@
    ],
    "product_types": [],
    "pool": "product",
-   "status": "maybe"
+   "status": "maybe",
+   "multi": true
   },
   {
    "id": 12,
@@ -165,7 +166,8 @@
     "grips"
    ],
    "pool": "product",
-   "status": "yes"
+   "status": "yes",
+   "multi": true
   },
   {
    "id": 13,
@@ -221,7 +223,8 @@
    ],
    "product_types": [],
    "pool": "product",
-   "status": "yes"
+   "status": "yes",
+   "multi": true
   },
   {
    "id": 17,
@@ -234,7 +237,8 @@
    ],
    "product_types": [],
    "pool": "product",
-   "status": "yes"
+   "status": "yes",
+   "multi": true
   },
   {
    "id": 18,
@@ -247,7 +251,8 @@
    ],
    "product_types": [],
    "pool": "product",
-   "status": "yes"
+   "status": "yes",
+   "multi": true
   },
   {
    "id": 19,
@@ -260,7 +265,8 @@
    ],
    "product_types": [],
    "pool": "product",
-   "status": "maybe"
+   "status": "maybe",
+   "multi": true
   },
   {
    "id": 20,
@@ -275,7 +281,8 @@
     "putters"
    ],
    "pool": "product",
-   "status": "no"
+   "status": "no",
+   "multi": true
   },
   {
    "id": 21,
@@ -451,7 +458,10 @@
    "requires": [],
    "product_types": [],
    "pool": "product",
-   "status": "yes"
+   "status": "yes",
+   "brands": [
+    "Psycho Bunny"
+   ]
   },
   {
    "id": 35,
@@ -756,7 +766,12 @@
    "requires": [
     "in_stock"
    ],
-   "product_types": [],
+   "product_types": [
+    "irons",
+    "wedges",
+    "putters",
+    "drivers"
+   ],
    "pool": "product",
    "status": "yes"
   },
@@ -799,7 +814,8 @@
    ],
    "product_types": [],
    "pool": "product",
-   "status": "yes"
+   "status": "yes",
+   "needs_number": true
   },
   {
    "id": 61,
@@ -887,7 +903,10 @@
    ],
    "product_types": [],
    "pool": "product",
-   "status": "yes"
+   "status": "yes",
+   "brands": [
+    "Psycho Bunny"
+   ]
   },
   {
    "id": 67,
@@ -898,7 +917,9 @@
    "requires": [
     "in_stock"
    ],
-   "product_types": [],
+   "product_types": [
+    "apparel"
+   ],
    "pool": "product",
    "status": "yes"
   },
