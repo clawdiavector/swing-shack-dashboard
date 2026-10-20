@@ -1,0 +1,23 @@
+{
+ "sku": "VTWS001",
+ "route": "crop_word",
+ "backdrop_id": 21,
+ "seed": 20261021,
+ "idea_id": 60,
+ "idea_line": "Check the numbers. Then check them again.",
+ "caption": "Vice Tour. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 54.1,
+  "word_visible": 0.993,
+  "text_overlap": 0.0,
+  "product_inside": 0.985,
+  "mean_luma": 71.4
+ },
+ "confirm_before_posting": [
+  "in_stock",
+  "tone_check"
+ ],
+ "tried_first": []
+}

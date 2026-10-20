@@ -1,0 +1,22 @@
+{
+ "sku": "TS001",
+ "route": "crop_word",
+ "backdrop_id": 2,
+ "seed": 20261024,
+ "idea_id": 72,
+ "idea_line": "For the golfer who has everything. Except this.",
+ "caption": "Takomo SF002. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 33.5,
+  "word_visible": 1.0,
+  "text_overlap": 0.016,
+  "product_inside": 1.0,
+  "mean_luma": 66.0
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

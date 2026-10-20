@@ -1,0 +1,22 @@
+{
+ "sku": "LOS001",
+ "route": "turf_shadow",
+ "backdrop_id": 28,
+ "seed": 20261031,
+ "idea_id": 17,
+ "idea_line": "Pick a side.",
+ "caption": "L.A.B. Golf OZ.1. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 65.2,
+  "word_visible": 1.0,
+  "text_overlap": 0.0,
+  "product_inside": 1.0,
+  "mean_luma": 58.8
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

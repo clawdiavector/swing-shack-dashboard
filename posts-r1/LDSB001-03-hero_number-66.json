@@ -1,0 +1,22 @@
+{
+ "sku": "LDSB001",
+ "route": "hero_number",
+ "backdrop_id": 14,
+ "seed": 20261022,
+ "idea_id": 66,
+ "idea_line": "Psycho Bunny. Obviously.",
+ "caption": "L.A.B. Golf DF3. In store, Paarl.",
+ "standin_font": true,
+ "logo": "navy",
+ "checks": {
+  "bg_luma": 180.2,
+  "word_visible": 0.987,
+  "text_overlap": 0.001,
+  "product_inside": 1.0,
+  "mean_luma": 130.6
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

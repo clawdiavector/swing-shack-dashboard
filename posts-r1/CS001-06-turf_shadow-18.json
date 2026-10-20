@@ -1,0 +1,22 @@
+{
+ "sku": "CS001",
+ "route": "turf_shadow",
+ "backdrop_id": 27,
+ "seed": 20261025,
+ "idea_id": 18,
+ "idea_line": "Lineup.",
+ "caption": "Callaway Chrome Soft. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 62.0,
+  "word_visible": 1.0,
+  "text_overlap": 0.0,
+  "product_inside": 1.0,
+  "mean_luma": 65.4
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}
