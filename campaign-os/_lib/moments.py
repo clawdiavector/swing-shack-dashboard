@@ -316,11 +316,23 @@ VOICE_SYSTEM = (
     "The line must tie the news to golf, practising, indoor bays or club fitting in a way that makes people smile. "
     "Businesses: swing-shack is indoor golf simulator bays in Johannesburg, social and playful. "
     "stick is a golf club fitting and lessons studio in Paarl, calm and dry, still cheeky. "
-    "Return only JSON: {\"angle\": \"one short sentence on the take\", \"swing-shack\": \"line\", \"stick\": \"line\"}"
+    "Also give each business a story headline: 2 to 6 words, 40 characters or fewer, the punchline of its line "
+    "(it goes on a story image). "
+    "Return only JSON: {\"angle\": \"one short sentence on the take\", \"swing-shack\": \"line\", "
+    "\"stick\": \"line\", \"headlines\": {\"swing-shack\": \"headline\", \"stick\": \"headline\"}}"
 )
 DRAFT_BRANDS = ("swing-shack", "stick")
 MAX_LINE = 140
+MAX_HEADLINE = 40
 _JSON_RE = re.compile(r"\{.*\}", re.S)
+
+
+def _unquote(text: str) -> str:
+    """Drop quote marks wrapped around the whole line, not a quote that belongs to it."""
+    t = text.strip()
+    if len(t) > 1 and t[0] == t[-1] == '"' and t.count('"') == 2:
+        return t[1:-1].strip()
+    return t
 
 
 def parse_draft(text: str | None) -> dict | None:
@@ -338,13 +350,20 @@ def parse_draft(text: str | None) -> dict | None:
         return {"skip": True}
     lines = {}
     for b in DRAFT_BRANDS:
-        line = str(data.get(b) or "").strip().strip('"')
+        line = _unquote(str(data.get(b) or ""))
         if not line or len(line) > MAX_LINE or "#" in line or "http" in line.lower() or is_sensitive(line):
             continue
         lines[b] = line
     if not lines:
         return None
-    return {"skip": False, "lines": lines, "angle": str(data.get("angle") or "").strip()[:200]}
+    heads = {}
+    raw = data.get("headlines") if isinstance(data.get("headlines"), dict) else {}
+    for b in lines:
+        h = _unquote(str(raw.get(b) or ""))
+        if h and len(h) <= MAX_HEADLINE and "#" not in h and "http" not in h.lower() and not is_sensitive(h):
+            heads[b] = h
+    return {"skip": False, "lines": lines, "headlines": heads,
+            "angle": str(data.get("angle") or "").strip()[:200]}
 
 
 def draft_lines(items: list[dict], *, chat, previous: list[dict] | None = None, limit: int = 3) -> None:
@@ -354,12 +373,13 @@ def draft_lines(items: list[dict], *, chat, previous: list[dict] | None = None, 
     a refresh costs nothing and the text does not change under someone's feet. A failure leaves the
     template line in place; it never breaks the page.
     """
-    old = {p.get("title"): p for p in (previous or []) if p.get("lines") or p.get("skip_joke")}
+    old = {p.get("title"): p for p in (previous or [])
+           if (p.get("lines") and "headlines" in p) or p.get("skip_joke")}  # an older draft is redone once
     todo = []
     for it in items[:limit]:
         prev = old.get(it["title"])
         if prev:
-            for k in ("lines", "angle", "skip_joke"):
+            for k in ("lines", "headlines", "angle", "skip_joke"):
                 if k in prev:
                     it[k] = prev[k]
         else:
@@ -384,3 +404,4 @@ def draft_lines(items: list[dict], *, chat, previous: list[dict] | None = None, 
                 it["skip_joke"] = True
             else:
                 it["lines"], it["angle"] = draft["lines"], draft["angle"]
+                it["headlines"] = draft["headlines"]

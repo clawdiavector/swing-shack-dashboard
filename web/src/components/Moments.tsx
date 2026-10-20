@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getJson } from '../lib/api'
 import { Note } from './AdsTrends'
+import { StoryPack, deriveHeadline } from './StoryPack'
 import { Badge } from './ui'
 
 // The Moments desk: dates to plan around, and what South Africa is talking about today.
@@ -28,6 +29,7 @@ type LiveItem = {
   starter_line: string
   angle?: string
   lines?: Record<string, string>
+  headlines?: Record<string, string>
   skip_joke?: boolean
 }
 
@@ -48,23 +50,33 @@ export function Take({ item, brandId, brandLabel }: { item: LiveItem; brandId?: 
   }
   const drafted = item.lines ?? {}
   const own = brandId ? drafted[brandId] : undefined
-  const rows: { who?: string; text: string }[] = own
-    ? [{ text: own }]
+  const heads = item.headlines ?? {}
+  const rows: { id: string; who?: string; text: string }[] = own
+    ? [{ id: brandId as string, text: own }]
     : !brandId
-      ? Object.entries(drafted).map(([id, text]) => ({ who: BRAND_NAMES[id] ?? id, text }))
+      ? Object.entries(drafted).map(([id, text]) => ({ id, who: BRAND_NAMES[id] ?? id, text }))
       : []
   return (
     <>
       <p className="mt-1 text-tx2">{item.angle || item.why}</p>
       {rows.length > 0 ? (
         rows.map((r) => (
-          <p key={r.who ?? 'line'} className="mt-1 text-ac">
-            Draft, edit before use: {r.who ? <span className="font-semibold">{r.who}: </span> : null}
-            {r.text}
-          </p>
+          <div key={r.id}>
+            <p className="mt-1 text-ac">
+              Draft, edit before use: {r.who ? <span className="font-semibold">{r.who}: </span> : null}
+              {r.text}
+            </p>
+            <StoryPack headline={heads[r.id] || deriveHeadline(r.text)} caption={r.text} />
+          </div>
         ))
       ) : (
-        <p className="mt-1 text-ac">Starter line, edit before use: {fillStarter(item.starter_line, brandLabel)}</p>
+        <>
+          <p className="mt-1 text-ac">Starter line, edit before use: {fillStarter(item.starter_line, brandLabel)}</p>
+          <StoryPack
+            headline={deriveHeadline(fillStarter(item.starter_line, brandLabel))}
+            caption={fillStarter(item.starter_line, brandLabel)}
+          />
+        </>
       )}
     </>
   )
