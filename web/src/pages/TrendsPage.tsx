@@ -1,6 +1,7 @@
 import { TrendingUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
+import { AdsBudget } from '../components/AdsBudget'
 import { AdsNext } from '../components/AdsNext'
 import { ADS_BRANDS, AdsSection, Note } from '../components/AdsTrends'
 import { PageIntro } from '../components/chrome'
@@ -108,6 +109,13 @@ export function TrendsPage() {
           <Note>Paid trends exist for Swing Shack and Stick only. Switch brand at the top to see them.</Note>
         )}
       </section>
+
+      {hasAds && brandId ? (
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-semibold">Monthly ad budget</h2>
+          <AdsBudget brandId={brandId} />
+        </section>
+      ) : null}
 
       {hasAds && brandId ? (
         <section className="space-y-3">

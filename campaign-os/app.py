@@ -53201,6 +53201,49 @@ def _ads_actions_ctx(brand_id):
                   "signer": URLSafeTimedSerializer(SESSION_SECRET, salt=_aa.TICKET_SALT)}
 
 
+# ─── ADS MONTHLY BUDGET ───────────────────────────────────────────────
+# A person sets one monthly budget per brand; the ads_brief job keeps the month's figures
+# (_lib/ads_budget.py). Setting a budget changes nothing in Meta.
+
+def _ads_budget_view(brand_id):
+    from _lib import ads_budget as _ab
+    settings = _ads_lane_load(brand_id, "ads-budget/settings.json") or {}
+    figures = _ads_lane_load(brand_id, "ads-budget/figures.json")
+    ev = _ab.evaluate(figures, settings.get("monthly_budget")) if figures else None
+    return {"ok": True, "settings": settings, "budget": ev}
+
+
+@app.route("/api/meta/ads/<brand_id>/budget", methods=["GET"])
+def meta_ads_budget(brand_id):
+    """GET — the monthly budget and where the month stands against it."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    return jsonify(_ads_budget_view(brand_id)), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/budget", methods=["POST"])
+def meta_ads_budget_set(brand_id):
+    """POST {monthly_budget} — set the brand's monthly ad budget (0 clears it). Changes nothing in Meta."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in _ADS_BRIEF_BRANDS:
+        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    raw = (request.get_json(silent=True) or {}).get("monthly_budget")
+    try:
+        amount = round(float(raw), 2)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "monthly_budget must be a number"}), 400
+    if not (0 <= amount <= 1_000_000):
+        return jsonify({"ok": False, "error": "monthly_budget must be between 0 and 1,000,000"}), 400
+    from _lib.jobs.layer1._io import atomic_write
+    atomic_write(f"brands/{brand_id}/ads-budget/settings.json",
+                 {"monthly_budget": amount or None, "currency": "ZAR", "set_at": _now_iso()})
+    _app_log.warning("ads budget: %s monthly budget set to %s", brand_id, amount)
+    return jsonify(_ads_budget_view(brand_id)), 200
+
+
 @app.route("/api/meta/ads/<brand_id>/write-status", methods=["GET"])
 def meta_ads_write_status(brand_id):
     """GET — whether one-click ad changes are switched on."""
