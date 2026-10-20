@@ -7071,11 +7071,17 @@ def _postiz_provider(item):
 
 @app.route('/api/photos/videos/draft', methods=['POST'])
 def photos_video_draft():
-    """POST /api/photos/videos/draft {brand_id, file_id} — save a ready-to-publish Drive video in Postiz
-    as a DRAFT on the brand's Instagram channel, with its caption. Nothing is published or scheduled.
+    """POST /api/photos/videos/draft {brand_id, file_id, mode?, publish_at?, asap?}
 
-    Refuses to run unless the brand has its own Postiz key (never the shared key, which belongs to
-    another brand's account)."""
+    Sends a ready-to-publish Drive video to Postiz on the brand's Instagram channel, with its caption.
+
+    mode "draft" (default): saved as a Postiz draft, nothing is published.
+    mode "schedule": Postiz publishes it by itself at publish_at (an ISO time with its time zone), or
+        in 5 minutes with asap=true. A time sooner than 5 minutes away is moved to 5 minutes from now,
+        because Postiz fails on posts published "now".
+
+    Either way the video lands on the Campaign OS calendar. Refuses unless the brand has its own Postiz
+    key (never the shared key, which belongs to another brand's account)."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     brand_id = _photo_review_brand()
@@ -7086,10 +7092,28 @@ def photos_video_draft():
     if not _postiz_lib.has_brand_key(brand_id):
         return jsonify({"ok": False, "error": "no Postiz key is set up for %s" % brand_id}), 409
     from pathlib import Path as _P
+    import datetime as _dt
     import tempfile
+    from zoneinfo import ZoneInfo
     from _lib import video_list
     from _lib import google_drive as gd
-    file_id = str((request.get_json(silent=True) or {}).get("file_id") or "")
+    body = request.get_json(silent=True) or {}
+    file_id = str(body.get("file_id") or "")
+    mode = str(body.get("mode") or "draft")
+    if mode not in ("draft", "schedule"):
+        return jsonify({"ok": False, "error": "mode must be draft or schedule"}), 400
+    publish_at = None
+    if mode == "schedule" and not body.get("asap"):
+        raw = str(body.get("publish_at") or "")
+        try:
+            when = _dt.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            return jsonify({"ok": False, "error": "choose a date and time"}), 400
+        if when.tzinfo is None:
+            return jsonify({"ok": False, "error": "the time needs its time zone"}), 400
+        publish_at = when.astimezone(_dt.timezone.utc).isoformat().replace("+00:00", "Z")
+    elif mode == "draft" and body.get("publish_at"):
+        publish_at = str(body["publish_at"])
     try:
         entries = _drive_listing(brand_id)
     except Exception as exc:
@@ -7114,8 +7138,11 @@ def photos_video_draft():
                     and _postiz_provider(i).startswith("instagram")), None)
     if not channel:
         return jsonify({"ok": False, "error": "no Instagram channel is connected in Postiz for %s" % brand_id}), 409
-    fmt = video_list.parse_name(video["name"])["format"] or ""
+    parsed = video_list.parse_name(video["name"])
+    fmt = parsed["format"] or ""
     settings = {"post_type": "story" if fmt.startswith("story") else "post"}
+    # Never "now": the time is the one chosen, or at least 5 minutes ahead.
+    when_iso, moved = _postiz_lib.scheduled_at_least(publish_at)
     try:
         with tempfile.TemporaryDirectory() as tmp:
             local = gd.download_public_file(file_id, _P(tmp) / video["name"], timeout=300)
@@ -7130,15 +7157,40 @@ def photos_video_draft():
     try:
         post, err = _postiz_lib.create_post(
             channel.get("id"), caption, [{"id": up["id"], "path": up["path"]}],
-            brand_id=brand_id, platform_settings=settings, draft=True)
+            brand_id=brand_id, publish_date=when_iso, platform_settings=settings, draft=(mode == "draft"))
     except Exception as exc:
         return jsonify({"ok": False, "error": "Postiz not reachable: %s" % exc}), 502
     if err:
         return jsonify({"ok": False, "error": "postiz API %s: %s" % err}), 502
-    _app_log.info("video draft created in Postiz for %s: %s", brand_id, video["name"])
-    return jsonify({"ok": True, "brand_id": brand_id, "channel": channel.get("name"),
-                    "post_type": settings["post_type"], "postiz": post,
+    # On the Campaign OS calendar, in South African time. The same video re-sent updates its item.
+    local_when = _dt.datetime.fromisoformat(when_iso.replace("Z", "+00:00")).astimezone(ZoneInfo("Africa/Johannesburg"))
+    item_id = "vid-" + file_id[:12]
+    calendar_ok = True
+    try:
+        from _lib.marketing_lanes import add_content_item
+        add_content_item(brand_id, {
+            "id": item_id, "brand_id": brand_id, "lane": "human",
+            "status": "draft" if mode == "draft" else "queued",
+            "publish_date": local_when.date().isoformat(), "publish_time": local_when.strftime("%H:%M"),
+            "platforms": ["instagram"], "platform": "instagram",
+            "format": "story" if fmt.startswith("story") else "reel",
+            "title": (parsed["topic"] or stem).replace("-", " "),
+            "caption": caption, "media_kind": "video", "drive_url": video_url_for(file_id),
+            "source": "video-list", "owner": "operator", "postiz": post,
+        })
+    except Exception:
+        calendar_ok = False
+        _app_log.exception("video draft: calendar item not saved")
+    _app_log.info("video %s in Postiz for %s: %s at %s", mode, brand_id, video["name"], when_iso)
+    return jsonify({"ok": True, "brand_id": brand_id, "mode": mode, "channel": channel.get("name"),
+                    "post_type": settings["post_type"], "publish_at": when_iso,
+                    "publish_at_local": local_when.strftime("%Y-%m-%d %H:%M"), "moved_to_minimum": moved,
+                    "calendar_item": item_id if calendar_ok else None, "postiz": post,
                     "open": "https://platform.postiz.com/launches"})
+
+
+def video_url_for(file_id):
+    return "https://drive.google.com/file/d/%s/view" % file_id
 
 
 @app.route('/api/lanes/stock/preview', methods=['POST'])
