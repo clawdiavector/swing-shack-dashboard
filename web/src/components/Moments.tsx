@@ -36,7 +36,12 @@ export type MomentsData = {
   errors?: string[]
 }
 
-function ageLabel(h?: number | null) {
+// The templates end with the brand's name. With no brand picked, drop the sign-off rather than write "us".
+export function fillStarter(line: string, brandLabel?: string) {
+  return brandLabel ? line.replace('{brand}', brandLabel) : line.replace(' {brand}.', '')
+}
+
+export function ageLabel(h?: number | null) {
   if (h == null) return ''
   if (h < 1) return 'just now'
   if (h < 24) return `${Math.round(h)}h ago`
@@ -61,7 +66,6 @@ export function Moments({ brandLabel }: { brandLabel?: string }) {
 export function MomentsView({ data, brandLabel }: { data: MomentsData; brandLabel?: string }) {
   const upcoming = data.upcoming ?? []
   const live = data.live ?? []
-  const brand = brandLabel || 'us'
 
   return (
     <div className="space-y-6">
@@ -108,7 +112,7 @@ export function MomentsView({ data, brandLabel }: { data: MomentsData; brandLabe
                 </p>
                 <p className="mt-1 text-tx2">{l.why}</p>
                 <p className="mt-1 text-ac">
-                  Starter line, edit before use: {l.starter_line.replace('{brand}', brand)}
+                  Starter line, edit before use: {fillStarter(l.starter_line, brandLabel)}
                 </p>
                 {l.link ? (
                   <a
