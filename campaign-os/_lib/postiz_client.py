@@ -484,7 +484,7 @@ def create_post(
     elif media_ids:
         images = [{"id": str(m)} for m in media_ids]
     value = [{"content": content, "image": images, "shortLink": False, "tags": []}]
-    settings = platform_settings or {"post_type": "post"}
+    settings = platform_settings if platform_settings is not None else {"post_type": "post"}
     # Match the legacy _settings per platform by inferring from integration
     # providerIdentifier. Routes that call this can override via platform_settings.
     payload = {

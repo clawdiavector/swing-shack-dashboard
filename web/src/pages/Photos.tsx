@@ -49,11 +49,14 @@ type VideoRow = {
     follows_rules: boolean
   }
   has_caption_file: boolean
+  caption_file_id: string | null
+  caption_url: string | null
   caption: string | null
 }
 
 type VideoPayload = {
   ok: boolean
+  bridge?: boolean
   stages: { stage: string; label: string; videos: VideoRow[] }[]
 }
 
@@ -117,19 +120,42 @@ function tomorrowAt9(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
+const VIDEO_CHANNELS: [string, string][] = [
+  ['instagram', 'Instagram'],
+  ['facebook', 'Facebook'],
+  ['youtube', 'YouTube (private until you publish it there)'],
+]
+
+function VideoList({
+  data,
+  brand,
+  onChanged,
+}: {
+  data: VideoPayload
+  brand: string
+  onChanged: () => void
+}) {
+  const bridge = !!data.bridge
   const [copied, setCopied] = useState('')
   const [confirming, setConfirming] = useState('')
   const [sending, setSending] = useState('')
   const [result, setResult] = useState<Record<string, string>>({})
   const [mode, setMode] = useState<'draft' | 'schedule'>('draft')
+  const [channel, setChannel] = useState('instagram')
   const [asap, setAsap] = useState(false)
   const [when, setWhen] = useState(tomorrowAt9())
+  const [editing, setEditing] = useState('')
+  const [editText, setEditText] = useState('')
+  const [posting, setPosting] = useState('')
+  const [confirmPosted, setConfirmPosted] = useState('')
+  const say = (id: string, text: string) => setResult((prev) => ({ ...prev, [id]: text }))
+  const channelName = VIDEO_CHANNELS.find(([k]) => k === channel)?.[1].split(' (')[0] || 'Instagram'
+
   const sendDraft = async (v: VideoRow) => {
     // The calendar books a slot only for a named person; the name is asked once and remembered.
     const name = actorName()
     if (!name) {
-      setResult((prev) => ({ ...prev, [v.id]: 'Nothing was sent. Type your name when asked, so the calendar can record who booked it.' }))
+      say(v.id, 'Nothing was sent. Type your name when asked, so the calendar can record who booked it.')
       return
     }
     setSending(v.id)
@@ -137,6 +163,7 @@ function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
     try {
       const r = await call<{
         channel?: string
+        platform?: string
         publish_at_local?: string
         moved_to_minimum?: boolean
         calendar_item?: string | null
@@ -144,26 +171,63 @@ function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
         brand_id: brand,
         file_id: v.id,
         mode,
+        channel,
         asap: mode === 'schedule' && asap,
         // the browser's own time zone travels with the time, so 9:00 means 9:00 where you are
         publish_at: mode === 'schedule' && !asap ? new Date(when).toISOString() : undefined,
       }, { 'X-Actor-Display-Name': name })
-      const channel = r.channel ? ` for ${r.channel}` : ''
+      const where = ` on ${r.platform || channelName}${r.channel ? ` (${r.channel})` : ''}`
       const text =
         mode === 'draft'
-          ? `Draft created in Postiz${channel}. Nothing is published.`
-          : `Scheduled in Postiz${channel} for ${r.publish_at_local} (South African time).` +
+          ? `Draft created in Postiz${where}. Nothing is published.`
+          : `Scheduled in Postiz${where} for ${r.publish_at_local} (South African time).` +
             (r.moved_to_minimum ? ' That was too soon, so it was moved to 5 minutes from now.' : '')
-      setResult((prev) => ({
-        ...prev,
-        [v.id]: text + (r.calendar_item ? ' It is on the calendar.' : ' It could not be added to the calendar.'),
-      }))
+      say(v.id, text + (r.calendar_item ? ' It is on the calendar.' : ' It could not be added to the calendar.'))
     } catch (e) {
-      setResult((prev) => ({ ...prev, [v.id]: e instanceof Error ? e.message : 'Could not send' }))
+      say(v.id, e instanceof Error ? e.message : 'Could not send')
     } finally {
       setSending('')
     }
   }
+
+  const markPosted = async (v: VideoRow) => {
+    const name = actorName()
+    if (!name) {
+      say(v.id, 'Nothing was moved. Type your name when asked, so the calendar can record who did it.')
+      return
+    }
+    setPosting(v.id)
+    setConfirmPosted('')
+    try {
+      const r = await call<{ moved?: string[]; calendar_error?: string | null }>(
+        '/api/photos/videos/posted',
+        { brand_id: brand, file_id: v.id },
+        { 'X-Actor-Display-Name': name },
+      )
+      say(v.id, `Moved to Published (${(r.moved || []).length} file${(r.moved || []).length === 1 ? '' : 's'}).` +
+        (r.calendar_error ? ' The calendar could not be updated.' : ''))
+      onChanged()
+    } catch (e) {
+      say(v.id, e instanceof Error ? e.message : 'Could not move it')
+    } finally {
+      setPosting('')
+    }
+  }
+
+  const saveCaption = async (v: VideoRow) => {
+    setSending(v.id)
+    try {
+      await call('/api/photos/videos/caption', { brand_id: brand, file_id: v.id, caption: editText })
+      setEditing('')
+      say(v.id, 'Caption saved. Drive can take a few seconds to show it.')
+      onChanged()
+    } catch (e) {
+      say(v.id, e instanceof Error ? e.message : 'Could not save the caption')
+    } finally {
+      setSending('')
+    }
+  }
+
   const copy = async (name: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -173,8 +237,15 @@ function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
       /* clipboard blocked: the caption is still on screen to select */
     }
   }
+
   return (
     <div className="space-y-8">
+      {!bridge ? (
+        <p className="rounded-xl border border-yel/30 bg-yel/5 px-4 py-3 text-sm text-tx2">
+          Mark posted and Edit caption need the Drive bridge, which is not set up yet. Until then, edit the caption
+          file in Drive and ask Claude to move posted videos. Setup steps are in <code>docs/drive-bridge/SETUP.md</code>.
+        </p>
+      ) : null}
       {data.stages.map((stage) => (
         <section key={stage.stage} className="space-y-3">
           <h2 className="font-display text-2xl font-semibold">
@@ -210,6 +281,16 @@ function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       {confirming === v.id ? (
                         <div className="w-full space-y-3 rounded-xl bg-white/5 p-3">
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <span>Where:</span>
+                            <select className={field + ' !w-auto'} value={channel} onChange={(e) => setChannel(e.target.value)}>
+                              {VIDEO_CHANNELS.map(([k, label]) => (
+                                <option key={k} value={k}>
+                                  {label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                           <div className="flex flex-wrap gap-4 text-sm">
                             <label className="flex items-center gap-2">
                               <input type="radio" checked={mode === 'draft'} onChange={() => setMode('draft')} />
@@ -241,8 +322,8 @@ function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm">
                               {mode === 'draft'
-                                ? 'Create a draft on Instagram?'
-                                : 'This will post to Instagram by itself at that time. Schedule it?'}
+                                ? `Create a draft on ${channelName}?`
+                                : `This will post to ${channelName} by itself at that time. Schedule it?`}
                             </span>
                             <button
                               type="button"
@@ -257,33 +338,104 @@ function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
                             </button>
                           </div>
                         </div>
+                      ) : confirmPosted === v.id ? (
+                        <>
+                          <span className="text-sm">Move this video and its caption to Published?</span>
+                          <button type="button" className={pillOn} onClick={() => void markPosted(v)}>
+                            Yes, it has been posted
+                          </button>
+                          <button type="button" className={pill} onClick={() => setConfirmPosted('')}>
+                            Cancel
+                          </button>
+                        </>
                       ) : (
-                        <button
-                          type="button"
-                          disabled={sending === v.id || !v.caption}
-                          className={pill}
-                          onClick={() => setConfirming(v.id)}
-                        >
-                          {sending === v.id ? 'Sending to Postiz…' : 'Send to Postiz'}
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            disabled={sending === v.id || !v.caption}
+                            className={pill}
+                            onClick={() => setConfirming(v.id)}
+                          >
+                            {sending === v.id ? 'Sending to Postiz…' : 'Send to Postiz'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!bridge || posting === v.id}
+                            className={pill}
+                            title={bridge ? '' : 'Needs the Drive bridge'}
+                            onClick={() => setConfirmPosted(v.id)}
+                          >
+                            {posting === v.id ? 'Moving…' : 'Mark posted'}
+                          </button>
+                        </>
                       )}
-                      {result[v.id] ? <span className="text-sm text-tx2">{result[v.id]}</span> : null}
                     </div>
                   ) : null}
+                  {result[v.id] ? <p className="mt-2 text-sm text-tx2">{result[v.id]}</p> : null}
                   {stage.stage !== '1-raw' ? (
-                    v.caption ? (
+                    editing === v.id ? (
+                      <div className="mt-3 space-y-2">
+                        <textarea
+                          className={field + ' min-h-32'}
+                          value={editText}
+                          maxLength={2200}
+                          onChange={(e) => setEditText(e.target.value)}
+                        />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button type="button" disabled={sending === v.id || !editText.trim()} className={pillOn} onClick={() => void saveCaption(v)}>
+                            {sending === v.id ? 'Saving…' : 'Save caption'}
+                          </button>
+                          <button type="button" className={pill} onClick={() => setEditing('')}>
+                            Cancel
+                          </button>
+                          <span className="text-xs text-tx2">{editText.length} / 2,200</span>
+                        </div>
+                      </div>
+                    ) : v.caption ? (
                       <div className="mt-3 space-y-2">
                         <div className="rounded-lg bg-white/5 p-3 text-sm whitespace-pre-wrap">{v.caption}</div>
-                        <button type="button" className={pill} onClick={() => copy(v.name, v.caption || '')}>
-                          {copied === v.name ? 'Copied' : 'Copy caption'}
-                        </button>
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" className={pill} onClick={() => copy(v.name, v.caption || '')}>
+                            {copied === v.name ? 'Copied' : 'Copy caption'}
+                          </button>
+                          {bridge ? (
+                            <button
+                              type="button"
+                              className={pill}
+                              onClick={() => {
+                                setEditing(v.id)
+                                setEditText(v.caption || '')
+                              }}
+                            >
+                              Edit caption
+                            </button>
+                          ) : v.caption_url ? (
+                            <a className={pill} href={v.caption_url} target="_blank" rel="noreferrer">
+                              Open caption in Drive
+                            </a>
+                          ) : null}
+                        </div>
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-tx2">
-                        {v.has_caption_file
-                          ? 'The caption file is empty.'
-                          : 'No caption file. Add a .txt with the same name next to the video.'}
-                      </p>
+                      <div className="mt-3 space-y-2">
+                        <p className="text-sm text-tx2">
+                          {v.has_caption_file
+                            ? 'The caption file is empty.'
+                            : 'No caption file. Add a .txt with the same name next to the video.'}
+                        </p>
+                        {bridge ? (
+                          <button
+                            type="button"
+                            className={pill}
+                            onClick={() => {
+                              setEditing(v.id)
+                              setEditText('')
+                            }}
+                          >
+                            Write the caption
+                          </button>
+                        ) : null}
+                      </div>
                     )
                   ) : null}
                 </div>
@@ -544,7 +696,7 @@ export function Photos() {
                   {videoBusy ? 'Reading Drive…' : 'Refresh'}
                 </button>
               </div>
-              {video ? <VideoList data={video} brand={brand} /> : videoBusy ? <p className="text-tx2">Reading Drive…</p> : null}
+              {video ? <VideoList data={video} brand={brand} onChanged={() => void loadVideo(true)} /> : videoBusy ? <p className="text-tx2">Reading Drive…</p> : null}
             </div>
           ) : tab === 'inbox' ? (
             !inbox || inbox.items.length === 0 ? (

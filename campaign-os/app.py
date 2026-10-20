@@ -6996,6 +6996,8 @@ def photos_inbox_set():
 
 
 _VIDEO_LIST_CACHE = {}
+# Where a Ready video can be sent in Postiz: provider prefix -> name shown to people.
+_VIDEO_CHANNELS = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube"}
 
 
 def _drive_listing(brand_id, ttl=60):
@@ -7058,7 +7060,9 @@ def photos_videos():
         return jsonify({"ok": False, "error": "Could not read Drive: " + str(exc)}), 502
     if entries is None:
         return jsonify({"ok": False, "error": "no Drive folder is set up for this brand"}), 400
-    return jsonify({"ok": True, "brand_id": brand_id, **video_list.build(entries, _drive_text)})
+    from _lib import drive_bridge
+    return jsonify({"ok": True, "brand_id": brand_id, "bridge": drive_bridge.configured(),
+                    **video_list.build(entries, _drive_text)})
 
 
 def _postiz_provider(item):
@@ -7102,6 +7106,9 @@ def photos_video_draft():
     mode = str(body.get("mode") or "draft")
     if mode not in ("draft", "schedule"):
         return jsonify({"ok": False, "error": "mode must be draft or schedule"}), 400
+    channel_name = str(body.get("channel") or "instagram")
+    if channel_name not in _VIDEO_CHANNELS:
+        return jsonify({"ok": False, "error": "channel must be one of: " + ", ".join(_VIDEO_CHANNELS)}), 400
     publish_at = None
     if mode == "schedule" and not body.get("asap"):
         raw = str(body.get("publish_at") or "")
@@ -7134,13 +7141,21 @@ def photos_video_draft():
     if err:
         return jsonify({"ok": False, "error": "postiz API %s: %s" % err}), 502
     items = data if isinstance(data, list) else ((data or {}).get("integrations") or (data or {}).get("identities") or [])
+    label = _VIDEO_CHANNELS[channel_name]
     channel = next((i for i in items if isinstance(i, dict) and not i.get("disabled")
-                    and _postiz_provider(i).startswith("instagram")), None)
+                    and _postiz_provider(i).startswith(channel_name)), None)
     if not channel:
-        return jsonify({"ok": False, "error": "no Instagram channel is connected in Postiz for %s" % brand_id}), 409
+        return jsonify({"ok": False, "error": "no %s channel is connected in Postiz for %s" % (label, brand_id)}), 409
     parsed = video_list.parse_name(video["name"])
     fmt = parsed["format"] or ""
-    settings = {"post_type": "story" if fmt.startswith("story") else "post"}
+    topic = (parsed["topic"] or stem).replace("-", " ")
+    if channel_name == "instagram":
+        settings = {"post_type": "story" if fmt.startswith("story") else "post"}
+    elif channel_name == "youtube":
+        # Private until someone changes it in YouTube; Postiz needs a title.
+        settings = {"title": topic.capitalize()[:100], "type": "private", "tags": []}
+    else:
+        settings = {}
     # Never "now": the time is the one chosen, or at least 5 minutes ahead.
     when_iso, moved = _postiz_lib.scheduled_at_least(publish_at)
     try:
@@ -7165,8 +7180,9 @@ def photos_video_draft():
     # On the Campaign OS calendar (the Plan month grid reads the calendar records), in South African
     # time. The same video re-sent updates the same record.
     local_when = _dt.datetime.fromisoformat(when_iso.replace("Z", "+00:00")).astimezone(ZoneInfo("Africa/Johannesburg"))
-    topic = (parsed["topic"] or stem).replace("-", " ")
-    event_key = "%s:video-%s" % (brand_id, file_id[:12])
+    # The Instagram record keeps its original key; another channel gets its own record.
+    event_key = "%s:video-%s%s" % (brand_id, file_id[:12], "" if channel_name == "instagram" else "-" + channel_name)
+    on = "" if channel_name == "instagram" else " on %s" % label
     calendar_error = None
     try:
         from _lib.marketing_calendar import upsert_event
@@ -7174,12 +7190,12 @@ def photos_video_draft():
             "event_key": event_key, "brand_id": brand_id, "type": "moment",
             # The Plan grid and This week show approved moments.
             "status": "approved",
-            "title": ("Video draft: %s" % topic) if mode == "draft"
-                     else ("Video %s: %s" % (local_when.strftime("%H:%M"), topic)),
+            "title": ("Video draft%s: %s" % (on, topic)) if mode == "draft"
+                     else ("Video %s%s: %s" % (local_when.strftime("%H:%M"), on, topic)),
             "event_date": local_when.date().isoformat(), "event_start": local_when.date().isoformat(),
             "event_end": local_when.date().isoformat(),
             "source_type": "operator", "source_origin": "internal_strategy", "created_by": "operator",
-            "primary_channel": "instagram", "channel": "instagram", "post_type": "operator-video",
+            "primary_channel": channel_name, "channel": channel_name, "post_type": "operator-video",
             "lane": "human", "media_kind": "video", "caption": caption,
             "drive_url": video_url_for(file_id), "publish_time": local_when.strftime("%H:%M"),
             "postiz_mode": mode, "postiz": post,
@@ -7189,7 +7205,8 @@ def photos_video_draft():
         _app_log.exception("video draft: calendar record not saved")
     _app_log.info("video %s in Postiz for %s: %s at %s", mode, brand_id, video["name"], when_iso)
     return jsonify({"ok": True, "brand_id": brand_id, "mode": mode, "channel": channel.get("name"),
-                    "post_type": settings["post_type"], "publish_at": when_iso,
+                    "platform": label,
+                    "post_type": settings.get("post_type"), "publish_at": when_iso,
                     "publish_at_local": local_when.strftime("%Y-%m-%d %H:%M"), "moved_to_minimum": moved,
                     "calendar_item": None if calendar_error else event_key, "calendar_error": calendar_error,
                     "postiz": post,
@@ -7198,6 +7215,115 @@ def photos_video_draft():
 
 def video_url_for(file_id):
     return "https://drive.google.com/file/d/%s/view" % file_id
+
+
+def _video_cache_clear(brand_id):
+    for k in [k for k in _VIDEO_LIST_CACHE if k == brand_id or k.startswith("text:")]:
+        _VIDEO_LIST_CACHE.pop(k, None)
+
+
+def _find_video(brand_id, file_id, stages):
+    """The video in the brand's Drive listing, its caption file, and the listing. (None, ...) when not found."""
+    from pathlib import Path as _P
+    from _lib import video_list
+    entries = _drive_listing(brand_id)
+    video = next((e for e in (entries or []) if e["id"] == file_id), None)
+    if not video or video_list.stage_of(video.get("folder", "")) not in stages:
+        return None, None, entries
+    stem = _P(video["name"]).stem
+    cap = next((e for e in entries if e.get("folder") == video["folder"] and e["name"] == stem + ".txt"), None)
+    return video, cap, entries
+
+
+@app.route('/api/photos/videos/posted', methods=['POST'])
+def photos_video_posted():
+    """POST /api/photos/videos/posted {brand_id, file_id} — the video has been posted: move it and its
+    caption from Video/2-ready-to-publish to Video/3-published, and mark its calendar moment POSTED.
+    Needs the Drive bridge (docs/drive-bridge/SETUP.md)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import drive_bridge
+    if not drive_bridge.configured():
+        return jsonify({"ok": False, "error": "the Drive bridge is not set up yet (docs/drive-bridge/SETUP.md)"}), 409
+    file_id = str((request.get_json(silent=True) or {}).get("file_id") or "")
+    try:
+        video, cap, _entries = _find_video(brand_id, file_id, ("2-ready-to-publish",))
+    except Exception as exc:
+        _app_log.exception("mark posted: drive listing failed")
+        return jsonify({"ok": False, "error": "Could not read Drive: " + str(exc)}), 502
+    if not video:
+        return jsonify({"ok": False, "error": "only a video in Video/2-ready-to-publish can be marked posted"}), 404
+    moved = []
+    try:
+        drive_bridge.move_file(brand_id, video["id"], "Video/3-published")
+        moved.append(video["name"])
+        if cap:
+            drive_bridge.move_file(brand_id, cap["id"], "Video/3-published")
+            moved.append(cap["name"])
+    except drive_bridge.BridgeError as exc:
+        _video_cache_clear(brand_id)
+        return jsonify({"ok": False, "error": str(exc), "moved": moved}), 502
+    _video_cache_clear(brand_id)
+    # The calendar moment reads POSTED. Best effort: the files have moved either way.
+    calendar_error = None
+    try:
+        from _lib import marketing_calendar as _mc
+        key = "%s:video-%s" % (brand_id, file_id[:12])
+        for rec in [r for r in _mc.latest_revisions(_mc.list_records(brand_id) or [])
+                    if str(r.get("event_key") or "").startswith(key)]:
+            rec = dict(rec)
+            rec["postiz_mode"] = "posted"
+            # The title is a field the calendar treats as a change; the mode alone would be a no-op.
+            rec["title"] = "Video posted: " + (str(rec.get("title") or "").split(": ", 1)[-1] or "video")
+            rec["posted_at"] = _dt.datetime.utcnow().isoformat() + "Z"
+            _mc.upsert_event(brand_id, rec)
+    except Exception as exc:
+        calendar_error = "%s: %s" % (type(exc).__name__, exc)
+        _app_log.exception("mark posted: calendar record not updated")
+    return jsonify({"ok": True, "moved": moved, "to": "Video/3-published", "calendar_error": calendar_error})
+
+
+@app.route('/api/photos/videos/caption', methods=['POST'])
+def photos_video_caption():
+    """POST /api/photos/videos/caption {brand_id, file_id, caption} — change a video's caption file
+    (or create it next to the video if there is none). Needs the Drive bridge."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import drive_bridge
+    if not drive_bridge.configured():
+        return jsonify({"ok": False, "error": "the Drive bridge is not set up yet (docs/drive-bridge/SETUP.md)"}), 409
+    body = request.get_json(silent=True) or {}
+    file_id = str(body.get("file_id") or "")
+    caption = str(body.get("caption") or "").replace("\r\n", "\n").strip()
+    if not caption:
+        return jsonify({"ok": False, "error": "the caption is empty"}), 400
+    if len(caption) > 2200:
+        return jsonify({"ok": False, "error": "the caption is over 2,200 characters (Instagram's limit)"}), 400
+    try:
+        video, cap, _entries = _find_video(brand_id, file_id, ("2-ready-to-publish", "3-published"))
+    except Exception as exc:
+        _app_log.exception("edit caption: drive listing failed")
+        return jsonify({"ok": False, "error": "Could not read Drive: " + str(exc)}), 502
+    if not video:
+        return jsonify({"ok": False, "error": "that video is not in Ready to publish or Published"}), 404
+    from pathlib import Path as _P
+    try:
+        if cap:
+            drive_bridge.set_text(brand_id, cap["id"], caption)
+            created = False
+        else:
+            drive_bridge.create_text(brand_id, video["folder"], _P(video["name"]).stem + ".txt", caption)
+            created = True
+    except drive_bridge.BridgeError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 502
+    _video_cache_clear(brand_id)
+    return jsonify({"ok": True, "caption": caption, "created": created})
 
 
 @app.route('/api/lanes/stock/preview', methods=['POST'])
@@ -44957,7 +45083,7 @@ def planning_month_view(brand_id):
                 _pillar0 = ""
             lane = r.get("lane") or _pillar0 or ""
             # A video that is already in Postiz reads as scheduled (or a Postiz draft), not just approved.
-            _item_status = {"schedule": "SCHEDULED", "draft": "DRAFT"}.get(r.get("postiz_mode"), "APPROVED")
+            _item_status = {"schedule": "SCHEDULED", "draft": "DRAFT", "posted": "POSTED"}.get(r.get("postiz_mode"), "APPROVED")
             item = {
                 "id": ek or start_iso,
                 "title": r.get("title") or r.get("name") or "(operator-approved)",
@@ -46856,7 +46982,7 @@ def _alerts_for_brand(brand_id):
             continue  # steps a plan put there are the plan's, not content made for the date
         kind = r.get("type")
         start = r.get("event_start") or r.get("event_date") or r.get("public_peak")
-        if r.get("postiz_mode") in ("draft", "schedule"):
+        if r.get("postiz_mode") in ("draft", "schedule", "posted"):
             # A video already in Postiz is made and booked: it counts as content for its date,
             # not as a date still needing a plan.
             content_dates.append(start)
