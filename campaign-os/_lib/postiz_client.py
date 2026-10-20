@@ -94,6 +94,33 @@ def _brand_env_suffix(brand_id: str | None) -> str:
     return brand_id.upper().replace("-", "_")
 
 
+MIN_LEAD_MINUTES = 5
+
+
+def scheduled_at_least(publish_date: Optional[str], minutes: int = MIN_LEAD_MINUTES) -> Tuple[str, bool]:
+    """A publish time for Postiz that is never sooner than `minutes` from now.
+
+    Postiz has failed on posts published "now" (the media has not finished loading), so nothing is
+    sent for the current moment: no date, or a date that is already past or too close, becomes
+    now + `minutes`. Returns (ISO time in UTC ending in Z, whether it was moved). A time with no
+    time zone is read as UTC, the way Postiz reads it. A value that cannot be read is returned as is.
+    """
+    import datetime as _dt
+    now = _dt.datetime.now(_dt.timezone.utc)
+    earliest = now + _dt.timedelta(minutes=minutes)
+    if not publish_date:
+        return earliest.isoformat().replace("+00:00", "Z"), True
+    try:
+        when = _dt.datetime.fromisoformat(str(publish_date).replace("Z", "+00:00"))
+    except ValueError:
+        return str(publish_date), False
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=_dt.timezone.utc)
+    if when < earliest:
+        return earliest.isoformat().replace("+00:00", "Z"), True
+    return when.astimezone(_dt.timezone.utc).isoformat().replace("+00:00", "Z"), False
+
+
 def has_brand_key(brand_id: str | None) -> bool:
     """True only when this brand has its OWN Postiz key. _read_api_key falls back to the shared key,
     which belongs to another brand's account; anything that writes must not use that fallback."""
@@ -446,8 +473,9 @@ def create_post(
       - tags must be an array (not null)
       - date must be a valid ISO 8601 string (even when type="now")
     """
-    import datetime as _dt
-    effective_date = publish_date or _dt.datetime.now(_dt.timezone.utc).isoformat()
+    # Never "now": Postiz has failed on posts published at once (the media has not finished loading),
+    # so a post with no time, or a time that is past or under 5 minutes away, goes out 5 minutes from now.
+    effective_date, _moved = scheduled_at_least(publish_date)
     images: list[dict[str, str]] = []
     if media:
         for item in media:
@@ -460,7 +488,7 @@ def create_post(
     # Match the legacy _settings per platform by inferring from integration
     # providerIdentifier. Routes that call this can override via platform_settings.
     payload = {
-        "type": "draft" if draft else ("schedule" if publish_date else "now"),
+        "type": "draft" if draft else "schedule",
         "date": effective_date,
         "shortLink": False,
         "tags": [],

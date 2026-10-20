@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import datetime as _dt
 
-from _lib import ads_brain, ads_brief, ads_creative, ads_history, ads_ideas
+from _lib import ads_brain, ads_brief, ads_budget, ads_creative, ads_history, ads_ideas
 from _lib import ads_tracking
 from _lib.brand_validate import validate_brand_id
 
@@ -28,6 +28,8 @@ ORGANIC = "post-outcomes.json"
 HISTORY = "ads-history/weekly.json"
 HISTORY_LATEST = "ads-history/latest.json"
 TRACKING = "ads-tracking/latest.json"
+BUDGET_FIGURES = "ads-budget/figures.json"
+BUDGET_SETTINGS = "ads-budget/settings.json"
 
 
 def run(*, brand: str | None = None, today: _dt.date | None = None,
@@ -75,6 +77,19 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
                                               errors=[e for e in (tag_err, ga_err) if e]))
     except Exception:
         pass
+
+    # Monthly budget: this month's spend and what the live ad sets will still spend. Like the history above,
+    # an add-on: a failed read never costs the day's brief.
+    try:
+        figures = ads_budget.fetch_figures(account, token, today=today, get=get)
+        io.write(BUDGET_FIGURES, figures)
+        settings = as_dict(io.read(BUDGET_SETTINGS, allow_flat_fallback=False))
+        verdict = ads_budget.evaluate(figures, settings.get("monthly_budget"))
+        daily["budget"] = ads_budget.brief_view(verdict)
+        if figures.get("complete"):
+            ads_budget.add_action(daily, verdict)
+    except Exception as exc:
+        daily["budget"] = {"status": "UNKNOWN", "headline": f"Could not read the month's spend ({type(exc).__name__})."}
 
     # Creative loop: move open tests on, then propose new ones.
     tests = as_list(io.read(TESTS, allow_flat_fallback=False))

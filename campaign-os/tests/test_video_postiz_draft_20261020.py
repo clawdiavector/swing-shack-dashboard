@@ -29,7 +29,7 @@ class ClientTests(unittest.TestCase):
             pz.create_post("ig1", "hi", [], brand_id="swing-shack", draft=True)
             self.assertEqual(req.call_args.kwargs["json_body"]["type"], "draft")
             pz.create_post("ig1", "hi", [], brand_id="swing-shack")
-            self.assertEqual(req.call_args.kwargs["json_body"]["type"], "now")
+            self.assertEqual(req.call_args.kwargs["json_body"]["type"], "schedule")  # never "now"
             pz.create_post("ig1", "hi", [], brand_id="swing-shack", publish_date="2026-10-21T08:00:00Z")
             self.assertEqual(req.call_args.kwargs["json_body"]["type"], "schedule")
 
