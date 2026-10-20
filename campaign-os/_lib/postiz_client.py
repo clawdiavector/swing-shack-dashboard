@@ -94,6 +94,19 @@ def _brand_env_suffix(brand_id: str | None) -> str:
     return brand_id.upper().replace("-", "_")
 
 
+def has_brand_key(brand_id: str | None) -> bool:
+    """True only when this brand has its OWN Postiz key. _read_api_key falls back to the shared key,
+    which belongs to another brand's account; anything that writes must not use that fallback."""
+    if not brand_id:
+        return False
+    safe = _brand_env_suffix(brand_id)
+    for key in (f"POSTIZ_API_KEY_{safe}", f"POSTIZ_API_KEY_{brand_id.upper()}", f"POSTIZ_API_KEY_{brand_id}"):
+        env = os.environ.get(key)
+        if env and env.strip():
+            return True
+    return False
+
+
 def _credentials_present(brand_id: str | None = None) -> bool:
     """True if a Postiz API key (server-to-server) is reachable.
 
@@ -367,8 +380,10 @@ def _request_multipart_upload(
     boundary = f"----postiz-{secrets.token_hex(16)}"
     body = []
     body.append(f"--{boundary}".encode())
+    import mimetypes
+    mime = mimetypes.guess_type(fpath.name)[0] or "application/octet-stream"
     body.append(f'Content-Disposition: form-data; name="file"; filename="{fpath.name}"'.encode())
-    body.append(b"Content-Type: application/octet-stream")
+    body.append(f"Content-Type: {mime}".encode())
     body.append(b"")
     body.append(fpath.read_bytes())
     body.append(f"--{boundary}--".encode())
@@ -404,7 +419,7 @@ def upload_media(
     Per the existing fixtures: response shape is
     { id: "img-...", path: "https://..." }
     """
-    return _request_multipart_upload(file_path, brand_id=brand_id)
+    return _request_multipart_upload(file_path, timeout=300, brand_id=brand_id)
 
 
 def create_post(
@@ -420,8 +435,9 @@ def create_post(
     tiktok_content_posting_method: str = "UPLOAD",
     platform_settings: Optional[dict] = None,
     group_id: Optional[str] = None,
+    draft: bool = False,
 ) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
-    """Create a draft post for one integration.
+    """Create a post for one integration. draft=True saves it in Postiz as a draft: nothing is published.
 
     Mirrors the existing tiktok-marketing/postiz-setup.md payload shape so
     the swing-shack fields and the swing-shack TikTok fields stay aligned.
@@ -444,7 +460,7 @@ def create_post(
     # Match the legacy _settings per platform by inferring from integration
     # providerIdentifier. Routes that call this can override via platform_settings.
     payload = {
-        "type": "schedule" if publish_date else "now",
+        "type": "draft" if draft else ("schedule" if publish_date else "now"),
         "date": effective_date,
         "shortLink": False,
         "tags": [],

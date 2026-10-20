@@ -1,6 +1,7 @@
 import { Rocket } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useBrandScope } from '../../components/BrandSwitch'
 import { PageIntro } from '../../components/chrome'
 import { Badge, ClassicLink, Tip } from '../../components/ui'
 import {
@@ -22,29 +23,31 @@ function verdictFromOk(ok?: boolean, httpStatus?: number): 'green' | 'gold' | 'r
 }
 
 export function PostizPage() {
+  const { focusBrandId, isAll } = useBrandScope()
+  const brand = !isAll && focusBrandId ? focusBrandId : undefined
   const [status, setStatus] = useState<(PostizStatus & { httpStatus?: number }) | null>(null)
   const [channels, setChannels] = useState<(PostizChannels & { httpStatus?: number }) | null>(null)
-  const [channelsLoaded, setChannelsLoaded] = useState(false)
   const [mode, setMode] = useState<PublishMode | null>(null)
   const [sandbox, setSandbox] = useState<{ queue_depth?: number; receipt_count?: number } | null>(null)
 
   useEffect(() => {
-    fetchPostizStatus().then(setStatus).catch(() => setStatus({ ok: false, error: 'Could not load status' }))
+    setStatus(null)
+    fetchPostizStatus(brand).then(setStatus).catch(() => setStatus({ ok: false, error: 'Could not load status' }))
     fetchPublishMode()
       .then(setMode)
       .catch(() => setMode(null))
     fetchPublishSandboxSummary()
       .then(setSandbox)
       .catch(() => setSandbox(null))
-  }, [])
+  }, [brand])
 
+  // Channels belong to the brand's own Postiz account, so reload them when the brand changes.
   useEffect(() => {
-    if (channelsLoaded) return
-    setChannelsLoaded(true)
-    fetchPostizChannels()
+    setChannels(null)
+    fetchPostizChannels(brand)
       .then(setChannels)
       .catch(() => setChannels({ ok: false, error: 'Could not load channels' }))
-  }, [channelsLoaded])
+  }, [brand])
 
   const modeLabel =
     mode?.mode === 'live'
