@@ -13,6 +13,7 @@ from __future__ import annotations
 import datetime as _dt
 
 from _lib import ads_brain, ads_brief, ads_creative, ads_history, ads_ideas
+from _lib import ads_tracking
 from _lib.brand_validate import validate_brand_id
 
 from ..layer1._io import as_dict, as_list, io_for_job
@@ -26,6 +27,7 @@ TESTS = "ads-creative/tests.json"
 ORGANIC = "post-outcomes.json"
 HISTORY = "ads-history/weekly.json"
 HISTORY_LATEST = "ads-history/latest.json"
+TRACKING = "ads-tracking/latest.json"
 
 
 def run(*, brand: str | None = None, today: _dt.date | None = None,
@@ -64,6 +66,15 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
         win = ads_history.winners(history)
     except Exception as exc:  # the brief below is still written
         history, history_error = None, type(exc).__name__
+
+    # Tracking health: links, UTMs and what GA4 saw, per running ad. An add-on: never costs the brief.
+    try:
+        tags, tag_err = ads_tracking.fetch_url_tags(account, token, get=get)
+        ga_rows, ga_err = ads_tracking.ga4_rows(lane_brand)
+        io.write(TRACKING, ads_tracking.build(lane_brand, full["ads"], tags, ga_rows, today=today,
+                                              errors=[e for e in (tag_err, ga_err) if e]))
+    except Exception:
+        pass
 
     # Creative loop: move open tests on, then propose new ones.
     tests = as_list(io.read(TESTS, allow_flat_fallback=False))
