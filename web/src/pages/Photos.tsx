@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge } from '../components/ui'
+import { actorName } from '../lib/plan'
 
 type Status = 'needs-check' | 'approved' | 'rejected'
 
@@ -65,11 +66,11 @@ const TAB_LABEL: Record<Status, string> = {
 }
 
 /** Same as getJson/postJson, but keeps the server's own words when it refuses. */
-async function call<T>(path: string, body?: unknown): Promise<T> {
+async function call<T>(path: string, body?: unknown, extraHeaders?: Record<string, string>): Promise<T> {
   const res = await fetch(path, {
     method: body === undefined ? 'GET' : 'POST',
     credentials: 'same-origin',
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    headers: body === undefined && !extraHeaders ? undefined : { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...extraHeaders },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (res.status === 401) {
@@ -125,6 +126,12 @@ function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
   const [asap, setAsap] = useState(false)
   const [when, setWhen] = useState(tomorrowAt9())
   const sendDraft = async (v: VideoRow) => {
+    // The calendar books a slot only for a named person; the name is asked once and remembered.
+    const name = actorName()
+    if (!name) {
+      setResult((prev) => ({ ...prev, [v.id]: 'Nothing was sent. Type your name when asked, so the calendar can record who booked it.' }))
+      return
+    }
     setSending(v.id)
     setConfirming('')
     try {
@@ -140,7 +147,7 @@ function VideoList({ data, brand }: { data: VideoPayload; brand: string }) {
         asap: mode === 'schedule' && asap,
         // the browser's own time zone travels with the time, so 9:00 means 9:00 where you are
         publish_at: mode === 'schedule' && !asap ? new Date(when).toISOString() : undefined,
-      })
+      }, { 'X-Actor-Display-Name': name })
       const channel = r.channel ? ` for ${r.channel}` : ''
       const text =
         mode === 'draft'

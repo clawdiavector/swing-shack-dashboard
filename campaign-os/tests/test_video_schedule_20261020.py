@@ -95,7 +95,7 @@ class RouteTests(unittest.TestCase):
             mock.patch.object(gd, "download_public_file",
                               lambda fid, dest, **kw: (Path(dest).write_bytes(b"v"), Path(dest))[1]),
             mock.patch.object(pz, "upload_media", return_value=({"id": "m1", "path": "https://x/m.mp4"}, None)),
-            mock.patch("_lib.marketing_lanes.add_content_item", lambda brand, item: self.items.append((brand, item)) or item),
+            mock.patch("_lib.marketing_calendar.upsert_event", lambda brand, rec, **kw: self.items.append((brand, rec)) or {"record": rec}),
         ]
         for p in self.patches:
             p.start()
@@ -120,10 +120,13 @@ class RouteTests(unittest.TestCase):
         self.assertIs(kw["draft"], True)
         self.assertTrue(parse(kw["publish_date"]) > dt.datetime.now(UTC) + dt.timedelta(minutes=4))
         brand, item = self.items[0]
-        self.assertEqual((brand, item["status"], item["lane"], item["platform"]), ("swing-shack", "draft", "human", "instagram"))
-        self.assertEqual((item["id"], item["format"], item["media_kind"]), ("vid-v1abcdefghij", "reel", "video"))
+        self.assertEqual((brand, item["status"], item["lane"], item["primary_channel"]),
+                         ("swing-shack", "approved", "human", "instagram"))
+        self.assertEqual((item["event_key"], item["type"], item["media_kind"], item["postiz_mode"]),
+                         ("swing-shack:video-v1abcdefghij", "moment", "video", "draft"))
+        self.assertEqual(item["title"], "Video draft: new year offer")
         self.assertEqual(item["caption"], "Happy new year.")
-        self.assertEqual(r.get_json()["calendar_item"], "vid-v1abcdefghij")
+        self.assertEqual(r.get_json()["calendar_item"], "swing-shack:video-v1abcdefghij")
 
     def test_schedule_uses_the_chosen_time_and_shows_it_in_south_african_time(self):
         when = dt.datetime.now(UTC).replace(microsecond=0) + dt.timedelta(days=12)
@@ -136,8 +139,9 @@ class RouteTests(unittest.TestCase):
         self.assertFalse(out["moved_to_minimum"])
         sast = when.astimezone(dt.timezone(dt.timedelta(hours=2)))
         _, item = self.items[0]
-        self.assertEqual((item["status"], item["publish_date"], item["publish_time"]),
-                         ("queued", sast.date().isoformat(), sast.strftime("%H:%M")))
+        self.assertEqual((item["status"], item["event_date"], item["publish_time"]),
+                         ("approved", sast.date().isoformat(), sast.strftime("%H:%M")))
+        self.assertEqual(item["title"], "Video %s: new year offer" % sast.strftime("%H:%M"))
 
     def test_a_time_that_is_too_soon_is_moved_to_five_minutes_from_now(self):
         soon = dt.datetime.now(UTC) + dt.timedelta(seconds=30)
@@ -158,10 +162,11 @@ class RouteTests(unittest.TestCase):
         self.create_mock.assert_not_called()
 
     def test_a_calendar_failure_does_not_undo_the_postiz_draft(self):
-        with mock.patch("_lib.marketing_lanes.add_content_item", side_effect=RuntimeError("disk")):
+        with mock.patch("_lib.marketing_calendar.upsert_event", side_effect=ValueError("season guard")):
             r = self.send()
         self.assertEqual(r.status_code, 200)
         self.assertIsNone(r.get_json()["calendar_item"])
+        self.assertIn("season guard", r.get_json()["calendar_error"])
 
 
 if __name__ == "__main__":
