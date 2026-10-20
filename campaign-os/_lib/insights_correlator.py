@@ -28,6 +28,7 @@ Layered data model:
 from __future__ import annotations
 
 import json
+import statistics
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -541,6 +542,20 @@ def get_ad_correlation_verdicts(brand_id: str | None = None, days: int = 30) -> 
     }
 
 
+WORKED_WINDOW_DAYS = 90
+
+
+def _parse_timestamp(value: Any) -> datetime | None:
+    """Parse an ISO timestamp (Instagram uses a trailing Z). Return None if unreadable."""
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
 def _external_publications() -> dict[str, dict[str, Any]]:
     """Instagram posts the meta post index knows by media id (permalink, media type).
 
@@ -597,20 +612,36 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
                 "reason": "No posts in any IG store yet. Once IG data syncs, top posts appear here.",
             },
         }
+    # Only the last 90 days count. Posts with no parseable timestamp are kept, so older
+    # stores without dates still show up.
+    cutoff = datetime.now(timezone.utc) - timedelta(days=WORKED_WINDOW_DAYS)
     scored = []
-    total_er = 0.0
     for p in posts:
         if not isinstance(p, dict):
+            continue
+        posted = _parse_timestamp(p.get("timestamp"))
+        if posted is not None and posted < cutoff:
             continue
         try:
             er = float(p.get("engagementRate") or 0)
         except (TypeError, ValueError):
             er = 0.0
-        total_er += er
         scored.append({**p, "_er": er})
     if not scored:
-        return {"ok": True, "posts": [], "_meta": {"total_scanned": 0, "reason": "No valid posts"}}
-    avg_er = total_er / len(scored)
+        return {
+            "ok": True,
+            "posts": [],
+            "_meta": {
+                "total_scanned": 0,
+                "average_engagement": None,
+                "average_kind": "median",
+                "window_days": WORKED_WINDOW_DAYS,
+                "source": actual_source,
+                "reason": f"No posts in the last {WORKED_WINDOW_DAYS} days.",
+            },
+        }
+    # Median, not mean: one viral post should not raise the bar for every other post.
+    avg_er = statistics.median(p["_er"] for p in scored)
     scored.sort(key=lambda x: x["_er"], reverse=True)
     top = scored[:limit]
 
@@ -623,7 +654,11 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
             p["permalink"] = known["permalink"]
         if known.get("media_type"):
             p["media_type"] = known["media_type"]
-        if er >= avg_er * 2:
+        if avg_er <= 0:
+            # A median of zero means most posts have no engagement data; no verdict is honest.
+            verdict = "Not scored"
+            emoji = "⚪"
+        elif er >= avg_er * 2:
             verdict = "Top performer"
             emoji = "🟢"
         elif er >= avg_er:
@@ -642,7 +677,7 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
         ratio = (er / avg_er) if avg_er > 0 else 0
         plain = (
             f"{emoji} {verdict}. "
-            f"Engagement {er:.2f}% vs your {avg_er:.2f}% average "
+            f"Engagement {er:.2f}% vs your {avg_er:.2f}% median over the last {WORKED_WINDOW_DAYS} days "
             f"({ratio:.1f}x{' above' if ratio > 1 else ' below'}). "
         )
         likes = int(p.get("like_count") or 0)
@@ -678,6 +713,8 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
         "_meta": {
             "total_scanned": len(scored),
             "average_engagement": round(avg_er, 2),
+            "average_kind": "median",
+            "window_days": WORKED_WINDOW_DAYS,
             "source": actual_source,
             "window": ig_data.get("data_window") or ig_data.get("fetched_at"),
             "fetched_at": ig_data.get("updated") or ig_data.get("fetched_at"),

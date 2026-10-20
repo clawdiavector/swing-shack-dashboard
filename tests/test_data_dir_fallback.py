@@ -15,6 +15,7 @@ import os
 import shutil
 import sys
 import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -46,11 +47,16 @@ def _write_ig(path: Path, posts: list) -> None:
     path.write_text(json.dumps({"posts": posts, "lastUpdated": "2026-08-10"}))
 
 
+def _days_ago(n: int) -> str:
+    # Relative dates: the posts card only counts the last 90 days.
+    return (datetime.now(timezone.utc) - timedelta(days=n)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _sample_posts() -> list:
     return [
         {
             "id": "123",
-            "timestamp": "2026-08-01T10:00:00Z",
+            "timestamp": _days_ago(20),
             "caption": "Test post",
             "engagementRate": 4.5,
             "permalink": "https://ig/p/123",
@@ -61,7 +67,7 @@ def _sample_posts() -> list:
         },
         {
             "id": "456",
-            "timestamp": "2026-07-15T10:00:00Z",
+            "timestamp": _days_ago(40),
             "captionPreview": "Older post",
             "engagementRate": 1.2,
             "permalink": "https://ig/p/456",
@@ -139,8 +145,8 @@ def test_get_top_instagram_posts_handles_missing_engagementrate(tmp_data_dirs):
     """Posts with None engagementRate shouldn't crash."""
     runtime, bundled = tmp_data_dirs
     posts_with_null = [
-        {"id": "1", "engagementRate": None, "timestamp": "2026-08-01"},
-        {"id": "2", "engagementRate": "0.5", "timestamp": "2026-08-02"},
+        {"id": "1", "engagementRate": None, "timestamp": _days_ago(20)},
+        {"id": "2", "engagementRate": "0.5", "timestamp": _days_ago(19)},
     ]
     _write_ig(bundled / "ig-analytics.json", posts_with_null)
     result = ic.get_top_instagram_posts(limit=5)
