@@ -15283,7 +15283,27 @@ def stories_candidates_route():
     brand = request.args.get('brand') or ''
     if not brand:
         return jsonify({"ok": False, "error": "brand is required"}), 400
-    return jsonify({"ok": True, **story_scout.candidates(brand, refresh=request.args.get('refresh') == '1')})
+    res = story_scout.candidates(brand, refresh=request.args.get('refresh') == '1')
+    try:  # the stock check runs on every read so a new stock list shows at once; the cache stays raw
+        res = dict(res, posts=story_scout.stock_check(brand, res.get("posts") or []))
+    except Exception:
+        _app_log.exception("story stock check failed for %s", brand)
+    return jsonify({"ok": True, **res})
+
+
+@app.route('/api/stories/marks', methods=['GET', 'POST'])
+def stories_marks_route():
+    """GET the Shared / Not-for-us marks. POST {key, state: shared|skipped|clear} sets one."""
+    from _lib import story_marks
+
+    if request.method == 'GET':
+        return jsonify({"ok": True, "marks": story_marks.read()})
+    body = request.get_json(silent=True) or {}
+    try:
+        story_marks.set_mark(str(body.get('key') or ''), str(body.get('state') or ''))
+    except story_marks.MarkError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    return jsonify({"ok": True, "marks": story_marks.read()})
 
 
 @app.route('/api/stories/<item_id>/<status>', methods=['POST'])
