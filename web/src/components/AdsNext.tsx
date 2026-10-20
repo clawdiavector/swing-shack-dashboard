@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getJson } from '../lib/api'
 import { Note } from './AdsTrends'
+import { PauseAd } from './AdsPause'
 import { Badge } from './ui'
 
 // "What to do next" for the Trends page: the top actions from the daily ads brief
@@ -13,6 +14,8 @@ type TopAction = {
   severity?: string
   days_open?: number
   rule?: string
+  ads?: string[]
+  ad_ids?: string[]
 }
 
 export type Brief = {
@@ -26,6 +29,7 @@ const SEVERITY_TONE: Record<string, 'red' | 'gold' | 'mute'> = { high: 'red', me
 
 export function AdsNext({ brandId }: { brandId: string }) {
   const [brief, setBrief] = useState<Brief | null>(null)
+  const [writes, setWrites] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -34,14 +38,25 @@ export function AdsNext({ brandId }: { brandId: string }) {
     getJson<{ brief?: Brief }>(`/api/meta/ads/brief/${brandId}`)
       .then((r) => setBrief(r.brief ?? {}))
       .catch((e: Error) => setError(e.message))
+    getJson<{ enabled?: boolean }>(`/api/meta/ads/${brandId}/write-status`)
+      .then((r) => setWrites(!!r.enabled))
+      .catch(() => setWrites(false))
   }, [brandId])
 
   if (error) return <Note>No ads brief yet ({error}). It is written each day by the ads brief job.</Note>
   if (!brief) return <div className="h-24 animate-pulse rounded-2xl bg-bg3" />
-  return <AdsNextView brief={brief} />
+  return <AdsNextView brief={brief} brandId={brandId} canChange={writes} />
 }
 
-export function AdsNextView({ brief }: { brief: Brief }) {
+export function AdsNextView({
+  brief,
+  brandId,
+  canChange = false,
+}: {
+  brief: Brief
+  brandId?: string
+  canChange?: boolean
+}) {
   const actions = brief.top_actions ?? []
   const h = brief.headline
 
@@ -63,6 +78,16 @@ export function AdsNextView({ brief }: { brief: Brief }) {
               </div>
               {a.why ? <p className="mt-1 text-tx2">{a.why}</p> : null}
               {a.days_open ? <p className="mt-1 text-xs text-tx3">open {a.days_open} days</p> : null}
+              {canChange && brandId && a.ad_ids?.length ? (
+                <ul className="mt-2 space-y-2">
+                  {a.ad_ids.map((id, j) => (
+                    <li key={id} className="flex flex-wrap items-center gap-2 text-xs text-tx2">
+                      <span>{a.ads?.[j] ?? id}</span>
+                      <PauseAd brandId={brandId} adId={id} adName={a.ads?.[j] ?? id} />
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
           ))}
         </ul>
