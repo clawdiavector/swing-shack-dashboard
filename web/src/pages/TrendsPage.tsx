@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
 import { AdsBudget } from '../components/AdsBudget'
 import { AdsNext } from '../components/AdsNext'
+import { Moments } from '../components/Moments'
 import { AdsTracking } from '../components/AdsTracking'
 import { ADS_BRANDS, AdsSection, Note } from '../components/AdsTrends'
 import { PageIntro } from '../components/chrome'
@@ -141,6 +142,15 @@ export function TrendsPage() {
           <AdsTracking brandId={brandId} />
         </section>
       ) : null}
+
+      <section className="space-y-3">
+        <h2 className="font-display text-xl font-semibold">Moments</h2>
+        <p className="text-sm text-tx2">
+          Dates to plan around and what South Africa is talking about today. Starter lines are ideas to edit, and
+          nothing posts from here.
+        </p>
+        <Moments brandLabel={brandLabel} />
+      </section>
 
       {!isSwingShack ? (
         <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
