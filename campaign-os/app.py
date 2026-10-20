@@ -6924,6 +6924,77 @@ def photos_scan():
                     "ambiguous": out["ambiguous"], "total": out["total"]})
 
 
+def _inbox_state(brand_id):
+    """The brand's Inbox files, with what can be guessed and any saved plan."""
+    import json as _json
+    from urllib.parse import quote
+    from _lib import inbox_sort as ib
+    from _lib import photo_map as pm
+    from _lib import stock_pulse as sp
+    root = pm.images_dir(brand_id)
+    mpath = root.parent / "ingest-manifest.json"
+    try:
+        manifest = _json.loads(mpath.read_text(encoding="utf-8")) if mpath.exists() else {}
+    except Exception:
+        manifest = {}
+    snaps = sp.load_snapshots(brand_id)
+    skus = pm.sku_index(sp.analyse(snaps)) if snaps else {}
+    plans = {e["file"]: e for e in ib.load(brand_id)}
+    items = []
+    for f in ib.inbox_files(brand_id, root, manifest):
+        items.append({
+            "file": f["file"], "drive_id": f["drive_id"], "viewable": f["viewable"],
+            "image_url": ("/brand-images/%s/%s" % (brand_id, quote(f["file"]))) if f["viewable"] else "",
+            "guess": ib.guess(f["file"], f["path"], skus), "plan": plans.get(f["file"]),
+        })
+    return items, skus
+
+
+@app.route('/api/photos/inbox', methods=['GET'])
+def photos_inbox_list():
+    """GET /api/photos/inbox?brand_id=<id> — files dropped in the brand's Drive Inbox, waiting to be sorted."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import inbox_sort as ib
+    items, _ = _inbox_state(brand_id)
+    return jsonify({"ok": True, "brand_id": brand_id, "items": items,
+                    "kinds": list(ib.KINDS), "areas": list(ib.AREAS)})
+
+
+@app.route('/api/photos/inbox', methods=['POST'])
+def photos_inbox_set():
+    """POST /api/photos/inbox {brand_id, file, kind, date, area, what, sku} — save where an Inbox file goes
+    and what it is renamed to. With {status: "moved"} instead, mark a planned file as moved in Drive."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = _photo_review_brand()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    from _lib import inbox_sort as ib
+    body = request.get_json(silent=True) or {}
+    file = str(body.get("file") or "")
+    items, skus = _inbox_state(brand_id)
+    item = next((i for i in items if i["file"] == file), None)
+    if not item:
+        return jsonify({"ok": False, "error": "that file is not in the Inbox"}), 404
+    try:
+        if body.get("status"):
+            if not ib.set_status(brand_id, file, str(body["status"])):
+                return jsonify({"ok": False, "error": "no plan saved for that file yet"}), 404
+            return jsonify({"ok": True, "file": file, "status": body["status"]})
+        kind = str(body.get("kind") or "")
+        plan = ib.plan_name([e for e in ib.load(brand_id) if e["file"] != file], file, kind, date=str(body.get("date") or ""),
+                            area=str(body.get("area") or ""), what=str(body.get("what") or ""),
+                            sku=str(body.get("sku") or ""), sku_to_product=skus or None)
+    except ib.SortError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    entry = ib.save_plan(brand_id, file, plan, kind, item["drive_id"])
+    return jsonify({"ok": True, "plan": entry})
+
+
 @app.route('/api/lanes/stock/preview', methods=['POST'])
 def lanes_stock_preview():
     """POST /api/lanes/stock/preview — preview a CSV stock import."""

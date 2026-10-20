@@ -1310,7 +1310,7 @@ function setupNavigation() {
 // ─── Photos view: approve product photos ────────────────────────────────
 // Only approved photos reach the planner. Photos arrive from the in-store
 // SKU__view.jpg naming scan and the image scout, and wait here as "needs-check".
-const PH = { status: 'needs-check', data: null };
+const PH = { status: 'needs-check', data: null, inbox: null };
 
 async function renderPhotosView() {
   const el = document.getElementById('view-photos');
@@ -1353,6 +1353,7 @@ async function loadPhotos() {
   grid.innerHTML = '<p style="color:var(--tx-3)">Loading…</p>';
   try {
     PH.data = await api('photos/review?brand_id=' + encodeURIComponent(MW.brand));
+    PH.inbox = await api('photos/inbox?brand_id=' + encodeURIComponent(MW.brand)).catch(() => null);
   } catch (e) {
     grid.innerHTML = `<p style="color:var(--org)">Could not load photos: ${escapeHtml(e.message)}</p>`;
     return;
@@ -1363,8 +1364,11 @@ async function loadPhotos() {
 function drawPhotos() {
   const c = PH.data.counts || {};
   const tabs = [['needs-check', 'Waiting'], ['approved', 'Approved'], ['rejected', 'Rejected']];
+  const waiting = PH.inbox ? PH.inbox.items.filter(i => !i.plan || i.plan.status !== 'moved').length : 0;
   document.getElementById('photos-tabs').innerHTML = tabs.map(([k, label]) =>
-    `<button class="${PH.status === k ? 'primary' : ''}" onclick="PH.status='${k}';drawPhotos()">${label} (${c[k] || 0})</button>`).join('');
+    `<button class="${PH.status === k ? 'primary' : ''}" onclick="PH.status='${k}';drawPhotos()">${label} (${c[k] || 0})</button>`).join('')
+    + `<button class="${PH.status === 'inbox' ? 'primary' : ''}" onclick="PH.status='inbox';drawPhotos()">Inbox (${waiting})</button>`;
+  if (PH.status === 'inbox') { drawInbox(); return; }
   const list = PH.data.entries.filter(e => e.status === PH.status)
     .sort((a, b) => (a.product || '').localeCompare(b.product || '') || a.file.localeCompare(b.file));
   const grid = document.getElementById('photos-grid');
@@ -1389,6 +1393,83 @@ function drawPhotos() {
         <div style="display:flex;gap:6px;flex-wrap:wrap">${actions}</div>
       </div></div>`;
   }).join('')}</div>`;
+}
+
+// --- Inbox: say what each dropped file is; the app works out its folder and name ---
+function drawInbox() {
+  const grid = document.getElementById('photos-grid');
+  const items = PH.inbox ? PH.inbox.items : [];
+  if (!items.length) {
+    grid.innerHTML = '<p style="color:var(--tx-3)">The Inbox is empty. Files dropped in the brand Drive Inbox folder appear here after "Look for new photos".</p>';
+    return;
+  }
+  const opt = (v, cur, label) => `<option value="${escapeHtml(v)}" ${v === cur ? 'selected' : ''}>${escapeHtml(label || v)}</option>`;
+  grid.innerHTML = `<p style="color:var(--tx-3);font-size:13px;margin-bottom:12px">Say what each file is. The folder and the new name appear below it, and the move in Drive follows.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">${items.map((it, i) => {
+    const g = it.guess || {}, p = it.plan || {};
+    const kind = p.kind || g.kind || '';
+    const img = it.viewable
+      ? `<img src="${escapeHtml(it.image_url)}" loading="lazy" style="width:100%;height:150px;object-fit:contain;background:#fff">`
+      : `<div style="height:150px;display:flex;align-items:center;justify-content:center;color:var(--tx-3);font-size:12px">${/\.(mp4|mov|m4v|avi|webm)$/i.test(it.file) ? 'Video' : 'HEIC: cannot preview'}</div>`;
+    const result = p.new_name
+      ? `<div style="margin-top:8px;font-size:12px;background:var(--bg-2,#f4f4f4);padding:6px 8px;border-radius:6px;word-break:break-all">${p.status === 'moved' ? '<b>Moved</b> to ' : 'Move to '}<b>${escapeHtml(p.dest_folder)}</b><br>as <code>${escapeHtml(p.new_name)}</code></div>` : '';
+    return `<div id="ib-${i}" style="border:1px solid var(--bd,#ddd);border-radius:8px;overflow:hidden">
+      ${img}
+      <div style="padding:10px;font-size:12px">
+        <div style="color:var(--tx-3);word-break:break-all;margin-bottom:6px">${escapeHtml(it.file.replace(/^Inbox\//, ''))}</div>
+        <select class="ib-kind" onchange="inboxKind(${i})" style="width:100%;margin-bottom:6px">
+          ${opt('', kind, 'What is it?')}${opt('product', kind, 'Product photo')}${opt('facility', kind, 'Facility')}${opt('service', kind, 'Service')}${opt('video', kind, 'Video')}
+        </select>
+        <input class="ib-sku" placeholder="SKU" value="${escapeHtml(g.sku || '')}" style="width:100%;margin-bottom:6px;display:none">
+        <select class="ib-area" style="width:100%;margin-bottom:6px;display:none">${PH.inbox.areas.map(a => opt(a, '')).join('')}</select>
+        <input class="ib-topic" placeholder="" style="width:100%;margin-bottom:6px;display:none">
+        <input class="ib-date" type="date" value="${escapeHtml(g.date || '')}" style="width:100%;margin-bottom:6px;display:none">
+        <input class="ib-what" placeholder="what it shows (bay 3 evening)" value="${escapeHtml(g.view || '')}" style="width:100%;margin-bottom:6px">
+        <div style="display:flex;gap:6px"><button class="primary" onclick="inboxSave(${i})">Work out the name</button>${p.new_name && p.status !== 'moved' ? `<button onclick="inboxMoved(${i})">Mark as moved</button>` : ''}</div>
+        <div class="ib-err" style="color:var(--org);margin-top:6px"></div>
+        ${result}
+      </div></div>`;
+  }).join('')}</div>`;
+  items.forEach((_, i) => inboxKind(i));
+}
+
+function inboxKind(i) {
+  const card = document.getElementById('ib-' + i);
+  const kind = card.querySelector('.ib-kind').value;
+  const show = (sel, on) => card.querySelector(sel).style.display = on ? 'block' : 'none';
+  show('.ib-sku', kind === 'product');
+  show('.ib-area', kind === 'facility');
+  const topic = card.querySelector('.ib-topic');
+  topic.style.display = (kind === 'service' || kind === 'video') ? 'block' : 'none';
+  topic.placeholder = kind === 'service' ? 'which service (driver fitting)' : 'topic (new year offer)';
+  show('.ib-date', kind === 'facility' || kind === 'service' || kind === 'video');
+}
+
+async function inboxSave(i) {
+  const it = PH.inbox.items[i], card = document.getElementById('ib-' + i);
+  const kind = card.querySelector('.ib-kind').value;
+  const area = kind === 'facility' ? card.querySelector('.ib-area').value : card.querySelector('.ib-topic').value;
+  try {
+    const r = await api('photos/inbox', {method: 'POST', body: {
+      brand_id: MW.brand, file: it.file, kind, area,
+      date: card.querySelector('.ib-date').value, what: card.querySelector('.ib-what').value,
+      sku: card.querySelector('.ib-sku').value.trim()}});
+    it.plan = r.plan;
+    drawPhotos();
+  } catch (e) {
+    card.querySelector('.ib-err').textContent = e.message;
+  }
+}
+
+async function inboxMoved(i) {
+  const it = PH.inbox.items[i];
+  try {
+    await api('photos/inbox', {method: 'POST', body: {brand_id: MW.brand, file: it.file, status: 'moved'}});
+    it.plan.status = 'moved';
+    drawPhotos();
+  } catch (e) {
+    alert('Could not save: ' + e.message);
+  }
 }
 
 async function setPhotoStatus(file, status) {
