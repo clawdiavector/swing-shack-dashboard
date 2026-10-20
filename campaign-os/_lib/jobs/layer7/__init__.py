@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Callable
 
 from ..spec import JobSpec
-from . import ads_brief, human_edit_signal, post_outcomes, proposal_outcome, winner_promotion
+from . import ads_brief, ads_budget_guard, human_edit_signal, post_outcomes, proposal_outcome, winner_promotion
 
 LAYER7_JOB_NAMES: tuple[str, ...] = (
     "post_outcomes",
@@ -13,6 +13,7 @@ LAYER7_JOB_NAMES: tuple[str, ...] = (
     "proposal_outcome",
     "human_edit_signal",
     "ads_brief",
+    "ads_budget_guard",
 )
 
 LAYER7_DAILY = 86400
@@ -99,6 +100,20 @@ def layer7_specs() -> list[JobSpec]:
             upstream=(),
             brand_mode="per_brand",
             # The two brands with a Meta ad account.
+            brands=("swing-shack", "stick"),
+        ),
+        JobSpec(
+            name="ads_budget_guard",
+            fn=ads_budget_guard.run,
+            every_seconds=3600,
+            timeout_seconds=120,
+            best_effort=True,
+            criticality="LOW",
+            credentials=("META_SYSTEM_USER_TOKEN",),
+            reads=(ads_budget_guard.SETTINGS,),
+            writes=(ads_budget_guard.GUARD, ads_budget_guard.LOG),
+            upstream=(),
+            brand_mode="per_brand",
             brands=("swing-shack", "stick"),
         ),
     ]
