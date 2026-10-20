@@ -9,7 +9,12 @@ Stdlib only (Windows/macOS/Linux). Dry-run unless --send.
   cos_mail.py contacts
   cos_mail.py set-email <id> <address>
   cos_mail.py inbox [--unread] [--limit N] [--read MESSAGE_ID]
-  cos_mail.py tell <id> --subject S --message M [--kind K] [--link URL] [--how-to TEXT] [--send]
+  cos_mail.py tell <id> --subject S --message M [--kind K] [--wiki PAGE]... [--file PATH]... [--link URL]
+             [--how-to TEXT] [--no-wiki REASON] [--no-notify] [--send]
+
+Protocol: 1) write it to the Campaign OS wiki and push; 2) agent mail in long format that points at the
+wiki pages (path + online link) and the main files by full path; 3) a short "you have agent mail" notice
+to the person's work email (notify_email in contacts.json), from the same inbox.
 
 Config (never committed), first file found wins for each key:
   ~/.config/campaign-os/agent-mail.env   (or %USERPROFILE%\\.config\\campaign-os\\agent-mail.env)
@@ -26,6 +31,8 @@ import argparse
 import getpass
 import json
 import os
+import re
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
@@ -39,6 +46,10 @@ ENV_FILES = [
     Path.home() / ".config/agent-control/agent-mail.env",
 ]
 KINDS = ["update", "review", "skill", "package", "template", "framework", "question"]
+# Kinds that share information must point at a pushed wiki page (protocol step 1); questions need not.
+WIKI_KINDS = {"update", "review", "skill", "package", "template", "framework"}
+WIKI_REPO = "campaign-os-wiki"
+WIKI_BRANCH = "main"
 
 
 def load_env() -> None:
@@ -204,6 +215,36 @@ def send(to: str, subject: str, text: str, reply_to: str | None) -> dict:
         sys.exit(f"AgentMail HTTP {e.code}: {e.read().decode(errors='replace')}")
 
 
+def git(root: Path, *args: str) -> str | None:
+    try:
+        r = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=60)
+    except Exception:
+        return None
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def wiki_ref(page: str) -> dict:
+    """Resolve a page in the wiki clone to path + online link; refuse if it is not pushed to main."""
+    path = Path(page).expanduser().resolve()
+    if not path.is_file():
+        sys.exit(f"wiki page not found: {path}")
+    top = git(path.parent, "rev-parse", "--show-toplevel")
+    remote = git(Path(top), "remote", "get-url", "origin") if top else None
+    if not remote or WIKI_REPO not in remote:
+        sys.exit(f"{path} is not in your Campaign OS wiki clone (~/CampaignOSKnowledgeBase).")
+    root, rel = Path(top), path.relative_to(Path(top)).as_posix()
+    git(root, "fetch", "-q", "origin", WIKI_BRANCH)
+    if git(root, "status", "--porcelain", "--", rel):
+        sys.exit(f"{rel} has uncommitted changes. Protocol step 1: file it with the campaign-os-wiki skill (commit + push) first.")
+    if git(root, "log", f"origin/{WIKI_BRANCH}", "-1", "--format=%H", "--", rel) in (None, ""):
+        sys.exit(f"{rel} is not on origin/{WIKI_BRANCH} yet. Push it first.")
+    if git(root, "rev-list", f"origin/{WIKI_BRANCH}..HEAD", "--", rel):
+        sys.exit(f"{rel} has local commits not pushed to {WIKI_BRANCH}. Push first.")
+    base = re.sub(r"\.git$", "", re.sub(r"//[^/@]+@", "//", remote))
+    base = re.sub(r"^git@github\.com:", "https://github.com/", base)
+    return {"path": rel, "web": f"{base}/blob/{WIKI_BRANCH}/{urllib.parse.quote(rel)}"}
+
+
 def cmd_tell(a) -> int:
     contacts = read_registry()["contacts"]
     c = contacts.get(a.id.lower())
@@ -211,21 +252,46 @@ def cmd_tell(a) -> int:
         sys.exit(f"unknown contact '{a.id}'. Known: {', '.join(contacts)}")
     if not c.get("email"):
         sys.exit(f"{c['name']} has no email yet. Run: cos_mail.py set-email {a.id} <address>")
+    if a.kind in WIKI_KINDS and not a.wiki and not a.no_wiki:
+        sys.exit(f"'{a.kind}' mail shares information: write it to the wiki first and pass --wiki <page> "
+                 "(or --no-wiki \"reason\" if it truly does not belong in the wiki).")
+    refs = [wiki_ref(w) for w in a.wiki]
     sender = os.environ.get("AGENTMAIL_FROM_NAME", "a teammate")
     lines = [f"Hi {c['name']},", "", a.message.strip()]
+    if refs:
+        lines += ["", "Wiki (read these first; full detail is there):"]
+        for r in refs:
+            lines += [f"- {r['path']}", f"  online: {r['web']}",
+                      f"  in your clone: ~/CampaignOSKnowledgeBase/{r['path']} (pull first)"]
+    if a.file:
+        lines += ["", "Main files:"] + [f"- {Path(f).expanduser().resolve()}" for f in a.file]
     if a.link:
         lines += ["", f"Link: {a.link}"]
     if a.how_to:
         lines += ["", f"What to do: {a.how_to}"]
+    if a.no_wiki:
+        lines += ["", f"(Not in the wiki: {a.no_wiki})"]
     lines += ["", "-- ", f"Sent by {sender}'s Claude via Campaign OS agent mail. Reply goes to {sender}'s agent inbox."]
     body, subject = "\n".join(lines), f"[{a.kind}] {a.subject}"
+    notify_to = "" if a.no_notify else (c.get("notify_email") or "")
+    notice = (f"You have agent mail from {sender}: {a.subject}\n\n"
+              "Open Claude Code and ask \"any mail?\". Your agent reads it, follows the wiki links and "
+              "tells you what to do.\n\n(Automatic notice. The full message is in your agent inbox; don't reply here.)")
     if not a.send:
-        print(f"DRY RUN  to {c['name']} <{c['email']}>\nSubject: {subject}\n\n{body}\n\n(add --send to send)")
+        print(f"DRY RUN  to {c['name']} <{c['email']}>\nSubject: {subject}\n\n{body}\n")
+        print(f"then notify: {notify_to or '(no notify_email for this contact; skipped)'}")
+        print("\n(add --send to send)")
         return 0
     if not (os.environ.get("AGENTMAIL_API_KEY") and inbox()):
         sys.exit("not set up: run status, then follow SETUP.md")
     res = send(c["email"], subject, body, os.environ.get("AGENTMAIL_REPLY_TO") or inbox())
     print(f"SENT to {c['email']} from {inbox()} id={res.get('message_id') or res.get('id')}")
+    if notify_to:
+        try:
+            send(notify_to, f"You have agent mail from {sender}", notice, None)
+            print(f"NOTIFIED {notify_to}")
+        except SystemExit as e:
+            print(f"WARN agent mail was sent, but the notification to {notify_to} failed: {e}")
     return 0
 
 
@@ -243,6 +309,9 @@ def main() -> int:
     t = s.add_parser("tell"); t.add_argument("id")
     t.add_argument("--kind", default="update", choices=KINDS)
     t.add_argument("--subject", required=True); t.add_argument("--message", required=True)
+    t.add_argument("--wiki", action="append", default=[], metavar="PAGE", help="local path of a pushed wiki page; repeatable")
+    t.add_argument("--file", action="append", default=[], metavar="PATH", help="main file to reference by full path; repeatable")
+    t.add_argument("--no-wiki", metavar="REASON"); t.add_argument("--no-notify", action="store_true")
     t.add_argument("--link"); t.add_argument("--how-to"); t.add_argument("--send", action="store_true")
     t.set_defaults(f=cmd_tell)
     a = p.parse_args()
