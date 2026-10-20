@@ -1,8 +1,14 @@
 {
   "schema": "https://campaign-os/brand-directory/typography/v1",
   "brand_id": "stick",
-  "version": "2.0",
-  "updated": "2026-09-27T00:00:00Z",
+  "version": "3.0",
+  "updated": "2026-10-20T00:00:00Z",
+  "designer": {
+    "source": "brand-guide/stick-colour-font.pdf (2026-10-20)",
+    "primary": "All Round Gothic, Demi Oblique",
+    "secondary": "Montserrat Light",
+    "status": "All Round Gothic is licensed and not in the repo. Montserrat stays as the free stand-in for the renderer until the designer supplies licensed files; mock-ups may use a rounded oblique stand-in marked as a placeholder."
+  },
   "primary": {
     "family": "Montserrat",
     "source": "Google Fonts OFL (vendored static cuts)",
