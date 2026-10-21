@@ -1,0 +1,22 @@
+{
+ "sku": "VTWS001",
+ "route": "crop_word",
+ "backdrop_id": 2,
+ "seed": 20261024,
+ "idea_id": 73,
+ "idea_line": "Tee up a present.",
+ "caption": "Vice Tour. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 33.5,
+  "word_visible": 0.993,
+  "text_overlap": 0.0,
+  "product_inside": 0.985,
+  "mean_luma": 58.8
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

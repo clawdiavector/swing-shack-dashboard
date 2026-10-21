@@ -1,0 +1,23 @@
+{
+ "sku": "T1001",
+ "route": "turf_shadow",
+ "backdrop_id": 28,
+ "seed": 20261023,
+ "idea_id": 39,
+ "idea_line": "It is not obsessive if it is gear.",
+ "caption": "Takomo. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 65.2,
+  "word_visible": 1.0,
+  "text_overlap": 0.0,
+  "product_inside": 1.0,
+  "mean_luma": 75.2
+ },
+ "confirm_before_posting": [
+  "in_stock",
+  "tone_check"
+ ],
+ "tried_first": []
+}

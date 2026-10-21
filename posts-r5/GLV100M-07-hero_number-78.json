@@ -1,0 +1,22 @@
+{
+ "sku": "GLV100M",
+ "route": "hero_number",
+ "backdrop_id": 8,
+ "seed": 20261029,
+ "idea_id": 78,
+ "idea_line": "Gloves. Pairs well with everything.",
+ "caption": "Takomo Glove 100. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 95.3,
+  "word_visible": 0.972,
+  "text_overlap": 0.008,
+  "product_inside": 1.0,
+  "mean_luma": 116.9
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

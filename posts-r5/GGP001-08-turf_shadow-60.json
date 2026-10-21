@@ -1,0 +1,23 @@
+{
+ "sku": "GGP001",
+ "route": "turf_shadow",
+ "backdrop_id": 29,
+ "seed": 20261030,
+ "idea_id": 60,
+ "idea_line": "Check the numbers. Then check them again.",
+ "caption": "Mileseey Gene Pro G1. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 62.2,
+  "word_visible": 1.0,
+  "text_overlap": 0.0,
+  "product_inside": 1.0,
+  "mean_luma": 65.6
+ },
+ "confirm_before_posting": [
+  "in_stock",
+  "tone_check"
+ ],
+ "tried_first": []
+}

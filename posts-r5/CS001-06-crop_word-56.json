@@ -1,0 +1,22 @@
+{
+ "sku": "CS001",
+ "route": "crop_word",
+ "backdrop_id": 17,
+ "seed": 20261028,
+ "idea_id": 56,
+ "idea_line": "12 balls. One decision.",
+ "caption": "Callaway Chrome Soft. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 48.9,
+  "word_visible": 1.0,
+  "text_overlap": 0.0,
+  "product_inside": 0.986,
+  "mean_luma": 74.6
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

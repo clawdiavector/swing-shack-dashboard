@@ -1,0 +1,22 @@
+{
+ "sku": "LDSB001",
+ "route": "hero_number",
+ "backdrop_id": 18,
+ "seed": 20261025,
+ "idea_id": 72,
+ "idea_line": "For the golfer who has everything. Except this.",
+ "caption": "L.A.B. Golf DF3. In store, Paarl.",
+ "standin_font": true,
+ "logo": "navy",
+ "checks": {
+  "bg_luma": 170.2,
+  "word_visible": 0.999,
+  "text_overlap": 0.006,
+  "product_inside": 1.0,
+  "mean_luma": 139.6
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}
