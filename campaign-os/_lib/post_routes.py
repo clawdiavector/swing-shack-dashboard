@@ -353,13 +353,12 @@ def soft_vignette(img: Image.Image, strength: float) -> Image.Image:
 
 
 def grain(img: Image.Image, amount: float = 5.0, seed: int = 7) -> Image.Image:
-    noise = Image.effect_noise(img.size, amount * 3)                   # grey around 128
-    noise = noise.point(lambda v: v)                                    # keep as L
+    """Fine film grain, about +/- amount grey levels. Applied to backdrops, never to the product."""
+    noise = Image.effect_noise(img.size, max(amount, 0.1))            # grey around 128
+    lift = noise.point(lambda v: max(v - 128, 0))
+    drop = noise.point(lambda v: max(128 - v, 0))
     rgb = img.convert("RGB")
-    lift = noise.point(lambda v: max(v - 128, 0) * 2)
-    drop = noise.point(lambda v: max(128 - v, 0) * 2)
-    lift3, drop3 = Image.merge("RGB", (lift,) * 3), Image.merge("RGB", (drop,) * 3)
-    return ImageChops.subtract(ImageChops.add(rgb, lift3), drop3)
+    return ImageChops.subtract(ImageChops.add(rgb, Image.merge("RGB", (lift,) * 3)), Image.merge("RGB", (drop,) * 3))
 
 
 def shadow(canvas, cut, pos, dx, dy, steps, blur, alpha):
@@ -579,10 +578,26 @@ def _kicker_and_caption(bg, kicker, cap_lines, light, path, size, colour, H):
 
 
 def render_post(product: Product, ideas: List[dict], backdrops: List[dict], memory: RouteMemory,
-                seed: int, brand: str, backdrops_dir: Path, facts: Optional[set] = None) -> Tuple[Image.Image, dict]:
-    """Choose a plan and render it; if the layout check fails, fall through to the other routes."""
+                seed: int, brand: str, backdrops_dir: Path, facts: Optional[set] = None,
+                scenes_dir: Optional[Path] = None) -> Tuple[Image.Image, dict]:
+    """Choose a plan and render it. With a scenes folder, the studio-set route goes first; if a layout
+    check fails it falls through to the other routes."""
     plan = choose(product, ideas, backdrops, memory, seed, facts)
     tried = []
+    if scenes_dir:
+        from _lib import post_studio as ps
+        rng_s = random.Random(seed + 7)
+        skip: set = set()
+        for attempt in range(3):
+            try:
+                sm = ps.pick_set(product, memory, rng_s, exclude=skip)
+                skip.add(sm["id"])
+                img, meta = ps.render_studio(product, plan.idea, sm, Path(scenes_dir), brand, seed + attempt)
+                meta["tried_first"] = tried
+                memory.add(Plan(plan.idea, "studio_set", sm["id"], seed), product.sku)
+                return img, meta
+            except LayoutFailed as e:
+                tried.append({"route": "studio_set", "why": str(e)})
     order = [plan.route] + [r for r in eligible_routes(product) if r != plan.route]
     rng = random.Random(seed + 1)
     for r in order:
