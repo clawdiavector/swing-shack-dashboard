@@ -79,9 +79,13 @@ def _blocks(raw_html: str) -> list[str]:
     return out
 
 
-def propose(raw_html: str) -> str | None:
+def propose(raw_html: str, prefer: tuple[str, ...] = ()) -> str | None:
     """A 120-160 character description built from whole sentences of the page's
-    own paragraphs, or None when no safe candidate exists."""
+    own paragraphs, or None when no safe candidate exists. When `prefer` is
+    given (brand and page names), the first safe candidate that mentions one of
+    those terms wins; otherwise the first safe candidate does."""
+    terms = [t.lower() for t in prefer if t]
+    first: str | None = None
     sentences: list[str] = []
     for block in _blocks(raw_html):
         if len(block.split()) < 8:  # headings, buttons, labels
@@ -95,9 +99,14 @@ def propose(raw_html: str) -> str | None:
                 break
             if len(text) >= DESC_MIN:
                 if not _REJECT.search(text) and text[-1] in ".!?":
-                    return text
+                    if not terms:
+                        return text
+                    if first is None:
+                        first = text
+                    if any(t in text.lower() for t in terms):
+                        return text
                 break
-    return None
+    return first
 
 
 # ── WordPress ───────────────────────────────────────────────────────────────
@@ -210,7 +219,10 @@ def run_auto(io: Any, brand: str, queue: dict | None, wp: WpClient, now: str, ru
         if before:
             summary["skipped"].append({"page": page_name, "why": "already has a description written by a person"})
             continue
-        after = propose((page.get("content") or {}).get("rendered", ""))
+        after = propose(
+            (page.get("content") or {}).get("rendered", ""),
+            prefer=(brand.replace("-", " "), page_name),
+        )
         if not after:
             summary["skipped"].append({"page": page_name, "why": "no safe wording found on the page"})
             continue
