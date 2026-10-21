@@ -110,9 +110,9 @@ export function PerformanceView({ t }: { t: PerformanceData }) {
               <p className="text-xs text-tx3">{r.campaign}</p>
               <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-5">
                 <Cell label="Spent" value={rand(r.spend)} sub={`${num(r.link_clicks)} link clicks`} />
-                {p && p.leads ? (
+                {p && r.destination === 'LEAD_FORM' && p.leads ? (
                   <Cell label="Leads" value={String(p.leads)} sub={`${rand(p.cost_per_lead)} each`} />
-                ) : p && p.messages ? (
+                ) : p && r.destination === 'MESSAGING' && p.messages ? (
                   <Cell label="Chats" value={String(p.messages)} sub={`${rand(p.cost_per_message)} each`} />
                 ) : (
                   <Cell label="Visits (GA4)" value={onSite ? num(r.ga_sessions) : '—'} sub={onSite ? `${rand(p?.cost_per_session)} each` : 'not on the website'} />

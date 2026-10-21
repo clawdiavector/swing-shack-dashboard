@@ -2094,7 +2094,9 @@ def _read_ads_extras(bid: str, as_of: Optional[str] = None) -> Optional[dict]:
 
 
 def _money0(x) -> str:
-    return "—" if x is None else f"R{x:,.0f}"
+    if x is None:
+        return "—"
+    return f"-R{abs(x):,.0f}" if round(x) < 0 else f"R{x:,.0f}"
 
 
 def _ad_note(row: dict, brand_cpl) -> str:
@@ -2117,10 +2119,14 @@ def _ad_note(row: dict, brand_cpl) -> str:
 def _ad_result_bits(row: dict) -> List[str]:
     p = row.get("perf") or {}
     bits = [f"Spent {_money0(row.get('spend'))}"]
-    if p.get("leads"):
-        bits.append(f"{p['leads']} leads at {_money0(p.get('cost_per_lead'))}")
-    elif p.get("messages"):
-        bits.append(f"{p['messages']} chats at {_money0(p.get('cost_per_message'))}")
+    # Leads belong to lead-form ads and chats to message ads; a website ad's stray chat is not its result.
+    dest = row.get("destination")
+    if dest == "LEAD_FORM" and p.get("leads"):
+        bits.append(f"{p['leads']} lead{'s' if p['leads'] != 1 else ''} at {_money0(p.get('cost_per_lead'))}")
+    elif dest == "MESSAGING" and p.get("messages"):
+        bits.append(f"{p['messages']} chat{'s' if p['messages'] != 1 else ''} at {_money0(p.get('cost_per_message'))}")
+    if p.get("cost_per_session") is None and dest in ("WEBSITE", "UNKNOWN") and not row.get("ga_sessions"):
+        bits.append("no website visits recorded")
     if p.get("cost_per_session") is not None:
         bits.append(f"{row.get('ga_sessions', 0):,} visits at {_money0(p['cost_per_session'])}")
         bits.append(f"{p.get('engaged_pct', 0):g}% engaged")
