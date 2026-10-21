@@ -15,7 +15,8 @@
    "moves": "Giant crop; spotlight on dark",
    "needs": "Stock check",
    "requires": [
-    "in_stock"
+    "in_stock",
+    "status_new"
    ],
    "product_types": [],
    "pool": "product",
@@ -94,7 +95,8 @@
    "moves": "Logo as hero + product",
    "needs": "Brand is stocked",
    "requires": [
-    "in_stock"
+    "in_stock",
+    "new_brand"
    ],
    "product_types": [],
    "pool": "product",
@@ -120,7 +122,8 @@
    "moves": "Number or word hero",
    "needs": "Stock check from list",
    "requires": [
-    "in_stock"
+    "in_stock",
+    "status_back"
    ],
    "product_types": [],
    "pool": "product",

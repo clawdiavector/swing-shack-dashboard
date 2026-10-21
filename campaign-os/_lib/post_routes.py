@@ -73,6 +73,7 @@ class Product:
     category: str = "other"        # irons, putters, balls, grips, bags, apparel, gloves, drivers, other
     model_number: Optional[str] = None   # hero number for the number route, e.g. "101U"
     in_stock: bool = False
+    stock_status: Optional[str] = None   # from the weekly stock list: new, back, low, heavy, still, stuck
     town: Optional[str] = None
     display_name: Optional[str] = None
 
@@ -141,6 +142,10 @@ class RouteMemory:
 
 def eligible_ideas(ideas: List[dict], product: Product, facts: Optional[set] = None) -> List[dict]:
     have = set(SATISFIABLE if product.in_stock else {"tone_check"}) | set(facts or ())
+    if product.stock_status == "new":
+        have.add("status_new")
+    if product.stock_status == "back":
+        have.add("status_back")
     out = []
     for i in ideas:
         if i.get("status") != "yes" or i.get("pool") != "product":
@@ -563,12 +568,16 @@ def render_post(product: Product, ideas: List[dict], backdrops: List[dict], memo
     order = [plan.route] + [r for r in eligible_routes(product) if r != plan.route]
     rng = random.Random(seed + 1)
     for r in order:
-        try:
-            use = plan if r == plan.route else Plan(plan.idea, r, pick_backdrop(r, backdrops, memory, rng), seed)
-            img, meta = render_route(r, product, use, brand, backdrops_dir)
-            meta["tried_first"] = tried
-            memory.add(use, product.sku)
-            return img, meta
-        except LayoutFailed as e:
-            tried.append({"route": r, "why": str(e)})
+        base_id = plan.backdrop_id if r == plan.route else pick_backdrop(r, backdrops, memory, rng)
+        pool = [b["id"] for b in backdrops if b["tone"] in ROUTE_TONES[r] and b["id"] != base_id]
+        rng.shuffle(pool)
+        for bid in [base_id] + pool[:3]:  # a backdrop that is too dark gets swapped, not fatal
+            try:
+                use = Plan(plan.idea, r, bid, seed)
+                img, meta = render_route(r, product, use, brand, backdrops_dir)
+                meta["tried_first"] = tried
+                memory.add(use, product.sku)
+                return img, meta
+            except LayoutFailed as e:
+                tried.append({"route": r, "backdrop": bid, "why": str(e)})
     raise LayoutFailed("no route passed the layout check for %s: %s" % (product.sku, tried))

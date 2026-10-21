@@ -59,7 +59,7 @@ def main():
         prod = pr.Product(
             sku=spec["sku"], name=spec["name"], cutout=load_cutout(Path(a.cutouts), spec["cutout"]),
             category=spec.get("category", "other"), model_number=spec.get("model_number"),
-            in_stock=bool(spec.get("in_stock")), town=spec.get("town"), display_name=spec.get("display_name"),
+            in_stock=bool(spec.get("in_stock")), stock_status=spec.get("stock_status"), town=spec.get("town"), display_name=spec.get("display_name"),
         )
         try:
             img, meta = pr.render_post(prod, ideas, backdrops, memory, a.seed + n, a.brand, Path(a.backdrops))

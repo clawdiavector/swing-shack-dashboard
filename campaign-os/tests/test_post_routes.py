@@ -80,6 +80,17 @@ class PairingTests(unittest.TestCase):
         self.assertNotIn(61, self.ids(category="irons"))
         self.assertIn(61, self.ids(category="apparel", name="Psycho Bunny"))
 
+    def test_just_landed_needs_the_stock_list_to_say_new(self):
+        self.assertNotIn(1, self.ids())
+        self.assertIn(1, self.ids(stock_status="new"))
+
+    def test_back_in_stock_needs_the_stock_list_to_say_back(self):
+        self.assertNotIn(9, self.ids(stock_status="new"))
+        self.assertIn(9, self.ids(stock_status="back"))
+
+    def test_new_brand_line_is_never_automatic(self):
+        self.assertNotIn(7, self.ids(stock_status="new"))
+
     def test_number_lines_need_a_model_number(self):
         self.assertNotIn(60, self.ids(model_number=None))
         self.assertIn(60, self.ids(model_number="101U"))
@@ -186,6 +197,15 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(len(mem.items), 1)
         self.assertIn("in_stock", meta["confirm_before_posting"])
         self.assertEqual(json.loads((self.tmp / "mem.json").read_text())[0]["sku"], "T1001")
+
+    def test_a_too_dark_backdrop_is_swapped_for_a_lighter_one(self):
+        # only backdrop 04 is black; the others are fine, so the post must still render
+        Image.new("RGB", (800, 1000), (0, 0, 0)).save(self.tmp / "04.jpg")
+        p = product(category="bags", model_number=None)
+        mem = pr.RouteMemory()
+        for seed in range(6):
+            img, meta = pr.render_post(p, self.ideas, self.backdrops, mem, seed, "stick", self.tmp)
+            self.assertNotEqual(meta["backdrop_id"], 4)
 
     def test_a_crushed_dark_backdrop_is_refused(self):
         for b in self.backdrops:
