@@ -1,0 +1,97 @@
+{
+  "status": "DRAFT_FOR_REVIEW",
+  "draft_status": "WRITTEN",
+  "publishing": "NONE",
+  "live_site_changes": "NONE",
+  "operating_brand": "swing-shack",
+  "approved_brief_id": "seo-brief-trackman-numbers-explained",
+  "writer_mode": "NEW",
+  "source": "markdown draft docs/seo/blog-drafts/03-trackman-numbers-explained.md",
+  "seo_metadata": {
+    "target_keyword": "trackman golf",
+    "secondary_keywords": "trackman johannesburg, golf launch monitor, smash factor, attack angle",
+    "meta_title": "TrackMan Numbers Explained: What Smash Factor, Attack Angle and Path Mean",
+    "meta_description": "A plain guide to the numbers TrackMan gives you. What smash factor, attack angle, club path and face angle tell you, and what to do with them."
+  },
+  "human_facing_article_draft": "# TrackMan Numbers Explained: What Smash Factor, Attack Angle and Path Mean\n\nTrackMan gives you a lot of numbers. Most golfers only need five of them. Here is what each one means and what it tells you about your swing.\n\n## Club head speed\n\nHow fast the club head is moving at impact. It is the main driver of distance. Faster is not always better if the strike gets worse, which is why the next number matters.\n\n## Ball speed and smash factor\n\nBall speed is how fast the ball leaves the clubface. Smash factor is ball speed divided by club head speed.\n\nIt tells you how cleanly you struck the ball. Two golfers with the same club head speed can have very different ball speeds. The gap is strike quality.\n\n## Attack angle\n\nWhether the club is travelling up or down when it meets the ball.\n\nWith a driver, hitting slightly up usually helps launch and distance. With an iron, hitting down compresses the ball. Which is right depends on the club. See how [driver loft](/best-driver-loft-for-distance/) interacts with this.\n\n## Club path and face angle\n\nThese two numbers explain the shape of the shot.\n\n- **Club path** is the direction the club head is moving through impact.\n- **Face angle** is where the clubface is pointing at impact.\n\nFace angle mostly decides where the ball starts. The difference between face and path decides how much it curves. That is why a slice has a cause you can measure and then change.\n\n## Carry distance and dispersion\n\nCarry is how far the ball flies before it lands. Dispersion is how spread out your shots are.\n\nLook at the pattern across a set of shots, not at the best one. A golfer who knows where a typical shot ends can plan a round.\n\n## How to use the numbers\n\n1. **Pick one number.** Not five.\n2. **Make one change.** Then hit a set of balls.\n3. **Check whether that number moved.** If it did, repeat. If it did not, change something else.\n\nA coach shortens this. They read the numbers and tell you which one matters most for you.\n\n## Why this matters for clubs\n\nThe same numbers decide which clubs suit you. A fitting uses your swing speed, attack angle, path and face to match the head, shaft and loft. Read more on [club fitting](/club-fitting/) and why [indoor fittings work](/indoor-vs-outdoor-club-fitting/).\n\n## Questions people ask\n\n**Do I need to understand all of this before a session?**\nNo. The coach explains the numbers as you go.\n\n**Is TrackMan only for good players?**\nNo. The numbers are useful at every level.\n\n**Where can I use TrackMan in Johannesburg?**\nAt Swing Shack in Randburg. [Book a session](/bookings/).\n\n## See your own numbers\n\nReading about them helps. Seeing your own is better. [Book a session](/bookings/).\n",
+  "human_facing_article": {
+    "title": "TrackMan Numbers Explained: What Smash Factor, Attack Angle and Path Mean",
+    "body": "TrackMan gives you a lot of numbers. Most golfers only need five of them. Here is what each one means and what it tells you about your swing.\n\n## Club head speed\n\nHow fast the club head is moving at impact. It is the main driver of distance. Faster is not always better if the strike gets worse, which is why the next number matters.\n\n## Ball speed and smash factor\n\nBall speed is how fast the ball leaves the clubface. Smash factor is ball speed divided by club head speed.\n\nIt tells you how cleanly you struck the ball. Two golfers with the same club head speed can have very different ball speeds. The gap is strike quality.\n\n## Attack angle\n\nWhether the club is travelling up or down when it meets the ball.\n\nWith a driver, hitting slightly up usually helps launch and distance. With an iron, hitting down compresses the ball. Which is right depends on the club. See how [driver loft](/best-driver-loft-for-distance/) interacts with this.\n\n## Club path and face angle\n\nThese two numbers explain the shape of the shot.\n\n- **Club path** is the direction the club head is moving through impact.\n- **Face angle** is where the clubface is pointing at impact.\n\nFace angle mostly decides where the ball starts. The difference between face and path decides how much it curves. That is why a slice has a cause you can measure and then change.\n\n## Carry distance and dispersion\n\nCarry is how far the ball flies before it lands. Dispersion is how spread out your shots are.\n\nLook at the pattern across a set of shots, not at the best one. A golfer who knows where a typical shot ends can plan a round.\n\n## How to use the numbers\n\n1. **Pick one number.** Not five.\n2. **Make one change.** Then hit a set of balls.\n3. **Check whether that number moved.** If it did, repeat. If it did not, change something else.\n\nA coach shortens this. They read the numbers and tell you which one matters most for you.\n\n## Why this matters for clubs\n\nThe same numbers decide which clubs suit you. A fitting uses your swing speed, attack angle, path and face to match the head, shaft and loft. Read more on [club fitting](/club-fitting/) and why [indoor fittings work](/indoor-vs-outdoor-club-fitting/).\n\n## Questions people ask\n\n**Do I need to understand all of this before a session?**\nNo. The coach explains the numbers as you go.\n\n**Is TrackMan only for good players?**\nNo. The numbers are useful at every level.\n\n**Where can I use TrackMan in Johannesburg?**\nAt Swing Shack in Randburg. [Book a session](/bookings/).\n\n## See your own numbers\n\nReading about them helps. Seeing your own is better. [Book a session](/bookings/).\n",
+    "cta": "Book a session",
+    "cta_url": "https://swingshack.co.za/bookings/"
+  },
+  "internal_links_used": [
+    {
+      "anchor": "/club-fitting/",
+      "url": "https://swingshack.co.za/club-fitting/",
+      "why": "linked from the draft"
+    },
+    {
+      "anchor": "/bookings/",
+      "url": "https://swingshack.co.za/bookings/",
+      "why": "linked from the draft"
+    },
+    {
+      "anchor": "/indoor-vs-outdoor-club-fitting/",
+      "url": "https://swingshack.co.za/indoor-vs-outdoor-club-fitting/",
+      "why": "linked from the draft"
+    },
+    {
+      "anchor": "/best-driver-loft-for-distance/",
+      "url": "https://swingshack.co.za/best-driver-loft-for-distance/",
+      "why": "linked from the draft"
+    }
+  ],
+  "cta": {
+    "chosen": "Book a session",
+    "url": "https://swingshack.co.za/bookings/",
+    "rationale": "Every draft ends on the bookings page."
+  },
+  "fact_check": [
+    {
+      "claim": "Swing Shack is at Old Parktonian Sports Club, 1 Garden Road, Bordeaux, Randburg, Johannesburg",
+      "evidence_layer": "OFFICIAL BUSINESS",
+      "evidence_source": "swingshack.co.za footer and page schema, Google Maps listing; Christelle confirmed Old Parks and Old Parktonian are the same place and Randburg is in Johannesburg (2026-10-21)",
+      "evidence_type": "official-business",
+      "status": "VERIFIED"
+    },
+    {
+      "claim": "Open Monday to Saturday 07:00 to 21:00 and Sunday 09:00 to 18:00",
+      "evidence_layer": "OFFICIAL BUSINESS",
+      "evidence_source": "swingshack.co.za page schema; Google Maps agreed for one day. Not yet confirmed by Christelle",
+      "evidence_type": "official-business",
+      "status": "VERIFIED"
+    },
+    {
+      "claim": "Clubs can be hired on request; walk-ins are welcome but a bay cannot be guaranteed, so book online; parking is ample",
+      "evidence_layer": "OFFICIAL BUSINESS",
+      "evidence_source": "Christelle, chat 2026-10-21",
+      "evidence_type": "operator-statement",
+      "status": "VERIFIED"
+    },
+    {
+      "claim": "Sessions are 30 or 60 minutes",
+      "evidence_layer": "OFFICIAL BUSINESS",
+      "evidence_source": "data/brand-directory/swing-shack/voice/do-say-dont-say.md",
+      "evidence_type": "brand-file",
+      "status": "VERIFIED"
+    },
+    {
+      "claim": "Definitions of club head speed, smash factor, attack angle, club path and face angle",
+      "evidence_layer": "EDITORIAL",
+      "evidence_source": "General launch monitor definitions, not Swing Shack claims",
+      "evidence_type": "common-knowledge",
+      "status": "EDITORIAL / EXPLANATORY",
+      "action_taken": "kept; a coach should read once before publishing"
+    }
+  ],
+  "evidence_still_needed": [
+    "Definitions are general launch monitor definitions. A coach should read them once before this is approved. No target numbers are given on purpose."
+  ],
+  "review_flags": [
+    {
+      "flag": "COACH READ",
+      "detail": "Definitions are general launch monitor definitions. A coach should read them once before this is approved. No target numbers are given on purpose."
+    }
+  ]
+}
