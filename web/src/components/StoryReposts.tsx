@@ -235,7 +235,7 @@ export function StoryReposts({
           <p className="text-xs font-semibold tracking-wide text-tx3 uppercase">Posts worth sharing</p>
           <ul className="space-y-2">
             {scoutRows.map((c) => (
-              <li key={`${c.brand}-${c.url}`} className="flex items-start gap-3 text-sm">
+              <li key={`${c.brand}-${c.url}`} className="flex items-start gap-3 rounded-xl border border-bd bg-surface/40 p-3 text-sm">
                 {c.image ? (
                   <img
                     src={c.image}
@@ -263,8 +263,7 @@ export function StoryReposts({
                   ) : c.stock === 'brand-unlisted' ? (
                     <p className="text-xs font-semibold text-amber-400">We list nothing from this maker. Check before sharing.</p>
                   ) : null}
-                </div>
-                <div className="flex shrink-0 flex-col gap-1">
+                  <div className="flex flex-wrap gap-1.5 pt-2">
                   <a
                     href={c.url}
                     target="_blank"
@@ -294,6 +293,7 @@ export function StoryReposts({
                   >
                     <X className="h-3 w-3" /> Not for us
                   </button>
+                  </div>
                 </div>
               </li>
             ))}
