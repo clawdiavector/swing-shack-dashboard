@@ -12,10 +12,11 @@ internal_links:
   - /club-fitting/
   - /indoor-vs-outdoor-club-fitting/
 confirm_before_publishing:
-  - Street address and parking (not in the repo)
-  - Opening hours (not in the repo)
+  - Postcode: the website's search data says 2194, Google Maps says 2196
+  - Venue name: website search data says "Old Parks Sports Club", the footer and Google say Old Parktonian
+  - Parking
   - Whether walk-ins are welcome or booking is required
-  - Whether clubs can be hired
+  - Whether clubs can be hired (not stated on the website or Google)
   - Photo of the bay to use as the lead image (use a real one, never a render)
 ---
 
@@ -83,7 +84,7 @@ No. The data is useful at every handicap.
 30 or 60 minutes.
 
 **Where is Swing Shack?**
-[CONFIRM: full address, area and parking.] Swing Shack is in Randburg, Johannesburg.
+Swing Shack is at Old Parktonian Sports Club, 1 Garden Road, Bordeaux, Randburg, Johannesburg. We are open Monday to Saturday from 07:00 to 21:00 and on Sunday from 09:00 to 18:00. [CONFIRM: parking, and the hours once more, they come from the website's search data.]
 
 **How do I book?**
 Use the [bookings page](/bookings/).

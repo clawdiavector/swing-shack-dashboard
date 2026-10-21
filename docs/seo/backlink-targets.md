@@ -6,11 +6,22 @@ Status: first list, 2026-10-20. Nothing here has been contacted or submitted.
 
 **How to read this list.** I know these kinds of sites exist. I have not opened each one, so every row says what to verify first. Do the Tier 1 rows before anything else, they are free, fast and fully in your control.
 
+## Google Business Profile: what is there (checked 2026-10-21)
+
+The profile exists and is managed by the owner: 4.9 stars from 35 reviews, 25 photos, owner replies to reviews and an owner post. It shows "Indoor golf course", 1 Garden Rd, Bordeaux, Johannesburg, 066 542 1522, swingshack.co.za, open until 9 pm that day. Google does not show a public "verified" label, so verification itself is not proven from outside, but owner posts and replies need a claimed profile. Things to fix before building more links on it:
+
+- **The 23 Sep owner post says Swing Shack is "right here in Linden".** The venue is in Bordeaux. It also says "Free swing analysis on first visit", which is a claim nobody has signed off.
+- **Postcode:** Google says 2196, the website's search data says 2194.
+- **Venue name:** the website's search data says "Old Parks Sports Club", the footer and Google say Old Parktonian.
+- **Locality:** Google says Johannesburg, the website's search data says Randburg.
+
+A citation is only worth building if name, address and phone match everywhere, so settle these first.
+
 ## Tier 1: listings you control (do first)
 
 | Where | Why | Verify first |
 |---|---|---|
-| Google Business Profile | The main lever for "near me" and Randburg searches. Name, address, hours, categories, photos | Whether the profile exists and is verified. A GBP drafts doc is already in `docs/gbp-drafts-for-review-2026-10-15.md` |
+| Google Business Profile | The main lever for "near me" and Randburg searches. Name, address, hours, categories, photos | Exists and is managed (see above). Fix the Linden post and the address mismatches |
 | Bing Places | Feeds Bing and some AI answers | Whether a listing exists |
 | Apple Business Connect | Apple Maps | Whether a listing exists |
 | Facebook page, Instagram bio, LinkedIn page | Profile links back to swingshack.co.za | Each bio uses the full https://swingshack.co.za link |
@@ -51,6 +62,6 @@ Dealer or stockist pages are real backlinks. The site already has posts on all o
 
 ## What I need from you
 
-1. Is the Google Business Profile for Swing Shack verified and live? (It sets the order of everything else.)
+1. Which is right: postcode 2194 or 2196, Randburg or Johannesburg, Old Parks or Old Parktonian? (It sets the order of everything else.)
 2. Are there brand contacts for Takomo, Vice, Miura or Fujimoto, Avoda and ClubLab, or should I find the SA distributor for each?
 3. Is anyone at Swing Shack willing to be quoted or to share anonymised TrackMan data for a press story?
