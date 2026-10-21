@@ -240,34 +240,108 @@ def _rect_overlap(a, b) -> float:
     return max(0, x1 - x0) * max(0, y1 - y0) / area
 
 
-def _headline_zone(bg, lines, size, font_path, shear, pmask, wbox, avoid=(), base_y=None):
+def _edge_map(img: Image.Image) -> Image.Image:
+    """Where the set has hard edges (the plinth top, the horizon, the wall panel), thickened."""
+    e = img.convert("L").filter(ImageFilter.FIND_EDGES).point(lambda v: 255 if v > 34 else 0)
+    return e.filter(ImageFilter.MaxFilter(9))
+
+
+def _share_on(mask: Image.Image, rect) -> float:
+    return ImageStat.Stat(mask.crop(tuple(int(v) for v in rect))).mean[0] / 255.0
+
+
+def _headline_zone(bg, lines, size, font_path, shear, pmask, wbox, avoid=(), base_y=None, view="top", edges=None, obj=None):
+    """Search the whole canvas for the calmest, emptiest place for the headline.
+
+    Scored on: the product, the giant word and its gap, the logo, the caption, hard edges of the set
+    (so the text never straddles a plinth edge), the block or plinth itself, texture, and a preference
+    for the top or bottom bands, left aligned. Statistics are taken on quarter-size maps for speed.
+    """
     block_h = int(len(lines) * size * 1.1)
-    w = max(pr.text_layer(l, size, pr.WHITE, font_path, shear).width for l in lines)
-    options = {"top": 175, "upper": 330, "bottom": CH - 150 - block_h - 70}
-    if base_y is not None and base_y + 50 + block_h <= CH - 120:
-        options["below"] = int(base_y + 50)       # on the front of the plinth or the floor, under the product
+    w = max(pr.text_layer(l, size, pr.WHITE, font_path, shear).width for l in lines) + 10
+    K = 4
+    sm_bg = bg.convert("L").resize((CW // K, CH // K), Image.BILINEAR)
+    sm_p = pmask.resize((CW // K, CH // K), Image.BILINEAR)
+    sm_e = edges.resize((CW // K, CH // K), Image.BILINEAR) if edges is not None else None
+    xs = {"left": 100, "right": CW - 100 - w}
+    ys = list(range(170, CH - 135 - block_h, 30))
+    wbig = (wbox[0] - 40, wbox[1] - 40, wbox[2] + 40, wbox[3] + 40) if wbox else None
+    logo = (50, 40, 330, 150)
+    cap = (90, CH - 125, CW - 90, CH - 45)
     best = None
-    for name, y in options.items():
-        rect = (100, y, 100 + w + 10, y + block_h)
-        _, tex = _stats(bg, rect)
-        over_word = _rect_overlap(rect, (wbox[0] - 40, wbox[1] - 40, wbox[2] + 40, wbox[3] + 40)) if wbox else 0.0   # keep a 40px gap
-        over_other = max([_rect_overlap(rect, a) for a in avoid] or [0.0])
-        score = 14 * pr.rect_cover(pmask, rect) + 14 * over_word + 14 * over_other + tex / 30.0 + (0.15 if name == "upper" else 0)
-        if best is None or score < best[0]:
-            best = (score, name, y, rect, max(pr.rect_cover(pmask, rect), over_word, over_other))
+    for xn, x in xs.items():
+        for y in ys:
+            rect = (x, y, x + w, y + block_h)
+            q = tuple(int(v / K) for v in rect)
+            cov_p = _share_on(sm_p, q)
+            over_word = _rect_overlap(rect, wbig) if wbig else 0.0
+            over_other = max([_rect_overlap(rect, logo), _rect_overlap(rect, cap)] + [_rect_overlap(rect, a) for a in avoid])
+            edge = _share_on(sm_e, q) if sm_e is not None else 0.0
+            tex = ImageStat.Stat(sm_bg.crop(q)).stddev[0]
+            straddle = 0.0
+            if base_y is not None:
+                if rect[1] < base_y + 30 and rect[3] > base_y - 30:
+                    straddle += 3.0
+                elif view != "floor" and base_y < rect[1] < base_y + 280:
+                    straddle += 2.4
+            on_object = _rect_overlap(rect, obj) if obj else 0.0
+            band = 0.0 if y <= 330 else (0.1 if y >= CH - block_h - 260 else 0.7)
+            score = (14 * cov_p + 14 * over_word + 14 * over_other + 30 * edge + 12 * on_object + tex / 30.0 + straddle + band
+                     + (0.2 if xn == "right" else 0.0))
+            if best is None or score < best[0]:
+                best = (score, "%s@%d" % (xn, y), y, rect, max(cov_p, over_word, over_other))
     return best
 
 
-def _best_headline(bg, lines, size, font_path, shear, pmask, wbox, base_y):
-    """Try the full size, then smaller: a smaller headline in a calm zone beats a skipped post."""
+def _best_headline(bg, lines, size, font_path, shear, pmask, wbox, base_y, view="top", edges=None, obj=None):
+    """Prefer open space (never the block); else any clear zone; try smaller sizes before giving up."""
     last = None
-    for k in (1.0, 0.85, 0.72):
-        sz = max(52, int(size * k))
-        z = _headline_zone(bg, lines, sz, font_path, shear, pmask, wbox, base_y=base_y)
-        last = (sz,) + z
-        if z[4] <= qa.HEADLINE_OVERLAP_MAX:
-            return last
+    for use_obj in ((obj, None) if obj else (None,)):
+        for k in (1.0, 0.85, 0.72):
+            sz = max(52, int(size * k))
+            z = _headline_zone(bg, lines, sz, font_path, shear, pmask, wbox, base_y=base_y, view=view, edges=edges, obj=use_obj)
+            last = (sz,) + z
+            if z[4] <= qa.HEADLINE_OVERLAP_MAX:
+                return last
     return last
+
+
+def make_group(cuts: List[Image.Image], category: str, rng: random.Random) -> Image.Image:
+    """Arrange several real cut-outs as one range cluster, with a small shadow between them."""
+    n = len(cuts)
+    H = 700
+    items = []
+    for c in cuts:
+        r = H / c.height
+        items.append(c.resize((max(1, int(c.width * r)), H), Image.LANCZOS))
+    cw = max(i.width for i in items)
+    canvas = Image.new("RGBA", (int(cw * (n * 0.62 + 1.2)) + 200, int(H * 1.5)), (0, 0, 0, 0))
+    cx0 = canvas.width // 2
+    base_y = int(H * 1.2)
+    order = list(range(n))
+    for k, idx in enumerate(order):
+        im = items[idx]
+        t = k - (n - 1) / 2.0
+        if category == "grips":
+            ang = -t * 7
+            off = int(t * cw * 0.55)
+            pivot = (cx0 + off, base_y)
+        else:                                   # gloves and anything flat: a loose overlapping fan
+            ang = -t * 13 + rng.uniform(-3, 3)
+            off = int(t * cw * 0.5)
+            pivot = (cx0 + off, base_y - int(abs(t) * 18))
+        rot = im.rotate(ang, expand=True, resample=Image.BICUBIC)
+        pos = (pivot[0] - rot.width // 2, pivot[1] - rot.height)
+        sh = Image.new("L", canvas.size, 0)
+        sh.paste(rot.split()[3], (pos[0] + 12, pos[1] + 16))
+        sh = sh.filter(ImageFilter.GaussianBlur(10)).point(lambda v: int(v * 0.32))
+        lay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+        lay.putalpha(sh)
+        canvas.alpha_composite(lay)
+        tmp = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+        tmp.paste(rot, pos, rot)
+        canvas.alpha_composite(tmp)
+    return canvas.crop(canvas.getbbox())
 
 
 def choose_word(product: pr.Product, idea: dict, rng: random.Random) -> Optional[str]:
@@ -315,12 +389,20 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
     wcol = NAVY_INK if _stats(base_bg, wrect)[0] >= 135 else WHITE_INK
 
     height, rot, lift = CATEGORY_LAYOUT.get(product.category, CATEGORY_LAYOUT["other"])
+    if product.group:
+        rot = 0                                   # a range is arranged upright, never rotated again
+        height = {"grips": 600, "gloves": 460}.get(product.category, height)
     if lift and lift < LIFT_MIN:
         lift = LIFT_MIN
     h = height
     c_x = set_meta["cx"]
     b_y = set_meta["base"] * CH
-    cut = _soften(_defringe(product.cutout))
+    src_cut = make_group(product.group, product.category, rng) if product.group else product.cutout
+    cut = _soften(_defringe(src_cut))
+    edges = _edge_map(base_bg)
+    view = set_meta.get("view", "top")
+    o = set_meta.get("object")
+    obj = (o[0] * CW, o[1] * CH, o[2] * CW, o[3] * CH) if o else None   # where the plinth or block is
     lines = pr.split_headline(idea["line"])
     hsize = _fit_headline(lines, CW - 220, disp, shear)
     placed = None
@@ -337,7 +419,7 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
         visible = 1.0 - pr.covered(wm, pm) if wm is not None else 1.0
         letter_min = min([1.0 - pr.covered(wm, pm, (x0, wbox[1], x1, wbox[3])) for x0, x1 in cells] or [1.0])
         inside = pr._share(pr._on(pm)) * CW * CH / max(pr._share(pr._on(im.split()[3])) * im.width * im.height, 1.0)
-        hz = _best_headline(base_bg, lines, hsize, disp, shear, pm, wbox, b_y)
+        hz = _best_headline(base_bg, lines, hsize, disp, shear, pm, wbox, b_y, view, edges, obj)
         if visible >= qa.WORD_VISIBLE_MIN and letter_min >= qa.LETTER_VISIBLE_MIN and inside >= qa.INSIDE_MIN and hz[5] <= qa.HEADLINE_OVERLAP_MAX:
             placed = (im, px, py, visible, inside, letter_min)
             break
@@ -389,7 +471,8 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
     text_items = 1 if word else 0
 
     # headline
-    size, score, zone, zy, zrect, overlap = _best_headline(bg, lines, hsize, disp, shear, pm, wbox, b_y)
+    size, score, zone, zy, zrect, overlap = _best_headline(bg, lines, hsize, disp, shear, pm, wbox, b_y, view, edges, obj)
+    zx = int(zrect[0])
     if overlap > qa.HEADLINE_OVERLAP_MAX:
         raise pr.LayoutFailed("no calm zone for the headline (overlap %.2f)" % overlap)
     hcol = ink_for(bg, zrect)
@@ -400,8 +483,8 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
         lay = pr.text_layer(ln, size, hcol, disp, shear)
         sh = Image.new("RGBA", lay.size, (0, 0, 0, 0))
         sh.putalpha(lay.split()[3].point(lambda v: int(v * 0.35)))
-        pr.put(bg, sh.filter(ImageFilter.GaussianBlur(4)), (112, yy + 4))
-        pr.put(bg, lay, (110, yy))
+        pr.put(bg, sh.filter(ImageFilter.GaussianBlur(4)), (zx + 2, yy + 4))
+        pr.put(bg, lay, (zx, yy))
         yy += int(size * 1.1)
     text_items += 1
     contrast = abs(_stats(bg, zrect)[0] - (255 if hcol == WHITE_INK else 14))
@@ -423,7 +506,7 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
     badge_text = "NEW\nIN" if product.stock_status == "new" else None
     badge_box = None
     if badge_text:
-        spots = [(850, 430), (230, 520), (860, 800)]
+        spots = [(x, y) for y in (330, 450, 570, 690, 810, 930) for x in (860, 230, 540)]   # first free one wins
         for s in spots:
             box = (s[0] - 100, s[1] - 100, s[0] + 100, s[1] + 100)
             if (pr.rect_cover(pm, box) < 0.02 and (wbox is None or _rect_overlap(box, wbox) < 0.3)
@@ -442,7 +525,7 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
     meta = {
         "sku": product.sku, "route": "studio_set", "backdrop_id": set_meta["id"], "set_file": set_meta["file"], "seed": seed,
         "idea_id": idea["id"], "idea_line": idea["line"], "caption": caption, "word": word, "word_style": style if word else None,
-        "badge": (badge_text or "").replace("\n", " "), "logo_corner": corner, "standin_font": standin,
+        "badge": (badge_text or "").replace("\n", " "), "logo_corner": corner, "group": len(product.group) if product.group else 0, "group_is_copies": product.group_is_copies, "standin_font": standin,
         "category": product.category, "checks": checks,
         "confirm_before_posting": sorted(set(idea.get("requires") or []) | ({"in_stock"} if product.in_stock else set())),
     }

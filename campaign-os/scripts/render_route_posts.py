@@ -62,6 +62,11 @@ def main():
             category=spec.get("category", "other"), model_number=spec.get("model_number"),
             in_stock=bool(spec.get("in_stock")), stock_status=spec.get("stock_status"), town=spec.get("town"), display_name=spec.get("display_name"),
         )
+        if spec.get("group"):                     # a range: several real photos of the same family
+            prod.group = [load_cutout(Path(a.cutouts), g) for g in spec["group"]]
+        elif spec.get("group_copies"):            # one photo repeated: flagged, a person should confirm
+            prod.group = [prod.cutout] * int(spec["group_copies"])
+            prod.group_is_copies = True
         try:
             img, meta = pr.render_post(prod, ideas, backdrops, memory, a.seed + n, a.brand, Path(a.backdrops),
                                       scenes_dir=Path(a.scenes) if a.scenes else None)

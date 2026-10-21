@@ -76,6 +76,8 @@ class Product:
     stock_status: Optional[str] = None   # from the weekly stock list: new, back, low, heavy, still, stuck
     town: Optional[str] = None
     display_name: Optional[str] = None
+    group: Optional[List[Image.Image]] = None   # several real cut-outs shown together as a range (gloves, grips)
+    group_is_copies: bool = False                # the group repeats one photo (flagged for a person to review)
 
     @property
     def shape(self) -> str:
@@ -150,7 +152,7 @@ def eligible_ideas(ideas: List[dict], product: Product, facts: Optional[set] = N
     for i in ideas:
         if i.get("status") != "yes" or i.get("pool") != "product":
             continue
-        if i.get("multi"):
+        if i.get("multi") and not (product.group and len(product.group) >= 3):
             continue  # a lineup or range idea needs several products in one post
         if i.get("brands") and product.name not in i["brands"]:
             continue  # the line names a brand

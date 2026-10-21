@@ -20,7 +20,13 @@
         "gloves",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.1,
+        0.6,
+        0.9,
+        0.8
+      ]
     },
     {
       "id": 102,
@@ -39,7 +45,13 @@
         "balls",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.08,
+        0.7,
+        0.92,
+        0.9
+      ]
     },
     {
       "id": 103,
@@ -55,7 +67,13 @@
         "putters",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.02,
+        0.55,
+        0.98,
+        0.92
+      ]
     },
     {
       "id": 104,
@@ -73,7 +91,13 @@
         "gloves",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.02,
+        0.36,
+        0.98,
+        0.98
+      ]
     },
     {
       "id": 105,
@@ -119,7 +143,13 @@
         "putters",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.08,
+        0.54,
+        0.96,
+        0.74
+      ]
     },
     {
       "id": 108,
@@ -135,7 +165,13 @@
         "gloves",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.1,
+        0.66,
+        0.9,
+        0.76
+      ]
     },
     {
       "id": 109,
@@ -151,7 +187,13 @@
         "gloves",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.1,
+        0.18,
+        0.92,
+        0.88
+      ]
     },
     {
       "id": 110,
@@ -183,7 +225,13 @@
         "gloves",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.0,
+        0.46,
+        0.98,
+        0.82
+      ]
     },
     {
       "id": 112,
@@ -201,7 +249,13 @@
         "gloves",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.18,
+        0.69,
+        0.82,
+        0.86
+      ]
     },
     {
       "id": 113,
@@ -245,7 +299,13 @@
         "gloves",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.34,
+        0.32,
+        0.66,
+        1.0
+      ]
     },
     {
       "id": 116,
@@ -278,7 +338,13 @@
         "gloves",
         "other"
       ],
-      "view": "top"
+      "view": "top",
+      "object": [
+        0.08,
+        0.54,
+        0.92,
+        0.72
+      ]
     },
     {
       "id": 118,
@@ -298,6 +364,12 @@
         "drivers",
         "gloves",
         "grips"
+      ],
+      "object": [
+        0.14,
+        0.39,
+        0.86,
+        0.84
       ]
     },
     {
@@ -318,6 +390,12 @@
         "drivers",
         "gloves",
         "grips"
+      ],
+      "object": [
+        0.04,
+        0.54,
+        0.96,
+        0.74
       ]
     },
     {
@@ -336,6 +414,12 @@
         "irons",
         "wedges",
         "gloves"
+      ],
+      "object": [
+        0.0,
+        0.46,
+        1.0,
+        0.72
       ]
     },
     {
@@ -352,6 +436,12 @@
         "other",
         "gloves",
         "putters"
+      ],
+      "object": [
+        0.12,
+        0.42,
+        0.88,
+        0.84
       ]
     },
     {
@@ -371,6 +461,12 @@
         "wedges",
         "drivers",
         "gloves"
+      ],
+      "object": [
+        0.06,
+        0.56,
+        0.94,
+        0.66
       ]
     },
     {

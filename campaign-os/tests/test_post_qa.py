@@ -98,6 +98,37 @@ class StudioRulesTests(unittest.TestCase):
                 continue
             self.assertLessEqual(meta["checks"]["headline_overlap"], qa.HEADLINE_OVERLAP_MAX)
 
+    def test_headline_stays_off_the_block_in_a_set_that_marks_one(self):
+        sm = next(x for x in ps.load_sets() if x["id"] == 119)   # concrete slab, object area marked
+        o = sm["object"]
+        W, H = pr.CANVAS
+        for seed in (1, 2, 3):
+            try:
+                _, meta = ps.render_studio(product(), self.ideas[6], sm, self.tmp, "stick", seed)
+            except pr.LayoutFailed:
+                continue
+            self.assertNotIn("@%d" % int(o[1] * H), meta["checks"]["headline_zone"])
+
+    def test_a_range_post_may_use_a_lineup_idea_but_a_single_product_may_not(self):
+        lineup = next(i for i in self.ideas.values() if i["id"] == 18)   # "Lineup."
+        single = product(category="grips", name="Ripit")
+        self.assertNotIn(18, {i["id"] for i in pr.eligible_ideas(list(self.ideas.values()), single)})
+        grouped = product(category="grips", name="Ripit", group=[fake_cutout()] * 4)
+        self.assertIn(18, {i["id"] for i in pr.eligible_ideas(list(self.ideas.values()), grouped)})
+
+    def test_a_group_of_gloves_renders_as_one_range_and_is_flagged_when_it_is_copies(self):
+        sm = next(x for x in ps.load_sets() if x["id"] == 102)
+        g = product(category="gloves", name="Takomo", group=[fake_cutout(400, 600)] * 3, group_is_copies=True, model_number=None)
+        for seed in (1, 2, 3, 4):
+            try:
+                _, meta = ps.render_studio(g, self.ideas[6], sm, self.tmp, "stick", seed)
+            except pr.LayoutFailed:
+                continue
+            self.assertEqual(meta["group"], 3)
+            self.assertTrue(meta["group_is_copies"])
+            return
+        self.fail("no seed rendered the group")
+
     def test_a_word_the_headline_already_says_is_not_used(self):
         idea = {"id": 1, "line": "Take a look at Callaway.", "requires": []}
         rng = random.Random(1)
