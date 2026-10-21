@@ -376,3 +376,20 @@ def _update_fix_queue(io, brand, seo_findings, geo_findings) -> None:
         io.write(FIX_QUEUE_OUTPUT, queue)
     except Exception:  # noqa: BLE001 — the queue is a convenience, the audit is the job
         return
+    _auto_publish(io, brand, queue)
+
+
+def _auto_publish(io, brand, queue) -> None:
+    """Publish eligible meta descriptions when SEO_AUTOPUBLISH allows it.
+
+    Off by default, in which case this makes no WordPress calls. Never fails
+    the audit.
+    """
+    from ... import seo_meta_publish  # noqa: PLC0415
+
+    if seo_meta_publish.mode() == seo_meta_publish.MODE_OFF:
+        return
+    try:
+        seo_meta_publish.run_auto(io, brand, queue, seo_meta_publish.default_wp(brand), utc_now_iso())
+    except Exception:  # noqa: BLE001
+        return

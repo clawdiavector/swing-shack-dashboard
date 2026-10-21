@@ -21,7 +21,7 @@ import re
 import tempfile
 import urllib.parse
 
-from . import ads_brain
+from . import ads_brain, ads_naming
 
 SCHEMA = "https://campaign-os/ads-tracking/v1"
 UTM_KEYS = ("utm_source", "utm_medium", "utm_campaign", "utm_content")
@@ -69,7 +69,7 @@ def _host(url) -> str | None:
     return urllib.parse.urlparse(url if "://" in url else "https://" + url).hostname
 
 
-def audit_ad(ad: dict, tags: dict, ga: dict) -> dict:
+def audit_ad(ad: dict, tags: dict, ga: dict, flexible: set | None = None) -> dict:
     """One ad's tracking picture. ``tags`` is {ad_id: url_tags}; ``ga`` is {ad_id: {...sessions}}."""
     dest = ad.get("destination") or {}
     kind = _kind(dest)
@@ -100,6 +100,11 @@ def audit_ad(ad: dict, tags: dict, ga: dict) -> dict:
         "campaign": (ad.get("campaign") or {}).get("name"),
         "destination": kind, "host": _host(dest.get("url")),
         "utm": utm, "issues": sorted(set(issues)), "notes": notes,
+        "ids": {"campaign": (ad.get("campaign") or {}).get("id"), "adset": (ad.get("adset") or {}).get("id")},
+        "names": {"ad": ad.get("ad_name"), "adset": (ad.get("adset") or {}).get("name"),
+                  "campaign": (ad.get("campaign") or {}).get("name")},
+        "current_tags": tags.get(ad["ad_id"]) or "",
+        "tags_fixable": ad["ad_id"] not in (flexible or set()),
         "ga_sessions": (seen or {}).get("sessions", 0), "ga_engaged": (seen or {}).get("engaged", 0),
         "spend": (ad.get("current") or {}).get("spend", 0),
         "link_clicks": (ad.get("current") or {}).get("link_clicks", 0),
@@ -143,14 +148,26 @@ def summarise(ads: list[dict], totals: dict) -> dict:
 
 # ── reads (read-only) ───────────────────────────────────────────────────────
 
-def fetch_url_tags(account_id: str, token: str, *, api_version: str | None = None, get=None) -> tuple[dict, str | None]:
+def fetch_tag_info(account_id: str, token: str, *, api_version: str | None = None, get=None):
+    """Each ad's URL parameters, and which ads use flexible (dynamic) creative. Returns (tags, flexible_ids, error).
+
+    Meta's flexible creative cannot be copied with new parameters from here, so those ads are marked: nearly every ad
+    in both accounts is of this kind (found 2026-10-21).
+    """
     ver = api_version or ads_brain.DEFAULT_API_VERSION
     if get is None:
         def get(path, params):
             return ads_brain._graph_get(path, token, params)
     rows, err = ads_brain._get_all(get, f"/{ver}/{account_id}/ads",
-                                   {"fields": "id,creative{url_tags}", "limit": 200})
-    return {r["id"]: (r.get("creative") or {}).get("url_tags") for r in rows or []}, err
+                                   {"fields": "id,creative{url_tags,asset_feed_spec}", "limit": 200})
+    tags = {r["id"]: (r.get("creative") or {}).get("url_tags") for r in rows or []}
+    flexible = {r["id"] for r in rows or [] if (r.get("creative") or {}).get("asset_feed_spec")}
+    return tags, flexible, err
+
+
+def fetch_url_tags(account_id: str, token: str, *, api_version: str | None = None, get=None) -> tuple[dict, str | None]:
+    tags, _flexible, err = fetch_tag_info(account_id, token, api_version=api_version, get=get)
+    return tags, err
 
 
 def ga4_rows(brand_id: str, days: int = 28) -> tuple[list[list], str | None]:
@@ -180,11 +197,20 @@ def ga4_rows(brand_id: str, days: int = 28) -> tuple[list[list], str | None]:
 
 
 def build(brand_id: str, ads: list[dict], tags: dict, ga_rows: list[list], *, today: _dt.date,
-          errors: list | None = None) -> dict:
+          errors: list | None = None, flexible: set | None = None) -> dict:
     """The whole tracking picture for a brand. Pure."""
-    running = [a for a in ads if a.get("effective_status") in (None, "ACTIVE") and
+    # Every ad that delivered in the window, paused or not: the point is to fix links before something is turned back on.
+    running = [a for a in ads if a.get("effective_status") not in ("DELETED", "ARCHIVED") and
                ((a.get("current") or {}).get("spend") or 0) > 0]
     by_ad, totals = join_ga(ga_rows, {a["ad_id"] for a in ads})
-    audited = sorted((audit_ad(a, tags, by_ad) for a in running), key=lambda r: -(r["spend"] or 0))
+    audited = sorted((audit_ad(a, tags, by_ad, flexible) for a in running), key=lambda r: -(r["spend"] or 0))
+    # The standard name and tags for each; two ads of the same subject and format in one campaign get v1, v2.
+    by_id = {a["ad_id"]: a for a in running}
+    seen: dict = {}
+    for row in audited:
+        ad = by_id[row["ad_id"]]
+        key = (row["names"]["campaign"], ads_naming.theme(ad), (ad.get("creative") or {}).get("media_type"))
+        seen[key] = seen.get(key, 0) + 1
+        row["proposal"] = ads_naming.proposed(ad, brand_id, today, version=seen[key])
     return {"schema": SCHEMA, "brand_id": brand_id, "date": today.isoformat(), "ga_days": 28,
             "summary": summarise(audited, totals), "ads": audited, "errors": list(errors or [])[:3]}

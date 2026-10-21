@@ -1,0 +1,1391 @@
+{
+ "schema": "https://campaign-os/brand-directory/post-ideas/v1",
+ "brand_id": "stick",
+ "updated": "2026-10-20",
+ "source": "Christelle ticked the Stick 100-ideas sheet on 2026-10-20 (Yes / Maybe / No). Only status yes is eligible. Lines are ideas, not verified claims: 'requires' lists the facts that must be true before a line can post.",
+ "voice_notes": [
+  "Warm and confident; never tease the golfer's own game.",
+  "Real feed lines are preferred over invented ones."
+ ],
+ "ideas": [
+  {
+   "id": 1,
+   "category": "New in",
+   "line": "Just landed. Already tempting.",
+   "moves": "Giant crop; spotlight on dark",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock",
+    "status_new"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 2,
+   "category": "New in",
+   "line": "New in. Try not to leave with something. No promises.",
+   "moves": "Type behind product",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "maybe"
+  },
+  {
+   "id": 3,
+   "category": "New in",
+   "line": "Box still warm. Okay not really. But it just arrived.",
+   "moves": "Product on real turf",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 4,
+   "category": "New in",
+   "line": "Fresh out of the box. Slightly judging your current set.",
+   "moves": "Hero + long shadow",
+   "needs": "Stock check; keep kind",
+   "requires": [
+    "in_stock",
+    "tone_check"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 5,
+   "category": "New in",
+   "line": "First in Paarl.",
+   "moves": "Giant word",
+   "needs": "Only if true and checked",
+   "requires": [
+    "editorial_check"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 6,
+   "category": "New in",
+   "line": "Take a look. Take it home.",
+   "moves": "Spotlight",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 7,
+   "category": "New in",
+   "line": "New brand on the wall.",
+   "moves": "Logo as hero + product",
+   "needs": "Brand is stocked",
+   "requires": [
+    "in_stock",
+    "new_brand"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 8,
+   "category": "New in",
+   "line": "The one everybody is asking about.",
+   "moves": "Close crop",
+   "needs": "Only if enquiries are real",
+   "requires": [
+    "editorial_check"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 9,
+   "category": "New in",
+   "line": "Back in stock.",
+   "moves": "Number or word hero",
+   "needs": "Stock check from list",
+   "requires": [
+    "in_stock",
+    "status_back"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 10,
+   "category": "New in",
+   "line": "Limited run. Counting them.",
+   "moves": "Number hero",
+   "needs": "Real count from stock list",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "maybe"
+  },
+  {
+   "id": 11,
+   "category": "Range",
+   "line": "One range. Every colour. Pick yours.",
+   "moves": "Row of products",
+   "needs": "Range stocked",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "maybe",
+   "multi": true
+  },
+  {
+   "id": 12,
+   "category": "Range",
+   "line": "Grips for every hand.",
+   "moves": "Repeated row",
+   "needs": "Range stocked",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "grips"
+   ],
+   "pool": "product",
+   "status": "yes",
+   "multi": true
+  },
+  {
+   "id": 13,
+   "category": "Range",
+   "line": "Balls are not all the same. Come see why.",
+   "moves": "Row of boxes",
+   "needs": "Ball models stocked",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "balls"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 14,
+   "category": "Range",
+   "line": "Same club. Different shaft. Different story.",
+   "moves": "Split crop",
+   "needs": "Shaft options real",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [
+    "irons"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 15,
+   "category": "Range",
+   "line": "The whole wall in one frame.",
+   "moves": "Wide shot",
+   "needs": "Real in-store photo",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 16,
+   "category": "Range",
+   "line": "Colour by colour.",
+   "moves": "Colour wash tiles",
+   "needs": "Range stocked",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes",
+   "multi": true
+  },
+  {
+   "id": 17,
+   "category": "Range",
+   "line": "Pick a side.",
+   "moves": "Two products face to face",
+   "needs": "Both stocked",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes",
+   "multi": true
+  },
+  {
+   "id": 18,
+   "category": "Range",
+   "line": "Lineup.",
+   "moves": "Tilted row",
+   "needs": "Range stocked",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes",
+   "multi": true
+  },
+  {
+   "id": 19,
+   "category": "Range",
+   "line": "Choose your weapon. Politely.",
+   "moves": "Scale contrast",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "maybe",
+   "multi": true
+  },
+  {
+   "id": 20,
+   "category": "Range",
+   "line": "All the putters. One that fits.",
+   "moves": "Row of putters",
+   "needs": "Stocked putters",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "putters"
+   ],
+   "pool": "product",
+   "status": "no",
+   "multi": true
+  },
+  {
+   "id": 21,
+   "category": "Fitting",
+   "line": "Fit first. Buy second.",
+   "moves": "Turf photo + type",
+   "needs": "Already in bible",
+   "requires": [],
+   "product_types": [],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 22,
+   "category": "Fitting",
+   "line": "Your clubs were not built for you. Ask us how that changes.",
+   "moves": "Giant type",
+   "needs": "Claim stays soft",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 23,
+   "category": "Fitting",
+   "line": "Measure twice. Swing once.",
+   "moves": "Ruler / tape detail",
+   "needs": "Real photo of fitting",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "maybe"
+  },
+  {
+   "id": 24,
+   "category": "Fitting",
+   "line": "A fitting is a conversation. Bring your questions.",
+   "moves": "Hands in frame",
+   "needs": "Real photo",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 25,
+   "category": "Fitting",
+   "line": "Length. Lie. Loft. Three small numbers.",
+   "moves": "Number hero",
+   "needs": "Facts about fitting are correct",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 26,
+   "category": "Fitting",
+   "line": "See what your numbers say.",
+   "moves": "TrackMan screen real data",
+   "needs": "Real screen only",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 27,
+   "category": "Fitting",
+   "line": "One change. Everything feels different.",
+   "moves": "Before / after crop",
+   "needs": "Only with a real case",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 28,
+   "category": "Fitting",
+   "line": "Book a fitting. Bring your current set.",
+   "moves": "Photo + CTA",
+   "needs": "Offer status unknown",
+   "requires": [
+    "operations_fact"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 29,
+   "category": "Fitting",
+   "line": "Get fitted. Then argue with the data.",
+   "moves": "Dry humour",
+   "needs": "Soft claim only",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "maybe"
+  },
+  {
+   "id": 30,
+   "category": "Fitting",
+   "line": "The shaft is the engine.",
+   "moves": "Close crop",
+   "needs": "Technical fact checked",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [
+    "irons"
+   ],
+   "pool": "other",
+   "status": "maybe"
+  },
+  {
+   "id": 31,
+   "category": "Cheeky",
+   "line": "Try not to leave with something. No promises.",
+   "moves": "Type only",
+   "needs": "Already in feed voice",
+   "requires": [],
+   "product_types": [],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 32,
+   "category": "Cheeky",
+   "line": "No one hovering like a security guard at a jewellery counter.",
+   "moves": "Type + shop photo",
+   "needs": "Already in feed voice",
+   "requires": [],
+   "product_types": [],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 33,
+   "category": "Cheeky",
+   "line": "Style with a pulse.",
+   "moves": "Apparel + type",
+   "needs": "Already in feed voice",
+   "requires": [],
+   "product_types": [
+    "apparel"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 34,
+   "category": "Cheeky",
+   "line": "Cute logo. Dangerous charm.",
+   "moves": "Logo closeup",
+   "needs": "Already in feed voice",
+   "requires": [],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes",
+   "brands": [
+    "Psycho Bunny"
+   ]
+  },
+  {
+   "id": 35,
+   "category": "Cheeky",
+   "line": "Your putter has heard all your excuses.",
+   "moves": "Putter closeup",
+   "needs": "Keep warm not mean",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [
+    "putters"
+   ],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 36,
+   "category": "Cheeky",
+   "line": "Yes we have seen your swing. It is fine. Mostly.",
+   "moves": "Dry joke",
+   "needs": "Only if kind",
+   "requires": [
+    "editorial_check"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 37,
+   "category": "Cheeky",
+   "line": "The ball went where? Classic.",
+   "moves": "Ball closeup",
+   "needs": "Keep warm",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [
+    "balls"
+   ],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 38,
+   "category": "Cheeky",
+   "line": "Your grips called. They want a refresh.",
+   "moves": "Grip row",
+   "needs": "Regrip service real",
+   "requires": [
+    "service_fact"
+   ],
+   "product_types": [
+    "grips"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 39,
+   "category": "Cheeky",
+   "line": "It is not obsessive if it is gear.",
+   "moves": "Type",
+   "needs": "Soft humour",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 40,
+   "category": "Cheeky",
+   "line": "Window shopping is free.",
+   "moves": "Shop photo",
+   "needs": "Shop photo needed",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "maybe"
+  },
+  {
+   "id": 41,
+   "category": "Place",
+   "line": "Paarl. Come in.",
+   "moves": "Real shop photo",
+   "needs": "Opening hours UNKNOWN",
+   "requires": [
+    "operations_fact"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 42,
+   "category": "Place",
+   "line": "Where gear meets a proper fitting.",
+   "moves": "Shop photo",
+   "needs": "Real photo",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 43,
+   "category": "Place",
+   "line": "Behind the counter.",
+   "moves": "Staff hands",
+   "needs": "Staff consent",
+   "requires": [
+    "operations_fact"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 44,
+   "category": "Place",
+   "line": "Built at Stick.",
+   "moves": "Workshop detail",
+   "needs": "Workshop photo",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 45,
+   "category": "Place",
+   "line": "The bay is open.",
+   "moves": "Real bay photo",
+   "needs": "Hours UNKNOWN",
+   "requires": [
+    "operations_fact"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 46,
+   "category": "Place",
+   "line": "Walk-ins welcome.",
+   "moves": "Door shot",
+   "needs": "Policy checked",
+   "requires": [
+    "operations_fact"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 47,
+   "category": "Place",
+   "line": "Sunday in Paarl.",
+   "moves": "Mood photo",
+   "needs": "Real photo",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 48,
+   "category": "Place",
+   "line": "Our corner of the shop.",
+   "moves": "Shop corner",
+   "needs": "Real shop photo",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "maybe"
+  },
+  {
+   "id": 49,
+   "category": "Place",
+   "line": "Better begins here.",
+   "moves": "Logo hero",
+   "needs": "Already in feed",
+   "requires": [],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 50,
+   "category": "Place",
+   "line": "Find us.",
+   "moves": "Map-style graphic",
+   "needs": "Address confirmed",
+   "requires": [
+    "operations_fact"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 51,
+   "category": "Spec",
+   "line": "4 to PW.",
+   "moves": "Number hero",
+   "needs": "Spec from stock list",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "maybe"
+  },
+  {
+   "id": 52,
+   "category": "Spec",
+   "line": "One shaft. Seven irons.",
+   "moves": "Row crop",
+   "needs": "Spec checked",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [
+    "irons"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 53,
+   "category": "Spec",
+   "line": "Loft 46. Lie 63.",
+   "moves": "Number hero",
+   "needs": "Real spec only",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 54,
+   "category": "Spec",
+   "line": "Half an inch changes everything.",
+   "moves": "Ruler motif",
+   "needs": "Technical claim checked",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 55,
+   "category": "Spec",
+   "line": "Stiff or regular. Choose wisely.",
+   "moves": "Split type",
+   "needs": "Options real",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 56,
+   "category": "Spec",
+   "line": "12 balls. One decision.",
+   "moves": "Box hero",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "balls"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 57,
+   "category": "Spec",
+   "line": "Right or left hand.",
+   "moves": "Mirror crop",
+   "needs": "Both stocked",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "irons",
+    "wedges",
+    "putters",
+    "drivers"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 58,
+   "category": "Spec",
+   "line": "Size matters. Grip size matters more.",
+   "moves": "Grip crop",
+   "needs": "Grip sizes real",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [
+    "grips"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 59,
+   "category": "Spec",
+   "line": "Weight in grams.",
+   "moves": "Number hero",
+   "needs": "Real weight",
+   "requires": [
+    "spec_fact"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 60,
+   "category": "Spec",
+   "line": "Check the numbers. Then check them again.",
+   "moves": "Type",
+   "needs": "Soft",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes",
+   "needs_number": true
+  },
+  {
+   "id": 61,
+   "category": "Style",
+   "line": "Style that belongs.",
+   "moves": "Apparel hero",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "apparel"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 62,
+   "category": "Style",
+   "line": "Dressed for the back nine.",
+   "moves": "Apparel on hanger",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "apparel"
+   ],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 63,
+   "category": "Style",
+   "line": "Fits better than your handicap. Almost.",
+   "moves": "Apparel",
+   "needs": "Keep kind",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [
+    "apparel"
+   ],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 64,
+   "category": "Style",
+   "line": "Polo season.",
+   "moves": "Apparel row",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "apparel"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 65,
+   "category": "Style",
+   "line": "Wear it on and off the course.",
+   "moves": "Apparel",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "apparel"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 66,
+   "category": "Style",
+   "line": "Psycho Bunny. Obviously.",
+   "moves": "Logo detail",
+   "needs": "Stocked brand",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes",
+   "brands": [
+    "Psycho Bunny"
+   ]
+  },
+  {
+   "id": 67,
+   "category": "Style",
+   "line": "A little attitude.",
+   "moves": "Closeup of detail",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "apparel"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 68,
+   "category": "Style",
+   "line": "One more layer.",
+   "moves": "Apparel",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "apparel"
+   ],
+   "pool": "product",
+   "status": "maybe"
+  },
+  {
+   "id": 69,
+   "category": "Style",
+   "line": "Swim trunks for the 19th hole.",
+   "moves": "Apparel",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "apparel"
+   ],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 70,
+   "category": "Style",
+   "line": "Looks sharp. Plays sharp.",
+   "moves": "Apparel + club",
+   "needs": "Soft claim",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [
+    "apparel"
+   ],
+   "pool": "product",
+   "status": "maybe"
+  },
+  {
+   "id": 71,
+   "category": "Gifts",
+   "line": "The easy gift.",
+   "moves": "Gift card or gloves",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "gloves"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 72,
+   "category": "Gifts",
+   "line": "For the golfer who has everything. Except this.",
+   "moves": "Product hero",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 73,
+   "category": "Gifts",
+   "line": "Tee up a present.",
+   "moves": "Small items",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 74,
+   "category": "Gifts",
+   "line": "Gift guide: under a set price.",
+   "moves": "Number hero",
+   "needs": "Prices checked",
+   "requires": [
+    "operations_fact"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 75,
+   "category": "Gifts",
+   "line": "A fitting makes a thoughtful gift.",
+   "moves": "Photo",
+   "needs": "Offer status unknown",
+   "requires": [
+    "operations_fact"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 76,
+   "category": "Gifts",
+   "line": "Christmas is coming. So are the new bags.",
+   "moves": "Bags",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "bags"
+   ],
+   "pool": "product",
+   "status": "maybe"
+  },
+  {
+   "id": 77,
+   "category": "Gifts",
+   "line": "Dad is easy. Just add a putter.",
+   "moves": "Putter",
+   "needs": "Keep kind",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [
+    "putters"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 78,
+   "category": "Gifts",
+   "line": "Gloves. Pairs well with everything.",
+   "moves": "Glove row",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "gloves"
+   ],
+   "pool": "product",
+   "status": "yes"
+  },
+  {
+   "id": 79,
+   "category": "Gifts",
+   "line": "Wrap it. Or do not. We will.",
+   "moves": "Gift",
+   "needs": "Service real",
+   "requires": [
+    "service_fact"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "no"
+  },
+  {
+   "id": 80,
+   "category": "Gifts",
+   "line": "The last-minute save.",
+   "moves": "Small items",
+   "needs": "Stock check",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [],
+   "pool": "product",
+   "status": "maybe"
+  },
+  {
+   "id": 81,
+   "category": "Workshop",
+   "line": "Regrip day.",
+   "moves": "Hands + grips",
+   "needs": "Workshop real",
+   "requires": [
+    "service_fact"
+   ],
+   "product_types": [
+    "grips"
+   ],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 82,
+   "category": "Workshop",
+   "line": "Loft and lie checked.",
+   "moves": "Machine detail",
+   "needs": "Service real",
+   "requires": [
+    "service_fact"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 83,
+   "category": "Workshop",
+   "line": "Bag refresh.",
+   "moves": "Bag + clubs",
+   "needs": "Service real",
+   "requires": [
+    "service_fact"
+   ],
+   "product_types": [
+    "bags"
+   ],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 84,
+   "category": "Workshop",
+   "line": "New grip. New feel.",
+   "moves": "Grip closeup",
+   "needs": "Service real",
+   "requires": [
+    "service_fact"
+   ],
+   "product_types": [
+    "grips"
+   ],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 85,
+   "category": "Workshop",
+   "line": "Shaft swap.",
+   "moves": "Workshop detail",
+   "needs": "Service real",
+   "requires": [
+    "service_fact"
+   ],
+   "product_types": [
+    "irons"
+   ],
+   "pool": "other",
+   "status": "maybe"
+  },
+  {
+   "id": 86,
+   "category": "Workshop",
+   "line": "We fix what you broke. No questions asked.",
+   "moves": "Workshop",
+   "needs": "Soft humour",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 87,
+   "category": "Workshop",
+   "line": "Winter workshop open.",
+   "moves": "Photo",
+   "needs": "Season real",
+   "requires": [
+    "operations_fact"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 88,
+   "category": "Workshop",
+   "line": "Bring it in. Leave it better.",
+   "moves": "Workshop photo",
+   "needs": "Service real",
+   "requires": [
+    "service_fact"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 89,
+   "category": "Workshop",
+   "line": "Clean grooves. Cleaner scores.",
+   "moves": "Wedge detail",
+   "needs": "Soft claim",
+   "requires": [
+    "tone_check"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 90,
+   "category": "Workshop",
+   "line": "From bench to bag.",
+   "moves": "Workshop sequence",
+   "needs": "Real photos",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [
+    "bags"
+   ],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 91,
+   "category": "Social",
+   "line": "This or that: which putter?",
+   "moves": "Two products",
+   "needs": "Both stocked",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "putters"
+   ],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 92,
+   "category": "Social",
+   "line": "Guess the club.",
+   "moves": "Crop of a head",
+   "needs": "Real product",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 93,
+   "category": "Social",
+   "line": "Rate this set.",
+   "moves": "Photo",
+   "needs": "Real set",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 94,
+   "category": "Social",
+   "line": "Spot the difference.",
+   "moves": "Two similar items",
+   "needs": "Real products",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 95,
+   "category": "Social",
+   "line": "Show us your bag.",
+   "moves": "Customer content",
+   "needs": "Permission",
+   "requires": [
+    "operations_fact"
+   ],
+   "product_types": [
+    "bags"
+   ],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 96,
+   "category": "Social",
+   "line": "What is in your bag?",
+   "moves": "Bag flat lay",
+   "needs": "Real bag",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [
+    "bags"
+   ],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 97,
+   "category": "Social",
+   "line": "Name that ball.",
+   "moves": "Ball closeup",
+   "needs": "Real",
+   "requires": [
+    "real_photo"
+   ],
+   "product_types": [
+    "balls"
+   ],
+   "pool": "other",
+   "status": "no"
+  },
+  {
+   "id": 98,
+   "category": "Social",
+   "line": "Which grip are you?",
+   "moves": "Grip row",
+   "needs": "Range stocked",
+   "requires": [
+    "in_stock"
+   ],
+   "product_types": [
+    "grips"
+   ],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 99,
+   "category": "Social",
+   "line": "Ask Stick.",
+   "moves": "Q and A type",
+   "needs": "Answers from fitters",
+   "requires": [
+    "editorial_check"
+   ],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  },
+  {
+   "id": 100,
+   "category": "Social",
+   "line": "Better begins here.",
+   "moves": "Brand tile",
+   "needs": "Tagline from feed",
+   "requires": [],
+   "product_types": [],
+   "pool": "other",
+   "status": "yes"
+  }
+ ]
+}

@@ -131,7 +131,7 @@ def layer1_specs() -> list[JobSpec]:
             best_effort=True,
             criticality="MEDIUM",
             retries=2,
-            writes=("seo-audit.json", "geo-audit.json", "seo-fix-queue.json"),
+            writes=("seo-audit.json", "geo-audit.json", "seo-fix-queue.json", "seo-publish-log.json"),
             brand_mode="per_brand",
             brands=_SS_AND_STICK,
             requires_integrations=("ubersuggest",),

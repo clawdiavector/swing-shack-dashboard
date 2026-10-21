@@ -15283,7 +15283,27 @@ def stories_candidates_route():
     brand = request.args.get('brand') or ''
     if not brand:
         return jsonify({"ok": False, "error": "brand is required"}), 400
-    return jsonify({"ok": True, **story_scout.candidates(brand, refresh=request.args.get('refresh') == '1')})
+    res = story_scout.candidates(brand, refresh=request.args.get('refresh') == '1')
+    try:  # the stock check runs on every read so a new stock list shows at once; the cache stays raw
+        res = dict(res, posts=story_scout.stock_check(brand, res.get("posts") or []))
+    except Exception:
+        _app_log.exception("story stock check failed for %s", brand)
+    return jsonify({"ok": True, **res})
+
+
+@app.route('/api/stories/marks', methods=['GET', 'POST'])
+def stories_marks_route():
+    """GET the Shared / Not-for-us marks. POST {key, state: shared|skipped|clear} sets one."""
+    from _lib import story_marks
+
+    if request.method == 'GET':
+        return jsonify({"ok": True, "marks": story_marks.read()})
+    body = request.get_json(silent=True) or {}
+    try:
+        story_marks.set_mark(str(body.get('key') or ''), str(body.get('state') or ''))
+    except story_marks.MarkError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    return jsonify({"ok": True, "marks": story_marks.read()})
 
 
 @app.route('/api/stories/<item_id>/<status>', methods=['POST'])
@@ -28752,6 +28772,58 @@ def seo_fix_queue_get():
             return jsonify({"ok": True, "queue": None,
                             "note": "No queue yet. It is built after the next site_audit run."}), 200
         return jsonify({"ok": True, "queue": queue}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _seo_publish_brand():
+    """Validated ?brand=/body brand for the meta-publish routes, or an error response."""
+    from _lib import seo_fix_queue
+    body = request.get_json(silent=True) or {}
+    brand = (request.args.get('brand') or body.get('brand') or '').strip()
+    if not brand:
+        return None, (jsonify({"ok": False, "error": "brand is required"}), 400)
+    if brand not in seo_fix_queue.QUEUE_BRANDS:
+        return None, (jsonify({"ok": False, "error": f"no SEO publishing for brand {brand!r}",
+                               "supported": list(seo_fix_queue.QUEUE_BRANDS)}), 400)
+    return brand, None
+
+
+@app.route('/api/seo/meta-publish', methods=['GET'])
+def seo_meta_publish_get():
+    """Automatic meta-description publishing: the current switch and the change log."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_meta_publish
+        from _lib.jobs.layer1._io import io_for_job
+        brand, err = _seo_publish_brand()
+        if err:
+            return err
+        log = seo_meta_publish.load_log(io_for_job("site_audit", brand))
+        return jsonify({"ok": True, "mode": seo_meta_publish.mode(),
+                        "entries": list(reversed(log["entries"]))[:30]}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/meta-publish/undo', methods=['POST'])
+def seo_meta_publish_undo():
+    """Put an automatic meta-description change back. Body: {brand, id}."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_meta_publish
+        from _lib.jobs.layer1._io import io_for_job, utc_now_iso
+        brand, err = _seo_publish_brand()
+        if err:
+            return err
+        entry_id = str((request.get_json(silent=True) or {}).get('id') or '').strip()
+        if not entry_id:
+            return jsonify({"ok": False, "error": "id is required"}), 400
+        result = seo_meta_publish.undo(io_for_job("site_audit", brand), brand, entry_id,
+                                       seo_meta_publish.default_wp(brand), utc_now_iso())
+        return jsonify(result), (200 if result.get("ok") else 409)
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -53687,6 +53759,98 @@ def meta_ads_pause(brand_id):
     except c["aa"].ActionRefused as e:
         return jsonify({"ok": False, "error": str(e)}), e.status
     _app_log.warning("ads action: paused ad %s for %s (%s)", entry["ad_id"], brand_id, entry["id"])
+    return jsonify({"ok": True, "action": entry}), 200
+
+
+def _ads_ticket_routes_body(brand_id, preview_fn):
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        out = preview_fn(c, body)
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    return jsonify({"ok": True, "preview": out}), 200
+
+
+def _ads_apply_ticket(brand_id):
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        entry = c["aa"].apply(brand_id, body.get("ticket") or "", graph=c["graph"], token=c["token"],
+                              account_id=c["account_id"], signer=c["signer"], read=c["read"], write=c["write"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    _app_log.warning("ads action: %s on %s for %s (%s)", entry["kind"], entry["ad_id"], brand_id, entry["id"])
+    return jsonify({"ok": True, "action": entry}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/rename/preview", methods=["POST"])
+def meta_ads_rename_preview(brand_id):
+    """POST {kind: ad|adset|campaign, id, name} — what renaming would change. Reads only."""
+    return _ads_ticket_routes_body(brand_id, lambda c, b: c["aa"].preview_rename(
+        brand_id, b.get("kind"), b.get("id"), b.get("name"), graph=c["graph"], token=c["token"],
+        account_id=c["account_id"], signer=c["signer"]))
+
+
+@app.route("/api/meta/ads/<brand_id>/rename", methods=["POST"])
+def meta_ads_rename(brand_id):
+    """POST {ticket} — rename what the preview named, and log it."""
+    return _ads_apply_ticket(brand_id)
+
+
+@app.route("/api/meta/ads/<brand_id>/tags/preview", methods=["POST"])
+def meta_ads_tags_preview(brand_id):
+    """POST {ad_id, url_tags} — what adding UTM parameters to the ad would change. Reads only."""
+    return _ads_ticket_routes_body(brand_id, lambda c, b: c["aa"].preview_tags(
+        brand_id, b.get("ad_id"), b.get("url_tags"), graph=c["graph"], token=c["token"],
+        account_id=c["account_id"], signer=c["signer"]))
+
+
+@app.route("/api/meta/ads/<brand_id>/tags", methods=["POST"])
+def meta_ads_tags(brand_id):
+    """POST {ticket} — add the UTM parameters the preview named, and log it."""
+    return _ads_apply_ticket(brand_id)
+
+
+@app.route("/api/meta/ads/<brand_id>/budget-change/preview", methods=["POST"])
+def meta_ads_budget_change_preview(brand_id):
+    """POST {ad_id | adset_id, pct | daily_budget} — what changing an ad set's daily budget would do. Reads only."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    view = _ads_budget_view(brand_id)
+    ev = view.get("budget") or {}
+    try:
+        out = c["aa"].preview_budget(
+            brand_id, ad_id=body.get("ad_id"), adset_id=body.get("adset_id"), pct=body.get("pct"),
+            daily_budget=body.get("daily_budget"), graph=c["graph"], token=c["token"],
+            account_id=c["account_id"], signer=c["signer"],
+            context={"month_status": ev.get("status"), "budget": ev.get("budget"), "mtd_spend": ev.get("mtd_spend"),
+                     "guard_on": bool((view.get("settings") or {}).get("auto_pause"))})
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    return jsonify({"ok": True, "preview": out}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/budget-change", methods=["POST"])
+def meta_ads_budget_change(brand_id):
+    """POST {ticket} — change the ad set's daily budget the preview named, and log it."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        entry = c["aa"].apply(brand_id, body.get("ticket") or "", graph=c["graph"], token=c["token"],
+                              account_id=c["account_id"], signer=c["signer"],
+                              read=c["read"], write=c["write"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    _app_log.warning("ads action: %s on ad set %s for %s (%s)", entry["kind"], entry["ad_id"], brand_id, entry["id"])
     return jsonify({"ok": True, "action": entry}), 200
 
 

@@ -32,7 +32,8 @@ _RELEASE = re.compile(
     r"\b(drops?|dropping|dropped|launch(es|ed|ing)?|pre-?orders?|coming soon|available now|"
     r"just released|now available|new collection|release date|out now|on sale|restock|"
     r"shop now|limited edition|collab(oration)?|collections?|all-new|brand new|introducing|"
-    r"is back|is here|meet the|new arrivals?)\b|"
+    r"is back|is here|meet the|new arrivals?|new additions?|new colou?rways?|new models?|new styles?|"
+    r"line-?ups?|just added|now in|first look|sneak peek|unveil(s|ed)?)\b|"
     r"\b\d{1,2}% off\b|\bsale\b|\bdiscount\b|\bcode\b"
 )
 _NOT_ORGANIC = re.compile(
@@ -66,7 +67,7 @@ def classify(caption: str) -> tuple[str | None, str]:
         return None, "sad, legal or divisive news: not for our Stories"
     product = bool(_PRODUCT.search(text))
     if len(text.strip()) <= 140 and not product:
-        return "vibe", "vibe post: no product, short caption"
+        return "vibe", "vibe post: no product named, short caption"
     if product:
         return "product", "product post, not a launch: check we stock it"
     return "story", "brand or golf story"
@@ -179,3 +180,48 @@ def candidates(brand: str, refresh: bool = False, now: datetime | None = None) -
         _write_cache(cache)
         return result
     return hit  # every page failed: keep showing the last good list
+
+
+_STOCK_STOP = {
+    "with", "your", "from", "that", "this", "have", "what", "when", "will", "more", "just", "like",
+    "into", "over", "their", "they", "them", "been", "were", "than", "then", "some", "much", "most",
+    "every", "about", "ready", "great", "game", "round", "shot", "hole", "play", "plays", "golf",
+}
+
+
+def _stock_names(brand: str) -> list[str]:
+    """Product names on the brand's latest saved stock list (empty when none saved)."""
+    from . import stock_pulse as sp
+    snaps = sp.load_snapshots(brand)
+    if not snaps:
+        return []
+    return sorted({r["name"] for r in snaps[-1].get("rows", []) if r.get("name")})
+
+
+def stock_check(brand: str, posts: list[dict]) -> list[dict]:
+    """Flag each retail-brand post against the stock list. Nothing is hidden.
+
+    stock is "match" (a model in the caption is on our list), "none" (the brand is on
+    our list but nothing in the caption is), "brand-unlisted" (we list nothing from
+    this maker), or "unknown" (no stock list saved, or a golf-moment page, which is not a shop brand).
+    """
+    from . import stock_pulse as sp
+    data = story_suggestion._load(brand) or {}
+    retail = {p["id"]: p for p in data.get("retail") or []}
+    names = _stock_names(brand)
+    out = []
+    for p in posts:
+        q = dict(p, stock="unknown", stock_name=None)
+        page = retail.get(p.get("page_id"))
+        if page and names:
+            maker = sp._tokens(page["name"])
+            mine = [n for n in names if maker and set(maker) <= set(sp._tokens(n))]
+            if not mine:
+                q["stock"] = "brand-unlisted"
+            else:
+                words = {t for t in sp._tokens(p.get("caption") or "") if len(t) >= 4 and t not in _STOCK_STOP}
+                words -= set(maker)
+                hit = next((n for n in mine if words & set(sp._tokens(n))), None)
+                q["stock"], q["stock_name"] = ("match", hit) if hit else ("none", None)
+        out.append(q)
+    return out
