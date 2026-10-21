@@ -1,0 +1,6 @@
+[
+ {"sku": "T1001", "name": "Takomo", "category": "irons", "model_number": "101U", "in_stock": true, "town": "Paarl", "cutout": "T1001__front.png"},
+ {"sku": "VTWS001", "name": "Vice", "display_name": "Vice Tour", "category": "balls", "in_stock": true, "town": "Paarl", "cutout": "VTWS001__front.jpg"},
+ {"sku": "LDSB001", "name": "L.A.B. Golf", "display_name": "L.A.B. Golf DF3", "category": "putters", "model_number": "DF3", "in_stock": true, "town": "Paarl", "cutout": "LDSB001__front.jpg"},
+ {"sku": "P2SW001", "name": "Vessel", "display_name": "Vessel Prime 2.0", "category": "bags", "model_number": "2.0", "in_stock": true, "town": "Paarl", "cutout": "P2SW001__front.jpg"}
+]

@@ -1,0 +1,186 @@
+{
+ "schema": "https://campaign-os/brand-directory/backdrops/v1",
+ "source": "Unsplash, Unsplash License (free commercial use, no attribution required). Textures, surfaces and light only: no people, no venues, no marble or leather (the Stick bible rejects them). Files are not in git; set ROUTE_BACKDROPS_DIR to the folder holding NN.jpg.",
+ "backdrops": [
+  {
+   "id": 1,
+   "file": "01.jpg",
+   "tone": "dark",
+   "note": "dark background"
+  },
+  {
+   "id": 2,
+   "file": "02.jpg",
+   "tone": "dark",
+   "note": "black and white wall"
+  },
+  {
+   "id": 3,
+   "file": "03.jpg",
+   "tone": "dark",
+   "note": "dark plaster wall"
+  },
+  {
+   "id": 4,
+   "file": "04.jpg",
+   "tone": "dark",
+   "note": "black textile"
+  },
+  {
+   "id": 5,
+   "file": "05.jpg",
+   "tone": "grey",
+   "note": "concrete floor"
+  },
+  {
+   "id": 6,
+   "file": "06.jpg",
+   "tone": "grey",
+   "note": "concrete wall"
+  },
+  {
+   "id": 7,
+   "file": "07.jpg",
+   "tone": "grey",
+   "note": "concrete close up"
+  },
+  {
+   "id": 8,
+   "file": "08.jpg",
+   "tone": "grey",
+   "note": "grey concrete surface"
+  },
+  {
+   "id": 9,
+   "file": "09.jpg",
+   "tone": "light",
+   "note": "white paper"
+  },
+  {
+   "id": 10,
+   "file": "10.jpg",
+   "tone": "light",
+   "note": "white canvas weave"
+  },
+  {
+   "id": 11,
+   "file": "11.jpg",
+   "tone": "light",
+   "note": "paper with soft folds"
+  },
+  {
+   "id": 12,
+   "file": "12.jpg",
+   "tone": "light",
+   "note": "grey mesh fabric"
+  },
+  {
+   "id": 13,
+   "file": "13.jpg",
+   "tone": "metal",
+   "note": "silver metallic"
+  },
+  {
+   "id": 14,
+   "file": "14.jpg",
+   "tone": "metal",
+   "note": "grey metallic"
+  },
+  {
+   "id": 15,
+   "file": "15.jpg",
+   "tone": "metal",
+   "note": "brushed silver"
+  },
+  {
+   "id": 16,
+   "file": "16.jpg",
+   "tone": "metal",
+   "note": "brushed metal with reflection"
+  },
+  {
+   "id": 17,
+   "file": "17.jpg",
+   "tone": "dark",
+   "note": "dark grey grainy gradient"
+  },
+  {
+   "id": 18,
+   "file": "18.jpg",
+   "tone": "grey",
+   "note": "textured grey soft light"
+  },
+  {
+   "id": 19,
+   "file": "19.jpg",
+   "tone": "metal",
+   "note": "light grey textured"
+  },
+  {
+   "id": 20,
+   "file": "20.jpg",
+   "tone": "navy",
+   "note": "dark blue spotlight"
+  },
+  {
+   "id": 21,
+   "file": "21.jpg",
+   "tone": "navy",
+   "note": "navy to cyan gradient"
+  },
+  {
+   "id": 22,
+   "file": "22.jpg",
+   "tone": "navy",
+   "note": "dark blue gradient"
+  },
+  {
+   "id": 23,
+   "file": "23.jpg",
+   "tone": "navy",
+   "note": "blurry blue"
+  },
+  {
+   "id": 24,
+   "file": "24.jpg",
+   "tone": "navy",
+   "note": "light to dark blue gradient"
+  },
+  {
+   "id": 25,
+   "file": "25.jpg",
+   "tone": "navy",
+   "note": "deep blue and dark grey"
+  },
+  {
+   "id": 26,
+   "file": "26.jpg",
+   "tone": "light",
+   "note": "blue and white soft gradient"
+  },
+  {
+   "id": 27,
+   "file": "27.jpg",
+   "tone": "grass",
+   "note": "grass close up"
+  },
+  {
+   "id": 28,
+   "file": "28.jpg",
+   "tone": "grass",
+   "note": "grass close up"
+  },
+  {
+   "id": 29,
+   "file": "29.jpg",
+   "tone": "grass",
+   "note": "grass close up"
+  },
+  {
+   "id": 30,
+   "file": "30.jpg",
+   "tone": "grass",
+   "note": "grass close up"
+  }
+ ]
+}
