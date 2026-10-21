@@ -196,6 +196,16 @@ class RenderTests(unittest.TestCase):
             s = pr.fit_size(num, int(pr.CANVAS[0] * pr.BLEED_MAX), path, shear, 1300)
             self.assertLessEqual(pr.text_layer(num, s, pr.WHITE, path, shear).width, int(pr.CANVAS[0] * pr.BLEED_MAX) + 6)
 
+    def test_hero_number_stays_clear_of_the_logo(self):
+        p = product(model_number="DF3", category="putters")
+        plan = pr.choose(p, self.ideas, self.backdrops, pr.RouteMemory(), 2)
+        plan.route, plan.backdrop_id = "hero_number", 19
+        img, _ = pr.render_route("hero_number", p, plan, "stick", self.tmp)
+        logo_zone = np.asarray(img.convert("RGB").crop(pr.LOGO_RECT)).astype(int)
+        # the logo is navy or white on a plain field: the zone must not hold two competing dark/light shapes
+        lum = logo_zone.mean(axis=2)
+        self.assertLess(float(((lum < 70) | (lum > 200)).mean()), 0.45)
+
     def test_wide_and_tall_products_both_pass(self):
         for cut in (fake_cutout(900, 300), fake_cutout(300, 900), fake_cutout(500, 500)):
             p = product(cutout=cut, category="other")

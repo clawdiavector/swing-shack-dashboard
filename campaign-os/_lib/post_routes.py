@@ -509,7 +509,7 @@ def render_route(route: str, product: Product, plan: Plan, brand: str, backdrops
         num = product.model_number
         s = fit_size(num, int(W * BLEED_MAX), path, shear, 1300)  # may bleed off the edge a little, never lose a character
         nl = text_layer(num, s, col, path, shear)
-        npos = (-int(nl.width * 0.04), 40)
+        npos = (-int(nl.width * 0.04), LOGO_RECT[3] + 40)  # below the logo, never under it
         nmask = mask_of(nl, npos)
         txt_lines = wrap(line, light, 42, 600)[:2]
         cap_rect = (60, H - 60 - 52 * (len(txt_lines) + 1) - 10, 700, H - 50)
