@@ -1,0 +1,23 @@
+{
+ "sku": "LDSB001",
+ "route": "hero_number",
+ "backdrop_id": 16,
+ "seed": 20261024,
+ "idea_id": 77,
+ "idea_line": "Dad is easy. Just add a putter.",
+ "caption": "L.A.B. Golf DF3. In store, Paarl.",
+ "standin_font": true,
+ "logo": "navy",
+ "checks": {
+  "bg_luma": 174.1,
+  "word_visible": 1.0,
+  "text_overlap": 0.006,
+  "product_inside": 1.0,
+  "mean_luma": 143.2
+ },
+ "confirm_before_posting": [
+  "in_stock",
+  "tone_check"
+ ],
+ "tried_first": []
+}

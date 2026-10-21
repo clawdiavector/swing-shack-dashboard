@@ -1,0 +1,22 @@
+{
+ "sku": "TS001",
+ "route": "turf_shadow",
+ "backdrop_id": 30,
+ "seed": 20261026,
+ "idea_id": 6,
+ "idea_line": "Take a look. Take it home.",
+ "caption": "Takomo SF002. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 98.0,
+  "word_visible": 1.0,
+  "text_overlap": 0.0,
+  "product_inside": 1.0,
+  "mean_luma": 94.6
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

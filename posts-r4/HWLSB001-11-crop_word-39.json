@@ -1,0 +1,23 @@
+{
+ "sku": "HWLSB001",
+ "route": "crop_word",
+ "backdrop_id": 2,
+ "seed": 20261032,
+ "idea_id": 39,
+ "idea_line": "It is not obsessive if it is gear.",
+ "caption": "Herschel stand bag. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 33.5,
+  "word_visible": 1.0,
+  "text_overlap": 0.02,
+  "product_inside": 0.955,
+  "mean_luma": 47.9
+ },
+ "confirm_before_posting": [
+  "in_stock",
+  "tone_check"
+ ],
+ "tried_first": []
+}

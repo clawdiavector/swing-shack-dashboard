@@ -1,0 +1,22 @@
+{
+ "sku": "RGM2-I001",
+ "route": "turf_shadow",
+ "backdrop_id": 28,
+ "seed": 20261031,
+ "idea_id": 72,
+ "idea_line": "For the golfer who has everything. Except this.",
+ "caption": "Ripit grips. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 65.2,
+  "word_visible": 1.0,
+  "text_overlap": 0.018,
+  "product_inside": 1.0,
+  "mean_luma": 68.7
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

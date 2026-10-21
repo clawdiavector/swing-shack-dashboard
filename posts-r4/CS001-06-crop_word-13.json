@@ -1,0 +1,22 @@
+{
+ "sku": "CS001",
+ "route": "crop_word",
+ "backdrop_id": 3,
+ "seed": 20261027,
+ "idea_id": 13,
+ "idea_line": "Balls are not all the same. Come see why.",
+ "caption": "Callaway Chrome Soft. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 43.3,
+  "word_visible": 1.0,
+  "text_overlap": 0.0,
+  "product_inside": 0.986,
+  "mean_luma": 70.9
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

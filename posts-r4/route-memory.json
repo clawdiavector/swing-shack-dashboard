@@ -1,0 +1,74 @@
+[
+ {
+  "idea_id": 72,
+  "route": "turf_shadow",
+  "backdrop_id": 29,
+  "sku": "T1001"
+ },
+ {
+  "idea_id": 39,
+  "route": "crop_word",
+  "backdrop_id": 17,
+  "sku": "VTWS001"
+ },
+ {
+  "idea_id": 77,
+  "route": "hero_number",
+  "backdrop_id": 16,
+  "sku": "LDSB001"
+ },
+ {
+  "idea_id": 60,
+  "route": "crop_word",
+  "backdrop_id": 23,
+  "sku": "P2SW001"
+ },
+ {
+  "idea_id": 6,
+  "route": "turf_shadow",
+  "backdrop_id": 30,
+  "sku": "TS001"
+ },
+ {
+  "idea_id": 13,
+  "route": "crop_word",
+  "backdrop_id": 3,
+  "sku": "CS001"
+ },
+ {
+  "idea_id": 78,
+  "route": "hero_number",
+  "backdrop_id": 14,
+  "sku": "GLV100M"
+ },
+ {
+  "idea_id": 73,
+  "route": "turf_shadow",
+  "backdrop_id": 29,
+  "sku": "GGP001"
+ },
+ {
+  "idea_id": 65,
+  "route": "crop_word",
+  "backdrop_id": 25,
+  "sku": "B6K001ARPC-WHITE-3-W4"
+ },
+ {
+  "idea_id": 72,
+  "route": "turf_shadow",
+  "backdrop_id": 28,
+  "sku": "RGM2-I001"
+ },
+ {
+  "idea_id": 39,
+  "route": "crop_word",
+  "backdrop_id": 2,
+  "sku": "HWLSB001"
+ },
+ {
+  "idea_id": 57,
+  "route": "hero_number",
+  "backdrop_id": 26,
+  "sku": "LOS001"
+ }
+]
