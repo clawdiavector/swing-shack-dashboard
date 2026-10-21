@@ -1,23 +1,377 @@
 {
   "schema": "https://campaign-os/brand-directory/studio-sets/v1",
-  "source": "Empty studio sets generated with Krea 2 Large (krea/krea-2/large, 4:5, 1K, about 18 compute units each), 2026-10-21. Prompts asked for no product, no text and no people. The real product cut-out is placed in them by post_studio.py. Files are not in git; set ROUTE_SCENES_DIR to the folder holding them.",
+  "source": "Empty studio sets generated with Krea 2 Large (krea/krea-2/large, 4:5, 1K, about 18 compute units each), 2026-10-21. Prompts asked for no product, no text and no people. The real product cut-out is placed in them by post_studio.py. Files are not in git; set ROUTE_SCENES_DIR to the folder holding them. view: top (seen from above, fine for levitating products), front (straight-on elevation, right for products resting on an edge), floor (a floor plane).",
   "sets": [
-    {"id": 101, "file": "A-navy-plinth.png",      "note": "navy cylinder plinth, glossy navy floor", "base": 0.60,  "cx": 0.50,  "ink": "light", "light": "left",  "suits": ["irons", "wedges", "drivers", "putters", "balls", "grips", "gloves", "other"]},
-    {"id": 102, "file": "B-concrete-light.png",   "note": "concrete block, pale wall, navy edge",     "base": 0.745, "cx": 0.50,  "ink": "dark",  "light": "right", "suits": ["bags", "irons", "wedges", "drivers", "putters", "balls", "other"]},
-    {"id": 103, "file": "C-steps.png",            "note": "soft grey and navy round steps",           "base": 0.68,  "cx": 0.50,  "ink": "dark",  "light": "left",  "suits": ["balls", "gloves", "putters", "other"]},
-    {"id": 104, "file": "D-turf-block.png",       "note": "putting-turf block on navy",               "base": 0.69,  "cx": 0.50,  "ink": "light", "light": "left",  "suits": ["balls", "irons", "wedges", "putters", "gloves", "other"]},
-    {"id": 105, "file": "F-grey-sweep.png",       "note": "pale grey seamless sweep",                  "base": 0.80,  "cx": 0.50,  "ink": "dark",  "light": "right", "suits": ["bags", "apparel", "other"]},
-    {"id": 106, "file": "G-split-wall.png",       "note": "navy and grey wall, concrete floor",        "base": 0.86,  "cx": 0.60,  "ink": "dark",  "light": "right", "suits": ["bags", "apparel"]},
-    {"id": 107, "file": "H-steel-slab.png",       "note": "brushed steel slab on dark navy",           "base": 0.64,  "cx": 0.50,  "ink": "light", "light": "left",  "suits": ["irons", "wedges", "drivers", "putters", "other"]},
-    {"id": 108, "file": "I-niche.png",            "note": "navy arched niche with a stone shelf",      "base": 0.715, "cx": 0.50,  "ink": "light", "light": "left",  "suits": ["putters", "balls", "gloves", "other"]},
-    {"id": 109, "file": "J-two-plinths.png",      "note": "navy and grey cylinders, product on the grey one", "base": 0.445, "cx": 0.665, "ink": "dark",  "light": "left",  "suits": ["balls", "grips", "gloves", "other"]},
-    {"id": 110, "file": "K-light-bars.png",       "note": "navy wall with window light bars",          "base": 0.87,  "cx": 0.50,  "ink": "light", "light": "left",  "suits": ["apparel", "bags"]},
-    {"id": 111, "file": "L-concrete-steps.png",   "note": "raw concrete steps in daylight",            "base": 0.68,  "cx": 0.55,  "ink": "dark",  "light": "left",  "suits": ["balls", "putters", "irons", "wedges", "gloves", "other"]},
-    {"id": 112, "file": "M-teal-glow.png",        "note": "navy plinth with a teal glow behind",       "base": 0.775, "cx": 0.50,  "ink": "light", "light": "left",  "suits": ["irons", "wedges", "putters", "balls", "gloves", "other"]},
-    {"id": 113, "file": "N-window-shadow.png",    "note": "pale wall with a window shadow",            "base": 0.80,  "cx": 0.50,  "ink": "dark",  "light": "left",  "suits": ["apparel", "bags", "other"]},
-    {"id": 114, "file": "O-turf-floor.png",       "note": "turf runway toward a navy wall",            "base": 0.82,  "cx": 0.50,  "ink": "light", "light": "left",  "suits": ["bags", "other"]},
-    {"id": 115, "file": "Q-pedestal.png",         "note": "slim navy pedestal on pale grey",           "base": 0.42,  "cx": 0.50,  "ink": "dark",  "light": "left",  "suits": ["balls", "gloves", "other"]},
-    {"id": 116, "file": "R-arch.png",             "note": "navy arch on a pale plaster wall",          "base": 0.86,  "cx": 0.50,  "ink": "dark",  "light": "right", "suits": ["bags", "apparel"]},
-    {"id": 117, "file": "T-navy-grey-plinth.png", "note": "grey slab against a navy wall with a light band", "base": 0.69, "cx": 0.50, "ink": "light", "light": "left",  "suits": ["irons", "wedges", "drivers", "putters", "balls", "gloves", "other"]}
+    {
+      "id": 101,
+      "file": "A-navy-plinth.png",
+      "note": "navy cylinder plinth, glossy navy floor",
+      "base": 0.6,
+      "cx": 0.5,
+      "ink": "light",
+      "light": "left",
+      "suits": [
+        "irons",
+        "wedges",
+        "drivers",
+        "putters",
+        "balls",
+        "grips",
+        "gloves",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 102,
+      "file": "B-concrete-light.png",
+      "note": "concrete block, pale wall, navy edge",
+      "base": 0.745,
+      "cx": 0.5,
+      "ink": "dark",
+      "light": "right",
+      "suits": [
+        "bags",
+        "irons",
+        "wedges",
+        "drivers",
+        "putters",
+        "balls",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 103,
+      "file": "C-steps.png",
+      "note": "soft grey and navy round steps",
+      "base": 0.68,
+      "cx": 0.5,
+      "ink": "dark",
+      "light": "left",
+      "suits": [
+        "balls",
+        "gloves",
+        "putters",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 104,
+      "file": "D-turf-block.png",
+      "note": "putting-turf block on navy",
+      "base": 0.69,
+      "cx": 0.5,
+      "ink": "light",
+      "light": "left",
+      "suits": [
+        "balls",
+        "irons",
+        "wedges",
+        "putters",
+        "gloves",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 105,
+      "file": "F-grey-sweep.png",
+      "note": "pale grey seamless sweep",
+      "base": 0.8,
+      "cx": 0.5,
+      "ink": "dark",
+      "light": "right",
+      "suits": [
+        "bags",
+        "apparel",
+        "other"
+      ],
+      "view": "floor"
+    },
+    {
+      "id": 106,
+      "file": "G-split-wall.png",
+      "note": "navy and grey wall, concrete floor",
+      "base": 0.86,
+      "cx": 0.6,
+      "ink": "dark",
+      "light": "right",
+      "suits": [
+        "bags",
+        "apparel"
+      ],
+      "view": "floor"
+    },
+    {
+      "id": 107,
+      "file": "H-steel-slab.png",
+      "note": "brushed steel slab on dark navy",
+      "base": 0.64,
+      "cx": 0.5,
+      "ink": "light",
+      "light": "left",
+      "suits": [
+        "irons",
+        "wedges",
+        "drivers",
+        "putters",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 108,
+      "file": "I-niche.png",
+      "note": "navy arched niche with a stone shelf",
+      "base": 0.715,
+      "cx": 0.5,
+      "ink": "light",
+      "light": "left",
+      "suits": [
+        "putters",
+        "balls",
+        "gloves",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 109,
+      "file": "J-two-plinths.png",
+      "note": "navy and grey cylinders, product on the grey one",
+      "base": 0.445,
+      "cx": 0.665,
+      "ink": "dark",
+      "light": "left",
+      "suits": [
+        "balls",
+        "grips",
+        "gloves",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 110,
+      "file": "K-light-bars.png",
+      "note": "navy wall with window light bars",
+      "base": 0.87,
+      "cx": 0.5,
+      "ink": "light",
+      "light": "left",
+      "suits": [
+        "apparel",
+        "bags"
+      ],
+      "view": "floor"
+    },
+    {
+      "id": 111,
+      "file": "L-concrete-steps.png",
+      "note": "raw concrete steps in daylight",
+      "base": 0.68,
+      "cx": 0.55,
+      "ink": "dark",
+      "light": "left",
+      "suits": [
+        "balls",
+        "putters",
+        "irons",
+        "wedges",
+        "gloves",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 112,
+      "file": "M-teal-glow.png",
+      "note": "navy plinth with a teal glow behind",
+      "base": 0.775,
+      "cx": 0.5,
+      "ink": "light",
+      "light": "left",
+      "suits": [
+        "irons",
+        "wedges",
+        "putters",
+        "balls",
+        "gloves",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 113,
+      "file": "N-window-shadow.png",
+      "note": "pale wall with a window shadow",
+      "base": 0.8,
+      "cx": 0.5,
+      "ink": "dark",
+      "light": "left",
+      "suits": [
+        "apparel",
+        "bags",
+        "other"
+      ],
+      "view": "floor"
+    },
+    {
+      "id": 114,
+      "file": "O-turf-floor.png",
+      "note": "turf runway toward a navy wall",
+      "base": 0.82,
+      "cx": 0.5,
+      "ink": "light",
+      "light": "left",
+      "suits": [
+        "bags",
+        "other"
+      ],
+      "view": "floor"
+    },
+    {
+      "id": 115,
+      "file": "Q-pedestal.png",
+      "note": "slim navy pedestal on pale grey",
+      "base": 0.42,
+      "cx": 0.5,
+      "ink": "dark",
+      "light": "left",
+      "suits": [
+        "balls",
+        "gloves",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 116,
+      "file": "R-arch.png",
+      "note": "navy arch on a pale plaster wall",
+      "base": 0.86,
+      "cx": 0.5,
+      "ink": "dark",
+      "light": "right",
+      "suits": [
+        "bags",
+        "apparel"
+      ],
+      "view": "floor"
+    },
+    {
+      "id": 117,
+      "file": "T-navy-grey-plinth.png",
+      "note": "grey slab against a navy wall with a light band",
+      "base": 0.69,
+      "cx": 0.5,
+      "ink": "light",
+      "light": "left",
+      "suits": [
+        "irons",
+        "wedges",
+        "drivers",
+        "putters",
+        "balls",
+        "gloves",
+        "other"
+      ],
+      "view": "top"
+    },
+    {
+      "id": 118,
+      "file": "V1-navy-plinth-front.png",
+      "note": "straight-on navy plinth, top edge at 40 percent",
+      "base": 0.395,
+      "cx": 0.5,
+      "ink": "light",
+      "light": "left",
+      "view": "front",
+      "suits": [
+        "balls",
+        "other",
+        "irons",
+        "wedges",
+        "putters",
+        "drivers",
+        "gloves",
+        "grips"
+      ]
+    },
+    {
+      "id": 119,
+      "file": "V2-concrete-slab-front.png",
+      "note": "straight-on concrete slab against a pale wall, navy panel at the left",
+      "base": 0.545,
+      "cx": 0.5,
+      "ink": "dark",
+      "light": "right",
+      "view": "front",
+      "suits": [
+        "balls",
+        "other",
+        "irons",
+        "wedges",
+        "putters",
+        "drivers",
+        "gloves",
+        "grips"
+      ]
+    },
+    {
+      "id": 120,
+      "file": "V3-turf-block-front.png",
+      "note": "straight-on turf block on white",
+      "base": 0.485,
+      "cx": 0.5,
+      "ink": "dark",
+      "light": "left",
+      "view": "front",
+      "suits": [
+        "balls",
+        "other",
+        "putters",
+        "irons",
+        "wedges",
+        "gloves"
+      ]
+    },
+    {
+      "id": 121,
+      "file": "V4-steps-front.png",
+      "note": "straight-on grey and navy blocks, product on the navy one",
+      "base": 0.425,
+      "cx": 0.67,
+      "ink": "dark",
+      "light": "left",
+      "view": "front",
+      "suits": [
+        "balls",
+        "other",
+        "gloves",
+        "putters"
+      ]
+    },
+    {
+      "id": 122,
+      "file": "V5-steel-slab-front.png",
+      "note": "straight-on steel slab on dark navy",
+      "base": 0.575,
+      "cx": 0.5,
+      "ink": "light",
+      "light": "left",
+      "view": "front",
+      "suits": [
+        "balls",
+        "other",
+        "putters",
+        "irons",
+        "wedges",
+        "drivers",
+        "gloves"
+      ]
+    }
   ]
 }

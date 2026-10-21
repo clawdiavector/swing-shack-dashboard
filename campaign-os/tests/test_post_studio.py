@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw, ImageStat
 
 from _lib import post_routes as pr
+from _lib import post_qa as qa
 from _lib import post_studio as ps
 
 
@@ -73,15 +74,15 @@ class RenderTests(unittest.TestCase):
         img, meta = self.render()
         self.assertEqual(img.size, pr.CANVAS)
         self.assertEqual(meta["route"], "studio_set")
-        self.assertGreaterEqual(meta["checks"]["word_visible"], ps.WORD_VISIBLE_MIN)
-        self.assertGreaterEqual(meta["checks"]["headline_contrast"], ps.CONTRAST_MIN)
+        self.assertGreaterEqual(meta["checks"]["word_visible"], qa.WORD_VISIBLE_MIN)
+        self.assertGreaterEqual(meta["checks"]["headline_contrast"], qa.CONTRAST_MIN)
 
     def test_the_real_product_pixels_are_not_repainted(self):
         # flat scene, no giant word under the product's centre: the output at the product's solid centre
         # must be the cut-out's own colour (film grain aside)
         img, meta = self.render(product(category="putters"), style="outline")
         cx = int(0.50 * pr.CANVAS[0])
-        sample = img.crop((cx - 6, 700, cx + 6, 712)).convert("RGB")
+        sample = img.crop((cx - 6, 640, cx + 6, 652)).convert("RGB")
         mean = ImageStat.Stat(sample).mean
         # the iron body is (190,190,195); a plinth shadow or tint would pull it far from this
         self.assertLess(abs(mean[0] - 190) + abs(mean[1] - 190) + abs(mean[2] - 195), 90)
@@ -89,7 +90,7 @@ class RenderTests(unittest.TestCase):
     def test_headline_is_readable_on_light_and_dark_sets(self):
         for set_id in (101, 102):  # a dark set and a light set
             _, meta = self.render(set_id=set_id)
-            self.assertGreaterEqual(meta["checks"]["headline_contrast"], ps.CONTRAST_MIN)
+            self.assertGreaterEqual(meta["checks"]["headline_contrast"], qa.CONTRAST_MIN)
 
     def test_a_crushed_dark_scene_is_refused(self):
         for s in ps.load_sets():
@@ -110,7 +111,7 @@ class RenderTests(unittest.TestCase):
     def test_giant_word_is_not_hidden_whatever_the_style(self):
         for style in ("tone", "solid", "outline"):
             _, meta = self.render(style=style)
-            self.assertGreaterEqual(meta["checks"]["word_visible"], ps.WORD_VISIBLE_MIN)
+            self.assertGreaterEqual(meta["checks"]["word_visible"], qa.WORD_VISIBLE_MIN)
 
     def test_the_post_is_not_crushed_dark(self):
         _, meta = self.render(set_id=101)
