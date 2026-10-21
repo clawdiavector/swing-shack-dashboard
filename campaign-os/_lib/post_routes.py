@@ -10,7 +10,7 @@ The product is always the real cut-out (never redrawn). The layout check
 refuses a post whose hero word is hidden, whose caption runs into the product,
 or whose background is crushed dark.
 
-Pure PIL + numpy. Cut-outs are made elsewhere (rembg on the Mac).
+Pure Pillow (no numpy: the production image does not carry it). Cut-outs are made elsewhere (rembg on the Mac).
 """
 from __future__ import annotations
 
@@ -21,8 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import numpy as np
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps, ImageStat
 
 CANVAS = (1080, 1350)
 NAVY = (0, 61, 84)
@@ -304,48 +303,63 @@ def mask_of(im: Image.Image, pos: Tuple[int, int], size=CANVAS) -> Image.Image:
     return m
 
 
+def _on(mask: Image.Image, t: int = 40) -> Image.Image:
+    return mask.point(lambda v: 255 if v > t else 0)
+
+
+def _share(m: Image.Image) -> float:
+    """Fraction of a 0/255 mask that is on."""
+    return ImageStat.Stat(m).mean[0] / 255.0
+
+
 def covered(mask_a: Image.Image, mask_b: Image.Image, rect=None) -> float:
-    a = np.asarray(mask_a) > 40
-    b = np.asarray(mask_b) > 40
+    """How much of mask_a lies under mask_b (0 to 1)."""
+    a, b = _on(mask_a), _on(mask_b)
     if rect:
-        x0, y0, x1, y1 = [int(v) for v in rect]
-        a, b = a[y0:y1, x0:x1], b[y0:y1, x0:x1]
-    total = a.sum()
-    return 0.0 if total == 0 else float((a & b).sum()) / float(total)
+        box = tuple(int(v) for v in rect)
+        a, b = a.crop(box), b.crop(box)
+    total = _share(a)
+    return 0.0 if total == 0 else _share(ImageChops.multiply(a, b)) / total
 
 
 def rect_cover(mask: Image.Image, rect) -> float:
     x0, y0, x1, y1 = [max(0, int(v)) for v in rect]
-    sub = np.asarray(mask)[y0:y1, x0:x1] > 40
-    return float(sub.mean()) if sub.size else 0.0
+    if x1 <= x0 or y1 <= y0:
+        return 0.0
+    return _share(_on(mask).crop((x0, y0, x1, y1)))
 
 
 def mean_luma(im: Image.Image, rect=None) -> float:
-    g = np.asarray(im.convert("L"), dtype=float)
+    g = im.convert("L")
     if rect:
-        x0, y0, x1, y1 = [int(v) for v in rect]
-        g = g[y0:y1, x0:x1]
-    return float(g.mean())
+        g = g.crop(tuple(int(v) for v in rect))
+    return float(ImageStat.Stat(g).mean[0])
 
 
 def product_luma(cut: Image.Image) -> float:
-    a = np.asarray(cut.split()[3]) > 128
-    g = np.asarray(cut.convert("L"), dtype=float)
-    return float(g[a].mean()) if a.any() else 128.0
+    solid = cut.split()[3].point(lambda v: 255 if v > 128 else 0)
+    if _share(solid) == 0:
+        return 128.0
+    return float(ImageStat.Stat(cut.convert("L"), mask=solid).mean[0])
 
 
 def soft_vignette(img: Image.Image, strength: float) -> Image.Image:
+    """Darken the corners a little. strength is capped by LIGHT_CAPS."""
     strength = min(strength, LIGHT_CAPS["vignette"])
     w, h = img.size
-    y, x = np.ogrid[:h, :w]
-    d = np.sqrt(((x - w / 2) / (w / 2)) ** 2 + ((y - h / 2) / (h / 2)) ** 2)
-    m = np.clip(1 - strength * np.clip(d - 0.5, 0, 1) ** 1.5, 0, 1)[..., None]
-    return Image.fromarray((np.asarray(img.convert("RGB")).astype(float) * m).clip(0, 255).astype("uint8"))
+    rad = Image.radial_gradient("L").resize((w, h), Image.BICUBIC)   # 0 at the centre, 255 at the edge
+    ramp = rad.point(lambda v: int(255 * (1 - strength * min(max((v / 255 - 0.35) / 0.65, 0), 1) ** 1.5)))
+    return ImageChops.multiply(img.convert("RGB"), Image.merge("RGB", (ramp, ramp, ramp)))
 
 
 def grain(img: Image.Image, amount: float = 5.0, seed: int = 7) -> Image.Image:
-    n = np.random.default_rng(seed).normal(0, amount, (img.height, img.width, 1))
-    return Image.fromarray((np.asarray(img.convert("RGB")).astype(float) + n).clip(0, 255).astype("uint8"))
+    noise = Image.effect_noise(img.size, amount * 3)                   # grey around 128
+    noise = noise.point(lambda v: v)                                    # keep as L
+    rgb = img.convert("RGB")
+    lift = noise.point(lambda v: max(v - 128, 0) * 2)
+    drop = noise.point(lambda v: max(128 - v, 0) * 2)
+    lift3, drop3 = Image.merge("RGB", (lift,) * 3), Image.merge("RGB", (drop,) * 3)
+    return ImageChops.subtract(ImageChops.add(rgb, lift3), drop3)
 
 
 def shadow(canvas, cut, pos, dx, dy, steps, blur, alpha):
@@ -411,7 +425,7 @@ def _place_checked(canvas_bg, product, long_side, rot, cx, cy, protected, word_m
         ir = scaled(product.cutout, L, rot)
         pos = (int(CANVAS[0] * x - ir.width / 2), int(CANVAS[1] * cy - ir.height / 2))
         pm = mask_of(ir, pos)
-        in_canvas = float((np.asarray(pm) > 40).sum()) / max(float((np.asarray(mask_of(ir, (0, 0, ), (ir.width, ir.height))) > 40).sum()), 1.0)
+        in_canvas = _share(_on(pm)) * CANVAS[0] * CANVAS[1] / max(_share(_on(ir.split()[3])) * ir.width * ir.height, 1.0)
         word_vis = 1.0 - covered(word_mask, pm) if word_mask is not None else 1.0
         worst = max([rect_cover(pm, r) for r in protected] or [0.0])
         if word_vis >= word_min and worst <= CHECKS["caption_overlap_max"] and in_canvas >= inside_min:
@@ -517,6 +531,9 @@ def render_route(route: str, product: Product, plan: Plan, brand: str, backdrops
         ir, pos, c = _place_checked(bg, product, base_long, rot, cx, cy, [cap_rect, LOGO_RECT], nmask,
                                     CHECKS["word_visible_min"]["hero_number"], CHECKS["product_inside_min"]["hero_number"])
         checks.update(c)
+        checks["number_logo_overlap"] = round(rect_cover(nmask, LOGO_RECT), 3)
+        if checks["number_logo_overlap"] > 0.02:
+            raise LayoutFailed("the hero number runs under the logo")
         put(bg, nl, npos)
         shadow(bg, ir, pos, 36, 56, 6, 34, 0.4)
         put(bg, ir, pos)

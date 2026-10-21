@@ -4,8 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageStat
 
 from _lib import post_routes as pr
 
@@ -146,14 +145,14 @@ class LightCapTests(unittest.TestCase):
     def test_vignette_is_capped(self):
         flat = Image.new("RGB", (400, 400), (200, 200, 200))
         heavy = pr.soft_vignette(flat, 0.95)
-        corner = np.asarray(heavy)[0, 0].mean()
+        corner = sum(heavy.getpixel((0, 0))) / 3
         self.assertGreaterEqual(corner, 200 * (1 - pr.LIGHT_CAPS["vignette"]) - 2)
 
     def test_rim_light_is_capped(self):
         cv = Image.new("RGBA", (200, 200), (0, 0, 0, 255))
         cut = Image.new("RGBA", (60, 60), (255, 255, 255, 255))
         pr.rim(cv, cut, (70, 70), pr.WHITE, 10, 5.0)  # absurd request
-        self.assertLess(np.asarray(cv)[60, 60, :3].max(), 255 * pr.LIGHT_CAPS["rim_white"] + 30)
+        self.assertLess(max(cv.getpixel((60, 60))[:3]), 255 * pr.LIGHT_CAPS["rim_white"] + 30)
 
 
 class RenderTests(unittest.TestCase):
@@ -186,8 +185,9 @@ class RenderTests(unittest.TestCase):
             plan = pr.choose(p, self.ideas, self.backdrops, pr.RouteMemory(), 2)
             plan.route, plan.backdrop_id = "crop_word", 20
             img, _ = pr.render_route("crop_word", p, plan, "stick", self.tmp)
-            pill = np.asarray(img.convert("RGB").crop((64, 170, 330, 240))).astype(int)
-            teal = ((abs(pill[..., 0] - 0) < 40) & (abs(pill[..., 1] - 179) < 40) & (abs(pill[..., 2] - 186) < 40)).mean()
+            pill = img.convert("RGB").crop((64, 170, 330, 240))
+            px = list(pill.getdata())
+            teal = sum(1 for r, g, b in px if abs(r - 0) < 40 and abs(g - 179) < 40 and abs(b - 186) < 40) / len(px)
             self.assertEqual(teal > 0.15, expect)
 
     def test_hero_number_never_loses_a_character_off_the_edge(self):
@@ -200,11 +200,8 @@ class RenderTests(unittest.TestCase):
         p = product(model_number="DF3", category="putters")
         plan = pr.choose(p, self.ideas, self.backdrops, pr.RouteMemory(), 2)
         plan.route, plan.backdrop_id = "hero_number", 19
-        img, _ = pr.render_route("hero_number", p, plan, "stick", self.tmp)
-        logo_zone = np.asarray(img.convert("RGB").crop(pr.LOGO_RECT)).astype(int)
-        # the logo is navy or white on a plain field: the zone must not hold two competing dark/light shapes
-        lum = logo_zone.mean(axis=2)
-        self.assertLess(float(((lum < 70) | (lum > 200)).mean()), 0.45)
+        _, meta = pr.render_route("hero_number", p, plan, "stick", self.tmp)
+        self.assertLessEqual(meta["checks"]["number_logo_overlap"], 0.02)
 
     def test_wide_and_tall_products_both_pass(self):
         for cut in (fake_cutout(900, 300), fake_cutout(300, 900), fake_cutout(500, 500)):
