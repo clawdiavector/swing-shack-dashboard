@@ -1923,7 +1923,7 @@ export type GmbDraft = {
   link?: string
   imageUrl?: string
   brand?: string
-  status?: 'draft' | 'approved' | 'published'
+  status?: 'draft' | 'approved' | 'scheduled' | 'published'
   approvedAt?: string
   targetQuery?: string
   updatedAt?: string
