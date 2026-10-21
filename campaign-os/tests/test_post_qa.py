@@ -111,10 +111,18 @@ class StudioRulesTests(unittest.TestCase):
     def test_grounded_products_prefer_straight_on_sets(self):
         mem = pr.RouteMemory()
         rng = random.Random(1)
-        sets = ps.load_sets() + [{"id": 900, "file": "x.png", "base": 0.7, "cx": 0.5, "ink": "light", "light": "left",
-                                  "suits": ["balls"], "view": "front"}]
-        for _ in range(5):
+        base = dict(file="x.png", base=0.7, cx=0.5, ink="light", light="left", suits=["balls"])
+        sets = [dict(base, id=900, view="front"), dict(base, id=901, view="top"), dict(base, id=902, view="top")]
+        for _ in range(8):
             self.assertEqual(ps.pick_set(product(), mem, rng, sets)["id"], 900)
+
+    def test_a_levitating_product_may_use_any_view(self):
+        mem = pr.RouteMemory()
+        rng = random.Random(3)
+        base = dict(file="x.png", base=0.7, cx=0.5, ink="light", light="left", suits=["irons"])
+        sets = [dict(base, id=900, view="front"), dict(base, id=901, view="top")]
+        seen = {ps.pick_set(product(category="irons"), pr.RouteMemory(), random.Random(k), sets)["id"] for k in range(20)}
+        self.assertEqual(seen, {900, 901})
 
 
 if __name__ == "__main__":
