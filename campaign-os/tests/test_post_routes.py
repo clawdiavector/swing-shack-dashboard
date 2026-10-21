@@ -179,6 +179,23 @@ class RenderTests(unittest.TestCase):
         _, meta = pr.render_route("crop_word", product(), plan, "stick", self.tmp)
         self.assertGreaterEqual(meta["checks"]["word_visible"], pr.CHECKS["word_visible_min"]["crop_word"])
 
+    def test_new_in_pill_only_when_the_stock_list_says_new(self):
+        import re
+        for status, expect in ((None, False), ("new", True)):
+            p = product(stock_status=status)
+            plan = pr.choose(p, self.ideas, self.backdrops, pr.RouteMemory(), 2)
+            plan.route, plan.backdrop_id = "crop_word", 20
+            img, _ = pr.render_route("crop_word", p, plan, "stick", self.tmp)
+            pill = np.asarray(img.convert("RGB").crop((64, 170, 330, 240))).astype(int)
+            teal = ((abs(pill[..., 0] - 0) < 40) & (abs(pill[..., 1] - 179) < 40) & (abs(pill[..., 2] - 186) < 40)).mean()
+            self.assertEqual(teal > 0.15, expect)
+
+    def test_hero_number_never_loses_a_character_off_the_edge(self):
+        path, shear, _ = pr.display_font("stick")
+        for num in ("101U", "SF002", "OZ.1", "2.0", "DF3"):
+            s = pr.fit_size(num, int(pr.CANVAS[0] * pr.BLEED_MAX), path, shear, 1300)
+            self.assertLessEqual(pr.text_layer(num, s, pr.WHITE, path, shear).width, int(pr.CANVAS[0] * pr.BLEED_MAX) + 6)
+
     def test_wide_and_tall_products_both_pass(self):
         for cut in (fake_cutout(900, 300), fake_cutout(300, 900), fake_cutout(500, 500)):
             p = product(cutout=cut, category="other")

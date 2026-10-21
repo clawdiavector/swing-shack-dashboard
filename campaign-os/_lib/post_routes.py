@@ -40,6 +40,7 @@ LIGHT_CAPS = {
     "min_mean_luma": 38,    # whole post must not be crushed dark (0 to 255)
     "min_bg_luma": 30,      # the backdrop alone, before the product and words go on it
 }
+BLEED_MAX = 1.12  # a hero number may be at most 12 percent wider than the canvas
 CHECKS = {
     "word_visible_min": {"crop_word": 0.80, "hero_number": 0.60},
     "caption_overlap_max": 0.03,
@@ -463,7 +464,7 @@ def render_route(route: str, product: Product, plan: Plan, brand: str, backdrops
         rim(bg, ir, pos, WHITE, 10, 0.22)
         rim(bg, ir, pos, TEAL, 36, 0.16)
         put(bg, ir, pos)
-        kicker = "NEW IN" if plan.idea.get("category") == "New in" else None
+        kicker = "NEW IN" if product.stock_status == "new" else None  # only what the stock list backs up
         _kicker_and_caption(bg, kicker, cap_lines, light, path, 40, WHITE, H)
 
     elif route == "turf_shadow":
@@ -506,7 +507,7 @@ def render_route(route: str, product: Product, plan: Plan, brand: str, backdrops
         check_bg(bg)
         col = WHITE if dark else NAVY
         num = product.model_number
-        s = fit_size(num, 1560, path, shear, 1300)
+        s = fit_size(num, int(W * BLEED_MAX), path, shear, 1300)  # may bleed off the edge a little, never lose a character
         nl = text_layer(num, s, col, path, shear)
         npos = (-int(nl.width * 0.04), 40)
         nmask = mask_of(nl, npos)
