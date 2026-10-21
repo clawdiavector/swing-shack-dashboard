@@ -11,11 +11,13 @@ internal_links:
   - /membership/
   - /club-fitting/
   - /indoor-vs-outdoor-club-fitting/
+answered_by_christelle_2026_10_21:
+  - Clubs can be hired on request
+  - Walk-ins are welcome, but a bay cannot be guaranteed, so book online
+  - Parking is ample
+  - Old Parks and Old Parktonian are the same place; Randburg is in Johannesburg
 confirm_before_publishing:
-  - Street address and parking (not in the repo)
-  - Opening hours (not in the repo)
-  - Whether walk-ins are welcome or booking is required
-  - Whether clubs can be hired
+  - Opening hours once more (they come from the website's search data, Google Maps agreed for one day)
   - Photo of the bay to use as the lead image (use a real one, never a render)
 ---
 
@@ -47,7 +49,7 @@ You do not need to know any of these before you arrive. The numbers are there to
 ## What a first visit looks like
 
 1. **You book a session.** Sessions are 30 or 60 minutes. Book on the [bookings page](/bookings/).
-2. **You warm up in the bay.** Bring your own clubs. [CONFIRM: club hire.]
+2. **You warm up in the bay.** Bring your own clubs, or ask us to hire you a set.
 3. **You hit balls and watch the numbers.** The screen shows each shot. Ask what any number means, that is part of the point.
 4. **You leave with something specific.** One thing you now know about your swing that you did not know when you walked in.
 
@@ -74,7 +76,7 @@ If you plan to come back regularly, the [membership](/membership/) is built for 
 ## Questions people ask
 
 **Do I need my own clubs?**
-Bring them if you can, because the numbers describe your clubs and your swing. [CONFIRM: club hire.]
+Bring them if you can, because the numbers describe your clubs and your swing. If you do not have any, clubs can be hired on request.
 
 **Do I need to be good?**
 No. The data is useful at every handicap.
@@ -83,10 +85,10 @@ No. The data is useful at every handicap.
 30 or 60 minutes.
 
 **Where is Swing Shack?**
-[CONFIRM: full address, area and parking.] Swing Shack is in Randburg, Johannesburg.
+Swing Shack is at Old Parktonian Sports Club, 1 Garden Road, Bordeaux, Randburg, Johannesburg. There is ample parking. We are open Monday to Saturday from 07:00 to 21:00 and on Sunday from 09:00 to 18:00. [CONFIRM: hours once more, they come from the website's search data.]
 
 **How do I book?**
-Use the [bookings page](/bookings/).
+Use the [bookings page](/bookings/). Walk-ins are welcome, but we cannot guarantee a bay is free, so book online to be sure of your spot.
 
 ## Book a session
 
