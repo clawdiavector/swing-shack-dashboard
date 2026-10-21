@@ -15,7 +15,6 @@ confirm_before_publishing:
   - Coach names and credentials you are happy to publish
   - Lesson prices (never invent, link to the product page instead)
   - Whether juniors are coached
-  - Whether clubs can be hired
   - A real photo of a lesson in the bay
 ---
 
@@ -73,7 +72,7 @@ A [membership](/membership/) gives you the bay between lessons, so what you lear
 It depends on what you want to change. Your coach can give you an honest answer after the first session.
 
 **Do I bring clubs?**
-Yes if you have them. [CONFIRM: club hire.]
+Yes if you have them. If not, clubs can be hired on request.
 
 **Can I see what changed?**
 Yes. The numbers from the session are the record.

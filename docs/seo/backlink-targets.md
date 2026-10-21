@@ -11,9 +11,9 @@ Status: first list, 2026-10-20. Nothing here has been contacted or submitted.
 The profile exists and is managed by the owner: 4.9 stars from 35 reviews, 25 photos, owner replies to reviews and an owner post. It shows "Indoor golf course", 1 Garden Rd, Bordeaux, Johannesburg, 066 542 1522, swingshack.co.za, open until 9 pm that day. Google does not show a public "verified" label, so verification itself is not proven from outside, but owner posts and replies need a claimed profile. Things to fix before building more links on it:
 
 - **The 23 Sep owner post says Swing Shack is "right here in Linden".** The venue is in Bordeaux. It also says "Free swing analysis on first visit", which is a claim nobody has signed off.
-- **Postcode:** Google says 2196, the website's search data says 2194.
-- **Venue name:** the website's search data says "Old Parks Sports Club", the footer and Google say Old Parktonian.
-- **Locality:** Google says Johannesburg, the website's search data says Randburg.
+- **Postcode (still open):** Google says 2196, the website's search data says 2194.
+- **Venue name:** same place (Christelle confirmed), but the website's search data says "Old Parks Sports Club" while the footer and Google say Old Parktonian. Pick one spelling and use it everywhere, because directories match on the exact text.
+- **Area:** Randburg is in Johannesburg (Christelle confirmed). Use "Bordeaux, Randburg, Johannesburg" in listings so both searches match.
 
 A citation is only worth building if name, address and phone match everywhere, so settle these first.
 
@@ -62,6 +62,6 @@ Dealer or stockist pages are real backlinks. The site already has posts on all o
 
 ## What I need from you
 
-1. Which is right: postcode 2194 or 2196, Randburg or Johannesburg, Old Parks or Old Parktonian? (It sets the order of everything else.)
+1. Which postcode is right, 2194 or 2196? (The only name and address detail still open. It sets the order of everything else.)
 2. Are there brand contacts for Takomo, Vice, Miura or Fujimoto, Avoda and ClubLab, or should I find the SA distributor for each?
 3. Is anyone at Swing Shack willing to be quoted or to share anonymised TrackMan data for a press story?
