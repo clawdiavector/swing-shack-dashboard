@@ -169,7 +169,7 @@ def giant_word(canvas, word: str, style: str, y: int, width: int, colour, font_p
         if style == "outline":
             d.text((30, 0), word, font=ff, fill=(0, 0, 0, 0), stroke_width=max(8, size // 38), stroke_fill=tuple(colour) + (255,))
         else:
-            d.text((30, 0), word, font=ff, fill=tuple(colour) + ((90 if style == "tone" else 255),))
+            d.text((30, 0), word, font=ff, fill=tuple(colour) + ((125 if style == "tone" else 255),))
         if shear:
             lay = lay.transform(lay.size, Image.AFFINE, (1, shear, -shear * lay.height * 0.5, 0, 1, 0), Image.BICUBIC)
         box = lay.split()[3].point(lambda v: 255 if v > 30 else 0).getbbox()
@@ -282,7 +282,8 @@ def choose_caption(product: pr.Product, word: Optional[str], idea: dict) -> str:
     name = (product.display_name or product.name)
     if word and word.lower() in name.lower() and where:
         return where
-    if name.lower() in idea["line"].lower() and where:
+    first = name.split()[0].lower()
+    if first in idea["line"].lower() and where:
         return where
     return pr.caption_for(product)
 
@@ -304,7 +305,7 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
 
     style = word_style or rng.choice(["tone", "solid", "solid", "outline"])
     word = choose_word(product, idea, rng)
-    word_y = 150 + rng.randint(0, 110)
+    word_y = 215 + rng.randint(0, 100)   # clear of the logo
     wrect = (0, word_y, CW, word_y + 300)
     wcol = NAVY_INK if _stats(base_bg, wrect)[0] >= 135 else WHITE_INK
 
@@ -331,10 +332,12 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
         visible = 1.0 - pr.covered(wm, pm) if wm is not None else 1.0
         inside = pr._share(pr._on(pm)) * CW * CH / max(pr._share(pr._on(im.split()[3])) * im.width * im.height, 1.0)
         hz = _best_headline(base_bg, lines, hsize, disp, shear, pm, wbox, b_y)
-        if visible >= qa.WORD_VISIBLE_MIN and inside >= 0.9 and hz[5] <= qa.HEADLINE_OVERLAP_MAX:
+        if visible >= qa.WORD_VISIBLE_MIN and inside >= qa.INSIDE_MIN and hz[5] <= qa.HEADLINE_OVERLAP_MAX:
             placed = (im, px, py, visible, inside)
             break
         h *= 0.93
+        if h < height * qa.MIN_SCALE:
+            break   # a hero product must stay a hero: try another set instead of shrinking it away
     if not placed:
         raise pr.LayoutFailed("could not keep the word and the headline clear of the product")
     im, px, py, visible, inside = placed
@@ -354,8 +357,8 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
     else:
         # rests on the surface: cast shadow along the floor, occlusion where it touches
         floor_shadow(bg, im, (px, py), b_y, set_meta["light"])
-        _soft_ellipse(bg, foot_cx, b_y + 2, foot_w * 1.04, 16, 0.78, 5)
-        _soft_ellipse(bg, foot_cx, b_y + 4, foot_w * 1.3, 30, 0.38, 14)
+        _soft_ellipse(bg, foot_cx, b_y + 2, foot_w * 1.04, 18, 0.85, 5)
+        _soft_ellipse(bg, foot_cx, b_y + 5, foot_w * 1.4, 36, 0.5, 13)
     pr.put(bg, im, (px, py))
 
     # logo: top-left unless that corner is blocked or busy
@@ -384,7 +387,8 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
     if overlap > qa.HEADLINE_OVERLAP_MAX:
         raise pr.LayoutFailed("no calm zone for the headline (overlap %.2f)" % overlap)
     hcol = ink_for(bg, zrect)
-    _scrim(bg, zrect, hcol)
+    if abs(_stats(bg, zrect)[0] - (255 if hcol == WHITE_INK else 14)) < 125 or _stats(bg, zrect)[1] > 24:
+        _scrim(bg, zrect, hcol, 0.22)      # only where the surface is busy or mid-tone; never a visible haze
     yy = zy
     for ln in lines:
         lay = pr.text_layer(ln, size, hcol, disp, shear)

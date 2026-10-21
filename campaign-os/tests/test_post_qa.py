@@ -102,6 +102,22 @@ class StudioRulesTests(unittest.TestCase):
         _, meta = ps.render_studio(product(category="irons", name="Takomo"), idea, sm, self.tmp, "stick", 3)
         self.assertGreaterEqual(meta["checks"]["lift"], qa.LIFT_MIN)
 
+    def test_a_product_is_never_shrunk_below_hero_size(self):
+        sm = next(x for x in ps.load_sets() if x["id"] == 102)
+        # an absurdly long headline on a big product forces shrinking; the engine must refuse, not shrink to nothing
+        idea = {"id": 999, "line": "word " * 12, "requires": []}
+        big = product(category="bags", cutout=fake_cutout(900, 900))
+        try:
+            _, meta = ps.render_studio(big, idea, sm, self.tmp, "stick", 3)
+        except pr.LayoutFailed:
+            return
+        self.assertGreaterEqual(meta["checks"]["product_inside"], qa.INSIDE_MIN)
+
+    def test_the_product_is_never_cropped_by_the_canvas(self):
+        sm = next(x for x in ps.load_sets() if x["id"] == 102)
+        _, meta = ps.render_studio(product(), self.ideas[6], sm, self.tmp, "stick", 5)
+        self.assertGreaterEqual(meta["checks"]["product_inside"], qa.INSIDE_MIN)
+
     def test_a_rendered_post_has_at_most_three_text_items_and_passes_qa(self):
         sm = next(s for s in ps.load_sets() if s["id"] == 102)
         _, meta = ps.render_studio(product(), self.ideas[6], sm, self.tmp, "stick", 5)

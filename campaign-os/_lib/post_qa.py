@@ -16,7 +16,9 @@ from __future__ import annotations
 from typing import List
 
 LIFT_MIN = 100                 # px: below this a floating product looks like it is hovering by mistake
-WORD_VISIBLE_MIN = 0.78
+WORD_VISIBLE_MIN = 0.85
+INSIDE_MIN = 0.985             # the product is never cropped by the canvas edge
+MIN_SCALE = 0.72               # the product may shrink to make room, but not below this share of its size
 HEADLINE_OVERLAP_MAX = 0.03
 CONTRAST_MIN = 70              # text colour against the pixels behind it
 TEXT_BUDGET = 3

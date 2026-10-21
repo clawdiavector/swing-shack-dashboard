@@ -372,6 +372,23 @@
         "drivers",
         "gloves"
       ]
+    },
+    {
+      "id": 123,
+      "file": "V6-floor-sweep.png",
+      "note": "low camera, pale warm-grey floor and wall, window light from the right",
+      "base": 0.78,
+      "cx": 0.5,
+      "ink": "dark",
+      "light": "right",
+      "view": "floor",
+      "suits": [
+        "bags",
+        "other",
+        "balls",
+        "apparel",
+        "putters"
+      ]
     }
   ]
 }
