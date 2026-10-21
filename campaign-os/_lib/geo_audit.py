@@ -126,12 +126,16 @@ def _wp_request(brand: str, method: str, path: str,
     if status == 0:
         return {"ok": False, "code": "WP_UNREACHABLE", "http": 0, "url": url,
                 "note": "Could not connect to WP REST. Manual approval required."}
-    try:
-        parsed = json.loads(data)
-    except Exception:
-        parsed = {"raw": data[:500]}
+    # _http already parses JSON bodies; only a non-JSON body arrives as text.
+    if isinstance(data, (dict, list)):
+        parsed = data
+    else:
+        try:
+            parsed = json.loads(data)
+        except Exception:
+            parsed = {"raw": str(data)[:500]}
     return {"ok": status in (200, 201), "http": status, "url": url,
-            "data": parsed, "raw": data[:500]}
+            "data": parsed, "raw": str(data)[:500]}
 
 
 # ── HTML parsing helpers ──────────────────────────────────────────────────────
