@@ -17,6 +17,7 @@ from typing import List
 
 LIFT_MIN = 100                 # px: below this a floating product looks like it is hovering by mistake
 WORD_VISIBLE_MIN = 0.85
+LETTER_VISIBLE_MIN = 0.55      # no single letter of the giant word may be mostly hidden
 INSIDE_MIN = 0.985             # the product is never cropped by the canvas edge
 MIN_SCALE = 0.72               # the product may shrink to make room, but not below this share of its size
 HEADLINE_OVERLAP_MAX = 0.03
@@ -45,6 +46,8 @@ def check_post(meta: dict, product_name: str, texts: List[str]) -> List[str]:
         problems.append("text budget: %d pieces of text (max %d)" % (c.get("text_items", 0), TEXT_BUDGET))
     if c.get("word_visible", 1.0) < WORD_VISIBLE_MIN:
         problems.append("word: giant word only %.0f%% visible" % (100 * c.get("word_visible", 0)))
+    if c.get("word_min_letter", 1.0) < LETTER_VISIBLE_MIN:
+        problems.append("word: a letter is %.0f%% hidden" % (100 * (1 - c.get("word_min_letter", 0))))
     if c.get("headline_overlap", 0) > HEADLINE_OVERLAP_MAX:
         problems.append("headline: overlaps the product or the word")
     if c.get("headline_contrast", 255) < CONTRAST_MIN:

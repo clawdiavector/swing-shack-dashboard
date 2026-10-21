@@ -143,14 +143,14 @@ def _base_width(im: Image.Image) -> int:
 def floor_shadow(canvas, im, pos, base_y, light, length=1.0):
     """Cast the product's silhouette onto the floor: flattened, sheared away from the light, soft."""
     a = im.split()[3]
-    flat_h = max(8, int(a.height * 0.16))
+    flat_h = max(8, int(a.height * 0.2))
     flat = a.resize((a.width, flat_h), Image.BICUBIC)
     shear = 0.9 * length * (1 if light == "left" else -1)
     flat = flat.transform((a.width + int(abs(shear) * flat_h), flat_h), Image.AFFINE,
                           (1, shear, 0 if shear > 0 else abs(shear) * flat_h, 0, 1, 0), Image.BICUBIC)
     m = Image.new("L", canvas.size, 0)
     m.paste(flat, (pos[0], int(base_y - flat_h * 0.55)))
-    m = m.filter(ImageFilter.GaussianBlur(11)).point(lambda v: int(v * 0.42))
+    m = m.filter(ImageFilter.GaussianBlur(9)).point(lambda v: int(v * 0.58))
     lay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     lay.putalpha(m)
     canvas.alpha_composite(lay)
@@ -159,7 +159,7 @@ def floor_shadow(canvas, im, pos, base_y, light, length=1.0):
 # ---------------------------------------------------------------- design elements
 
 def giant_word(canvas, word: str, style: str, y: int, width: int, colour, font_path: str, shear: float):
-    """A huge word behind the product. Never wider than the canvas. Returns (mask, bbox)."""
+    """A huge word behind the product. Never wider than the canvas. Returns (mask, bbox, letter cells)."""
     probe = ImageFont.truetype(font_path, 900)
     size = int(900 * width / max(probe.getbbox(word)[2], 1))
     for _ in range(4):
@@ -184,7 +184,12 @@ def giant_word(canvas, word: str, style: str, y: int, width: int, colour, font_p
     pr.put(canvas, lay, pos)
     m = Image.new("L", canvas.size, 0)
     m.paste(lay.split()[3].point(lambda v: 255 if v > 30 else 0), pos)
-    return m, (pos[0], pos[1], pos[0] + lay.width, pos[1] + lay.height)
+    ff = ImageFont.truetype(font_path, size)
+    adv = [ff.getlength(word[:k]) for k in range(len(word) + 1)]
+    total = max(adv[-1], 1)
+    cells = [(pos[0] + int(lay.width * adv[k] / total), pos[0] + int(lay.width * adv[k + 1] / total))
+             for k, ch in enumerate(word) if ch.strip()]
+    return m, (pos[0], pos[1], pos[0] + lay.width, pos[1] + lay.height), cells
 
 
 def _badge(canvas, text, cx, cy, font_path, d=190, rot=-12):
@@ -245,7 +250,7 @@ def _headline_zone(bg, lines, size, font_path, shear, pmask, wbox, avoid=(), bas
     for name, y in options.items():
         rect = (100, y, 100 + w + 10, y + block_h)
         _, tex = _stats(bg, rect)
-        over_word = _rect_overlap(rect, wbox) if wbox else 0.0
+        over_word = _rect_overlap(rect, (wbox[0] - 40, wbox[1] - 40, wbox[2] + 40, wbox[3] + 40)) if wbox else 0.0   # keep a 40px gap
         over_other = max([_rect_overlap(rect, a) for a in avoid] or [0.0])
         score = 14 * pr.rect_cover(pmask, rect) + 14 * over_word + 14 * over_other + tex / 30.0 + (0.15 if name == "upper" else 0)
         if best is None or score < best[0]:
@@ -328,22 +333,23 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
         py = int(b_y - im.height - lift)
         pm = pr.mask_of(im, (px, py))
         probe = base_bg.copy()
-        wm, wbox = (giant_word(probe, word, style, word_y, int(CW * 0.9), wcol, disp, shear) if word else (None, None))
+        wm, wbox, cells = (giant_word(probe, word, style, word_y, int(CW * 0.9), wcol, disp, shear) if word else (None, None, []))
         visible = 1.0 - pr.covered(wm, pm) if wm is not None else 1.0
+        letter_min = min([1.0 - pr.covered(wm, pm, (x0, wbox[1], x1, wbox[3])) for x0, x1 in cells] or [1.0])
         inside = pr._share(pr._on(pm)) * CW * CH / max(pr._share(pr._on(im.split()[3])) * im.width * im.height, 1.0)
         hz = _best_headline(base_bg, lines, hsize, disp, shear, pm, wbox, b_y)
-        if visible >= qa.WORD_VISIBLE_MIN and inside >= qa.INSIDE_MIN and hz[5] <= qa.HEADLINE_OVERLAP_MAX:
-            placed = (im, px, py, visible, inside)
+        if visible >= qa.WORD_VISIBLE_MIN and letter_min >= qa.LETTER_VISIBLE_MIN and inside >= qa.INSIDE_MIN and hz[5] <= qa.HEADLINE_OVERLAP_MAX:
+            placed = (im, px, py, visible, inside, letter_min)
             break
         h *= 0.93
         if h < height * qa.MIN_SCALE:
             break   # a hero product must stay a hero: try another set instead of shrinking it away
     if not placed:
         raise pr.LayoutFailed("could not keep the word and the headline clear of the product")
-    im, px, py, visible, inside = placed
+    im, px, py, visible, inside, letter_min = placed
 
     bg = base_bg.copy()
-    wm, wbox = (giant_word(bg, word, style, word_y, int(CW * 0.9), wcol, disp, shear) if word else (None, None))
+    wm, wbox, _cells = (giant_word(bg, word, style, word_y, int(CW * 0.9), wcol, disp, shear) if word else (None, None, []))
     foot_w = _base_width(im)
     foot_cx = px + im.width / 2
     if product.category in WALL_HUNG:
@@ -378,7 +384,7 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
     logo = Image.open(pr.brand_dir(brand) / "logos" / name).convert("RGBA").resize((lw, lh), Image.LANCZOS)
     pr.put(bg, logo, (lx, ly))
 
-    checks = {"word_visible": round(visible, 3), "product_inside": round(inside, 3), "bg_luma": round(bg_luma, 1),
+    checks = {"word_visible": round(visible, 3), "word_min_letter": round(letter_min, 3), "product_inside": round(inside, 3), "bg_luma": round(bg_luma, 1),
               "lift": lift, "grounded": lift == 0}
     text_items = 1 if word else 0
 

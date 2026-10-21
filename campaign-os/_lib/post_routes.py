@@ -588,7 +588,7 @@ def render_post(product: Product, ideas: List[dict], backdrops: List[dict], memo
         from _lib import post_studio as ps
         rng_s = random.Random(seed + 7)
         skip: set = set()
-        for attempt in range(3):
+        for attempt in range(6):   # try several sets before giving the studio route up
             try:
                 sm = ps.pick_set(product, memory, rng_s, exclude=skip)
                 skip.add(sm["id"])

@@ -72,9 +72,31 @@ class StudioRulesTests(unittest.TestCase):
         disp, shear, _ = pr.display_font("stick")
         for word in ("CALLAWAY", "PSYCHO BUNNY", "HERSCHEL", "SF002", "OZ.1", "G1"):
             canvas = Image.new("RGBA", pr.CANVAS, (0, 0, 0, 255))
-            _, (x0, y0, x1, y1) = ps.giant_word(canvas, word, "solid", 200, int(pr.CANVAS[0] * 0.9), (255, 255, 255), disp, shear)
+            _, (x0, y0, x1, y1), _cells = ps.giant_word(canvas, word, "solid", 200, int(pr.CANVAS[0] * 0.9), (255, 255, 255), disp, shear)
             self.assertGreaterEqual(x0, 0, word)
             self.assertLessEqual(x1, pr.CANVAS[0], word)
+
+    def test_a_hidden_letter_is_a_fail(self):
+        base = {"lift": 0, "word_visible": 0.9, "word_min_letter": 0.3, "headline_overlap": 0.0, "headline_contrast": 150, "mean_luma": 120, "text_items": 2}
+        self.assertTrue(any("letter" in p for p in qa.check_post({"checks": base}, "T", ["x"])))
+
+    def test_every_letter_of_a_rendered_word_is_mostly_visible(self):
+        sm = next(x for x in ps.load_sets() if x["id"] == 102)
+        for seed in (1, 2, 3, 4):
+            try:
+                _, meta = ps.render_studio(product(name="Takomo", model_number="101U"), self.ideas[6], sm, self.tmp, "stick", seed)
+            except pr.LayoutFailed:
+                continue
+            self.assertGreaterEqual(meta["checks"]["word_min_letter"], qa.LETTER_VISIBLE_MIN)
+
+    def test_headline_keeps_a_gap_from_the_giant_word(self):
+        sm = next(x for x in ps.load_sets() if x["id"] == 102)
+        for seed in (1, 2, 3):
+            try:
+                _, meta = ps.render_studio(product(), self.ideas[6], sm, self.tmp, "stick", seed)
+            except pr.LayoutFailed:
+                continue
+            self.assertLessEqual(meta["checks"]["headline_overlap"], qa.HEADLINE_OVERLAP_MAX)
 
     def test_a_word_the_headline_already_says_is_not_used(self):
         idea = {"id": 1, "line": "Take a look at Callaway.", "requires": []}
