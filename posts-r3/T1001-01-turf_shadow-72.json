@@ -1,0 +1,22 @@
+{
+ "sku": "T1001",
+ "route": "turf_shadow",
+ "backdrop_id": 27,
+ "seed": 20261021,
+ "idea_id": 72,
+ "idea_line": "For the golfer who has everything. Except this.",
+ "caption": "Takomo. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 62.0,
+  "word_visible": 1.0,
+  "text_overlap": 0.0,
+  "product_inside": 1.0,
+  "mean_luma": 71.3
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

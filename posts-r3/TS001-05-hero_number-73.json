@@ -1,0 +1,22 @@
+{
+ "sku": "TS001",
+ "route": "hero_number",
+ "backdrop_id": 19,
+ "seed": 20261025,
+ "idea_id": 73,
+ "idea_line": "Tee up a present.",
+ "caption": "Takomo SF002. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 111.4,
+  "word_visible": 0.973,
+  "text_overlap": 0.0,
+  "product_inside": 1.0,
+  "mean_luma": 133.4
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

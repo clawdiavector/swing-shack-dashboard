@@ -1,0 +1,22 @@
+{
+ "sku": "HWLSB001",
+ "route": "crop_word",
+ "backdrop_id": 23,
+ "seed": 20261031,
+ "idea_id": 72,
+ "idea_line": "For the golfer who has everything. Except this.",
+ "caption": "Herschel stand bag. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 102.6,
+  "word_visible": 1.0,
+  "text_overlap": 0.005,
+  "product_inside": 0.982,
+  "mean_luma": 96.3
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

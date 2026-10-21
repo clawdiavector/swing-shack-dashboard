@@ -1,0 +1,22 @@
+{
+ "sku": "LOS001",
+ "route": "hero_number",
+ "backdrop_id": 6,
+ "seed": 20261032,
+ "idea_id": 57,
+ "idea_line": "Right or left hand.",
+ "caption": "L.A.B. Golf OZ.1. In store, Paarl.",
+ "standin_font": true,
+ "logo": "navy",
+ "checks": {
+  "bg_luma": 166.7,
+  "word_visible": 1.0,
+  "text_overlap": 0.003,
+  "product_inside": 1.0,
+  "mean_luma": 121.8
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

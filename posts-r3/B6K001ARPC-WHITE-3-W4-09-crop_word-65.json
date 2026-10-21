@@ -1,0 +1,22 @@
+{
+ "sku": "B6K001ARPC-WHITE-3-W4",
+ "route": "crop_word",
+ "backdrop_id": 17,
+ "seed": 20261029,
+ "idea_id": 65,
+ "idea_line": "Wear it on and off the course.",
+ "caption": "Psycho Bunny polo. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 48.9,
+  "word_visible": 1.0,
+  "text_overlap": 0.011,
+  "product_inside": 1.0,
+  "mean_luma": 86.9
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}

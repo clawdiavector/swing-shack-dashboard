@@ -1,0 +1,23 @@
+{
+ "sku": "LDSB001",
+ "route": "hero_number",
+ "backdrop_id": 18,
+ "seed": 20261023,
+ "idea_id": 60,
+ "idea_line": "Check the numbers. Then check them again.",
+ "caption": "L.A.B. Golf DF3. In store, Paarl.",
+ "standin_font": true,
+ "logo": "navy",
+ "checks": {
+  "bg_luma": 170.2,
+  "word_visible": 1.0,
+  "text_overlap": 0.006,
+  "product_inside": 1.0,
+  "mean_luma": 132.7
+ },
+ "confirm_before_posting": [
+  "in_stock",
+  "tone_check"
+ ],
+ "tried_first": []
+}

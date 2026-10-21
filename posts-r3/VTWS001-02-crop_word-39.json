@@ -1,0 +1,23 @@
+{
+ "sku": "VTWS001",
+ "route": "crop_word",
+ "backdrop_id": 3,
+ "seed": 20261022,
+ "idea_id": 39,
+ "idea_line": "It is not obsessive if it is gear.",
+ "caption": "Vice Tour. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 43.3,
+  "word_visible": 0.993,
+  "text_overlap": 0.0,
+  "product_inside": 0.985,
+  "mean_luma": 63.3
+ },
+ "confirm_before_posting": [
+  "in_stock",
+  "tone_check"
+ ],
+ "tried_first": []
+}

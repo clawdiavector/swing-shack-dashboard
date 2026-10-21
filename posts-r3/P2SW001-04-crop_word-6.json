@@ -1,0 +1,22 @@
+{
+ "sku": "P2SW001",
+ "route": "crop_word",
+ "backdrop_id": 20,
+ "seed": 20261024,
+ "idea_id": 6,
+ "idea_line": "Take a look. Take it home.",
+ "caption": "Vessel Prime 2.0. In store, Paarl.",
+ "standin_font": true,
+ "logo": "white",
+ "checks": {
+  "bg_luma": 54.7,
+  "word_visible": 1.0,
+  "text_overlap": 0.01,
+  "product_inside": 1.0,
+  "mean_luma": 87.1
+ },
+ "confirm_before_posting": [
+  "in_stock"
+ ],
+ "tried_first": []
+}
