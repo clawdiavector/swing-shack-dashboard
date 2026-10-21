@@ -1171,7 +1171,8 @@ def _render_html(bid: str, v24: dict, organic: Dict[str, Any],
     sections.append(_render_website_traffic_table(v24))
     sections.append(_render_acquisition(v24, primary, accent))
     sections.append(_render_advertising(v24, primary, accent,
-                                          ads_brief=_read_ads_brief(bid, as_of)))
+                                          ads_brief=_read_ads_brief(bid, as_of),
+                                          ads_extras=_read_ads_extras(bid, as_of)))
     sections.append(_render_website_pages(v24))
     sections.append(_render_seo(seo, seo_kw, primary, bid))
     sections.append(_render_geo(bid, primary))
@@ -2043,8 +2044,211 @@ def _ads_brief_markdown(brief: Optional[dict]) -> List[str]:
     return L
 
 
+
+# ── ads: money, performance, tracking and changes (from the daily ads job) ─────────────────────────────────────
+
+_ADS_EXTRAS_MAX_AGE_DAYS = 8
+_CHANGE_LABEL = {
+    "pause_adset": "Paused ad set", "pause_ad": "Paused ad", "set_end_date": "Set an end date",
+    "set_adset_budget": "Changed daily budget", "set_url_tags": "Added UTM tags", "rename_ad": "Renamed ad",
+    "rename_adset": "Renamed ad set", "rename_campaign": "Renamed campaign", "set_spend_cap": "Meta spending limit",
+}
+
+
+def _read_ads_extras(bid: str, as_of: Optional[str] = None) -> Optional[dict]:
+    """What the daily ads job and the dashboard's changes left for this brand: month budget, per-ad performance,
+    tracking health, and the changes made in the last 7 days. None for a historical report or when there is nothing."""
+    if as_of:
+        return None
+    try:
+        from _lib.jobs.layer1._io import data_dir
+        from _lib import ads_budget, ads_guard
+    except Exception:
+        return None
+    lane = data_dir() / "brands" / bid
+
+    def load(rel):
+        try:
+            return json.loads((lane / rel).read_text(encoding="utf-8"))
+        except Exception:
+            return None
+
+    today = datetime.date.today()
+    tracking = load("ads-tracking/latest.json")
+    if tracking:
+        try:
+            age = (today - datetime.date.fromisoformat(tracking["date"])).days
+        except Exception:
+            age = 99
+        if age > _ADS_EXTRAS_MAX_AGE_DAYS or tracking.get("brand_id") != bid:
+            tracking = None
+    settings, figures = load("ads-budget/settings.json") or {}, load("ads-budget/figures.json")
+    budget = ads_budget.evaluate(figures, settings.get("monthly_budget")) if figures else None
+    entries = (load("ads-actions/log.json") or {}).get("entries") or []
+    cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)).isoformat()
+    changes = [e for e in entries if str(e.get("at") or "") >= cutoff]
+    if not (tracking or budget or changes):
+        return None
+    return {"tracking": tracking, "budget": budget, "changes": changes[-40:],
+            "guard_on": bool(settings.get("auto_pause")), "paused_now": len(ads_guard.guarded(entries))}
+
+
+def _money0(x) -> str:
+    return "—" if x is None else f"R{x:,.0f}"
+
+
+def _ad_note(row: dict, brand_cpl) -> str:
+    """One plain-words reading of an ad, or ''. Same rules as the Trends page."""
+    p = row.get("perf") or {}
+    sessions = row.get("ga_sessions") or 0
+    if p.get("cost_per_lead") is not None and brand_cpl is not None and (p.get("leads") or 0) >= 5:
+        return ("Cheaper than the brand's average lead." if p["cost_per_lead"] <= brand_cpl
+                else "Dearer than the brand's average lead.")
+    eng = p.get("engaged_pct")
+    if eng is not None and sessions >= 50 and eng < 30:
+        return f"Only {eng:g}% of visitors stayed. The page it lands on is the likely problem."
+    if eng is not None and sessions >= 50 and eng >= 55:
+        return f"{eng:g}% of visitors engaged: the page holds people."
+    if p.get("key_events") == 0 and sessions >= 50:
+        return "No enquiry recorded from these visits yet (counting started 21 Oct)."
+    return ""
+
+
+def _ad_result_bits(row: dict) -> List[str]:
+    p = row.get("perf") or {}
+    bits = [f"Spent {_money0(row.get('spend'))}"]
+    if p.get("leads"):
+        bits.append(f"{p['leads']} leads at {_money0(p.get('cost_per_lead'))}")
+    elif p.get("messages"):
+        bits.append(f"{p['messages']} chats at {_money0(p.get('cost_per_message'))}")
+    if p.get("cost_per_session") is not None:
+        bits.append(f"{row.get('ga_sessions', 0):,} visits at {_money0(p['cost_per_session'])}")
+        bits.append(f"{p.get('engaged_pct', 0):g}% engaged")
+        bits.append(f"{p.get('key_events') or 0} enquiries")
+    return bits
+
+
+def _ads_extras_lines(x: Optional[dict]) -> dict:
+    """The report's ads extras as plain data, shared by the HTML and the markdown."""
+    if not x:
+        return {}
+    out: dict = {}
+    b = x.get("budget")
+    if b:
+        out["budget"] = {"headline": b.get("headline"), "status": b.get("status"),
+                         "cells": [("Budget", _money0(b.get("budget")) if b.get("budget") else "not set"),
+                                   ("Spent so far", _money0(b.get("mtd_spend"))),
+                                   ("Expected by month end", _money0(b.get("projected_total"))),
+                                   ("Left", _money0(b.get("left")) if b.get("left") is not None else "—")]}
+        out["guard"] = ("Hard stop is ON: the hourly check pauses the brand's ad sets when the budget is used up."
+                        if x.get("guard_on") else "Hard stop is OFF: the budget only warns.")
+        if x.get("paused_now"):
+            out["guard"] += f" {x['paused_now']} ad set(s) are paused by it right now."
+    t = x.get("tracking")
+    if t:
+        tot = t.get("totals") or {}
+        rows = sorted(t.get("ads") or [], key=lambda r: -(r.get("spend") or 0))[:6]
+        brand_cpl = tot.get("cost_per_lead")
+        out["performance"] = {
+            "headline": (f"{_money0(tot.get('spend'))} spent in 31 days"
+                         + (f"; {tot['leads']} leads at {_money0(tot.get('cost_per_lead'))}" if tot.get("leads") else "")
+                         + (f"; website visits (Google Analytics, 28 days): {tot['ga_sessions']:,} at "
+                            f"{_money0(tot.get('cost_per_session'))}, {tot.get('ga_engaged_pct') or 0:g}% engaged, "
+                            f"{tot.get('ga_key_events') or 0} enquiries" if tot.get("ga_sessions") else "") + "."),
+            "ads": [{"name": r.get("ad_name"), "campaign": r.get("campaign"), "bits": _ad_result_bits(r),
+                     "note": _ad_note(r, brand_cpl)} for r in rows],
+        }
+        s = t.get("summary") or {}
+        out["tracking"] = (
+            f"{s.get('website_ads', 0)} ad(s) send people to the website; {s.get('website_with_complete_utm', 0)} carry "
+            f"complete UTM tags. Google Analytics saw {s.get('ga_paid_sessions') or 0:,} paid visits and "
+            f"{s.get('ga_matched') or 0:,} match a current ad, because Meta's own tagging carries the ad id. "
+            f"{s.get('never_reach_site', 0)} ad(s) (lead forms and chats) never reach the site and are measured in Meta.")
+    ch = x.get("changes") or []
+    if ch:
+        out["changes"] = [f"{_CHANGE_LABEL.get(e.get('kind'), e.get('kind'))}: {e.get('ad_name') or e.get('ad_id')}"
+                          + (f" ({e.get('before')} → {e.get('after')})" if e.get("kind", "").startswith(("rename_", "set_adset_budget")) else "")
+                          + (" (undone)" if e.get("undone_at") else "") for e in ch[-12:]]
+        out["changes_total"] = len(ch)
+    return out
+
+
+def _render_ads_extras(x: Optional[dict]) -> str:
+    d = _ads_extras_lines(x)
+    if not d:
+        return ""
+    html = ""
+    if d.get("budget"):
+        b = d["budget"]
+        cells = "".join(f"<div class='ad-cell'><div class='label'>{_esc(l)}</div><div class='value'>{_esc(v)}</div></div>"
+                        for l, v in b["cells"])
+        html += f"""
+  <div class="ad-group">
+    <h3>The month's ad budget</h3>
+    <p class="lead">{_esc(b.get('headline'))}</p>
+    <div class="ad-summary">{cells}</div>
+    <p>{_esc(d.get('guard'))}</p>
+  </div>"""
+    if d.get("performance"):
+        pf = d["performance"]
+        cards = ""
+        for a in pf["ads"]:
+            note = f'<div class="watch">{_esc(a["note"])}</div>' if a.get("note") else ""
+            cards += f"""
+        <div class="campaign-card">
+          <div class="campaign-name">{_esc(a.get('name'))}</div>
+          <div class="why">{_esc(a.get('campaign'))}</div>
+          <div class="what">{_esc(' · '.join(a['bits']))}</div>
+          {note}
+        </div>"""
+        html += f"""
+  <div class="ad-group">
+    <h3>How each ad performed</h3>
+    <p class="lead">{_esc(pf['headline'])}</p>
+    <div class="campaign-list">{cards}</div>
+    <p>{_esc(d.get('tracking'))}</p>
+  </div>"""
+    if d.get("changes"):
+        items = "".join(f"<li>{_esc(c)}</li>" for c in d["changes"])
+        more = d["changes_total"] - len(d["changes"])
+        tail = f"<p>and {more} more.</p>" if more > 0 else ""
+        html += f"""
+  <div class="ad-group">
+    <h3>Changes made to the ads this week</h3>
+    <p class="lead">Each is logged and can be put back from the Trends page.</p>
+    <ul>{items}</ul>{tail}
+  </div>"""
+    return html
+
+
+def _ads_extras_markdown(x: Optional[dict]) -> List[str]:
+    d = _ads_extras_lines(x)
+    if not d:
+        return []
+    L: List[str] = []
+    if d.get("budget"):
+        b = d["budget"]
+        L += ["### The month's ad budget", str(b.get("headline") or ""), ""]
+        L += [f"- {l}: {v}" for l, v in b["cells"]] + [f"- {d.get('guard')}", ""]
+    if d.get("performance"):
+        pf = d["performance"]
+        L += ["### How each ad performed", pf["headline"], ""]
+        for a in pf["ads"]:
+            L.append(f"- **{a.get('name')}** ({a.get('campaign')}): " + " · ".join(a["bits"])
+                     + (f". {a['note']}" if a.get("note") else ""))
+        L += ["", str(d.get("tracking")), ""]
+    if d.get("changes"):
+        L += ["### Changes made to the ads this week", "Each is logged and can be put back from the Trends page.", ""]
+        L += [f"- {c}" for c in d["changes"]]
+        more = d["changes_total"] - len(d["changes"])
+        if more > 0:
+            L.append(f"- and {more} more.")
+        L.append("")
+    return L
+
+
 def _render_advertising(v24: dict, primary: str, accent: str,
-                          ads_brief: Optional[dict] = None) -> str:
+                          ads_brief: Optional[dict] = None, ads_extras: Optional[dict] = None) -> str:
     pm = v24.get("paid_media_v24") or {}
     if (pm.get("data_status") or "").upper() != "LIVE":
         return f"""
@@ -2142,6 +2346,7 @@ def _render_advertising(v24: dict, primary: str, accent: str,
   <div class="ad-summary">{summary_html}</div>
   {groups_html}
   {_render_ads_brief(ads_brief)}
+  {_render_ads_extras(ads_extras)}
 </section>
 """
 
@@ -3011,6 +3216,7 @@ def _render_markdown(bid: str, v24: dict, organic: Dict[str, Any],
         L.append("")
     if (pm.get("data_status") or "").upper() == "LIVE":
         L.extend(_ads_brief_markdown(_read_ads_brief(bid, as_of)))
+        L.extend(_ads_extras_markdown(_read_ads_extras(bid, as_of)))
     L.append("## Website pages")
     L.append("")
     L.append("| Page | This week | Last week | Change | Engagement |")
