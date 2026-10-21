@@ -69,6 +69,31 @@ def _host(url) -> str | None:
     return urllib.parse.urlparse(url if "://" in url else "https://" + url).hostname
 
 
+def performance(ad: dict, seen: dict | None, kind: str) -> dict:
+    """One ad's results in one place: Meta's spend and outcomes, Google Analytics' visits and what they did.
+
+    Nothing here is guessed. A figure that cannot exist (cost per visit for an ad nobody visited, GA4 numbers for a
+    lead-form ad) is None, never zero, so a table never says "R0" for something unknown.
+    """
+    cur = ad.get("current") or {}
+    spend = float(cur.get("spend") or 0)
+    leads, messages = int(cur.get("leads") or 0), int(cur.get("messages") or 0)
+    sessions = (seen or {}).get("sessions", 0)
+    engaged = (seen or {}).get("engaged", 0)
+    on_site = kind in ("WEBSITE", "UNKNOWN") and sessions > 0
+    clicks = int(cur.get("link_clicks") or 0)
+    return {
+        "impressions": int(cur.get("impressions") or 0), "leads": leads, "messages": messages,
+        "cost_per_lead": round(spend / leads, 2) if leads else None,
+        "cost_per_message": round(spend / messages, 2) if messages else None,
+        "cost_per_session": round(spend / sessions, 2) if on_site else None,
+        "engaged_pct": round(100 * engaged / sessions, 1) if on_site else None,
+        # Clicks Meta counted that never became a Google Analytics visit (slow page, bounced early, blockers).
+        "click_to_session_pct": round(100 * sessions / clicks, 1) if on_site and clicks else None,
+        "key_events": (seen or {}).get("key_events", 0) if on_site else None,
+    }
+
+
 def audit_ad(ad: dict, tags: dict, ga: dict, flexible: set | None = None) -> dict:
     """One ad's tracking picture. ``tags`` is {ad_id: url_tags}; ``ga`` is {ad_id: {...sessions}}."""
     dest = ad.get("destination") or {}
@@ -106,20 +131,24 @@ def audit_ad(ad: dict, tags: dict, ga: dict, flexible: set | None = None) -> dic
         "current_tags": tags.get(ad["ad_id"]) or "",
         "tags_fixable": ad["ad_id"] not in (flexible or set()),
         "ga_sessions": (seen or {}).get("sessions", 0), "ga_engaged": (seen or {}).get("engaged", 0),
+        "ga_key_events": (seen or {}).get("key_events", 0),
         "spend": (ad.get("current") or {}).get("spend", 0),
         "link_clicks": (ad.get("current") or {}).get("link_clicks", 0),
         "landing_page_views": (ad.get("current") or {}).get("landing_page_views", 0),
+        "perf": performance(ad, seen, kind),
     }
 
 
 def join_ga(rows: list[list], ad_ids: set[str]) -> tuple[dict, dict]:
-    """Join GA4 rows to ads on the Meta ad id. Rows are [source, medium, campaign, content, sessions, engaged].
+    """Join GA4 rows to ads on the Meta ad id. Rows are [source, medium, campaign, content, sessions, engaged,
+    (key events)].
 
     Returns ({ad_id: {sessions, engaged}}, {"paid_sessions", "matched", "unmatched"}).
     """
     by_ad, paid, matched = {}, 0, 0
-    for src, med, camp, content, sessions, engaged in rows:
+    for src, med, camp, content, sessions, engaged, *rest in rows:
         s, e = int(float(sessions or 0)), int(float(engaged or 0))
+        k = int(float(rest[0] or 0)) if rest else 0
         is_paid = med.lower() in PAID_MEDIUMS
         if not is_paid:
             continue
@@ -129,6 +158,8 @@ def join_ga(rows: list[list], ad_ids: set[str]) -> tuple[dict, dict]:
             cur = by_ad.setdefault(hit, {"sessions": 0, "engaged": 0})
             cur["sessions"] += s
             cur["engaged"] += e
+            if rest:  # only rows that carry the key-events column add it
+                cur["key_events"] = cur.get("key_events", 0) + k
             matched += s
     return by_ad, {"paid_sessions": paid, "matched": matched, "unmatched": paid - matched}
 
@@ -189,11 +220,29 @@ def ga4_rows(brand_id: str, days: int = 28) -> tuple[list[list], str | None]:
             property=f"properties/{prop}",
             dimensions=[Dimension(name=d) for d in ("sessionSource", "sessionMedium", "sessionCampaignName",
                                                     "sessionManualAdContent")],
-            metrics=[Metric(name="sessions"), Metric(name="engagedSessions")],
+            metrics=[Metric(name="sessions"), Metric(name="engagedSessions"), Metric(name="keyEvents")],
             date_ranges=[DateRange(start_date=f"{days}daysAgo", end_date="today")], limit=500))
         return [[v.value for v in r.dimension_values] + [v.value for v in r.metric_values] for r in resp.rows], None
     except Exception as exc:  # the ads brief never depends on this
         return [], f"{type(exc).__name__}: {str(exc)[:160]}"
+
+
+def performance_totals(rows: list[dict]) -> dict:
+    """Whole-brand numbers for the table header and the weekly report, from the per-ad rows."""
+    spend = sum(r["spend"] or 0 for r in rows)
+    leads = sum(r["perf"]["leads"] for r in rows)
+    messages = sum(r["perf"]["messages"] for r in rows)
+    site = [r for r in rows if r["perf"]["cost_per_session"] is not None]
+    sessions = sum(r["ga_sessions"] for r in site)
+    engaged = sum(r["ga_engaged"] for r in site)
+    return {
+        "spend": round(spend, 2), "leads": leads, "messages": messages,
+        "cost_per_lead": round(sum(r["spend"] for r in rows if r["perf"]["leads"]) / leads, 2) if leads else None,
+        "ga_sessions": sessions, "ga_engaged_pct": round(100 * engaged / sessions, 1) if sessions else None,
+        "ga_key_events": sum(r["ga_key_events"] for r in site),
+        "site_spend": round(sum(r["spend"] for r in site), 2),
+        "cost_per_session": round(sum(r["spend"] for r in site) / sessions, 2) if sessions else None,
+    }
 
 
 def build(brand_id: str, ads: list[dict], tags: dict, ga_rows: list[list], *, today: _dt.date,
@@ -213,4 +262,5 @@ def build(brand_id: str, ads: list[dict], tags: dict, ga_rows: list[list], *, to
         seen[key] = seen.get(key, 0) + 1
         row["proposal"] = ads_naming.proposed(ad, brand_id, today, version=seen[key])
     return {"schema": SCHEMA, "brand_id": brand_id, "date": today.isoformat(), "ga_days": 28,
-            "summary": summarise(audited, totals), "ads": audited, "errors": list(errors or [])[:3]}
+            "summary": summarise(audited, totals), "totals": performance_totals(audited), "ads": audited,
+            "errors": list(errors or [])[:3]}
