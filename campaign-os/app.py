@@ -28748,6 +28748,58 @@ def seo_fix_queue_get():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+def _seo_publish_brand():
+    """Validated ?brand=/body brand for the meta-publish routes, or an error response."""
+    from _lib import seo_fix_queue
+    body = request.get_json(silent=True) or {}
+    brand = (request.args.get('brand') or body.get('brand') or '').strip()
+    if not brand:
+        return None, (jsonify({"ok": False, "error": "brand is required"}), 400)
+    if brand not in seo_fix_queue.QUEUE_BRANDS:
+        return None, (jsonify({"ok": False, "error": f"no SEO publishing for brand {brand!r}",
+                               "supported": list(seo_fix_queue.QUEUE_BRANDS)}), 400)
+    return brand, None
+
+
+@app.route('/api/seo/meta-publish', methods=['GET'])
+def seo_meta_publish_get():
+    """Automatic meta-description publishing: the current switch and the change log."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_meta_publish
+        from _lib.jobs.layer1._io import io_for_job
+        brand, err = _seo_publish_brand()
+        if err:
+            return err
+        log = seo_meta_publish.load_log(io_for_job("site_audit", brand))
+        return jsonify({"ok": True, "mode": seo_meta_publish.mode(),
+                        "entries": list(reversed(log["entries"]))[:30]}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/meta-publish/undo', methods=['POST'])
+def seo_meta_publish_undo():
+    """Put an automatic meta-description change back. Body: {brand, id}."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_meta_publish
+        from _lib.jobs.layer1._io import io_for_job, utc_now_iso
+        brand, err = _seo_publish_brand()
+        if err:
+            return err
+        entry_id = str((request.get_json(silent=True) or {}).get('id') or '').strip()
+        if not entry_id:
+            return jsonify({"ok": False, "error": "id is required"}), 400
+        result = seo_meta_publish.undo(io_for_job("site_audit", brand), brand, entry_id,
+                                       seo_meta_publish.default_wp(brand), utc_now_iso())
+        return jsonify(result), (200 if result.get("ok") else 409)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/seo/keywords/<category>', methods=['GET'])
 def seo_keywords_category(category):
     """winning | leaking | missing | quick_wins"""

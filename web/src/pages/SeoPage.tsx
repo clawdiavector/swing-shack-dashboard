@@ -5,6 +5,7 @@ import { PageIntro } from '../components/chrome'
 import { Badge, StatCard } from '../components/ui'
 import { getJson } from '../lib/api'
 import { fixLabel, groupFixes, type SeoFix, type SeoFixQueue } from '../lib/seoFixQueue'
+import { canUndo, modeNote, statusLabel, type MetaChange, type PublishMode } from '../lib/seoMetaPublish'
 
 // Shape of GET /api/seo/insights (campaign-os/app.py seo_insights_full).
 // The endpoint has no brand parameter and reads swingshack.co.za data only,
@@ -164,6 +165,90 @@ function FixesWaiting({ queue }: { queue: SeoFixQueue | null }) {
   )
 }
 
+const CHANGE_TONE = { applied: 'green', dry_run: 'blue', undone: 'mute', failed: 'red' } as const
+
+// Search descriptions the system wrote (or, in practice mode, would write), each with an undo.
+function AutoChanges() {
+  const [mode, setMode] = useState<PublishMode>('off')
+  const [entries, setEntries] = useState<MetaChange[]>([])
+  const [busy, setBusy] = useState<string | null>(null)
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const load = useCallback(() => {
+    return getJson<{ ok: boolean; mode?: PublishMode; entries?: MetaChange[] }>('/api/seo/meta-publish?brand=swing-shack')
+      .then((r) => {
+        if (r.ok) {
+          setMode(r.mode ?? 'off')
+          setEntries(r.entries ?? [])
+        }
+      })
+      .catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  async function undo(id: string) {
+    setBusy(id)
+    setNote(null)
+    try {
+      // Read the body on errors too: the reason (for example "edited since") is in it.
+      const res = await fetch('/api/seo/meta-publish/undo', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand: 'swing-shack', id }),
+      })
+      const r = (await res.json().catch(() => ({ ok: false }))) as { ok: boolean; error?: string }
+      setNote(r.ok ? { ok: true, text: 'Put back the way it was.' } : { ok: false, text: r.error || 'Could not undo' })
+      await load()
+    } catch (e: unknown) {
+      setNote({ ok: false, text: e instanceof Error ? e.message : 'Could not undo' })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
+      <h2 className="font-display text-lg font-semibold">
+        Changed automatically <span className="text-sm text-tx3">({entries.length})</span>
+      </h2>
+      <p className="mt-1 text-sm text-tx3">{modeNote(mode)}</p>
+      {entries.length === 0 ? (
+        <p className="mt-4 text-sm text-tx3">Nothing yet.</p>
+      ) : (
+        <ul className="mt-3">
+          {entries.map((c) => (
+            <li key={c.id} className="border-t border-white/5 py-2 text-sm first:border-t-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone={CHANGE_TONE[c.status] ?? 'mute'}>{statusLabel(c)}</Badge>
+                <span className="font-semibold text-tx">Search description on {c.page}</span>
+                <span className="text-tx3">{c.at.slice(0, 10)}</span>
+                {canUndo(c) ? (
+                  <button
+                    type="button"
+                    onClick={() => void undo(c.id)}
+                    disabled={busy === c.id}
+                    className="glass-pill ml-auto rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-tx hover:border-ac hover:text-ac disabled:opacity-60"
+                  >
+                    {busy === c.id ? 'Undoing…' : 'Undo'}
+                  </button>
+                ) : null}
+              </div>
+              <p className="mt-1 text-tx2">{c.after}</p>
+              <p className="mt-1 text-xs text-tx3">Before: {c.before || 'nothing (it was empty)'}</p>
+              {c.error ? <p className="mt-1 text-xs text-red">{c.error}</p> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+      {note ? <p className={`mt-3 text-sm ${note.ok ? 'text-ac' : 'text-red'}`}>{note.text}</p> : null}
+    </section>
+  )
+}
+
 export function SeoPage() {
   const { brandId, brandLabel } = useBrand()
   const [data, setData] = useState<SeoInsights | null>(null)
@@ -301,6 +386,8 @@ export function SeoPage() {
           </section>
 
           <FixesWaiting queue={queue} />
+
+          <AutoChanges />
 
           <KeywordTable title="Winning" read="Top 10 or moved up this period." rows={data.winning} />
           <KeywordTable title="Quick wins" read="Close to page one; a small push may move them." rows={data.quick_wins} />
