@@ -1923,7 +1923,7 @@ export type GmbDraft = {
   link?: string
   imageUrl?: string
   brand?: string
-  status?: 'draft' | 'approved' | 'published'
+  status?: 'draft' | 'approved' | 'scheduled' | 'published'
   approvedAt?: string
   targetQuery?: string
   updatedAt?: string
@@ -2104,6 +2104,13 @@ export type GbpPending = {
   post: GbpPendingPost | null
   reason?: string
   integration_error?: string | null
+  /** Shown when no post is approved: the unapproved draft that should go out next. */
+  suggestion?: {
+    post: GbpPendingPost | null
+    why?: string
+    ready_count: number
+    blocked_count: number
+  } | null
 }
 
 export type GbpActionResult = {

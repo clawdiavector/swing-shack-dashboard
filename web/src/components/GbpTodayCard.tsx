@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchGbpPending, publishGbpPending, skipGbpPending, type GbpActionResult, type GbpPending } from '../lib/api'
+import {
+  approveGmbDraft,
+  fetchGbpPending,
+  publishGbpPending,
+  skipGbpPending,
+  type GbpActionResult,
+  type GbpPending,
+} from '../lib/api'
 
 const ghost = 'rounded-full border border-white/15 px-4 py-2 text-sm font-semibold hover:border-ac disabled:opacity-50'
 const primary = 'rounded-full bg-yel px-4 py-2 text-sm font-semibold text-bg hover:bg-yel/90 disabled:opacity-50'
@@ -21,6 +28,7 @@ export function GbpTodayCard({ brandId }: { brandId: string }) {
   const [data, setData] = useState<GbpPending | null>(null)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  const [photoOk, setPhotoOk] = useState(false)
 
   const load = useCallback(() => {
     fetchGbpPending(brandId)
@@ -36,6 +44,7 @@ export function GbpTodayCard({ brandId }: { brandId: string }) {
   }, [load])
 
   const post = data?.post ?? null
+  const suggestion = !post ? (data?.suggestion?.post ?? null) : null
   const name = data?.display_name ?? brandId
 
   async function publish() {
@@ -50,6 +59,28 @@ export function GbpTodayCard({ brandId }: { brandId: string }) {
       setMsg(e instanceof Error ? e.message : 'Send failed')
     } finally {
       setBusy(false)
+      load()
+    }
+  }
+
+  async function approveAndPublish() {
+    if (!suggestion?.draft_id) return
+    if (!window.confirm(`Approve this draft and publish it to Google Business Profile for ${name}? It goes out live.`)) return
+    setBusy(true)
+    setMsg('')
+    try {
+      const ok = await approveGmbDraft(suggestion.draft_id, true)
+      if (!ok.ok) {
+        setMsg(`Not approved: ${ok.problems?.join(', ') ?? ok.error ?? 'check the draft on the Google Business Profile page'}`)
+        return
+      }
+      const res = await publishGbpPending(brandId, suggestion.draft_id)
+      setMsg(res.ok ? 'Sent to Google Business Profile.' : `Approved but not sent: ${describe(res)}`)
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Send failed')
+    } finally {
+      setBusy(false)
+      setPhotoOk(false)
       load()
     }
   }
@@ -74,7 +105,38 @@ export function GbpTodayCard({ brandId }: { brandId: string }) {
       <h2 className="mb-3 font-display text-xl font-semibold">Google Business post</h2>
       <div className="glass rounded-2xl border border-white/10 p-4">
         <p className="text-xs text-tx3">{name}</p>
-        {!post ? (
+        {!post && suggestion ? (
+          <>
+            <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-tx3">Suggested to go out</p>
+            {data?.suggestion?.why ? <p className="mt-1 text-sm text-tx2">{data.suggestion.why}</p> : null}
+            {suggestion.photo_url ? (
+              <img
+                src={suggestion.photo_url}
+                alt="Photo for the suggested post"
+                loading="lazy"
+                className="mt-3 h-40 w-auto rounded-xl border border-white/10 object-cover"
+              />
+            ) : null}
+            <p className="mt-3 font-medium">{suggestion.title}</p>
+            <p className="mt-1 whitespace-pre-line text-sm">{suggestion.body}</p>
+            <p className="mt-2 text-sm">
+              {suggestion.cta}
+              {suggestion.cta_url ? ` · ${suggestion.cta_url}` : ''}
+            </p>
+            <label className="mt-3 flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={photoOk} onChange={(e) => setPhotoOk(e.target.checked)} />
+              The photo shows what the text says
+            </label>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button type="button" className={primary} disabled={busy || !photoOk} onClick={approveAndPublish}>
+                Approve and publish (live)
+              </button>
+              {(data?.suggestion?.ready_count ?? 0) > 1 ? (
+                <span className="text-xs text-tx3">{(data?.suggestion?.ready_count ?? 1) - 1} more ready on the Google Business Profile page</span>
+              ) : null}
+            </div>
+          </>
+        ) : !post ? (
           <p className="mt-2 text-sm text-tx3">
             {REASON[data?.reason ?? ''] ?? (data ? 'Nothing waiting.' : 'Loading...')}
           </p>
