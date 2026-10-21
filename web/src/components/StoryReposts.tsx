@@ -116,7 +116,7 @@ export function StoryReposts({
   const doneRows = done.filter(keep)
   const ideaRows = ideas.filter((i) => !brandIds?.length || brandIds.includes(i.brand))
 
-  async function mark(id: string, status: 'open' | 'done', at?: { x: number; y: number }) {
+  async function mark(id: string, status: 'open' | 'done' | 'removed', at?: { x: number; y: number }) {
     if (status === 'done') {
       if (at) burstConfetti(at.x, at.y, 45)
       setLeaving(id)
@@ -275,9 +275,10 @@ export function StoryReposts({
                   <button
                     type="button"
                     onClick={() => addFound(c.brand, c)}
+                    title="Saves it to your list below. You still share it from Instagram."
                     className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-tx2 hover:border-ac hover:text-ac"
                   >
-                    <Plus className="h-3 w-3" /> Add
+                    <Plus className="h-3 w-3" /> Save
                   </button>
                   <button
                     type="button"
@@ -329,6 +330,15 @@ export function StoryReposts({
             >
               <CheckCircle2 className="h-4 w-4" />
               Shared
+            </button>
+            <button
+              type="button"
+              onClick={() => void mark(r.id, 'removed')}
+              aria-label="Remove from list"
+              className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-tx3 hover:text-tx"
+            >
+              <X className="h-3.5 w-3.5" />
+              Remove
             </button>
           </li>
         ))}

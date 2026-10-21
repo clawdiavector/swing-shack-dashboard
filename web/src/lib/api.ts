@@ -2459,7 +2459,7 @@ export function fetchStoryReposts() {
   return getJson<StoryRepostList>('/api/stories')
 }
 
-export function setStoryRepostStatus(id: string, status: 'open' | 'done') {
+export function setStoryRepostStatus(id: string, status: 'open' | 'done' | 'removed') {
   return postJson<{ ok: boolean }>(`/api/stories/${encodeURIComponent(id)}/${status}`, {})
 }
 
