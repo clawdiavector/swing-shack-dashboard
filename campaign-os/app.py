@@ -53734,6 +53734,60 @@ def meta_ads_pause(brand_id):
     return jsonify({"ok": True, "action": entry}), 200
 
 
+def _ads_ticket_routes_body(brand_id, preview_fn):
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        out = preview_fn(c, body)
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    return jsonify({"ok": True, "preview": out}), 200
+
+
+def _ads_apply_ticket(brand_id):
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        entry = c["aa"].apply(brand_id, body.get("ticket") or "", graph=c["graph"], token=c["token"],
+                              account_id=c["account_id"], signer=c["signer"], read=c["read"], write=c["write"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    _app_log.warning("ads action: %s on %s for %s (%s)", entry["kind"], entry["ad_id"], brand_id, entry["id"])
+    return jsonify({"ok": True, "action": entry}), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/rename/preview", methods=["POST"])
+def meta_ads_rename_preview(brand_id):
+    """POST {kind: ad|adset|campaign, id, name} — what renaming would change. Reads only."""
+    return _ads_ticket_routes_body(brand_id, lambda c, b: c["aa"].preview_rename(
+        brand_id, b.get("kind"), b.get("id"), b.get("name"), graph=c["graph"], token=c["token"],
+        account_id=c["account_id"], signer=c["signer"]))
+
+
+@app.route("/api/meta/ads/<brand_id>/rename", methods=["POST"])
+def meta_ads_rename(brand_id):
+    """POST {ticket} — rename what the preview named, and log it."""
+    return _ads_apply_ticket(brand_id)
+
+
+@app.route("/api/meta/ads/<brand_id>/tags/preview", methods=["POST"])
+def meta_ads_tags_preview(brand_id):
+    """POST {ad_id, url_tags} — what adding UTM parameters to the ad would change. Reads only."""
+    return _ads_ticket_routes_body(brand_id, lambda c, b: c["aa"].preview_tags(
+        brand_id, b.get("ad_id"), b.get("url_tags"), graph=c["graph"], token=c["token"],
+        account_id=c["account_id"], signer=c["signer"]))
+
+
+@app.route("/api/meta/ads/<brand_id>/tags", methods=["POST"])
+def meta_ads_tags(brand_id):
+    """POST {ticket} — add the UTM parameters the preview named, and log it."""
+    return _ads_apply_ticket(brand_id)
+
+
 @app.route("/api/meta/ads/<brand_id>/budget-change/preview", methods=["POST"])
 def meta_ads_budget_change_preview(brand_id):
     """POST {ad_id | adset_id, pct | daily_budget} — what changing an ad set's daily budget would do. Reads only."""

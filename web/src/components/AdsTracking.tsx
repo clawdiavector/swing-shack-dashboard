@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getJson } from '../lib/api'
+import { Approve } from './AdsApprove'
 import { Note } from './AdsTrends'
 import { Badge } from './ui'
 
@@ -18,7 +19,14 @@ type TrackedAd = {
   ga_sessions: number
   spend: number
   link_clicks: number
+  ids?: { campaign?: string | null; adset?: string | null }
+  names?: { ad?: string | null; adset?: string | null; campaign?: string | null }
+  current_tags?: string
+  proposal?: { ad_name: string; adset_name: string; campaign_name: string; url_tags: string }
 }
+
+type RenamePreview = { object: string; before: string; after: string; ticket: string }
+type TagsPreview = { ad_name?: string; before: string; after: string; warning?: string; ticket: string }
 
 export type Tracking = {
   date?: string
@@ -50,7 +58,66 @@ const WHERE: Record<TrackedAd['destination'], string> = {
   UNKNOWN: 'Unknown',
 }
 
-export function TrackingView({ t }: { t: Tracking }) {
+function Fixes({ brandId, a }: { brandId: string; a: TrackedAd }) {
+  const p = a.proposal
+  if (!p) return null
+  const renames = [
+    { object: 'ad', id: a.ad_id, now: a.names?.ad, to: p.ad_name, label: 'Rename ad' },
+    { object: 'adset', id: a.ids?.adset, now: a.names?.adset, to: p.adset_name, label: 'Rename ad set' },
+    { object: 'campaign', id: a.ids?.campaign, now: a.names?.campaign, to: p.campaign_name, label: 'Rename campaign' },
+  ].filter((r) => r.id && r.now !== r.to)
+  const needsTags = a.destination === 'WEBSITE' && (a.current_tags ?? '') !== p.url_tags
+  if (!renames.length && !needsTags) return <p className="mt-1 text-xs text-ac">Named and tagged to the standard.</p>
+  return (
+    <div className="mt-2 space-y-2">
+      {renames.map((r) => (
+        <div key={r.object} className="flex flex-wrap items-center gap-2 text-xs text-tx2">
+          <span>
+            {r.object}: <span className="text-tx3">{r.now}</span> → <span className="font-semibold text-tx">{r.to}</span>
+          </span>
+          <Approve<RenamePreview>
+            brandId={brandId}
+            label={r.label}
+            previewPath="rename/preview"
+            applyPath="rename"
+            body={{ kind: r.object, id: r.id, name: r.to }}
+            describe={(pv) => (
+              <p>
+                Rename the {pv.object} <span className="font-semibold">{pv.before}</span> to{' '}
+                <span className="font-semibold">{pv.after}</span>? Renaming does not touch delivery.
+              </p>
+            )}
+            doneText={(pv) => `Renamed to ${pv.after}.`}
+          />
+        </div>
+      ))}
+      {needsTags ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-tx2">
+          <span>
+            UTM tags: <span className="text-tx3">{a.current_tags || 'none'}</span> → <span className="break-all font-semibold text-tx">{p.url_tags}</span>
+          </span>
+          <Approve<TagsPreview>
+            brandId={brandId}
+            label="Add standard UTM tags"
+            previewPath="tags/preview"
+            applyPath="tags"
+            body={{ ad_id: a.ad_id, url_tags: p.url_tags }}
+            describe={(pv) => (
+              <p>
+                Add these URL parameters to <span className="font-semibold">{pv.ad_name}</span>:{' '}
+                <span className="break-all font-semibold">{pv.after}</span>
+              </p>
+            )}
+            warning={(pv) => pv.warning}
+            doneText={() => 'UTM tags added.'}
+          />
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+export function TrackingView({ t, brandId, canChange = false }: { t: Tracking; brandId?: string; canChange?: boolean }) {
   const s = t.summary
   return (
     <div className="space-y-3">
@@ -88,6 +155,7 @@ export function TrackingView({ t }: { t: Tracking }) {
                 {n}
               </p>
             ))}
+            {canChange && brandId ? <Fixes brandId={brandId} a={a} /> : null}
           </li>
         ))}
       </ul>
@@ -99,6 +167,7 @@ export function TrackingView({ t }: { t: Tracking }) {
 export function AdsTracking({ brandId }: { brandId: string }) {
   const [t, setT] = useState<Tracking | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [writes, setWrites] = useState(false)
 
   useEffect(() => {
     setT(null)
@@ -106,9 +175,12 @@ export function AdsTracking({ brandId }: { brandId: string }) {
     getJson<{ tracking: Tracking }>(`/api/meta/ads/${brandId}/tracking`)
       .then((r) => setT(r.tracking))
       .catch((e: Error) => setError(e.message))
+    getJson<{ enabled?: boolean }>(`/api/meta/ads/${brandId}/write-status`)
+      .then((r) => setWrites(!!r.enabled))
+      .catch(() => setWrites(false))
   }, [brandId])
 
   if (error) return <Note>No tracking check yet ({error}). It is written each day by the ads brief job.</Note>
   if (!t) return <div className="h-24 animate-pulse rounded-2xl bg-bg3" />
-  return <TrackingView t={t} />
+  return <TrackingView t={t} brandId={brandId} canChange={writes} />
 }

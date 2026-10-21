@@ -144,6 +144,12 @@ def apply(brand_id: str, ticket: str, *, graph, token: str, account_id: str, sig
         raise ActionRefused("That confirmation has expired. Open the preview again.", 400) from None
     if t.get("b") != brand_id:
         raise ActionRefused("That confirmation is for a different brand.", 403)
+    if t.get("k") == "rename":
+        return _apply_rename(brand_id, t, graph=graph, token=token, account_id=account_id,
+                             read=read, write=write, by=by)
+    if t.get("k") == "tags":
+        return _apply_tags(brand_id, t, graph=graph, token=token, account_id=account_id,
+                           read=read, write=write, by=by)
     if t.get("k") == "budget":
         return _apply_budget(brand_id, t, graph=graph, token=token, account_id=account_id,
                              read=read, write=write, by=by)
@@ -180,6 +186,12 @@ def undo(brand_id: str, action_id: str, *, graph, token: str, account_id: str,
         raise ActionRefused("No such change.", 404)
     if entry.get("undone_at"):
         raise ActionRefused("That change was already undone.", 409)
+    if entry.get("kind", "").startswith("rename_"):
+        return _undo_rename(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
+                            write=write, by=by)
+    if entry.get("kind") == "set_url_tags":
+        return _undo_tags(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
+                          write=write, by=by)
     if entry.get("kind") == "set_adset_budget":
         return _undo_budget(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
                             write=write, by=by)
@@ -394,6 +406,150 @@ def _undo_budget(brand_id, entries, entry, *, graph, token, account_id, write, b
     res = graph("POST", str(a["id"]), token, {"daily_budget": str(int(round(entry["before"] * 100)))})
     if not res.get("success"):
         raise ActionRefused("Meta did not confirm putting the budget back. Check Ads Manager.", 502)
+    entry["undone_at"] = _now()
+    entry["undone_by"] = by
+    _save(brand_id, entries, write)
+    return entry
+
+
+# ── rename (an ad, an ad set or a campaign) ─────────────────────────────────
+
+RENAMEABLE = ("ad", "adset", "campaign")
+
+
+def _read_named(graph, token: str, account_id: str, obj_id) -> dict:
+    obj_id = _valid_ad_id(obj_id)
+    o = graph("GET", obj_id, token, {"fields": "id,name,account_id"})
+    if f"act_{o.get('account_id')}" != account_id:
+        raise ActionRefused("That does not belong to this brand's ad account.", 403)
+    return o
+
+
+def preview_rename(brand_id: str, kind: str, obj_id, new_name, *, graph, token: str, account_id: str, signer) -> dict:
+    """What renaming would change. Reads only. Renaming does not touch delivery."""
+    from . import ads_naming
+    if kind not in RENAMEABLE:
+        raise ActionRefused("kind must be ad, adset or campaign.")
+    try:
+        name = ads_naming.valid_name(new_name)
+    except ValueError as e:
+        raise ActionRefused(str(e)) from None
+    o = _read_named(graph, token, account_id, obj_id)
+    if o.get("name") == name:
+        raise ActionRefused("It already has that name.")
+    ticket = signer.dumps({"k": "rename", "b": brand_id, "kind": kind, "id": str(o["id"]),
+                           "before": o.get("name"), "after": name})
+    return {"kind": f"rename_{kind}", "object": kind, "id": str(o["id"]), "before": o.get("name"), "after": name,
+            "ticket": ticket, "ticket_valid_minutes": TICKET_MAX_AGE // 60, "writes_enabled": writes_enabled()}
+
+
+def _apply_rename(brand_id, t, *, graph, token, account_id, read, write, by) -> dict:
+    o = _read_named(graph, token, account_id, t["id"])
+    if o.get("name") != t["before"]:
+        raise ActionRefused("The name changed since you looked. Open the preview again.", 409)
+    res = graph("POST", str(o["id"]), token, {"name": t["after"]})
+    if not res.get("success"):
+        raise ActionRefused("Meta did not confirm the new name. Check Ads Manager.", 502)
+    entry = {"id": uuid.uuid4().hex[:12], "at": _now(), "by": by, "kind": f"rename_{t['kind']}",
+             "ad_id": str(o["id"]), "ad_name": t["after"], "before": t["before"], "after": t["after"], "undone_at": None}
+    entries = load_log(brand_id, read)
+    entries.append(entry)
+    _save(brand_id, entries, write)
+    return entry
+
+
+def _undo_rename(brand_id, entries, entry, *, graph, token, account_id, write, by) -> dict:
+    o = _read_named(graph, token, account_id, entry["ad_id"])
+    if o.get("name") != entry["after"]:
+        raise ActionRefused("The name is no longer the one we set, so it was changed somewhere else. "
+                            "Check Ads Manager.", 409)
+    res = graph("POST", str(o["id"]), token, {"name": entry["before"]})
+    if not res.get("success"):
+        raise ActionRefused("Meta did not confirm putting the name back. Check Ads Manager.", 502)
+    entry["undone_at"] = _now()
+    entry["undone_by"] = by
+    _save(brand_id, entries, write)
+    return entry
+
+
+# ── set_url_tags (UTM parameters on an ad's link) ───────────────────────────
+
+_TAG_FIELDS = ("id,name,account_id,creative{id,name,url_tags,object_story_id,effective_object_story_id,"
+               "object_story_spec,asset_feed_spec}")
+
+
+def _creative_payload(creative: dict, tags: str, ad_name: str) -> dict:
+    """The new creative: the same content as the old one, with the URL parameters added. Meta will not edit a
+    creative in place; the ad is pointed at the copy, and the old creative stays for Undo."""
+    if creative.get("asset_feed_spec"):
+        raise ActionRefused("This ad uses flexible (dynamic) creative, which cannot be copied here. "
+                            "Add the URL parameters in Ads Manager.")
+    name = f"{ad_name} (utm)"[:100]
+    if creative.get("object_story_spec"):
+        return {"name": name, "object_story_spec": creative["object_story_spec"], "url_tags": tags}
+    story = creative.get("object_story_id") or creative.get("effective_object_story_id")
+    if story:
+        return {"name": name, "object_story_id": story, "url_tags": tags}
+    raise ActionRefused("This ad's creative has neither a post nor a story spec to copy.")
+
+
+def preview_tags(brand_id: str, ad_id, url_tags, *, graph, token: str, account_id: str, signer) -> dict:
+    """What adding these URL parameters to the ad would change. Reads only. Warns that it swaps the creative."""
+    from . import ads_naming
+    try:
+        tags = ads_naming.valid_tags(url_tags)
+    except ValueError as e:
+        raise ActionRefused(str(e)) from None
+    ad_id = _valid_ad_id(ad_id)
+    ad = graph("GET", ad_id, token, {"fields": _TAG_FIELDS})
+    _check_ad(ad, ad_id, account_id)
+    c = ad.get("creative") or {}
+    if (c.get("url_tags") or "") == tags:
+        raise ActionRefused("The ad already has those URL parameters.")
+    _creative_payload(c, tags, ad.get("name") or ad_id)  # refuses what cannot be copied, before anyone approves
+    ticket = signer.dumps({"k": "tags", "b": brand_id, "ad": ad_id, "creative": str(c.get("id")),
+                           "before": c.get("url_tags") or "", "after": tags})
+    return {"kind": "set_url_tags", "ad_id": ad_id, "ad_name": ad.get("name"), "before": c.get("url_tags") or "",
+            "after": tags, "ticket": ticket, "ticket_valid_minutes": TICKET_MAX_AGE // 60,
+            "warning": "Meta makes a copy of the ad's creative with these parameters and points the ad at it. The ad "
+                       "goes back through Meta's review and its learning starts again.",
+            "writes_enabled": writes_enabled()}
+
+
+def _apply_tags(brand_id, t, *, graph, token, account_id, read, write, by) -> dict:
+    ad_id = _valid_ad_id(t["ad"])
+    ad = graph("GET", ad_id, token, {"fields": _TAG_FIELDS})
+    _check_ad(ad, ad_id, account_id)
+    c = ad.get("creative") or {}
+    if str(c.get("id")) != t["creative"]:
+        raise ActionRefused("The ad's creative changed since you looked. Open the preview again.", 409)
+    payload = _creative_payload(c, t["after"], ad.get("name") or ad_id)
+    made = graph("POST", f"{account_id}/adcreatives", token,
+                 {k: (json.dumps(v) if isinstance(v, (dict, list)) else v) for k, v in payload.items()})
+    new_id = made.get("id")
+    if not new_id:
+        raise ActionRefused("Meta did not create the new creative. Nothing was changed.", 502)
+    res = graph("POST", ad_id, token, {"creative": json.dumps({"creative_id": str(new_id)})})
+    if not res.get("success"):
+        raise ActionRefused("Meta made the copy but would not point the ad at it. The ad is unchanged.", 502)
+    entry = {"id": uuid.uuid4().hex[:12], "at": _now(), "by": by, "kind": "set_url_tags", "ad_id": ad_id,
+             "ad_name": ad.get("name"), "before": t["before"], "after": t["after"],
+             "creative_before": t["creative"], "creative_after": str(new_id), "undone_at": None}
+    entries = load_log(brand_id, read)
+    entries.append(entry)
+    _save(brand_id, entries, write)
+    return entry
+
+
+def _undo_tags(brand_id, entries, entry, *, graph, token, account_id, write, by) -> dict:
+    ad = graph("GET", entry["ad_id"], token, {"fields": "id,account_id,creative{id}"})
+    _check_ad(ad, entry["ad_id"], account_id)
+    if str((ad.get("creative") or {}).get("id")) != entry["creative_after"]:
+        raise ActionRefused("The ad's creative is no longer the one we made, so it was changed somewhere else. "
+                            "Check Ads Manager.", 409)
+    res = graph("POST", entry["ad_id"], token, {"creative": json.dumps({"creative_id": entry["creative_before"]})})
+    if not res.get("success"):
+        raise ActionRefused("Meta did not confirm putting the old creative back. Check Ads Manager.", 502)
     entry["undone_at"] = _now()
     entry["undone_by"] = by
     _save(brand_id, entries, write)
