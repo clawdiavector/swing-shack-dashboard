@@ -11,13 +11,15 @@
       "name": "Christelle",
       "role": "Marketing. Runs Campaign OS day to day: posts, brands, content.",
       "email": "clawdia001@agentmail.to",
-      "tell_them": "New skills, templates, frameworks, plugin updates, wiki pages and anything marketing related that changed."
+      "tell_them": "New skills, templates, frameworks, plugin updates, wiki pages and anything marketing related that changed.",
+      "notify_email": "christellew@fivefriday.com"
     },
     "herman": {
       "name": "Herman",
-      "role": "",
-      "email": "",
-      "tell_them": ""
+      "role": "CEO",
+      "email": "therealclawdius@agentmail.to",
+      "tell_them": "Releases, decisions needed, client-facing changes, weekly progress.",
+      "notify_email": "hermank@fivefriday.com"
     }
   }
 }
