@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react'
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { fetchBrands, selectBrand, type BrandSocialLink } from '../lib/api'
 import { filterOperatingBrandIds } from '../lib/brands'
 import {
@@ -23,12 +23,14 @@ type BrandRow = {
 type BrandCtx = {
   brandId?: string
   brandLabel?: string
+  brandVersion: number
   brands: BrandRow[]
   busy: boolean
   setBrand: (id: string, label: string) => Promise<void>
 }
 
 const BrandContext = createContext<BrandCtx>({
+  brandVersion: 0,
   brands: [],
   busy: false,
   setBrand: async () => undefined,
@@ -62,6 +64,7 @@ export function useBrandScope() {
 export function BrandProvider({ children }: { children: ReactNode }) {
   const [brandId, setId] = useState<string>()
   const [brandLabel, setLabel] = useState<string>()
+  const [brandVersion, setBrandVersion] = useState(0)
   const [brands, setBrands] = useState<BrandRow[]>([])
   const [busy, setBusy] = useState(false)
   const [scope, setScope] = useState<BrandScope>('all')
@@ -101,6 +104,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
       await selectBrand(id)
       setId(id)
       setLabel(label)
+      setBrandVersion((v) => v + 1)
     } finally {
       setBusy(false)
     }
@@ -112,17 +116,33 @@ export function BrandProvider({ children }: { children: ReactNode }) {
 
   function setScopeAll() {
     writeStoredScope('all')
+    if (scope === 'all') return
     setScope('all')
+    setBrandVersion((v) => v + 1)
   }
 
   async function setScopeBrand(id: string, label: string) {
+    // Select first so a failed POST leaves the previous brand on screen.
+    // Scope, id, and the refresh key commit in one render so pages remount
+    // against the brand the server just stored.
+    if (id !== brandId) {
+      if (busy) return
+      setBusy(true)
+      try {
+        await selectBrand(id)
+        setId(id)
+        setLabel(label)
+      } finally {
+        setBusy(false)
+      }
+    }
     writeStoredScope(id)
     setScope(id)
-    await setBrand(id, label)
+    setBrandVersion((v) => v + 1)
   }
 
   return (
-    <BrandContext.Provider value={{ brandId, brandLabel, brands, busy, setBrand }}>
+    <BrandContext.Provider value={{ brandId, brandLabel, brandVersion, brands, busy, setBrand }}>
       <BrandScopeContext.Provider
         value={{
           scope,
@@ -133,7 +153,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           setScopeBrand,
         }}
       >
-        {children}
+        <Fragment key={brandVersion}>{children}</Fragment>
       </BrandScopeContext.Provider>
     </BrandContext.Provider>
   )
@@ -159,8 +179,8 @@ export function BrandSwitch({ variant = 'bar' }: { variant?: 'bar' | 'inline' })
       setOpen(false)
       return
     }
-    await setScopeBrand(id, nextLabel)
     setOpen(false)
+    await setScopeBrand(id, nextLabel)
   }
 
   function pickAll() {
