@@ -1,0 +1,48 @@
+[
+  {
+    "brand": "Srixon",
+    "headline": [
+      "Z-STAR",
+      "FAMILY."
+    ],
+    "models": [
+      {
+        "label": "XV",
+        "image": "SZSXS001__front.jpg"
+      },
+      {
+        "label": "Z-Star",
+        "image": "ZS9001__front.jpg"
+      },
+      {
+        "label": "Diamond",
+        "image": "ZD3001__front.jpg"
+      }
+    ],
+    "accent": "green",
+    "cta": "DM us to order or book a ball fitting"
+  },
+  {
+    "brand": "Callaway",
+    "headline": [
+      "CHROME TOUR",
+      "FAMILY."
+    ],
+    "models": [
+      {
+        "label": "Chrome Tour",
+        "image": "CT001__front.jpg"
+      },
+      {
+        "label": "Tour X",
+        "image": "CTX001__front.jpg"
+      },
+      {
+        "label": "Triple Diamond",
+        "image": "CTTD001__front.jpg"
+      }
+    ],
+    "accent": "blue",
+    "cta": "DM us to order or book a ball fitting"
+  }
+]

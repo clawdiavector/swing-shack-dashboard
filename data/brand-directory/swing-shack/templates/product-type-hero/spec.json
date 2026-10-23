@@ -1,0 +1,140 @@
+{
+  "brand_id": "swing-shack",
+  "canvas": {
+    "w": 1080,
+    "h": 1350,
+    "name": "ig_post"
+  },
+  "renderer": "campaign-os/_lib/product_post_templates.py",
+  "cli": "campaign-os/scripts/render_product_post.py",
+  "approved": "2026-10-23 by Christelle, from the Mon Srixon Z-Star designs",
+  "product_rule": "real packshot only, cut out of its white background, never redrawn; Pillow flood-fill cut-out",
+  "rotation": {
+    "min_gap_posts": 2,
+    "note": "3 layouts: a layout never repeats within 2 product posts, so it returns at most every third post. layout_for() also keeps multi-product posts off one-hero."
+  },
+  "fonts": {
+    "headline": "Montserrat Black Italic",
+    "labels": "Montserrat ExtraBold Italic",
+    "body": "Montserrat Light Italic"
+  },
+  "copy_limits": {
+    "headline": "exactly 2 lines, each <=14 chars, auto-shrinks",
+    "models": "label per product",
+    "claims": "no performance or ranking claims; any number needs a source link"
+  },
+  "id": "ss-product-type-hero",
+  "name": "Product post: type hero (dark)",
+  "layout": "type-hero",
+  "products": "1 to 3",
+  "background": "#0C0A0B near-black, 18px accent stripe on the left edge",
+  "zones": {
+    "tag_pill": {
+      "xy": [
+        80,
+        70
+      ],
+      "text": "IN STOCK NOW",
+      "fill": "accent",
+      "font": "ExtraBold Italic 28"
+    },
+    "logo": {
+      "right": 1010,
+      "top": 64,
+      "w": 230,
+      "variant": "white"
+    },
+    "brand": {
+      "xy": [
+        76,
+        150
+      ],
+      "font": "Light Italic 44, tracking 14"
+    },
+    "headline": {
+      "xy": [
+        76,
+        205
+      ],
+      "font": "Black Italic <=168, 2 lines, white, width<=900"
+    },
+    "ghost_word": {
+      "text": "headline line 1",
+      "font": "Black Italic <=300",
+      "fill": [
+        "#222222",
+        "#1A1A1A"
+      ],
+      "y": [
+        250,
+        520
+      ],
+      "x": -30
+    },
+    "products": {
+      "centres_x": {
+        "1": [
+          540
+        ],
+        "2": [
+          330,
+          750
+        ],
+        "3": [
+          205,
+          540,
+          875
+        ]
+      },
+      "widths": {
+        "1": [
+          560
+        ],
+        "2": [
+          470,
+          470
+        ],
+        "3": [
+          400,
+          440,
+          400
+        ]
+      },
+      "rotation": {
+        "3": [
+          -5,
+          0,
+          5
+        ],
+        "2": [
+          -3,
+          3
+        ]
+      },
+      "y": 960,
+      "shadow": {
+        "strength": 200,
+        "blur": 28,
+        "dy": 38
+      },
+      "z_order": "middle product on top"
+    },
+    "labels": {
+      "xy": [
+        80,
+        1245
+      ],
+      "font": "ExtraBold Italic <=34, white, tracking 4",
+      "join": " \u00b7 "
+    },
+    "cta": {
+      "xy": [
+        80,
+        1290
+      ],
+      "font": "Light Italic 26",
+      "fill": "#E27124"
+    }
+  },
+  "best_for": "a range or family of 2 to 3 models from one maker (Z-Star XV / Z-Star / Diamond, Chrome Tour / X / Triple Diamond)"
+}
