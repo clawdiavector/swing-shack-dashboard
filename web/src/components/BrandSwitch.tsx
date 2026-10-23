@@ -9,6 +9,7 @@ import {
   writeStoredScope,
   type BrandScope,
 } from '../lib/brandScope'
+import { planBrandPick } from '../lib/brandRefresh'
 import { prettyBrand, toneFor, TONE_CLS, type BrandTone } from '../lib/brandTone'
 import { Tip } from './ui'
 
@@ -57,8 +58,19 @@ export function useBrand() {
   return useContext(BrandContext)
 }
 
+/** Bumps after the header brand or All/one-brand scope changes. `BrandRefresh` remounts on it. */
+export function useBrandVersion() {
+  return useContext(BrandContext).brandVersion
+}
+
 export function useBrandScope() {
   return useContext(BrandScopeContext)
+}
+
+/** Remounts children when the header brand changes. The header itself stays mounted. */
+export function BrandRefresh({ children }: { children: ReactNode }) {
+  const brandVersion = useBrandVersion()
+  return <Fragment key={brandVersion}>{children}</Fragment>
 }
 
 export function BrandProvider({ children }: { children: ReactNode }) {
@@ -92,22 +104,16 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           scopeInitialized.current = true
           const initial = resolveInitialScope(readStoredScope(), orderedOperating)
           setScope(initial)
+          // First paint is "All" before storage is read. Remount once so a
+          // restored brand is what the page fetches, without a browser reload.
+          if (initial !== 'all') setBrandVersion((v) => v + 1)
         }
       })
       .catch(() => setBrands([]))
   }, [])
 
   async function setBrand(id: string, label: string) {
-    if (id === brandId || busy) return
-    setBusy(true)
-    try {
-      await selectBrand(id)
-      setId(id)
-      setLabel(label)
-      setBrandVersion((v) => v + 1)
-    } finally {
-      setBusy(false)
-    }
+    await setScopeBrand(id, label)
   }
 
   const operatingBrandIds = useMemo(() => filterOperatingBrandIds(brands.map((r) => r.id)), [brands])
@@ -115,26 +121,28 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const brandIds = useMemo(() => scopeBrandIds(scope, operatingBrandIds), [scope, operatingBrandIds])
 
   function setScopeAll() {
-    writeStoredScope('all')
     if (scope === 'all') return
+    writeStoredScope('all')
     setScope('all')
     setBrandVersion((v) => v + 1)
   }
 
   async function setScopeBrand(id: string, label: string) {
+    const plan = planBrandPick(brandId, scope === 'all', id)
+    if (plan === 'noop' || busy) return
     // Select first so a failed POST leaves the previous brand on screen.
-    // Scope, id, and the refresh key commit in one render so pages remount
-    // against the brand the server just stored.
-    if (id !== brandId) {
-      if (busy) return
+    // Scope and the refresh key commit together, after the server has stored the pick.
+    if (plan === 'select') {
       setBusy(true)
       try {
         await selectBrand(id)
-        setId(id)
-        setLabel(label)
-      } finally {
+      } catch (err) {
         setBusy(false)
+        throw err
       }
+      setId(id)
+      setLabel(label)
+      setBusy(false)
     }
     writeStoredScope(id)
     setScope(id)
@@ -153,7 +161,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           setScopeBrand,
         }}
       >
-        <Fragment key={brandVersion}>{children}</Fragment>
+        {children}
       </BrandScopeContext.Provider>
     </BrandContext.Provider>
   )
