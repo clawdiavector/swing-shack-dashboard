@@ -2545,8 +2545,13 @@ export function fetchStoryMarks() {
   return getJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks')
 }
 
-export function setStoryMark(key: string, state: 'shared' | 'skipped' | 'clear') {
-  return postJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks', { key, state })
+export function setStoryMark(key: string, state: 'shared' | 'skipped' | 'clear', brand?: string) {
+  return postJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks', { key, state, brand })
+}
+
+export function fetchStoriesWeek(brands?: string[]) {
+  const q = brands?.length ? `?brands=${encodeURIComponent(brands.join(','))}` : ''
+  return getJson<{ ok: boolean; shared_this_week: number }>(`/api/stories/week${q}`)
 }
 
 export function fetchStoryCandidates(brand: string) {
