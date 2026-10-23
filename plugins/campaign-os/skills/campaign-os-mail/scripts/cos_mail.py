@@ -232,6 +232,24 @@ def owner_cc(to: str) -> str | None:
     return kyle
 
 
+def _send_payload(payload: dict) -> dict:
+    req = urllib.request.Request(
+        f"{API}/inboxes/{inbox()}/messages/send",
+        data=json.dumps(payload).encode(),
+        headers={"Authorization": f"Bearer {os.environ['AGENTMAIL_API_KEY']}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.loads(r.read().decode() or "{}")
+
+
+def _cc_field_rejected(code: int, error_text: str) -> bool:
+    text = (error_text or "").lower()
+    if code not in (400, 422):
+        return False
+    return "cc" in text and any(word in text for word in ("invalid", "unknown", "unexpected", "unsupported"))
+
+
 def send(to: str, subject: str, text: str, reply_to: str | None, cc: str | None = None) -> dict:
     payload = {"to": to, "subject": subject, "text": text}
     if reply_to:
@@ -240,17 +258,21 @@ def send(to: str, subject: str, text: str, reply_to: str | None, cc: str | None 
     # AgentMail POST /v0/inboxes/{id}/messages/send accepts cc as one address or a list.
     if cc_addr:
         payload["cc"] = cc_addr
-    req = urllib.request.Request(
-        f"{API}/inboxes/{inbox()}/messages/send",
-        data=json.dumps(payload).encode(),
-        headers={"Authorization": f"Bearer {os.environ['AGENTMAIL_API_KEY']}", "Content-Type": "application/json"},
-        method="POST",
-    )
     try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            return json.loads(r.read().decode() or "{}")
+        return _send_payload(payload)
     except urllib.error.HTTPError as e:
-        sys.exit(f"AgentMail HTTP {e.code}: {e.read().decode(errors='replace')}")
+        detail = e.read().decode(errors='replace')
+        if cc_addr and _cc_field_rejected(e.code, detail):
+            fallback_payload = dict(payload)
+            fallback_payload.pop("cc", None)
+            primary = _send_payload(fallback_payload)
+            cc_subject = subject if subject.startswith("[cc]") else f"[cc] {subject}"
+            cc_payload = {"to": cc_addr, "subject": cc_subject, "text": text}
+            if reply_to:
+                cc_payload["reply_to"] = reply_to
+            _send_payload(cc_payload)
+            return primary
+        sys.exit(f"AgentMail HTTP {e.code}: {detail}")
 
 
 def git(root: Path, *args: str) -> str | None:

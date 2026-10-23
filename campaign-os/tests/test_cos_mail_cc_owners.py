@@ -1,6 +1,8 @@
 """Owner mail copies Kyle's agent. Replies stay with the sender."""
+import io
 import importlib.util
 import json
+import urllib.error
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -82,3 +84,33 @@ def test_work_notice_is_not_a_second_copy_to_kyle(monkeypatch):
     assert len(sent) == 1
     assert "cc" not in sent[0]
     assert "reply_to" not in sent[0]
+
+
+def test_cc_fallback_sends_second_copy_when_api_rejects_cc(monkeypatch):
+    sent = []
+
+    def fake(req, timeout=60):
+        payload = json.loads(req.data.decode())
+        sent.append(payload)
+        if "cc" in payload:
+            raise urllib.error.HTTPError(
+                url=req.full_url,
+                code=400,
+                msg="bad request",
+                hdrs=None,
+                fp=io.BytesIO(b'{"error":"unknown field cc"}'),
+            )
+        return _Resp()
+
+    monkeypatch.setattr(cos_mail.urllib.request, "urlopen", fake)
+    monkeypatch.setenv("AGENTMAIL_API_KEY", "test-not-a-secret")
+    monkeypatch.setenv("AGENTMAIL_INBOX", CHRISTELLE)
+    cos_mail.send(HERMAN, "Black Friday", "body", CHRISTELLE)
+
+    assert len(sent) == 3
+    assert sent[0]["to"] == HERMAN
+    assert sent[0]["cc"] == KYLE
+    assert sent[1]["to"] == HERMAN
+    assert "cc" not in sent[1]
+    assert sent[2]["to"] == KYLE
+    assert sent[2]["subject"] == "[cc] Black Friday"
