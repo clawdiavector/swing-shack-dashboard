@@ -1,0 +1,15 @@
+{
+  "id": "stick-venue-post",
+  "brand_id": "stick",
+  "pack": "templates/venue-post",
+  "archetype_id": "stick-venue-post",
+  "post_type": "product_lifestyle",
+  "reference_size": {
+    "w": 1081,
+    "h": 1351
+  },
+  "measured_from": [
+    "references/ref-01.jpg"
+  ],
+  "vetted": true
+}

@@ -72,6 +72,9 @@ ALWAYS_TEMPLATE_POST_TYPES = frozenset({
     "service_square",
     "service_end",
     "brand_statement",
+    # Stick retail (2026-10-23): maker stack and partner plate, real product photo only.
+    "product_post",
+    "product_lifestyle",
 })
 
 
