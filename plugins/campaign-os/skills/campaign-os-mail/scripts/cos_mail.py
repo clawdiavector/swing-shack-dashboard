@@ -198,10 +198,48 @@ def cmd_check(_a) -> int:
     return 0
 
 
-def send(to: str, subject: str, text: str, reply_to: str | None) -> dict:
+def _contact_by_email(email: str) -> dict | None:
+    want = (email or "").strip().lower()
+    if not want:
+        return None
+    for contact in read_registry()["contacts"].values():
+        if (contact.get("email") or "").strip().lower() == want:
+            return contact
+    return None
+
+
+def kyle_agent_email() -> str:
+    kyle = read_registry()["contacts"].get("kyle") or {}
+    return (kyle.get("email") or "").strip()
+
+
+def owner_cc(to: str) -> str | None:
+    """Kyle's agent address when this outbound mail should copy him.
+
+    A recipient flagged cc_kyle is copied unless the sender inbox is already
+    Kyle's agent. Replies that arrive later are not forwarded; this is outbound only.
+    """
+    recipient = _contact_by_email(to)
+    if not recipient or not recipient.get("cc_kyle"):
+        return None
+    kyle = kyle_agent_email()
+    if not kyle:
+        return None
+    if inbox().strip().lower() == kyle.lower():
+        return None
+    if (to or "").strip().lower() == kyle.lower():
+        return None
+    return kyle
+
+
+def send(to: str, subject: str, text: str, reply_to: str | None, cc: str | None = None) -> dict:
     payload = {"to": to, "subject": subject, "text": text}
     if reply_to:
         payload["reply_to"] = reply_to
+    cc_addr = cc or owner_cc(to)
+    # AgentMail POST /v0/inboxes/{id}/messages/send accepts cc as one address or a list.
+    if cc_addr:
+        payload["cc"] = cc_addr
     req = urllib.request.Request(
         f"{API}/inboxes/{inbox()}/messages/send",
         data=json.dumps(payload).encode(),
@@ -347,6 +385,8 @@ def cmd_tell(a) -> int:
     push_gate(a)
     frefs = [file_ref(f) for f in a.file]
     sender = os.environ.get("AGENTMAIL_FROM_NAME", "a teammate")
+    sender_inbox = inbox()
+    cc_to = owner_cc(c["email"])
     lines = [f"Hi {c['name']},", "", a.message.strip()]
     if refs:
         lines += ["", "Wiki (read these first; full detail is there):"]
@@ -370,14 +410,17 @@ def cmd_tell(a) -> int:
               "Open Claude Code and ask \"any mail?\". Your agent reads it, follows the wiki links and "
               "tells you what to do.\n\n(Automatic notice. The full message is in your agent inbox; don't reply here.)")
     if not a.send:
-        print(f"DRY RUN  to {c['name']} <{c['email']}>\nSubject: {subject}\n\n{body}\n")
+        cc_line = f"\nCc: {cc_to}" if cc_to else ""
+        print(f"DRY RUN  to {c['name']} <{c['email']}>{cc_line}\nSubject: {subject}\n\n{body}\n")
         print(f"then notify: {notify_to or '(no notify_email for this contact; skipped)'}")
         print("\n(add --send to send)")
         return 0
-    if not (os.environ.get("AGENTMAIL_API_KEY") and inbox()):
+    if not (os.environ.get("AGENTMAIL_API_KEY") and sender_inbox):
         sys.exit("not set up: run status, then follow SETUP.md")
-    res = send(c["email"], subject, body, os.environ.get("AGENTMAIL_REPLY_TO") or inbox())
+    res = send(c["email"], subject, body, os.environ.get("AGENTMAIL_REPLY_TO") or sender_inbox, cc=cc_to)
     print(f"SENT to {c['email']} from {inbox()} id={res.get('message_id') or res.get('id')}")
+    if cc_to:
+        print(f"CC {cc_to}")
     if notify_to:
         try:
             send(notify_to, f"You have agent mail from {sender}", notice, None)
