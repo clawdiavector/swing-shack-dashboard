@@ -82,9 +82,9 @@ def test_artifacts_follow_the_house_rules(slug):
     assert art["review_flags"], "every draft says what still needs a person"
 
 
-def test_the_only_open_marker_is_the_hours_in_the_indoor_golf_draft():
+def test_no_draft_has_an_open_confirm_marker():
     marked = [s for s in SLUGS if "[CONFIRM" in json.loads((ART_DIR / f"{s}.json").read_text(encoding="utf-8"))["human_facing_article_draft"]]
-    assert marked == ["indoor-golf-johannesburg-what-to-expect"]
+    assert marked == []
 
 
 def test_converter_is_repeatable(tmp_path):
