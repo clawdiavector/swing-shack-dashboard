@@ -90,7 +90,7 @@ def _front_matter(text: str) -> tuple[dict, str]:
         if re.match(r"^\s+- ", line) and key:
             meta.setdefault(key, []).append(line.split("- ", 1)[1].strip())
             continue
-        kv = re.match(r"^([a-z_]+):\s*(.*)$", line)
+        kv = re.match(r"^([a-z0-9_]+):\s*(.*)$", line)
         if kv:
             key = kv.group(1)
             meta[key] = kv.group(2).strip() if kv.group(2).strip() else []
