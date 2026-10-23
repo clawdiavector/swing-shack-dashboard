@@ -601,6 +601,7 @@ export function Photos() {
   )
 
   function openPhoto(file: string) {
+    if (params.get(PHOTO_QUERY) === file) return
     setParams((prev) => {
       const p = new URLSearchParams(prev)
       p.set(PHOTO_QUERY, file)
