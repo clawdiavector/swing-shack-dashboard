@@ -76,6 +76,24 @@ def _read_json(path: Path) -> Any:
         return None
 
 
+def _ig_store_stamp() -> str | None:
+    """When the Instagram store that _load_ig_posts reads was last written.
+
+    _load_ig_posts returns only the posts, so the file's own `updated` /
+    `fetched_at` would be lost; callers need it for "data from" labels.
+    """
+    for base in _data_roots():
+        for rel in ("ig-analytics.json", "instagram.json", "analytics/instagram-analytics.json"):
+            data = _read_json(base / rel)
+            if not data or not isinstance(data, dict):
+                continue
+            posts = data.get("posts")
+            if not isinstance(posts, list) or not posts:
+                continue
+            return data.get("updated") or data.get("fetched_at")
+    return None
+
+
 def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
     """Load Instagram posts from whichever file is present on disk.
 
@@ -597,7 +615,7 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
     # Prefer the larger/more-complete IG store if it exists on disk.
     _fallback_posts, ig_source = _load_ig_posts()
     if _fallback_posts and (not ig_data.get("posts") or len(_fallback_posts) > len(ig_data.get("posts", []))):
-        ig_data = {"posts": _fallback_posts}
+        ig_data = {"posts": _fallback_posts, "updated": _ig_store_stamp()}
     posts = ig_data.get("posts", []) if isinstance(ig_data, dict) else []
     # Track the actual source so the response is honest about where data came from.
     actual_source = ig_source or "instagram.json"

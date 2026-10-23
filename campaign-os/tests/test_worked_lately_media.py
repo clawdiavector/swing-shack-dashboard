@@ -136,6 +136,16 @@ class WorkedLatelyMediaTests(unittest.TestCase):
         self.assertEqual(row["media_url"], "https://cdn.example/video.mp4")
         self.assertEqual(row["permalink"], "https://www.instagram.com/reel/q/")
 
+    def test_top_posts_report_when_the_instagram_store_was_written(self):
+        self._write(
+            "ig-analytics.json",
+            {"updated": "2026-10-19T11:50:00Z", "posts": [_post("1", "6.0")]},
+        )
+        from _lib import insights_correlator as ic
+
+        meta = ic.get_top_instagram_posts(limit=5)["_meta"]
+        self.assertEqual(meta["fetched_at"], "2026-10-19T11:50:00Z")
+
     def test_live_fetch_asks_graph_for_the_image_fields(self):
         source = (CAMPAIGN_OS / "_lib" / "meta_live_fetch.py").read_text(encoding="utf-8")
         self.assertIn("permalink,thumbnail_url,media_url,timestamp", source)
