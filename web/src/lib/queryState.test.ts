@@ -9,8 +9,11 @@ describe('persisted query', () => {
   })
 
   it('carries those keys onto the next path without replacing a key that path already set', () => {
+    expect(withPersistedQuery('/calendar/lanes', '?brand=stick&week=2026-10-19&filter=no-brief')).toBe(
+      '/calendar/lanes?brand=stick&week=2026-10-19',
+    )
     expect(withPersistedQuery('/review/draft-1?brand=swing-shack', '?brand=stick&week=2026-10-19&filter=no-brief')).toBe(
-      '/review/draft-1?brand=swing-shack&week=2026-10-19&filter=no-brief',
+      '/review/draft-1?brand=swing-shack&week=2026-10-19',
     )
   })
 
