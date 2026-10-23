@@ -607,6 +607,7 @@ apostrophe: curly
 exclamation_max_per_post: 1
 exclamation_max_in_headline: 0
 hook_max_chars: 80
+max_words_per_sentence: 7
 hashtags_max: 5
 hashtags_camelcase: true
 hashtags_allowed: [PaarlGolf, WesternCapeGolf, GolfersOfSouthAfrica, GolfClubFitting, CustomGolfClubs, GolfCoaching, GolfBags, GolfTips]

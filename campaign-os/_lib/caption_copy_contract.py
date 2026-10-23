@@ -162,6 +162,18 @@ def bible_banned_phrases(brand_id: str) -> tuple[str, ...]:
     )
 
 
+def bible_max_words_per_sentence(brand_id: str) -> int | None:
+    from _lib.brand_bible import bible_copy_slice  # noqa: PLC0415
+
+    cs = (bible_copy_slice(brand_id, "caption") or {}).get("copy_system") or {}
+    raw = cs.get("max_words_per_sentence")
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
 def parse_dont_say_markdown(text: str) -> list[str]:
     """Extract phrase gates from do-say-dont-say markdown (quoted or pre-rationale)."""
     if not text:
@@ -257,7 +269,19 @@ def build_copy_contract(
         "required_families": list(spec.get("required_families") or ()),
         "forbidden_phrases": forbidden_phrases,
         "brief_subject_override": spec.get("brief_subject_override"),
+        "max_words_per_sentence": bible_max_words_per_sentence(brand_id),
     }
+    sentence_cap = contract.get("max_words_per_sentence")
+    if isinstance(sentence_cap, int) and sentence_cap > 0:
+        sentence_rule = (
+            f"Keep each sentence to {sentence_cap} words or fewer. "
+            "Do not count the CTA line or sign-off."
+        )
+        contract["sentence_rule"] = sentence_rule
+        if contract.get("focus"):
+            contract["focus"] = f"{contract['focus']}; {sentence_rule}"
+        else:
+            contract["focus"] = sentence_rule
     if brand_id == "stick":
         contract["membership_offered"] = False
     else:

@@ -24,6 +24,8 @@ from os import environ
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import yaml
+
 STRUCTURED_FIELDS = [
     "voice", "visual_language", "colours", "typography",
     "logo_rules", "photography", "product_fidelity",
@@ -176,13 +178,54 @@ _CAPTION_COPY_KEYS = (
     "voice_in_5_words", "sentence_length", "humour", "technical_depth",
     "emoji_policy", "punctuation", "personality_never", "signature_lines",
     "master_message", "supporting_messages", "approved_ctas",
-    "approved_headlines", "banned_phrases",
+    "approved_headlines", "banned_phrases", "max_words_per_sentence",
 )
 
 _POSTER_COPY_KEYS = (
     "signature_lines", "approved_ctas", "approved_headlines",
     "banned_phrases", "punctuation",
 )
+
+
+def _part4_rules(brand_id: str) -> dict[str, Any]:
+    """Read PART 4 machine rules from BRAND-BIBLE.md."""
+    path = _markdown_bible_path(brand_id)
+    if path is None:
+        return {}
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    start = text.find("# PART 4")
+    if start < 0:
+        return {}
+    m = re.search(r"```yaml\n(.*?)\n```", text[start:], re.S)
+    if not m:
+        return {}
+    try:
+        parsed = yaml.safe_load(m.group(1)) or {}
+    except yaml.YAMLError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _inject_sentence_limit(copy_system: dict[str, Any], brand_id: str) -> dict[str, Any]:
+    rules = _part4_rules(brand_id)
+    max_words = rules.get("max_words_per_sentence")
+    if max_words is None:
+        return copy_system
+    try:
+        limit = int(max_words)
+    except (TypeError, ValueError):
+        return copy_system
+    if limit <= 0:
+        return copy_system
+    out = dict(copy_system)
+    out["max_words_per_sentence"] = limit
+    out["sentence_length"] = (
+        f"Max {limit} words per sentence. CTA line and sign-off are excluded."
+    )
+    return out
 
 
 def retrieve_for_job(brand_id: str, *, lane: str = "product", job_type: str = "apparel", product_category: str = "") -> Dict[str, Any]:
@@ -204,16 +247,18 @@ def retrieve_for_job(brand_id: str, *, lane: str = "product", job_type: str = "a
 
     if lane == "caption":
         cs = bible.get("copy_system") or {}
-        out["fields"]["copy_system"] = {
+        copy_system = {
             k: cs.get(k) for k in _CAPTION_COPY_KEYS if cs.get(k)
         }
+        out["fields"]["copy_system"] = _inject_sentence_limit(copy_system, brand_id)
         return out
 
     if lane == "poster":
         cs = bible.get("copy_system") or {}
-        out["fields"]["copy_system"] = {
+        copy_system = {
             k: cs.get(k) for k in _POSTER_COPY_KEYS if cs.get(k)
         }
+        out["fields"]["copy_system"] = _inject_sentence_limit(copy_system, brand_id)
         return out
 
     # Always-on: voice, visual_language, logo_rules

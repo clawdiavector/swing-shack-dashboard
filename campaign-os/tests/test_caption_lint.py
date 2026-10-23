@@ -217,6 +217,34 @@ class Rules(unittest.TestCase):
         res = L.lint("stick", "Short.\nBook a fitting at Stick.\nBetter begins here.", lane="why-its-here", cross_brand=False)
         self.assertIn("lane-length", codes(res, L.WARN))
 
+    def test_sentence_length_seven_words_passes(self):
+        cap = (
+            "This fitting build keeps your strike centred.\n"
+            "Book a fitting at Stick.\n"
+            "Better begins here."
+        )
+        res = L.lint("stick", cap, cross_brand=False)
+        self.assertNotIn("sentence-length", codes(res))
+
+    def test_sentence_length_eight_words_warns(self):
+        cap = (
+            "This fitting build keeps your strike centred today.\n"
+            "Book a fitting at Stick.\n"
+            "Better begins here."
+        )
+        res = L.lint("stick", cap, cross_brand=False)
+        self.assertIn("sentence-length", codes(res, L.WARN))
+        self.assertEqual(res["hard"], 0)
+
+    def test_sentence_length_skips_cta_and_signoff(self):
+        cap = (
+            "Fit first.\n"
+            "DM us for current availability and details today.\n"
+            "Better begins here."
+        )
+        res = L.lint("stick", cap, cross_brand=False)
+        self.assertNotIn("sentence-length", codes(res))
+
     def test_cross_brand_line_inside_the_window(self):
         audit = BRAND_DIR / "stick" / "feedback" / "instagram-audit.json"
         if not audit.exists():

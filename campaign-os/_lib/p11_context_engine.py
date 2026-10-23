@@ -1784,6 +1784,13 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
         bible_lines.append(
             f"Voice in 5 words: {', '.join(bible['voice_in_5_words'])}"
         )
+    if bible.get("max_words_per_sentence"):
+        bible_lines.append(
+            f"Sentence length: max {int(bible['max_words_per_sentence'])} words per sentence "
+            "(exclude CTA line and sign-off)."
+        )
+    elif bible.get("sentence_length"):
+        bible_lines.append(f"Sentence length: {bible['sentence_length']}")
     if bible.get("humour"):
         bible_lines.append(f"Humour rule: {bible['humour']}")
     if bible.get("emoji_policy"):
@@ -1875,6 +1882,8 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
         or contract.get("preferred_terms")
         or contract.get("forbidden_unless_in_brief")
         or contract.get("lodge_title")
+        or contract.get("sentence_rule")
+        or contract.get("max_words_per_sentence")
     ):
         user_parts.append("\nTEMPLATE / MOMENT COPY CONTRACT (must obey):")
         if contract.get("template_id"):
@@ -1899,6 +1908,14 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
             )
         if contract.get("membership_offered") is False:
             user_parts.append("- Do NOT invite readers to join a membership (not offered for this brand).")
+        if contract.get("sentence_rule"):
+            user_parts.append(f"- {contract['sentence_rule']}")
+        elif contract.get("max_words_per_sentence"):
+            user_parts.append(
+                "- Keep each sentence to "
+                f"{contract['max_words_per_sentence']} words or fewer. "
+                "Do not count the CTA line or sign-off."
+            )
     user_parts.append(
         "\nReturn ONLY a JSON object with keys caption_body, poster_hook, cta_line. "
         "No commentary. caption_body is the feed caption WITHOUT the default CTA "

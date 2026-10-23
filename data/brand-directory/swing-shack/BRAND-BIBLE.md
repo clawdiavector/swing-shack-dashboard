@@ -637,6 +637,7 @@ apostrophe: curly
 exclamation_max_per_post: 1
 exclamation_max_in_headline: 0
 hook_max_chars: 100
+max_words_per_sentence: 7
 hashtags_max: 3
 hashtags_camelcase: true
 hashtags_allowed: [SwingShack, IndoorGolfJohannesburg, IndoorGolfSA, GolfJohannesburg, TrackMan, ClubFitting, GolfCoaching]

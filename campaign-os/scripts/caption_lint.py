@@ -187,6 +187,7 @@ RULES_INDEX = {
     "cross-brand-line": ("L6.2", "A line also used on a sister brand's feed"),
     "cross-brand-mention": ("L4.5", "Mentions a sister brand"),
     "lane-length": ("L5.3", "Outside the lane's word band"),
+    "sentence-length": ("L5.2", "Sentence exceeds the allowed word count"),
     "watch-words": ("L6.1", "More than one watch word"),
     "repeated-word": ("L1.3", "A word repeated twice in a row"),
     "figure": ("L3.5", "A figure that needs a Proof bank row"),
@@ -272,6 +273,17 @@ def snippet(text: str, start: int, end: int, pad: int = 22) -> str:
 
 def word_count(plain: str) -> int:
     return len(EMOJI_RE.sub(" ", plain).split())
+
+
+def _split_sentences(text: str) -> list[str]:
+    return [s.strip() for s in re.split(r"\n+|(?<=[.!?])\s+", text) if s.strip()]
+
+
+_WORD_RE = re.compile(r"[A-Za-z0-9]+(?:[’'][A-Za-z0-9]+)?")
+
+
+def _sentence_word_count(sentence: str) -> int:
+    return len(_WORD_RE.findall(EMOJI_RE.sub(" ", sentence)))
 
 
 _ALL_BRAND_WORDS = {n for names in BRAND_NAMES.values() for n in names} | {"Stick.paarl", "SwingShack"}
@@ -367,7 +379,7 @@ def find_ctas(plain: str, allowed: list[str]) -> tuple[list[str], list[str]]:
     """Return (listed, unlisted) call-to-action phrases found in the caption."""
     wild_allowed = [a for a in allowed if "*" in a]
     norm_allowed = {_norm_cta(a): a for a in allowed if "*" not in a}
-    sentences = [s.strip() for s in re.split(r"\n+|(?<=[.!?])\s+", plain) if s.strip()]
+    sentences = _split_sentences(plain)
     listed: list[str] = []
     unlisted: list[str] = []
     i = 0
@@ -395,6 +407,11 @@ def find_ctas(plain: str, allowed: list[str]) -> tuple[list[str], list[str]]:
             unlisted.append(s)
         i += 1
     return listed, unlisted
+
+
+def sentence_length_level(rules: dict) -> str:
+    """Sentence-length stays a warning while bible list rules are draft-only."""
+    return WARN if str(rules.get("list_enforcement", "warn")).lower() == "warn" else HARD
 
 
 # --------------------------------------------------------------------------- #
@@ -630,6 +647,32 @@ def lint(brand: str, text: str, *, rules: dict | None = None, lane: str | None =
     # --- calls to action (L5.6) ---
     allowed_ctas = rules.get("ctas_allowed") or []
     listed, unlisted = find_ctas(plain, allowed_ctas)
+
+    # --- sentence length (L5.2) ---
+    max_words_per_sentence = rules.get("max_words_per_sentence")
+    if max_words_per_sentence is not None:
+        try:
+            sentence_limit = int(max_words_per_sentence)
+        except (TypeError, ValueError):
+            sentence_limit = 0
+        if sentence_limit > 0:
+            cta_norm = {_norm_cta(s) for s in (listed + unlisted) if _norm_cta(s)}
+            signoff_key = letters(rules.get("signoff") or "")
+            for sentence in _split_sentences(plain):
+                norm = _norm_cta(sentence)
+                if norm in cta_norm:
+                    continue
+                if signoff_key and letters(sentence) == signoff_key:
+                    continue
+                words = _sentence_word_count(sentence)
+                if words > sentence_limit:
+                    F.add(
+                        "sentence-length",
+                        sentence_length_level(rules),
+                        f"Sentence has {words} words, the limit is {sentence_limit}",
+                        sentence[:120],
+                    )
+
     cta_max = int(rules.get("cta_max", 1))
     n_cta = len(listed) + len(unlisted)
     if n_cta > cta_max:

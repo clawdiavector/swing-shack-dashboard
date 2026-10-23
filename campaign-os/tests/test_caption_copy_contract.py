@@ -114,6 +114,7 @@ class CaptionCopyContractTests(unittest.TestCase):
         self.assertTrue(ctx.get("ok"))
         contract = ctx.get("copy_contract") or {}
         self.assertEqual(contract.get("template_id"), "ss-fitting-headline")
+        self.assertEqual(contract.get("max_words_per_sentence"), 7)
         self.assertEqual(ctx.get("product_service", {}).get("brief_subject"), "iron fitting")
 
 

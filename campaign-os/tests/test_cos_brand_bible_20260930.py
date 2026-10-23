@@ -159,6 +159,13 @@ class CosBrandBible20260930Tests(unittest.TestCase):
         self.assertIn("world-class", banned)
         self.assertNotIn("join the club", banned)
 
+    def test_retrieve_caption_sentence_limit_from_part4(self):
+        from _lib.brand_bible import retrieve_for_job
+
+        cs = retrieve_for_job("stick", lane="caption")["fields"]["copy_system"]
+        self.assertEqual(cs.get("max_words_per_sentence"), 7)
+        self.assertIn("Max 7 words per sentence", cs.get("sentence_length", ""))
+
     def test_retrieve_bag_drop_unavailable(self):
         from _lib.brand_bible import retrieve_for_job
 
@@ -184,6 +191,7 @@ class CosBrandBible20260930Tests(unittest.TestCase):
         }
         system, _user = _build_llm_prompt(ctx, route)
         self.assertIn("Better Begins Here", system)
+        self.assertIn("max 7 words per sentence", system)
         self.assertNotIn("sarcastic", system.lower())
 
     def test_bible_slice_excludes_internal_only_mantra(self):

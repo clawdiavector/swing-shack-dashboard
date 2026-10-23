@@ -6,6 +6,7 @@ import re
 import zlib
 from typing import Any
 
+from _lib.caption_copy_contract import bible_max_words_per_sentence
 from _lib.jobs.layer5.create_photo_compose import _content_from_caption
 from _lib.jobs.layer5.image_draft_context import build_image_draft_context
 
@@ -18,7 +19,7 @@ def _first_line(text: str) -> str:
     return ""
 
 
-def _hook_from_caption(caption: str, *, max_chars: int = 72) -> str:
+def _hook_from_caption(caption: str, *, max_chars: int = 72, max_words: int = 8) -> str:
     """Short visual hook — matches Review default, then tightens long captions."""
     text = (caption or "").strip()
     if not text:
@@ -48,9 +49,15 @@ def _hook_from_caption(caption: str, *, max_chars: int = 72) -> str:
     trimmed = " ".join(out).strip() or line[:max_chars].strip()
     # Service-frame zones: 3×24 chars — keep hooks short even before uppercase wrap.
     short = trimmed.split()
-    if len(short) > 8:
-        trimmed = " ".join(short[:8])
+    word_cap = max(1, int(max_words))
+    if len(short) > word_cap:
+        trimmed = " ".join(short[:word_cap])
     return trimmed
+
+
+def _caption_sentence_word_cap(brand_id: str) -> int:
+    cap = bible_max_words_per_sentence(brand_id)
+    return cap if isinstance(cap, int) and cap > 0 else 8
 
 
 def _pillar_id_from_context(ctx) -> str:
@@ -109,7 +116,11 @@ def _service_carousel_headline(*, brand_id: str, moment_id: str, caption: str) -
         return "APPAREL"
     if "coaching" in pillar or "trackman" in cap or "swing" in cap:
         return "COACHING"
-    hook = _hook_from_caption(caption, max_chars=24).upper()
+    hook = _hook_from_caption(
+        caption,
+        max_chars=24,
+        max_words=_caption_sentence_word_cap(brand_id),
+    ).upper()
     return hook or "COACHING"
 
 
