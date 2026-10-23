@@ -17171,6 +17171,7 @@ def gmb_schedule_draft(draft_id):
     # Build the post payload. GBP allows ~1500 char body, optional image.
     text = _gdp.gbp_post_text(_gdp.draft_post({**draft, "id": draft_id}))
     media_ids: list[str] = []
+    media_items: list[dict] = []
     image_url = draft.get('imageUrl') or draft.get('image')
     if image_url:
         try:
@@ -17184,6 +17185,9 @@ def gmb_schedule_draft(draft_id):
                 err = f"upload {up_err[0]}: {up_err[1]}"
             elif upload_data and upload_data.get("id"):
                 media_ids.append(upload_data["id"])
+                # Postiz needs the photo's address as well as its id.
+                if upload_data.get("path"):
+                    media_items.append({"id": str(upload_data["id"]), "path": str(upload_data["path"])})
         except Exception as exc:
             err = f"upload exception: {exc}"
     if not err:
@@ -17192,6 +17196,7 @@ def gmb_schedule_draft(draft_id):
                 integration_id=integration_id,
                 content=text,
                 media_ids=media_ids,
+                media=media_items,
                 brand_id=brand_id,
             )
             if post_err:

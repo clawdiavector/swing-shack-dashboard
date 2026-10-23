@@ -1043,6 +1043,7 @@ def publish_post(post: dict, *, dry_run: bool = False) -> dict:
         return {"ok": False, "error": f"postiz_client_unavailable: {exc}"}
 
     media_ids: list[str] = []
+    media_items: list[dict] = []
     image = post.get("image_url")
     if image:
         try:
@@ -1052,6 +1053,9 @@ def publish_post(post: dict, *, dry_run: bool = False) -> dict:
         if up_err or not (upload and upload.get("id")):
             return {"ok": False, "error": f"image_upload_failed: {up_err}", "post_status": "ERROR"}
         media_ids.append(upload["id"])
+        # Postiz needs the photo's address as well as its id.
+        if upload.get("path"):
+            media_items.append({"id": str(upload["id"]), "path": str(upload["path"])})
 
     scheduled_at = _dt.datetime.utcnow().isoformat()
     try:
@@ -1059,6 +1063,7 @@ def publish_post(post: dict, *, dry_run: bool = False) -> dict:
             integration_id=integration_id,
             content=gbp_post_text(post),
             media_ids=media_ids,
+            media=media_items,
             publish_date=scheduled_at,
         )
         if err:
