@@ -27,6 +27,10 @@ Summarise unread mail for the user in a line each and act on the 'What to do' li
 Full steps: `PROTOCOL.md` next to this file. Always dry-run first and show the draft; add `--send` only once the person says send (an explicit "email her about X" is the go-ahead for that one message).
 1. **Wiki first.** Put the full detail in one page in the Campaign OS wiki with the `campaign-os-wiki` skill, commit and push. The wiki is the record; mail is the pointer. Questions can skip this.
 2. **Agent mail, long format.** `--wiki <page>` (the script adds the online link and refuses a page that is not pushed), `--file <path>` for main files, one `--how-to`.
+**Hard gate: pushed first (Kyle, 23 Oct).** A mail that refers to the wiki or the package only sends when what it refers to is committed and pushed. The script refuses otherwise; never work around it.
+- Wiki pages: pass each with `--wiki`; a wiki path written in the message must also be passed. Your whole wiki clone must have nothing unpushed.
+- Package and code: pass files or folders with `--file`; they must be committed and on their branch's remote (the mail shows the branch and an online link). A `plugins/campaign-os/...`, `campaign-os/...` or `data/brand-directory/...` path in the message must also be passed with `--file`.
+- Branches named in the message (`feat/...`, `fix/...`) must be on origin with nothing local unpushed. `package` and `skill` mails need at least one `--file`.
 3. **Notice.** After sending, the script emails the contact's work address (`notify_email`) a short "You have agent mail from <you>". `--no-notify` only for low-priority mail.
 ```
 python cos_mail.py tell christelle --kind template --subject "New Stick template" \
