@@ -17143,29 +17143,30 @@ def gmb_schedule_draft(draft_id):
     if not _POSTIZ_CLIENT_AVAILABLE:
         return jsonify({"ok": False, "error": "postiz client unavailable"}), 503
     assert _postiz_lib is not None
-    # Resolve the GMB integration id from the channels list. Postiz reports
-    # the GBP integration under several possible provider strings depending
-    # on the workspace version; we accept any of the documented variants.
+    # The draft's own brand decides which Postiz account and which Google channel
+    # are used. Never take "the first Google channel": all keys can see Stick's.
+    brand_id = brand_id_of(draft)
+    wanted = ((_gdp.BRAND_PROFILES.get(brand_id) or {}).get("postiz_gbp_integration_id") if _gdp else None)
     integration_id = None
-    gmb_provider_aliases = {"gmb", "google-business", "google-business-profile", "googlebusinessprofile", "googlemybusiness", "google_places"}
+    if not wanted or not _postiz_lib.has_brand_key(brand_id):
+        return jsonify({
+            "ok": False,
+            "error": f"no GMB integration set up for {brand_id}: it needs its own Postiz key and Google channel.",
+        }), 400
     try:
-        data, ch_err = _postiz_lib.list_integrations()
+        data, ch_err = _postiz_lib.list_integrations(brand_id=brand_id)
         if not ch_err and data:
             items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or [])
-            for it in items:
-                if not isinstance(it, dict):
-                    continue
-                provider = (it.get("providerIdentifier") or it.get("provider") or "").lower()
-                if provider in gmb_provider_aliases:
-                    integration_id = it.get("id") or it.get("_id")
-                    break
+            ids = {str(it.get("id") or it.get("_id")) for it in items if isinstance(it, dict)}
+            if str(wanted) in ids:
+                integration_id = wanted
     except Exception as exc:
         _app_log.warning("gmb_schedule_draft: channel lookup failed: %s", exc)
     if not integration_id:
         return jsonify({
             "ok": False,
-            "error": "no GMB integration under Postiz workspace. "
-                     "Connect GBP inside Postiz and retry, or pass integration_id in body.",
+            "error": f"no GMB integration for {brand_id} under its Postiz workspace. "
+                     "Connect its Google Business Profile in Postiz and retry.",
         }), 400
     # Build the post payload. GBP allows ~1500 char body, optional image.
     text = _gdp.gbp_post_text(_gdp.draft_post({**draft, "id": draft_id}))
@@ -17178,7 +17179,7 @@ def gmb_schedule_draft(draft_id):
                 full = os.path.join(ASSET_MEDIA_DIR, os.path.basename(upload_path))
                 if os.path.isfile(full):
                     upload_path = full
-            upload_data, up_err = _postiz_lib.upload_media(upload_path)
+            upload_data, up_err = _postiz_lib.upload_media(upload_path, brand_id=brand_id)
             if up_err:
                 err = f"upload {up_err[0]}: {up_err[1]}"
             elif upload_data and upload_data.get("id"):
@@ -17191,6 +17192,7 @@ def gmb_schedule_draft(draft_id):
                 integration_id=integration_id,
                 content=text,
                 media_ids=media_ids,
+                brand_id=brand_id,
             )
             if post_err:
                 err = f"create_post {post_err[0]}: {post_err[1]}"
