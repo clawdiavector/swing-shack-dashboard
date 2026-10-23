@@ -15300,10 +15300,19 @@ def stories_marks_route():
         return jsonify({"ok": True, "marks": story_marks.read()})
     body = request.get_json(silent=True) or {}
     try:
-        story_marks.set_mark(str(body.get('key') or ''), str(body.get('state') or ''))
+        story_marks.set_mark(str(body.get('key') or ''), str(body.get('state') or ''), str(body.get('brand') or ''))
     except story_marks.MarkError as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
     return jsonify({"ok": True, "marks": story_marks.read()})
+
+
+@app.route('/api/stories/week', methods=['GET'])
+def stories_week_route():
+    """GET /api/stories/week[?brands=a,b] — Stories shared since Monday (Johannesburg)."""
+    from _lib import story_week
+
+    brands = [b for b in (request.args.get('brands') or '').split(',') if b]
+    return jsonify({"ok": True, "shared_this_week": story_week.shared_this_week(brands or None)})
 
 
 @app.route('/api/stories/<item_id>/<status>', methods=['POST'])
