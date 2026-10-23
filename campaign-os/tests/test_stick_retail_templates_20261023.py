@@ -10,7 +10,6 @@ from __future__ import annotations
 import io
 from pathlib import Path
 
-import numpy as np
 import pytest
 from PIL import Image
 
@@ -47,9 +46,10 @@ def _render(arch_id: str, fields: dict[str, str], photo: bytes) -> Image.Image:
     return Image.open(io.BytesIO(out["instagram"])).convert("RGB")
 
 
-def _rect(im: Image.Image, r: dict[str, float]) -> np.ndarray:
+def _rect(im: Image.Image, r: dict[str, float]) -> Image.Image:
+    """Crop of a zone. Pillow only: CI and the production image carry no numpy."""
     w, h = im.size
-    return np.asarray(im)[int(r["y0"] * h) : int(r["y1"] * h), int(r["x0"] * w) : int(r["x1"] * w)]
+    return im.crop((int(r["x0"] * w), int(r["y0"] * h), int(r["x1"] * w), int(r["y1"] * h)))
 
 
 @pytest.mark.parametrize(
@@ -83,16 +83,17 @@ def test_product_post_keeps_cutout_transparency_and_draws_logo():
     )
     assert im.size == (1080, 1350)
     photo = _rect(im, arch["zones"]["photo"]["rect"])
+    pw, ph = photo.size
     # The corners of the photo zone show the gradient, not black from a lost alpha channel.
-    for corner in (photo[5, 5], photo[5, -5], photo[-5, 5], photo[-5, -5]):
-        assert corner.mean() > 60
+    for xy in ((5, 5), (pw - 5, 5), (5, ph - 5), (pw - 5, ph - 5)):
+        assert sum(photo.getpixel(xy)) / 3 > 60
     # The product is not stretched to the zone: its grey sits in the middle, the sides stay gradient.
-    mid_row = photo[photo.shape[0] // 2]
-    grey = np.where((np.abs(mid_row.astype(int) - 150) < 6).all(axis=1))[0]
-    assert 0 < len(grey) < photo.shape[1] * 0.6
+    y = ph // 2
+    grey = [x for x in range(pw) if all(abs(c - 150) < 6 for c in photo.getpixel((x, y)))]
+    assert 0 < len(grey) < pw * 0.6
     # The maker logo is drawn white in the vendor lockup.
     lock = _rect(im, arch["zones"]["vendor_lockup"]["rect"])
-    assert (lock > 230).all(axis=2).sum() > 200
+    assert sum(1 for px in lock.getdata() if min(px) > 230) > 200
 
 
 def test_product_post_needs_a_vendor_logo():
@@ -108,6 +109,6 @@ def test_venue_post_plate_shows_vendor_logo_not_stick_logo_twice():
     arch = archetype_by_id(BRAND, "stick-venue-post")
     im = _render("stick-venue-post", {"vendor_name": "RIPIT"}, _photo())
     plate = _rect(im, arch["zones"]["plate"]["rect"])
-    assert (plate > 230).all(axis=2).sum() > 500
+    assert sum(1 for px in plate.getdata() if min(px) > 230) > 500
     logo_zone = _rect(im, arch["zones"]["partner_logo"]["rect"])
-    assert (logo_zone > 230).all(axis=2).sum() > 200
+    assert sum(1 for px in logo_zone.getdata() if min(px) > 230) > 200
