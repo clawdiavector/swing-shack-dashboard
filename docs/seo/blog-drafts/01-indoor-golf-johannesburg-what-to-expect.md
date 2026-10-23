@@ -15,9 +15,9 @@ answered_by_christelle_2026_10_21:
   - Clubs can be hired on request
   - Walk-ins are welcome, but a bay cannot be guaranteed, so book online
   - Parking is ample
+  - Opening hours are the Google Business Profile ones (screenshot 2026-10-23): Monday to Saturday 9 am to 9 pm, Sunday 9 am to 5 pm
   - Old Parks and Old Parktonian are the same place; Randburg is in Johannesburg
 confirm_before_publishing:
-  - Opening hours once more (they come from the website's search data, Google Maps agreed for one day)
   - Photo of the bay to use as the lead image (use a real one, never a render)
 ---
 
@@ -85,7 +85,7 @@ No. The data is useful at every handicap.
 30 or 60 minutes.
 
 **Where is Swing Shack?**
-Swing Shack is at Old Parktonian Sports Club, 1 Garden Road, Bordeaux, Randburg, Johannesburg. There is ample parking. We are open Monday to Saturday from 07:00 to 21:00 and on Sunday from 09:00 to 18:00. [CONFIRM: hours once more, they come from the website's search data.]
+Swing Shack is at Old Parktonian Sports Club, 1 Garden Road, Bordeaux, Randburg, Johannesburg. There is ample parking. We are open Monday to Saturday from 09:00 to 21:00 and on Sunday from 09:00 to 17:00.
 
 **How do I book?**
 Use the [bookings page](/bookings/). Walk-ins are welcome, but we cannot guarantee a bay is free, so book online to be sure of your spot.
