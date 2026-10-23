@@ -120,12 +120,16 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const operatingBrandIds = useMemo(() => filterOperatingBrandIds(brands.map((r) => r.id)), [brands])
 
   const brandIds = useMemo(() => scopeBrandIds(scope, operatingBrandIds), [scope, operatingBrandIds])
+  const scopeFromUrl = useRef(false)
 
   useEffect(() => {
     if (!operatingBrandIds.length || routeOwnsBrandQuery(pathname)) return
     const queryScopeRaw = (searchParams.get('brand') || '').trim()
-    const queryScope = queryScopeRaw ? resolveInitialScope(queryScopeRaw, operatingBrandIds) : null
-    if (!queryScope || queryScope === scope) return
+    if (!queryScopeRaw) return
+    const queryScope = resolveInitialScope(queryScopeRaw, operatingBrandIds)
+    if (queryScope === scope) return
+    scopeFromUrl.current = true
+    writeStoredScope(queryScope)
     setScope(queryScope)
     if (queryScope !== 'all' && queryScope !== brandId) {
       const row = brands.find((brand) => brand.id === queryScope)
@@ -135,13 +139,18 @@ export function BrandProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!scopeInitialized.current || routeOwnsBrandQuery(pathname)) return
-    const current = (searchParams.get('brand') || '').trim()
+    if (scopeFromUrl.current) {
+      scopeFromUrl.current = false
+      return
+    }
     const wanted = scope === 'all' ? 'all' : scope
-    if (current === wanted) return
-    const next = new URLSearchParams(searchParams)
-    next.set('brand', wanted)
-    setSearchParams(next, { replace: true })
-  }, [scope, searchParams, setSearchParams, pathname])
+    setSearchParams((prev) => {
+      if ((prev.get('brand') || '').trim() === wanted) return prev
+      const next = new URLSearchParams(prev)
+      next.set('brand', wanted)
+      return next
+    }, { replace: true })
+  }, [scope, pathname, setSearchParams])
 
   function setScopeAll() {
     writeStoredScope('all')

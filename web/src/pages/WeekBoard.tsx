@@ -4,6 +4,7 @@ import '../fun.css'
 import { Mascot, WeekStrip } from '../components/fun'
 import { burstConfetti } from '../lib/confetti'
 import { useSearchParams } from 'react-router-dom'
+import { mondayOfIso, WEEK_QUERY } from '../lib/backNav'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { PageIntro } from '../components/chrome'
@@ -261,7 +262,8 @@ export function WeekBoard() {
 
   const setDeskParams = (nextTab: 'week' | 'day', nextDate: string) => {
     const q = new URLSearchParams(params)
-    q.set('week', nextDate)
+    const week = mondayOfIso(nextDate)
+    if (week) q.set(WEEK_QUERY, week)
     if (nextTab === 'week') {
       q.delete('tab')
       q.delete('date')
@@ -273,9 +275,11 @@ export function WeekBoard() {
   }
 
   useEffect(() => {
-    if (params.get('week')) return
+    if (params.get(WEEK_QUERY)) return
+    const week = mondayOfIso(dateIso)
+    if (!week) return
     const q = new URLSearchParams(params)
-    q.set('week', dateIso)
+    q.set(WEEK_QUERY, week)
     setParams(q, { replace: true })
   }, [dateIso, params, setParams])
 

@@ -274,15 +274,16 @@ export function LaneMonthPanel({
     return () => window.removeEventListener('keydown', onKey)
   }, [closeDrawer])
 
-  const laneKey = `${brand}|${monthParam}`
-  const seenLaneKey = useRef<string | null>(null)
+  const seenMonth = useRef<string | null>(null)
   useEffect(() => {
-    if (!brand) return
-    const prev = seenLaneKey.current
-    seenLaneKey.current = laneKey
-    if (prev === null || prev === laneKey) return
+    if (seenMonth.current === null) {
+      seenMonth.current = monthParam
+      return
+    }
+    if (seenMonth.current === monthParam) return
+    seenMonth.current = monthParam
     setParams((prevParams) => withQueryParam(prevParams, FILTER_QUERY, null), { replace: true })
-  }, [brand, laneKey, setParams])
+  }, [monthParam, setParams])
 
   if (!monthView?.ok) {
     return (

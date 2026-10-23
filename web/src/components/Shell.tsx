@@ -1,9 +1,8 @@
-import { ArrowLeft } from 'lucide-react'
 import { useEffect } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BrandProvider, BrandSwitch } from './BrandSwitch'
 import { PlanAlertDot } from './PlanAlertDot'
-import { PressIcon, Tip } from './ui'
+import { BackButton, PressIcon, Tip } from './ui'
 import { formatStamp } from '../lib/stamp'
 import { KICKER_SUBPAGES, RAIL, SETTINGS, sectionFor, sectionPageFor, type RailItem } from '../lib/nav'
 import { TOOL_BY_SLUG, parentLabel } from '../lib/tools'
@@ -116,18 +115,7 @@ export function Shell() {
       <div className="flex min-h-dvh flex-col pb-20 lg:h-dvh lg:min-h-0 lg:overflow-visible lg:pb-0">
         <header className="glass sticky top-0 z-30 flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
-            <Tip text="Back to where you came from, or Today when opened directly.">
-              <button
-                type="button"
-                onClick={goBack}
-                className="glass-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-tx2 hover:border-ac hover:text-ac"
-                title="Back"
-                aria-label="Back"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
-                Back
-              </button>
-            </Tip>
+            <BackButton onClick={goBack} />
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-bg lg:hidden">
               <svg viewBox="0 0 32 32" className="h-6 w-6" fill="none">
                 <path d="M10 26V6" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />

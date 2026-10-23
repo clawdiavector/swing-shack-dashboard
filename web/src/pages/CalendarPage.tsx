@@ -212,6 +212,28 @@ function daysInMonth(year: number, month0: number) {
   return new Date(year, month0 + 1, 0).getDate()
 }
 
+/** Same-page moment link. Week comes from the day. Brand is filled in at render. */
+function calendarMomentSearch(date: string, id: string): string {
+  const next = new URLSearchParams()
+  next.set('date', date)
+  const week = mondayOfIso(date)
+  if (week) next.set(WEEK_QUERY, week)
+  if (id) next.set('id', id)
+  return `?${next.toString()}`
+}
+
+function withBrandOnSearch(to: string, search: string): string {
+  if (!to.startsWith('?')) return to
+  const next = new URLSearchParams(to.slice(1))
+  const current = new URLSearchParams(search)
+  for (const key of ['brand', 'filter']) {
+    const value = current.get(key)?.trim()
+    if (value) next.set(key, value)
+  }
+  const rendered = next.toString()
+  return rendered ? `?${rendered}` : to
+}
+
 export function CalendarPage() {
   const { brandId } = useBrand()
   const [params, setParams] = useSearchParams()
@@ -348,7 +370,7 @@ export function CalendarPage() {
                 day,
                 title: item.title || 'Untitled',
                 badge: item.status || item.type || 'moment',
-                to: `?date=${date}&id=${encodeURIComponent(item.calendar_id || '')}`,
+                to: calendarMomentSearch(date, item.calendar_id || ''),
                 stamp: item.event_date || item.campaign_start,
                 stampKind,
                 source: 'moment',
@@ -670,7 +692,7 @@ export function CalendarPage() {
               return (
                 <QueueItem
                   key={row.key}
-                  to={row.to}
+                  to={withBrandOnSearch(row.to, params.toString())}
                   badge={row.badge}
                   tone="green"
                   title={row.title}
