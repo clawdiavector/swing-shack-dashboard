@@ -1,3 +1,5 @@
 export function rand(n: number | null | undefined): string {
-  return n == null ? '—' : `R${Math.round(n).toLocaleString('en-ZA')}`
+  if (n == null) return '—'
+  const r = Math.round(n)
+  return r < 0 ? `-R${Math.abs(r).toLocaleString('en-ZA')}` : `R${r.toLocaleString('en-ZA')}`
 }

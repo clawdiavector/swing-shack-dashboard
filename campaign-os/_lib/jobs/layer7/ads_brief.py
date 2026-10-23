@@ -101,10 +101,10 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
 
     # Tracking health: links, UTMs and what GA4 saw, per running ad. An add-on: never costs the brief.
     try:
-        tags, tag_err = ads_tracking.fetch_url_tags(account, token, get=get)
+        tags, flexible, tag_err = ads_tracking.fetch_tag_info(account, token, get=get)
         ga_rows, ga_err = ads_tracking.ga4_rows(lane_brand)
         io.write(TRACKING, ads_tracking.build(lane_brand, full["ads"], tags, ga_rows, today=today,
-                                              errors=[e for e in (tag_err, ga_err) if e]))
+                                              errors=[e for e in (tag_err, ga_err) if e], flexible=flexible))
     except Exception:
         pass
 

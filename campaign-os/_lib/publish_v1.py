@@ -536,9 +536,15 @@ def stage_to_cms(rec: dict, *, actor: str = "operator") -> dict:
     target = load_publishing_target(rec["brand_id"])
     if not target:
         return {"ok": False, "code": "TARGET_NOT_CONFIGURED", "error": "no target"}
+    # Writer artifacts hold markdown and WordPress does not render it. Convert only
+    # here, so the approved body and its revision lock stay exactly as approved.
+    from _lib.md_to_html import base_from_api, looks_like_html, markdown_to_html
+    body = rec.get("article_body") or ""
+    if body and not looks_like_html(body):
+        body = markdown_to_html(body, base_from_api(target.get("wp_api_base")))
     payload: dict[str, Any] = {
         "title": rec.get("article_title") or rec["brief_id"],
-        "content": rec.get("article_body") or "",
+        "content": body,
         "status": target.get("default_status_on_stage", "draft"),
     }
     if target.get("default_post_type"):

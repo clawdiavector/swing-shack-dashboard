@@ -34,9 +34,16 @@ MODE_OFF, MODE_DRY, MODE_ON = "off", "dry-run", "on"
 ENV_MODE = "SEO_AUTOPUBLISH"
 
 META_KEY = "_yoast_wpseo_metadesc"
+TITLE_KEY = "_yoast_wpseo_title"
+
+# Yoast fields a change can touch: WordPress meta key, and how long Google lets it be.
+FIELDS_META = {
+    "meta_description": {"key": META_KEY, "label": "Search description", "min": 120, "max": 160},
+    "title": {"key": TITLE_KEY, "label": "Page title", "min": 30, "max": 60},
+}
 DESC_MIN, DESC_MAX = 120, 160
 MAX_PER_RUN = 3
-MAX_LOG = 200
+MAX_LOG = 500
 LOG_FILE = "seo-publish-log.json"
 
 # Audit page name -> WordPress slug. The homepage is deliberately absent.
@@ -79,14 +86,15 @@ def _blocks(raw_html: str) -> list[str]:
     return out
 
 
-def propose(raw_html: str) -> str | None:
-    """A 120-160 character description built from whole sentences of the page's
-    own paragraphs, or None when no safe candidate exists."""
+def candidates(raw_html: str) -> list[str]:
+    """Every safe 120-160 character description the page's own whole sentences
+    can make, one per starting sentence, best-first (page order)."""
     sentences: list[str] = []
     for block in _blocks(raw_html):
         if len(block.split()) < 8:  # headings, buttons, labels
             continue
         sentences.extend(s.strip() for s in _SENTENCE.split(block) if s.strip())
+    out: list[str] = []
     for start in range(len(sentences)):
         text = ""
         for sentence in sentences[start:]:
@@ -94,10 +102,26 @@ def propose(raw_html: str) -> str | None:
             if len(text) > DESC_MAX:
                 break
             if len(text) >= DESC_MIN:
-                if not _REJECT.search(text) and text[-1] in ".!?":
-                    return text
+                if not _REJECT.search(text) and text[-1] in ".!?" and text not in out:
+                    out.append(text)
                 break
-    return None
+    return out
+
+
+def propose(raw_html: str, prefer: tuple[str, ...] = (), avoid: str = "") -> str | None:
+    """A 120-160 character description built from whole sentences of the page's
+    own paragraphs, or None when no safe candidate exists. When `prefer` is
+    given (brand and page names), the first safe candidate that mentions one of
+    those terms wins; otherwise the first safe candidate does. `avoid` is the
+    text already on the page, never proposed again."""
+    terms = [t.lower() for t in prefer if t]
+    options = [c for c in candidates(raw_html) if c != (avoid or "").strip()]
+    if not options:
+        return None
+    for text in options:
+        if any(t in text.lower() for t in terms):
+            return text
+    return options[0]
 
 
 # ── WordPress ───────────────────────────────────────────────────────────────
@@ -112,6 +136,18 @@ def default_wp(brand: str) -> WpClient:
         return geo_audit._wp_request(brand, method, path, payload)
 
     return wp
+
+
+def current_value(page: dict, field: str = "meta_description") -> str:
+    """What WordPress/Yoast reports for a field. For a title with no custom value
+    Yoast reports the title it builds from its template, which is what Google sees."""
+    if field == "meta_description":
+        return current_description(page)
+    meta = page.get("meta") or {}
+    key = FIELDS_META[field]["key"]
+    from_meta = meta.get(key) if isinstance(meta, dict) else None
+    from_head = (page.get("yoast_head_json") or {}).get("title")
+    return str(from_meta or from_head or "").strip()
 
 
 def current_description(page: dict) -> str:
@@ -133,27 +169,32 @@ def fetch_page(wp: WpClient, slug: str) -> dict | None:
     return None
 
 
-def _read_back(wp: WpClient, page_id: int) -> str | None:
+def _read_back(wp: WpClient, page_id: int, field: str = "meta_description") -> str | None:
     r = wp("GET", f"/pages/{page_id}?context=edit&_fields={_FIELDS}")
     if not r.get("ok") or not isinstance(r.get("data"), dict):
         return None
-    return current_description(r["data"])
+    return current_value(r["data"], field)
 
 
 def write_description(wp: WpClient, page_id: int, new: str, before: str) -> dict:
+    return write_field(wp, page_id, "meta_description", new, before)
+
+
+def write_field(wp: WpClient, page_id: int, field: str, new: str, before: str) -> dict:
     """Write, then read back. Returns {ok, verified, error?, current}."""
+    key = FIELDS_META[field]["key"]
     last_error = None
-    for body in ({"meta": {META_KEY: new}}, {"meta_input": {META_KEY: new}}):
+    for body in ({"meta": {key: new}}, {"meta_input": {key: new}}):
         r = wp("POST", f"/pages/{page_id}", body)
         if not r.get("ok"):
             last_error = f"WordPress said {r.get('http')} {r.get('code') or ''}".strip()
             continue
-        current = _read_back(wp, page_id)
+        current = _read_back(wp, page_id, field)
         if current == new:
             return {"ok": True, "verified": True, "current": current}
         last_error = "WordPress accepted the change but the page does not show it"
         if current is not None and current not in (before, new):
-            wp("POST", f"/pages/{page_id}", {"meta": {META_KEY: before}})
+            wp("POST", f"/pages/{page_id}", {"meta": {key: before}})
             return {"ok": False, "verified": False, "error": "unexpected value, put back", "current": current}
     return {"ok": False, "verified": False, "error": last_error or "write failed", "current": None}
 
@@ -210,7 +251,10 @@ def run_auto(io: Any, brand: str, queue: dict | None, wp: WpClient, now: str, ru
         if before:
             summary["skipped"].append({"page": page_name, "why": "already has a description written by a person"})
             continue
-        after = propose((page.get("content") or {}).get("rendered", ""))
+        after = propose(
+            (page.get("content") or {}).get("rendered", ""),
+            prefer=(brand.replace("-", " "), page_name),
+        )
         if not after:
             summary["skipped"].append({"page": page_name, "why": "no safe wording found on the page"})
             continue
@@ -264,15 +308,16 @@ def undo(io: Any, brand: str, entry_id: str, wp: WpClient, now: str) -> dict:
     if entry.get("status") != "applied":
         return {"ok": False, "error": f"nothing to undo: this change is {entry.get('status')}"}
 
-    current = _read_back(wp, int(entry["page_id"]))
+    field = entry.get("field") or "meta_description"
+    current = _read_back(wp, int(entry["page_id"]), field)
     if current is None:
         return {"ok": False, "error": "could not read the page from WordPress"}
     if current != entry.get("after"):
-        return {"ok": False, "error": "the description has been edited since this change, so it was left alone"}
+        return {"ok": False, "error": f"the {FIELDS_META[field]['label'].lower()} has been edited since this change, so it was left alone"}
 
     # The fallback value is the restored one too: a failed undo must never put the automatic text back.
     restored = entry.get("before") or ""
-    result = write_description(wp, int(entry["page_id"]), restored, restored)
+    result = write_field(wp, int(entry["page_id"]), field, restored, restored)
     if not result["ok"]:
         return {"ok": False, "error": result.get("error") or "undo failed"}
     entry["status"] = "undone"

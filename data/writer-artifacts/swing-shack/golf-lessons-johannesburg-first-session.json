@@ -1,0 +1,94 @@
+{
+  "status": "DRAFT_FOR_REVIEW",
+  "draft_status": "WRITTEN",
+  "publishing": "NONE",
+  "live_site_changes": "NONE",
+  "operating_brand": "swing-shack",
+  "approved_brief_id": "seo-brief-golf-lessons-johannesburg-first-session",
+  "writer_mode": "NEW",
+  "source": "markdown draft docs/seo/blog-drafts/02-golf-lessons-johannesburg-first-session.md",
+  "seo_metadata": {
+    "target_keyword": "golf lessons johannesburg",
+    "secondary_keywords": "golf lessons, golf lessons for beginners in johannesburg, golf lessons near me, golf coaching jhb",
+    "meta_title": "Golf Lessons in Johannesburg: What Your First TrackMan Lesson Covers",
+    "meta_description": "Your first golf lesson at Swing Shack, explained. How TrackMan shapes the session, what a coach looks at first and what you leave with."
+  },
+  "human_facing_article_draft": "# Golf Lessons in Johannesburg: What Your First TrackMan Lesson Covers\n\nA good first lesson answers one question: what is your swing actually doing? At Swing Shack, TrackMan answers it with numbers and a coach turns the numbers into one thing to work on.\n\nThis is what the first session covers, so you know what to expect before you book.\n\n## Why start with data\n\nMost golfers learn by feel. Feel is useful, but it is not always accurate. What you feel you did and what the club did can be different things.\n\nTrackMan measures what the club and the ball did. The coach starts there, so the lesson is built on what happened and not on a guess.\n\n## What the coach looks at first\n\nOn the first lesson, a coach usually starts with a handful of figures:\n\n- **Club path and face angle.** These two together explain most slices and hooks.\n- **Attack angle.** Whether you hit down or up into the ball.\n- **Strike quality.** Smash factor shows how cleanly the ball was struck.\n- **Dispersion.** Where the ball lands across a set of shots, not just the best one.\n\n## How the session runs\n\n1. **You hit some shots.** No pressure and no performance. The coach watches the numbers.\n2. **The coach picks one thing.** Not ten. One change you can understand and repeat.\n3. **You try the change and watch the numbers move.** You see in the same session whether it worked.\n4. **You leave knowing what to practise.** And why.\n\nSessions are 30 or 60 minutes. See the [lesson options](/product-category/lesson/) or go straight to the [bookings page](/bookings/).\n\n## Is this for beginners\n\nYes. A first-timer gets the same welcome and the same bay as a low handicapper. A beginner can start with the basics of strike and direction. A better player can work on a specific miss.\n\n## Beginner, improver or returning player\n\n- **Just starting.** Ask for a session that covers grip, set-up and a clean strike first.\n- **Playing but stuck.** Bring the miss you want to fix. A slice and a thin strike have different causes.\n- **Coming back after a break.** Use the first session to see where your swing is now.\n\n## Lessons and clubs go together\n\nIf the numbers show that your clubs are working against your swing, the coach will say so. A [club fitting](/club-fitting/) can follow the lesson. Swing Shack fits the club to the player, not the other way round.\n\n## Practising between lessons\n\nA [membership](/membership/) gives you the bay between lessons, so what you learned has somewhere to go.\n\n## Questions people ask\n\n**How many lessons do I need?**\nIt depends on what you want to change. Your coach can give you an honest answer after the first session.\n\n**Do I bring clubs?**\nYes if you have them. If not, clubs can be hired on request.\n\n**Can I see what changed?**\nYes. The numbers from the session are the record.\n\n## Book your first lesson\n\n[Book a lesson](/bookings/) and find out what your swing is doing.\n",
+  "human_facing_article": {
+    "title": "Golf Lessons in Johannesburg: What Your First TrackMan Lesson Covers",
+    "body": "A good first lesson answers one question: what is your swing actually doing? At Swing Shack, TrackMan answers it with numbers and a coach turns the numbers into one thing to work on.\n\nThis is what the first session covers, so you know what to expect before you book.\n\n## Why start with data\n\nMost golfers learn by feel. Feel is useful, but it is not always accurate. What you feel you did and what the club did can be different things.\n\nTrackMan measures what the club and the ball did. The coach starts there, so the lesson is built on what happened and not on a guess.\n\n## What the coach looks at first\n\nOn the first lesson, a coach usually starts with a handful of figures:\n\n- **Club path and face angle.** These two together explain most slices and hooks.\n- **Attack angle.** Whether you hit down or up into the ball.\n- **Strike quality.** Smash factor shows how cleanly the ball was struck.\n- **Dispersion.** Where the ball lands across a set of shots, not just the best one.\n\n## How the session runs\n\n1. **You hit some shots.** No pressure and no performance. The coach watches the numbers.\n2. **The coach picks one thing.** Not ten. One change you can understand and repeat.\n3. **You try the change and watch the numbers move.** You see in the same session whether it worked.\n4. **You leave knowing what to practise.** And why.\n\nSessions are 30 or 60 minutes. See the [lesson options](/product-category/lesson/) or go straight to the [bookings page](/bookings/).\n\n## Is this for beginners\n\nYes. A first-timer gets the same welcome and the same bay as a low handicapper. A beginner can start with the basics of strike and direction. A better player can work on a specific miss.\n\n## Beginner, improver or returning player\n\n- **Just starting.** Ask for a session that covers grip, set-up and a clean strike first.\n- **Playing but stuck.** Bring the miss you want to fix. A slice and a thin strike have different causes.\n- **Coming back after a break.** Use the first session to see where your swing is now.\n\n## Lessons and clubs go together\n\nIf the numbers show that your clubs are working against your swing, the coach will say so. A [club fitting](/club-fitting/) can follow the lesson. Swing Shack fits the club to the player, not the other way round.\n\n## Practising between lessons\n\nA [membership](/membership/) gives you the bay between lessons, so what you learned has somewhere to go.\n\n## Questions people ask\n\n**How many lessons do I need?**\nIt depends on what you want to change. Your coach can give you an honest answer after the first session.\n\n**Do I bring clubs?**\nYes if you have them. If not, clubs can be hired on request.\n\n**Can I see what changed?**\nYes. The numbers from the session are the record.\n\n## Book your first lesson\n\n[Book a lesson](/bookings/) and find out what your swing is doing.\n",
+    "cta": "Book a session",
+    "cta_url": "https://swingshack.co.za/bookings/"
+  },
+  "internal_links_used": [
+    {
+      "anchor": "/bookings/",
+      "url": "https://swingshack.co.za/bookings/",
+      "why": "linked from the draft"
+    },
+    {
+      "anchor": "/product-category/lesson/",
+      "url": "https://swingshack.co.za/product-category/lesson/",
+      "why": "linked from the draft"
+    },
+    {
+      "anchor": "/membership/",
+      "url": "https://swingshack.co.za/membership/",
+      "why": "linked from the draft"
+    },
+    {
+      "anchor": "/club-fitting/",
+      "url": "https://swingshack.co.za/club-fitting/",
+      "why": "linked from the draft"
+    }
+  ],
+  "cta": {
+    "chosen": "Book a session",
+    "url": "https://swingshack.co.za/bookings/",
+    "rationale": "Every draft ends on the bookings page."
+  },
+  "fact_check": [
+    {
+      "claim": "Swing Shack is at Old Parktonian Sports Club, 1 Garden Road, Bordeaux, Randburg, Johannesburg",
+      "evidence_layer": "OFFICIAL BUSINESS",
+      "evidence_source": "swingshack.co.za footer and page schema, Google Maps listing; Christelle confirmed Old Parks and Old Parktonian are the same place and Randburg is in Johannesburg (2026-10-21)",
+      "evidence_type": "official-business",
+      "status": "VERIFIED"
+    },
+    {
+      "claim": "Open Monday to Saturday 09:00 to 21:00 and Sunday 09:00 to 17:00",
+      "evidence_layer": "OFFICIAL BUSINESS",
+      "evidence_source": "Google Business Profile hours, from Christelle's screenshot 2026-10-23. The website's hidden search data says 07:00 to 21:00 Monday to Saturday and 09:00 to 18:00 Sunday, which is out of date",
+      "evidence_type": "official-business",
+      "status": "VERIFIED"
+    },
+    {
+      "claim": "Clubs can be hired on request; walk-ins are welcome but a bay cannot be guaranteed, so book online; parking is ample",
+      "evidence_layer": "OFFICIAL BUSINESS",
+      "evidence_source": "Christelle, chat 2026-10-21",
+      "evidence_type": "operator-statement",
+      "status": "VERIFIED"
+    },
+    {
+      "claim": "Sessions are 30 or 60 minutes",
+      "evidence_layer": "OFFICIAL BUSINESS",
+      "evidence_source": "data/brand-directory/swing-shack/voice/do-say-dont-say.md",
+      "evidence_type": "brand-file",
+      "status": "VERIFIED"
+    }
+  ],
+  "evidence_still_needed": [
+    "No coach names or prices are given on purpose. Add coach names you are happy to publish, and link to the lesson product page for prices.",
+    "Needs a real photo of a lesson in the bay."
+  ],
+  "review_flags": [
+    {
+      "flag": "COACHES AND PRICES",
+      "detail": "No coach names or prices are given on purpose. Add coach names you are happy to publish, and link to the lesson product page for prices."
+    },
+    {
+      "flag": "PHOTO",
+      "detail": "Needs a real photo of a lesson in the bay."
+    }
+  ]
+}

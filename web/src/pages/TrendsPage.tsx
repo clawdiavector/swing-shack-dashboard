@@ -4,6 +4,7 @@ import { useBrand } from '../components/BrandSwitch'
 import { AdsBudget } from '../components/AdsBudget'
 import { AdsNext } from '../components/AdsNext'
 import { Moments } from '../components/Moments'
+import { AdsPerformance } from '../components/AdsPerformance'
 import { AdsTracking } from '../components/AdsTracking'
 import { ADS_BRANDS, AdsSection, Note } from '../components/AdsTrends'
 import { PageIntro } from '../components/chrome'
@@ -133,6 +134,13 @@ export function TrendsPage() {
         <section className="space-y-3">
           <h2 className="font-display text-xl font-semibold">What to do next</h2>
           <AdsNext brandId={brandId} />
+        </section>
+      ) : null}
+
+      {hasAds && brandId ? (
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-semibold">How each ad performed</h2>
+          <AdsPerformance brandId={brandId} />
         </section>
       ) : null}
 

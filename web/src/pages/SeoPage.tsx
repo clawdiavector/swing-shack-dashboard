@@ -4,7 +4,8 @@ import { useBrand } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, StatCard } from '../components/ui'
 import { getJson } from '../lib/api'
-import { fixLabel, groupFixes, type SeoFix, type SeoFixQueue } from '../lib/seoFixQueue'
+import { closesItem, fieldLabel, lengthState, resultNote, type ApplyResult, type FixDraft } from '../lib/seoFixer'
+import { fixLabel, splitByButton, type SeoFix, type SeoFixQueue } from '../lib/seoFixQueue'
 import { canUndo, modeNote, statusLabel, type MetaChange, type PublishMode } from '../lib/seoMetaPublish'
 
 // Shape of GET /api/seo/insights (campaign-os/app.py seo_insights_full).
@@ -102,33 +103,176 @@ function KeywordTable({ title, read, rows }: { title: string; read: string; rows
 
 const SEVERITY_TONE = { high: 'red', medium: 'gold', low: 'mute' } as const
 
-function FixRow({ fix }: { fix: SeoFix }) {
+// POST that reads the body on errors too: the reason ("names another company", "edited since") is in it.
+async function postFix<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ brand: 'swing-shack', ...body }),
+  })
+  return (await res.json().catch(() => ({ ok: false, error: 'No reply from the server' }))) as T
+}
+
+// Fix / Improve: read the live page, suggest wording, let the person edit it, apply on one click.
+function FixEditor({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id: string) => void; onChanged: () => void }) {
+  const [draft, setDraft] = useState<FixDraft | null>(null)
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [warnings, setWarnings] = useState<string[] | null>(null)
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
+
+  useEffect(() => {
+    let live = true
+    postFix<FixDraft>('/api/seo/fix/draft', { id: fix.id }).then((d) => {
+      if (!live) return
+      setDraft(d)
+      // With no suggestion the box starts from what is on the site, so it can still be edited.
+      setText(d.proposal ?? d.current ?? '')
+    })
+    return () => {
+      live = false
+    }
+  }, [fix.id])
+
+  if (!draft) return <p className="mt-2 text-sm text-tx3">Reading the page…</p>
+  if (!draft.ok) return <p className="mt-2 text-sm text-red">{draft.error || 'Could not read the page.'}</p>
+
+  const min = draft.min ?? 0
+  const max = draft.max ?? 999
+  const len = lengthState(text, min, max)
+  const unchanged = text.trim() === (draft.current ?? '').trim()
+  const practice = draft.mode === 'dry-run'
+
+  async function apply(confirm: boolean) {
+    setBusy(true)
+    setNote(null)
+    try {
+      const r = await postFix<ApplyResult>('/api/seo/fix/apply', {
+        id: fix.id,
+        text,
+        expected_current: draft?.current ?? '',
+        confirm,
+      })
+      if (r.needs_confirm) {
+        setWarnings(r.warnings ?? [r.error ?? 'Please check this wording.'])
+        return
+      }
+      setWarnings(null)
+      setNote(resultNote(r))
+      onChanged()
+      if (closesItem(r)) onApplied(fix.id)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+      <p className="text-xs font-semibold text-tx3 uppercase">
+        {draft.field_label} on {draft.page}
+      </p>
+      <p className="mt-1 text-xs text-tx3">Now on the site</p>
+      <p className="text-sm text-tx2">{draft.current || 'Nothing (it is empty).'}</p>
+      {(draft.notes ?? []).length > 0 ? (
+        <ul className="mt-1 list-disc pl-5 text-xs text-tx3">
+          {(draft.notes ?? []).map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      <label className="mt-3 block text-xs font-semibold text-tx3" htmlFor={`fix-${fix.id}`}>
+        {draft.proposal ? 'Suggested wording (edit it as you like)' : 'No safe wording found on the page. Write your own.'}
+      </label>
+      <textarea
+        id={`fix-${fix.id}`}
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value)
+          setWarnings(null)
+          setNote(null)
+        }}
+        rows={draft.field === 'title' ? 2 : 4}
+        className="mt-1 w-full rounded-lg border border-white/10 bg-transparent p-2 text-sm text-tx focus:border-ac focus:outline-none"
+      />
+      <div className="mt-1 flex flex-wrap items-center gap-3 text-xs">
+        <span className={len.state === 'ok' ? 'text-ac' : 'text-red'}>{len.hint}</span>
+        {draft.proposal && text !== draft.proposal ? (
+          <button type="button" onClick={() => setText(draft.proposal ?? '')} className="text-tx3 underline hover:text-ac">
+            Back to the suggestion
+          </button>
+        ) : null}
+      </div>
+
+      {warnings ? (
+        <div className="mt-2 rounded-lg border border-gold/40 p-2 text-xs text-tx2">
+          {warnings.map((w) => (
+            <p key={w}>{w}</p>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void apply(warnings !== null)}
+          disabled={busy || len.state !== 'ok' || unchanged}
+          className="glass-pill rounded-full border border-white/10 px-4 py-1.5 text-sm font-semibold text-tx hover:border-ac hover:text-ac disabled:opacity-50"
+        >
+          {busy ? 'Working…' : warnings ? 'Apply anyway' : practice ? 'Record (practice mode)' : 'Apply'}
+        </button>
+        <span className="text-xs text-tx3">
+          {practice ? 'Practice mode: nothing is changed on the website.' : 'Changes the live website. You can undo it afterwards.'}
+        </span>
+      </div>
+      {note ? <p className={`mt-2 text-sm ${note.ok ? 'text-ac' : 'text-red'}`}>{note.text}</p> : null}
+    </div>
+  )
+}
+
+function FixRow({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id: string) => void; onChanged: () => void }) {
   const tone = SEVERITY_TONE[fix.severity ?? 'low'] ?? 'mute'
+  const [open, setOpen] = useState(false)
   return (
     <li className="border-t border-white/5 py-2 text-sm first:border-t-0">
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={tone}>{fix.severity ?? 'note'}</Badge>
         <span className="font-semibold text-tx">{fixLabel(fix.type)}</span>
         {fix.page ? <span className="text-tx3">on {fix.page}</span> : null}
+        {fix.fix_button ? (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="glass-pill ml-auto rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-tx hover:border-ac hover:text-ac"
+          >
+            {open ? 'Close' : fix.fix_button.label}
+          </button>
+        ) : null}
       </div>
       {fix.message ? <p className="mt-1 text-tx2">{fix.message}</p> : null}
       {fix.fix ? <p className="mt-1 text-tx3">Suggested fix: {fix.fix}</p> : null}
+      {open && fix.fix_button ? <FixEditor fix={fix} onApplied={onApplied} onChanged={onChanged} /> : null}
     </li>
   )
 }
 
-// Findings from the daily site check, waiting for a fix. Read-only: nothing
-// here changes the website.
-function FixesWaiting({ queue }: { queue: SeoFixQueue | null }) {
-  const { auto, ask } = groupFixes(queue)
-  const total = auto.length + ask.length
+// Findings from the daily site check. Fix and Improve buttons write to the
+// website only when you click Apply; everything else here is still read-only.
+function FixesWaiting({ queue, onChanged }: { queue: SeoFixQueue | null; onChanged: () => void }) {
+  const [done, setDone] = useState<string[]>([])
+  const { click, rest } = splitByButton(queue)
+  const shownClick = click.filter((f) => !done.includes(f.id))
+  const total = shownClick.length + rest.length
+  const markDone = (id: string) => setDone((d) => [...d, id])
   return (
     <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
       <h2 className="font-display text-lg font-semibold">
         Fixes waiting <span className="text-sm text-tx3">({total})</span>
       </h2>
       <p className="mt-1 text-sm text-tx3">
-        Found by the daily check of the Swing Shack website. Nothing is changed on the site from this page.
+        Found by the daily check of the Swing Shack website. Nothing changes on the site until you click Apply.
       </p>
       {!queue ? (
         <p className="mt-4 text-sm text-tx3">No check has run yet. The first list appears after tonight's check.</p>
@@ -136,24 +280,22 @@ function FixesWaiting({ queue }: { queue: SeoFixQueue | null }) {
         <p className="mt-4 text-sm text-tx3">Nothing waiting. The last check found nothing to fix.</p>
       ) : (
         <div className="mt-3 space-y-4">
-          {ask.length > 0 ? (
+          {shownClick.length > 0 ? (
             <div>
-              <h3 className="text-xs font-semibold text-tx3 uppercase">Needs your OK before it changes ({ask.length})</h3>
+              <h3 className="text-xs font-semibold text-tx3 uppercase">Fix with a click ({shownClick.length})</h3>
               <ul className="mt-1">
-                {ask.map((f) => (
-                  <FixRow key={f.id} fix={f} />
+                {shownClick.map((f) => (
+                  <FixRow key={f.id} fix={f} onApplied={markDone} onChanged={onChanged} />
                 ))}
               </ul>
             </div>
           ) : null}
-          {auto.length > 0 ? (
+          {rest.length > 0 ? (
             <div>
-              <h3 className="text-xs font-semibold text-tx3 uppercase">
-                Can be fixed automatically, with an undo ({auto.length})
-              </h3>
+              <h3 className="text-xs font-semibold text-tx3 uppercase">No button yet ({rest.length})</h3>
               <ul className="mt-1">
-                {auto.map((f) => (
-                  <FixRow key={f.id} fix={f} />
+                {rest.map((f) => (
+                  <FixRow key={f.id} fix={f} onApplied={markDone} onChanged={onChanged} />
                 ))}
               </ul>
             </div>
@@ -213,9 +355,13 @@ function AutoChanges() {
   return (
     <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
       <h2 className="font-display text-lg font-semibold">
-        Changed automatically <span className="text-sm text-tx3">({entries.length})</span>
+        Changes made <span className="text-sm text-tx3">({entries.length})</span>
       </h2>
       <p className="mt-1 text-sm text-tx3">{modeNote(mode)}</p>
+      <p className="mt-1 text-xs text-tx3">
+        Every change from the automatic check or from a Fix or Improve button is listed here, newest first, with Undo.
+        Undo goes back one step at a time and leaves alone anything edited by hand since.
+      </p>
       {entries.length === 0 ? (
         <p className="mt-4 text-sm text-tx3">Nothing yet.</p>
       ) : (
@@ -224,8 +370,12 @@ function AutoChanges() {
             <li key={c.id} className="border-t border-white/5 py-2 text-sm first:border-t-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone={CHANGE_TONE[c.status] ?? 'mute'}>{statusLabel(c)}</Badge>
-                <span className="font-semibold text-tx">Search description on {c.page}</span>
-                <span className="text-tx3">{c.at.slice(0, 10)}</span>
+                <span className="font-semibold text-tx">
+                  {fieldLabel(c.field)} on {c.page}
+                </span>
+                <span className="text-tx3">
+                  {c.at.slice(0, 10)} · {c.source === 'button' ? 'from a button' : 'automatic'}
+                </span>
                 {canUndo(c) ? (
                   <button
                     type="button"
@@ -253,6 +403,7 @@ export function SeoPage() {
   const { brandId, brandLabel } = useBrand()
   const [data, setData] = useState<SeoInsights | null>(null)
   const [queue, setQueue] = useState<SeoFixQueue | null>(null)
+  const [changesKey, setChangesKey] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshNote, setRefreshNote] = useState<{ ok: boolean; text: string } | null>(null)
@@ -385,9 +536,9 @@ export function SeoPage() {
             </p>
           </section>
 
-          <FixesWaiting queue={queue} />
+          <FixesWaiting queue={queue} onChanged={() => setChangesKey((k) => k + 1)} />
 
-          <AutoChanges />
+          <AutoChanges key={changesKey} />
 
           <KeywordTable title="Winning" read="Top 10 or moved up this period." rows={data.winning} />
           <KeywordTable title="Quick wins" read="Close to page one; a small push may move them." rows={data.quick_wins} />

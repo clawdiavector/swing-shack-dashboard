@@ -16421,6 +16421,32 @@ def gbp_daily_poster_latest_route():
     return jsonify(plan), 200
 
 
+def _gbp_suggestion(brand_id):
+    """Draft to offer on the Today card when nothing is approved, or None."""
+    try:
+        found = _gdp.suggest_draft(brand_id, drafts_dir=GMB_DRAFTS_DIR)
+    except Exception as exc:
+        _app_log.warning("gbp suggestion failed: %s", exc)
+        return None
+    d = found.get("draft")
+    if not d:
+        return {"post": None, "ready_count": 0, "blocked_count": found.get("blocked_count", 0)}
+    return {
+        "post": {
+            "draft_id": d["id"],
+            "title": d.get("title"),
+            "body": d.get("body"),
+            "cta": d.get("cta"),
+            "cta_url": d.get("link") or None,
+            "has_photo": True,
+            "photo_url": f"/api/intel/gmb/draft/{d['id']}/photo-file",
+        },
+        "why": found.get("why"),
+        "ready_count": found.get("ready_count", 1),
+        "blocked_count": found.get("blocked_count", 0),
+    }
+
+
 @app.route('/api/gbp/daily-poster/pending', methods=['GET'])
 def gbp_daily_poster_pending_route():
     """GET /api/gbp/daily-poster/pending?brand_id=<id> — today's post awaiting
@@ -16446,6 +16472,7 @@ def gbp_daily_poster_pending_route():
     if not plan or not plan.get("posts"):
         return jsonify({"ok": True, "brand_id": brand_id, "post": None,
                         "reason": "no_plan",
+                        "suggestion": _gbp_suggestion(brand_id),
                         "configured_integration_id": configured_integration_id,
                         "display_name": profile.get("display_name", brand_id)}), 200
     if not configured_integration_id:
@@ -16489,6 +16516,7 @@ def gbp_daily_poster_pending_route():
     if not pending:
         return jsonify({"ok": True, "brand_id": brand_id, "post": None,
                         "reason": "all_actioned",
+                        "suggestion": _gbp_suggestion(brand_id),
                         "configured_integration_id": configured_integration_id,
                         "display_name": profile.get("display_name", brand_id)}), 200
     # Re-run integrity check so the UI knows if the post is even publishable.
@@ -28774,7 +28802,7 @@ def seo_meta_publish_get():
             return err
         log = seo_meta_publish.load_log(io_for_job("site_audit", brand))
         return jsonify({"ok": True, "mode": seo_meta_publish.mode(),
-                        "entries": list(reversed(log["entries"]))[:30]}), 200
+                        "entries": list(reversed(log["entries"]))[:60]}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -28796,6 +28824,53 @@ def seo_meta_publish_undo():
         result = seo_meta_publish.undo(io_for_job("site_audit", brand), brand, entry_id,
                                        seo_meta_publish.default_wp(brand), utc_now_iso())
         return jsonify(result), (200 if result.get("ok") else 409)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/fix/draft', methods=['POST'])
+def seo_fix_draft():
+    """Read the live page and propose text for one fix. Body: {brand, id}. Writes nothing."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_fixer, seo_meta_publish
+        from _lib.jobs.layer1._io import io_for_job
+        brand, err = _seo_publish_brand()
+        if err:
+            return err
+        item_id = str((request.get_json(silent=True) or {}).get('id') or '').strip()
+        if not item_id:
+            return jsonify({"ok": False, "error": "id is required"}), 400
+        result = seo_fixer.build_draft(io_for_job("site_audit", brand), brand, item_id,
+                                       seo_meta_publish.default_wp(brand))
+        result["mode"] = seo_meta_publish.mode()
+        return jsonify(result), (200 if result.get("ok") else 404)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/fix/apply', methods=['POST'])
+def seo_fix_apply():
+    """Apply one fix with the person's (edited) text. Body: {brand, id, text, expected_current, confirm}."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_fixer, seo_meta_publish
+        from _lib.jobs.layer1._io import io_for_job, utc_now_iso
+        brand, err = _seo_publish_brand()
+        if err:
+            return err
+        body = request.get_json(silent=True) or {}
+        item_id = str(body.get('id') or '').strip()
+        if not item_id:
+            return jsonify({"ok": False, "error": "id is required"}), 400
+        result = seo_fixer.apply_fix(
+            io_for_job("site_audit", brand), brand, item_id, str(body.get('text') or ''),
+            seo_meta_publish.default_wp(brand), utc_now_iso(),
+            expected_current=body.get('expected_current'), confirm=bool(body.get('confirm')),
+        )
+        return jsonify(result), (200 if result.get("ok") else int(result.get("status") or 400))
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

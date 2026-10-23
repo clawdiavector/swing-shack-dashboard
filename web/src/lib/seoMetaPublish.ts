@@ -5,6 +5,10 @@ export type PublishMode = 'off' | 'dry-run' | 'on'
 export interface MetaChange {
   id: string
   page: string
+  // Absent on changes written before the buttons existed: those were search descriptions.
+  field?: 'meta_description' | 'title'
+  // 'button' when a person clicked Fix or Improve; absent for the automatic check.
+  source?: 'button'
   link: string | null
   before: string
   after: string

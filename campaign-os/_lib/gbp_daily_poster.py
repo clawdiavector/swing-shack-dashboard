@@ -697,6 +697,44 @@ def review_problems(draft: dict) -> list[str]:
     return problems
 
 
+def suggest_draft(
+    brand_id: str,
+    *,
+    drafts_dir: Optional[Path] = None,
+    terms: Optional[list[dict]] = None,
+) -> dict:
+    """The draft that should go out next, when none is approved.
+
+    Only drafts that already pass review_problems() are candidates, so what is
+    suggested can be approved as it stands. The pick is the draft whose target
+    search term has the most Search Console impressions for this brand, then
+    the oldest waiting. `terms` are search_terms() rows; fetched when omitted.
+    """
+    if terms is None:
+        terms = search_terms(brand_id).get("terms") or []
+    impressions = {(t.get("query") or "").strip().lower(): int(t.get("impressions") or 0) for t in terms}
+    ready: list[tuple[int, str, dict]] = []
+    blocked = 0
+    for d in load_drafts(brand_id, drafts_dir):
+        if d.get("status") != "draft":
+            continue
+        if review_problems(d):
+            blocked += 1
+            continue
+        target = (d.get("targetQuery") or "").strip().lower()
+        ready.append((impressions.get(target, 0), d.get("createdAt") or "", d))
+    if not ready:
+        return {"draft": None, "ready_count": 0, "blocked_count": blocked}
+    ready.sort(key=lambda r: (-r[0], r[1]))
+    top_impressions, _, pick = ready[0]
+    target = (pick.get("targetQuery") or "").strip()
+    if top_impressions:
+        why = f"People searched \"{target}\" {top_impressions} times on Google lately, and this post is about it."
+    else:
+        why = "Ready to go and has waited longest."
+    return {"draft": pick, "why": why, "ready_count": len(ready), "blocked_count": blocked}
+
+
 def search_terms(brand_id: str, *, limit: int = 12, payload: Optional[dict] = None) -> dict:
     """Top Search Console queries for a brand, to pick a post's target term from.
 

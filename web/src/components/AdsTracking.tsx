@@ -22,6 +22,7 @@ type TrackedAd = {
   ids?: { campaign?: string | null; adset?: string | null }
   names?: { ad?: string | null; adset?: string | null; campaign?: string | null }
   current_tags?: string
+  tags_fixable?: boolean
   proposal?: { ad_name: string; adset_name: string; campaign_name: string; url_tags: string }
 }
 
@@ -67,6 +68,7 @@ function Fixes({ brandId, a }: { brandId: string; a: TrackedAd }) {
     { object: 'campaign', id: a.ids?.campaign, now: a.names?.campaign, to: p.campaign_name, label: 'Rename campaign' },
   ].filter((r) => r.id && r.now !== r.to)
   const needsTags = a.destination === 'WEBSITE' && (a.current_tags ?? '') !== p.url_tags
+  const canTag = a.tags_fixable !== false
   if (!renames.length && !needsTags) return <p className="mt-1 text-xs text-ac">Named and tagged to the standard.</p>
   return (
     <div className="mt-2 space-y-2">
@@ -91,7 +93,13 @@ function Fixes({ brandId, a }: { brandId: string; a: TrackedAd }) {
           />
         </div>
       ))}
-      {needsTags ? (
+      {needsTags && !canTag ? (
+        <p className="text-xs text-tx2">
+          UTM tags: this ad uses Meta&apos;s flexible creative, which cannot be tagged from here. Paste the standard tags into its URL
+          parameters in Ads Manager when it is next edited or recreated: <span className="break-all text-tx">{p.url_tags}</span>
+        </p>
+      ) : null}
+      {needsTags && canTag ? (
         <div className="flex flex-wrap items-center gap-2 text-xs text-tx2">
           <span>
             UTM tags: <span className="text-tx3">{a.current_tags || 'none'}</span> → <span className="break-all font-semibold text-tx">{p.url_tags}</span>
