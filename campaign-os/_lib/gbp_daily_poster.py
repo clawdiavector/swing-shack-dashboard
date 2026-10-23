@@ -51,7 +51,19 @@ from typing import Any, Optional
 _LOG = logging.getLogger("campaign_os.gbp_daily_poster")
 
 # Same folder app.py writes GBP drafts to (campaign-os/data/gmb-drafts).
-GMB_DRAFTS_DIR = Path(__file__).resolve().parent.parent / "data" / "gmb-drafts"
+def resolve_drafts_dir(env: Optional[dict] = None) -> Path:
+    """Where Google Business drafts live.
+
+    On Railway only DATA_DIR sits on the permanent volume; a folder inside the
+    app is wiped by every deploy, which deleted every draft once (2026-10-23).
+    """
+    data_dir = (env if env is not None else os.environ).get("DATA_DIR")
+    if data_dir:
+        return Path(data_dir) / "gmb-drafts"
+    return Path(__file__).resolve().parent.parent / "data" / "gmb-drafts"
+
+
+GMB_DRAFTS_DIR = resolve_drafts_dir()
 
 # ── Brand-scoped defaults ────────────────────────────────────────────
 

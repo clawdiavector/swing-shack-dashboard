@@ -17021,7 +17021,12 @@ def review_push_postiz(asset_id):
 
 
 # ─── GMB DRAFTS CRUD (added 2026-08-04 polish pass) ──────────────────
-GMB_DRAFTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'gmb-drafts')
+# Drafts must live on the permanent volume (DATA_DIR): a folder inside the app is wiped by every deploy.
+GMB_DRAFTS_DIR = (
+    str(_gdp.GMB_DRAFTS_DIR)
+    if _GBP_DAILY_AVAILABLE and _gdp is not None
+    else os.path.join(os.environ.get('DATA_DIR') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data'), 'gmb-drafts')
+)
 try:
     os.makedirs(GMB_DRAFTS_DIR, exist_ok=True)
 except (OSError, PermissionError):

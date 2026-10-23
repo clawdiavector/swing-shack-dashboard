@@ -146,12 +146,14 @@ export function PostCard({
   terms,
   handlers,
   brandName,
+  suggestedWhy,
 }: {
   d: GmbDraft
   busy: boolean
   terms: string[]
   handlers: PostHandlers
   brandName?: string
+  suggestedWhy?: string
 }) {
   const stage = postStage(d)
   const id = d.id ?? ''
@@ -166,7 +168,12 @@ export function PostCard({
   const badge = STAGE_BADGE[stage]
 
   return (
-    <li className="glass rounded-2xl border border-white/10 p-4">
+    <li className={`glass rounded-2xl border p-4 ${suggestedWhy ? 'border-yel' : 'border-white/10'}`}>
+      {suggestedWhy ? (
+        <p className="mb-3 rounded-xl bg-yel/10 px-3 py-2 text-sm">
+          <span className="font-semibold text-yel">Suggested to go out next.</span> {suggestedWhy}
+        </p>
+      ) : null}
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="sm:w-56 sm:shrink-0">
           {photo ? (
