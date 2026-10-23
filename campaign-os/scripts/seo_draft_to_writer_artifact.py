@@ -35,9 +35,9 @@ VENUE_ROWS = [
         "status": "VERIFIED",
     },
     {
-        "claim": "Open Monday to Saturday 07:00 to 21:00 and Sunday 09:00 to 18:00",
+        "claim": "Open Monday to Saturday 09:00 to 21:00 and Sunday 09:00 to 17:00",
         "evidence_layer": "OFFICIAL BUSINESS",
-        "evidence_source": "swingshack.co.za page schema; Google Maps agreed for one day. Not yet confirmed by Christelle",
+        "evidence_source": "Google Business Profile hours, from Christelle's screenshot 2026-10-23. The website's hidden search data says 07:00 to 21:00 Monday to Saturday and 09:00 to 18:00 Sunday, which is out of date",
         "evidence_type": "official-business",
         "status": "VERIFIED",
     },
@@ -68,7 +68,6 @@ TRACKMAN_ROW = {
 
 FLAGS = {
     "01-indoor-golf-johannesburg-what-to-expect": [
-        {"flag": "HOURS", "detail": "Hours come from the website's search data and are not yet confirmed. Edit or confirm in the section that gives them."},
         {"flag": "PHOTO", "detail": "Needs a real bay photo as the lead image. Never a render."},
     ],
     "02-golf-lessons-johannesburg-first-session": [
@@ -91,7 +90,7 @@ def _front_matter(text: str) -> tuple[dict, str]:
         if re.match(r"^\s+- ", line) and key:
             meta.setdefault(key, []).append(line.split("- ", 1)[1].strip())
             continue
-        kv = re.match(r"^([a-z_]+):\s*(.*)$", line)
+        kv = re.match(r"^([a-z0-9_]+):\s*(.*)$", line)
         if kv:
             key = kv.group(1)
             meta[key] = kv.group(2).strip() if kv.group(2).strip() else []

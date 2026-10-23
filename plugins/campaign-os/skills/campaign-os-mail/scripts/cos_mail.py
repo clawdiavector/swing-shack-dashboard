@@ -240,9 +240,97 @@ def wiki_ref(page: str) -> dict:
         sys.exit(f"{rel} is not on origin/{WIKI_BRANCH} yet. Push it first.")
     if git(root, "rev-list", f"origin/{WIKI_BRANCH}..HEAD", "--", rel):
         sys.exit(f"{rel} has local commits not pushed to {WIKI_BRANCH}. Push first.")
+    ahead = git(root, "rev-list", "--count", f"origin/{WIKI_BRANCH}..HEAD")
+    if ahead and ahead != "0":
+        sys.exit(f"your wiki clone has {ahead} commit(s) not pushed to {WIKI_BRANCH}. "
+                 "Push the wiki before mailing about it (hard gate).")
     base = re.sub(r"\.git$", "", re.sub(r"//[^/@]+@", "//", remote))
     base = re.sub(r"^git@github\.com:", "https://github.com/", base)
     return {"path": rel, "web": f"{base}/blob/{WIKI_BRANCH}/{urllib.parse.quote(rel)}"}
+
+
+# Hard gate (Kyle, 2026-10-23): a mail that refers to the wiki or the package only goes out when what it
+# refers to is committed and pushed. Wiki pages via wiki_ref(); files, package paths and branches here.
+WIKI_MENTION = re.compile(r"(?:CampaignOS/)?(?:research|decisions|runbooks|modules|experiments)/[\w./-]+\.md")
+PACKAGE_MENTION = re.compile(r"(?<![\w/])(?:plugins/campaign-os|campaign-os/(?:_lib|scripts|tests)|data/brand-directory)/[\w./*-]+")
+BRANCH_MENTION = re.compile(r"(?<![\w/.-])((?:feat|fix|docs|chore|wip|integrate)/[\w.-]+[\w])")
+
+
+def _web_base(remote: str) -> str:
+    base = re.sub(r"\.git$", "", re.sub(r"//[^/@]+@", "//", remote))
+    return re.sub(r"^git@github\.com:", "https://github.com/", base)
+
+
+def file_ref(f: str) -> dict:
+    """A file or folder the mail points at must be committed and on its branch's remote (hard gate)."""
+    path = Path(f).expanduser().resolve()
+    if not path.exists():
+        sys.exit(f"file not found: {path}")
+    top = git(path if path.is_dir() else path.parent, "rev-parse", "--show-toplevel")
+    if not top:
+        sys.exit(f"{path} is not in a git repo, so nobody else can open it. Commit and push it, or don't send it.")
+    root, rel = Path(top), path.relative_to(Path(top)).as_posix() or "."
+    if git(root, "check-ignore", "-q", rel) is not None:
+        sys.exit(f"{rel} is git-ignored, so it never reaches the remote. Put it in the wiki or a tracked path.")
+    if git(root, "status", "--porcelain", "--", rel):
+        sys.exit(f"{rel} has uncommitted changes. Commit and push before mailing about it (hard gate).")
+    branch = git(root, "rev-parse", "--abbrev-ref", "HEAD") or "HEAD"
+    upstream = git(root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+    if not upstream:
+        sys.exit(f"{rel}: branch {branch} has no upstream. Push it (git push -u origin {branch}) first (hard gate).")
+    git(root, "fetch", "-q", upstream.split("/", 1)[0])
+    if path.is_file() and git(root, "cat-file", "-e", f"{upstream}:{rel}") is None:
+        sys.exit(f"{rel} is not on {upstream} yet. Push first (hard gate).")
+    if git(root, "rev-list", f"{upstream}..HEAD", "--", rel):
+        sys.exit(f"{rel} has commits not pushed to {upstream}. Push first (hard gate).")
+    remote = git(root, "remote", "get-url", upstream.split("/", 1)[0]) or ""
+    remote_branch = upstream.split("/", 1)[1]
+    web = f"{_web_base(remote)}/{'blob' if path.is_file() else 'tree'}/{remote_branch}/{urllib.parse.quote(rel)}"
+    return {"path": str(path), "branch": remote_branch, "web": web}
+
+
+def _package_repo() -> Path | None:
+    for c in (Path(__file__).resolve().parent, Path(os.environ.get("COS_REPO", "")).expanduser(), Path.cwd()):
+        top = git(c, "rev-parse", "--show-toplevel") if str(c) else None
+        if top and (Path(top) / "plugins" / "campaign-os").is_dir():
+            return Path(top)
+    return None
+
+
+def check_branch(name: str) -> None:
+    repo = _package_repo()
+    if repo is None:
+        sys.exit(f"the mail names branch {name}, but no Campaign OS repo was found to check it. "
+                 "Run from the repo or set COS_REPO (hard gate).")
+    if not git(repo, "ls-remote", "--heads", "origin", name):
+        sys.exit(f"branch {name} is not on origin. Push it first (hard gate).")
+    if git(repo, "rev-parse", "--verify", "-q", f"refs/heads/{name}"):
+        git(repo, "fetch", "-q", "origin", name)
+        ahead = git(repo, "rev-list", "--count", f"origin/{name}..{name}")
+        if ahead and ahead != "0":
+            sys.exit(f"branch {name} has {ahead} local commit(s) not pushed. Push first (hard gate).")
+
+
+def push_gate(a) -> None:
+    """Refuse to send when the mail refers to wiki pages, package files or branches that are not pushed."""
+    text = f"{a.subject}\n{a.message}\n{a.how_to or ''}"
+    named = {Path(w).as_posix() for w in a.wiki}
+    for m in sorted(set(WIKI_MENTION.findall(text))):
+        if not any(n.endswith(m) or n.endswith("CampaignOS/" + m) for n in named):
+            sys.exit(f"the message mentions wiki page {m} but it is not passed with --wiki, so it can't be "
+                     "checked as pushed. Add --wiki <path in your clone> (hard gate).")
+    files = {Path(f).expanduser().resolve().as_posix() for f in a.file}
+    for m in sorted(set(PACKAGE_MENTION.findall(text))):
+        if "*" in m:
+            continue
+        if not any(f.endswith(m.rstrip("/")) for f in files):
+            sys.exit(f"the message mentions {m} but it is not passed with --file, so it can't be checked as "
+                     "pushed. Add --file <full path> (hard gate).")
+    for b in sorted(set(BRANCH_MENTION.findall(text))):
+        check_branch(b)
+    if a.kind in ("package", "skill") and not a.file:
+        sys.exit(f"'{a.kind}' mail points at the package: pass the changed files or folder with --file "
+                 "so they can be checked as pushed (hard gate).")
 
 
 def cmd_tell(a) -> int:
@@ -256,6 +344,8 @@ def cmd_tell(a) -> int:
         sys.exit(f"'{a.kind}' mail shares information: write it to the wiki first and pass --wiki <page> "
                  "(or --no-wiki \"reason\" if it truly does not belong in the wiki).")
     refs = [wiki_ref(w) for w in a.wiki]
+    push_gate(a)
+    frefs = [file_ref(f) for f in a.file]
     sender = os.environ.get("AGENTMAIL_FROM_NAME", "a teammate")
     lines = [f"Hi {c['name']},", "", a.message.strip()]
     if refs:
@@ -264,7 +354,9 @@ def cmd_tell(a) -> int:
             lines += [f"- {r['path']}", f"  online: {r['web']}",
                       f"  in your clone: ~/CampaignOSKnowledgeBase/{r['path']} (pull first)"]
     if a.file:
-        lines += ["", "Main files:"] + [f"- {Path(f).expanduser().resolve()}" for f in a.file]
+        lines += ["", "Main files (pushed):"]
+        for r in frefs:
+            lines += [f"- {r['path']}", f"  branch {r['branch']}, online: {r['web']}"]
     if a.link:
         lines += ["", f"Link: {a.link}"]
     if a.how_to:
