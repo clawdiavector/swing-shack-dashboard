@@ -51,9 +51,10 @@ function resolveTab(raw: string | null): GbpTab {
 
 export function Gbp() {
   const { brandId } = useBrand()
-  const { isAll, scope } = useBrandScope()
+  const { isAll } = useBrandScope()
   const allBrands = isAll
-  const scopeBrand = isAll ? (brandId ?? 'swing-shack') : String(scope)
+  // The brand the switch shows. The saved scope can name a different brand.
+  const scopeBrand = brandId ?? 'swing-shack'
   const nameOf = (id?: string) => BRAND_NAMES[id ?? ''] ?? id ?? ''
   const brandName = allBrands ? 'every brand' : nameOf(scopeBrand)
   const [params, setParams] = useSearchParams()
@@ -131,6 +132,20 @@ export function Gbp() {
     [brandDrafts, tab],
   )
   const terms = useMemo(() => (searchTerms?.terms ?? []).map((t) => t.query), [searchTerms])
+  // Best ready post to send next: most-searched phrase first, then the one waiting longest.
+  const suggestion = useMemo(() => {
+    if (tab !== 'check') return null
+    const hits = new Map((searchTerms?.terms ?? []).map((t) => [t.query.toLowerCase(), t.impressions]))
+    let best: { id: string; why: string; n: number } | null = null
+    for (const d of shown) {
+      if (!d.id || !d.imageUrl || !d.link || !(d.body || '').trim()) continue
+      const q = (d.targetQuery || '').trim()
+      const n = hits.get(q.toLowerCase()) ?? 0
+      if (!best || n > best.n)
+        best = { id: d.id, n, why: n ? `People searched “${q}” ${n} times on Google lately.` : 'It is ready and has waited longest.' }
+    }
+    return best
+  }, [tab, shown, searchTerms])
 
   async function run(fn: () => Promise<void>) {
     setBusy(true)
@@ -283,8 +298,16 @@ export function Gbp() {
 
       {tab === 'check' || tab === 'ready' || tab === 'sent' ? (
         <ul className="space-y-4">
-          {shown.map((d) => (
-            <PostCard key={`${d.id}-${d.updatedAt}`} d={d} busy={busy} terms={terms} handlers={handlers} brandName={nameOf(d.brand)} />
+          {[...shown].sort((a, b) => Number(b.id === suggestion?.id) - Number(a.id === suggestion?.id)).map((d) => (
+            <PostCard
+              key={`${d.id}-${d.updatedAt}`}
+              d={d}
+              busy={busy}
+              terms={terms}
+              handlers={handlers}
+              brandName={nameOf(d.brand)}
+              suggestedWhy={suggestion && d.id === suggestion.id ? suggestion.why : undefined}
+            />
           ))}
           {loaded && !shown.length ? <li className="text-sm text-tx3">{emptyText[tab]}</li> : null}
         </ul>
