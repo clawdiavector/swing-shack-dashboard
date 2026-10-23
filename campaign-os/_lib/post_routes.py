@@ -355,8 +355,16 @@ def soft_vignette(img: Image.Image, strength: float) -> Image.Image:
 
 
 def grain(img: Image.Image, amount: float = 5.0, seed: int = 7) -> Image.Image:
-    """Fine film grain, about +/- amount grey levels. Applied to backdrops, never to the product."""
-    noise = Image.effect_noise(img.size, max(amount, 0.1))            # grey around 128
+    """Fine film grain, about +/- amount grey levels. Applied to backdrops, never to the product.
+
+    The pattern is fixed for a seed. Pillow's effect_noise is not, and a different
+    pattern on every render made the same post pass or fail the overlap checks.
+    """
+    rng = random.Random(seed)
+    amp = max(int(round(amount)), 1)
+    span = 2 * amp + 1
+    raw = rng.randbytes(img.size[0] * img.size[1])
+    noise = Image.frombytes("L", img.size, bytes(128 - amp + (b % span) for b in raw))
     lift = noise.point(lambda v: max(v - 128, 0))
     drop = noise.point(lambda v: max(128 - v, 0))
     rgb = img.convert("RGB")

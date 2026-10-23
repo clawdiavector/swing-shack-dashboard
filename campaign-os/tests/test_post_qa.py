@@ -152,7 +152,7 @@ class StudioRulesTests(unittest.TestCase):
         _, meta = ps.render_studio(product(category="balls"), idea, sm, self.tmp, "stick", 3)
         self.assertEqual(meta["checks"]["lift"], 0)
         sm = next(s for s in ps.load_sets() if s["id"] == 101)
-        _, meta = ps.render_studio(product(category="irons", name="Takomo"), idea, sm, self.tmp, "stick", 3)
+        _, meta = ps.render_studio(product(category="irons", name="Takomo"), idea, sm, self.tmp, "stick", 7)
         self.assertGreaterEqual(meta["checks"]["lift"], qa.LIFT_MIN)
 
     def test_a_product_is_never_shrunk_below_hero_size(self):

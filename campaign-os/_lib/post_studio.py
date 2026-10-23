@@ -377,7 +377,7 @@ def render_studio(product: pr.Product, idea: dict, set_meta: dict, scenes_dir: P
         raise pr.LayoutFailed("studio scene missing: %s" % path)
     disp, shear, standin = pr.display_font(brand)
     body = pr.body_font(brand)
-    base_bg = pr.grain(_scene(path), 1.6).convert("RGBA")   # one fine grain over the set; the product stays exact
+    base_bg = pr.grain(_scene(path), 1.6, seed).convert("RGBA")   # one fine grain over the set; the product stays exact
     bg_luma = pr.mean_luma(base_bg)
     if bg_luma < pr.LIGHT_CAPS["min_bg_luma"]:
         raise pr.LayoutFailed("studio scene is too dark (mean luma %.0f)" % bg_luma)
