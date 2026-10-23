@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   formatPublishClock,
   publishNowConfirmText,
+  publishNowControlText,
   publishNowSendAt,
   publishNowSuccessText,
+  releasedCardStatus,
 } from './publishConfirm'
 
 const at1400 = new Date(2026, 9, 23, 14, 0, 0)
@@ -48,5 +50,33 @@ describe('publishNowSuccessText', () => {
     )
     expect(publishNowSuccessText('', at1400)).toContain('Estimated on this screen')
     expect(publishNowSuccessText('not-a-time', at1400)).not.toContain('right now')
+  })
+
+  it('names five minutes from now only when the server time is the +5 lead', () => {
+    const later = new Date(2026, 9, 23, 16, 0, 0)
+    expect(publishNowSuccessText(later.toISOString(), at1400)).toBe('Goes out at 16:00.')
+    expect(publishNowSuccessText(later.toISOString(), at1400)).not.toContain('5 minutes from now')
+  })
+})
+
+describe('publishNowControlText', () => {
+  it('shows the +5 send time before the click, including in sandbox', () => {
+    expect(publishNowControlText(at1400)).toBe('Goes out at 14:05 (5 minutes from now).')
+    expect(publishNowConfirmText('sandbox', 'IG · FB', 'Fitting week', at1400)).toBeNull()
+  })
+})
+
+describe('releasedCardStatus', () => {
+  it('points at the Publish now button on the card', () => {
+    expect(releasedCardStatus(true)).toBe(
+      'Waiting to go out — the hourly job sends it at the scheduled time. Publish now is on this card.',
+    )
+    expect(releasedCardStatus(true)).not.toContain('Publish page')
+  })
+
+  it('does not mention Publish now when the card has no button', () => {
+    expect(releasedCardStatus(false)).toBe(
+      'Waiting to go out — the hourly job sends it at the scheduled time.',
+    )
   })
 })

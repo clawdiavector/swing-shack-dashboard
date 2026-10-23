@@ -39,7 +39,8 @@ import { StageStepper } from './StageStepper'
 import { GapTile } from './GapTile'
 import { ChannelPicker } from './ChannelPicker'
 import { DeliveryChips } from './DeliveryChips'
-import { publishNowConfirmText, publishNowSuccessText } from '../../lib/publishConfirm'
+import { PublishNowButton } from './PublishNowButton'
+import { publishNowConfirmText, publishNowSuccessText, releasedCardStatus } from '../../lib/publishConfirm'
 import { releaseConfirmMessage } from './ApproveReleaseConfirm'
 
 function sandboxPublishKeys(post: PostingWeekPost): string[] {
@@ -525,17 +526,10 @@ export function PostCard({
               <p className="text-xs font-medium text-tx2">
                 {needsAttention
                   ? 'Some platforms need attention — retry or drop a channel below.'
-                  : 'Waiting to go out — the hourly job sends it at the scheduled time. Publish now is on the Publish page.'}
+                  : releasedCardStatus(isReleased && sandboxPublishKeys(post).length > 0)}
               </p>
               {isReleased && sandboxPublishKeys(post).length ? (
-                <button
-                  type="button"
-                  disabled={publishing}
-                  onClick={(e) => void handlePublishNow(e)}
-                  className="rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
-                >
-                  Publish now
-                </button>
+                <PublishNowButton disabled={publishing} onClick={(e) => void handlePublishNow(e)} />
               ) : null}
               {sendNote ? <p className="text-xs font-medium text-tx2">{sendNote}</p> : null}
             </div>

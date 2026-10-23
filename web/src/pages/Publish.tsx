@@ -5,6 +5,7 @@ import { BrandChip } from '../components/BrandChip'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
+import { PublishNowButton } from '../components/posting/PublishNowButton'
 import '../fun.css'
 import { FunTile } from '../components/fun'
 import { burstAtPointer } from '../lib/confetti'
@@ -43,11 +44,10 @@ export function Publish() {
   function publishNowButton(postId: string, keys: string[], channels: string, title: string) {
     if (!keys.length) return undefined
     return (
-      <button
-        type="button"
+      <PublishNowButton
         disabled={publishingPostId === postId}
-        className="shrink-0 rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
-        data-testid={`publish-now-${postId}`}
+        className="shrink-0 rounded-full bg-ac px-3 py-1 text-left text-xs font-semibold text-bg disabled:opacity-40"
+        testId={`publish-now-${postId}`}
         onClick={(event) => {
           event.preventDefault()
           event.stopPropagation()
@@ -65,9 +65,7 @@ export function Publish() {
             .catch((e: unknown) => setPublishNote(e instanceof Error ? e.message : 'Publish failed'))
             .finally(() => setPublishingPostId(''))
         }}
-      >
-        Publish now
-      </button>
+      />
     )
   }
 
