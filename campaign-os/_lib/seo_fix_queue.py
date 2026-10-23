@@ -48,6 +48,17 @@ APPLY_FIX_CHECK = {
     "no_structured_data": "missing_organization_schema",
 }
 
+# Finding types a person can fix with a button (propose, edit, apply, undo).
+# One entry per type: add a type here and in seo_fixer, and the page needs no
+# new screen. "Fix" is for something missing, "Improve" for something weak.
+FIX_BUTTONS = {
+    "missing_meta_description": {"field": "meta_description", "label": "Fix"},
+    "meta_description_short": {"field": "meta_description", "label": "Improve"},
+    "meta_description_long": {"field": "meta_description", "label": "Improve"},
+    "title_too_short": {"field": "title", "label": "Improve"},
+    "title_too_long": {"field": "title", "label": "Improve"},
+}
+
 PUBLISH_AUTO = "auto_with_undo"
 PUBLISH_ASK = "asks_first"
 
@@ -79,6 +90,7 @@ def _item(brand: str, source: str, finding: dict[str, Any], fix: str | None, now
         "message": finding.get("message"),
         "fix": fix,
         "apply_via": APPLY_FIX_CHECK.get(ftype),
+        "fix_button": FIX_BUTTONS.get(ftype),
         "publish_policy": classify(ftype, page),
         "status": "draft",
         "first_seen": now,

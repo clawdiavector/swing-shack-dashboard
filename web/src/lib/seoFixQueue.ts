@@ -1,5 +1,11 @@
 // Shape of GET /api/seo/fix-queue (campaign-os/_lib/seo_fix_queue.py).
 
+// Which kind of button a fix gets (seo_fix_queue.FIX_BUTTONS). Missing means no button yet.
+export interface FixButton {
+  field: 'meta_description' | 'title'
+  label: 'Fix' | 'Improve'
+}
+
 export interface SeoFix {
   id: string
   source: 'seo' | 'geo'
@@ -9,6 +15,7 @@ export interface SeoFix {
   message: string | null
   fix: string | null
   publish_policy: 'auto_with_undo' | 'asks_first'
+  fix_button?: FixButton | null
   status: 'draft' | 'dismissed' | 'done' | 'resolved'
   first_seen: string
 }
@@ -37,6 +44,13 @@ export function groupFixes(queue: SeoFixQueue | null): { auto: SeoFix[]; ask: Se
   }
 }
 
+// Open fixes split by whether the page can fix them with a click. The policy
+// (automatic or asks first) does not matter here: the click is the approval.
+export function splitByButton(queue: SeoFixQueue | null): { click: SeoFix[]; rest: SeoFix[] } {
+  const open = (queue?.items ?? []).filter((i) => i.status === 'draft').sort(bySeverityThenPage)
+  return { click: open.filter((i) => i.fix_button), rest: open.filter((i) => !i.fix_button) }
+}
+
 // The audit's own sentence is long and technical; a short plain label per type.
 const LABELS: Record<string, string> = {
   missing_title: 'No page title',
@@ -44,6 +58,7 @@ const LABELS: Record<string, string> = {
   title_too_long: 'Title too long',
   missing_meta_description: 'No search description',
   meta_description_short: 'Search description too short',
+  meta_description_long: 'Search description too long',
   missing_h1: 'No main heading',
   multiple_h1: 'More than one main heading',
   images_missing_alt: 'Images without descriptions',

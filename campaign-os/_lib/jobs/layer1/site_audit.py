@@ -91,6 +91,14 @@ def _audit_seo_page(html: str) -> list[dict[str, Any]]:
         findings.append(
             {"type": "meta_description_short", "severity": "medium", "message": "Meta description too short"}
         )
+    elif len(desc_match.group(1)) > 160:
+        findings.append(
+            {
+                "type": "meta_description_long",
+                "severity": "low",
+                "message": f"Meta description too long ({len(desc_match.group(1))} chars): Google cuts it off",
+            }
+        )
 
     h1_matches = re.findall(r"<h1[^>]*>([^<]+)</h1>", html, re.I)
     if not h1_matches:

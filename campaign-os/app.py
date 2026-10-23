@@ -28802,7 +28802,7 @@ def seo_meta_publish_get():
             return err
         log = seo_meta_publish.load_log(io_for_job("site_audit", brand))
         return jsonify({"ok": True, "mode": seo_meta_publish.mode(),
-                        "entries": list(reversed(log["entries"]))[:30]}), 200
+                        "entries": list(reversed(log["entries"]))[:60]}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -28824,6 +28824,53 @@ def seo_meta_publish_undo():
         result = seo_meta_publish.undo(io_for_job("site_audit", brand), brand, entry_id,
                                        seo_meta_publish.default_wp(brand), utc_now_iso())
         return jsonify(result), (200 if result.get("ok") else 409)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/fix/draft', methods=['POST'])
+def seo_fix_draft():
+    """Read the live page and propose text for one fix. Body: {brand, id}. Writes nothing."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_fixer, seo_meta_publish
+        from _lib.jobs.layer1._io import io_for_job
+        brand, err = _seo_publish_brand()
+        if err:
+            return err
+        item_id = str((request.get_json(silent=True) or {}).get('id') or '').strip()
+        if not item_id:
+            return jsonify({"ok": False, "error": "id is required"}), 400
+        result = seo_fixer.build_draft(io_for_job("site_audit", brand), brand, item_id,
+                                       seo_meta_publish.default_wp(brand))
+        result["mode"] = seo_meta_publish.mode()
+        return jsonify(result), (200 if result.get("ok") else 404)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/fix/apply', methods=['POST'])
+def seo_fix_apply():
+    """Apply one fix with the person's (edited) text. Body: {brand, id, text, expected_current, confirm}."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_fixer, seo_meta_publish
+        from _lib.jobs.layer1._io import io_for_job, utc_now_iso
+        brand, err = _seo_publish_brand()
+        if err:
+            return err
+        body = request.get_json(silent=True) or {}
+        item_id = str(body.get('id') or '').strip()
+        if not item_id:
+            return jsonify({"ok": False, "error": "id is required"}), 400
+        result = seo_fixer.apply_fix(
+            io_for_job("site_audit", brand), brand, item_id, str(body.get('text') or ''),
+            seo_meta_publish.default_wp(brand), utc_now_iso(),
+            expected_current=body.get('expected_current'), confirm=bool(body.get('confirm')),
+        )
+        return jsonify(result), (200 if result.get("ok") else int(result.get("status") or 400))
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
