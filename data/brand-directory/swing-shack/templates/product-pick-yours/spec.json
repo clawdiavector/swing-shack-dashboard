@@ -1,0 +1,103 @@
+{
+  "brand_id": "swing-shack",
+  "canvas": {
+    "w": 1080,
+    "h": 1350,
+    "name": "ig_post"
+  },
+  "renderer": "campaign-os/_lib/product_post_templates.py",
+  "cli": "campaign-os/scripts/render_product_post.py",
+  "approved": "2026-10-23 by Christelle, from the Mon Srixon Z-Star designs",
+  "product_rule": "real packshot only, cut out of its white background, never redrawn; Pillow flood-fill cut-out",
+  "rotation": {
+    "min_gap_posts": 2,
+    "note": "3 layouts: a layout never repeats within 2 product posts, so it returns at most every third post. layout_for() also keeps multi-product posts off one-hero."
+  },
+  "fonts": {
+    "headline": "Montserrat Black Italic",
+    "labels": "Montserrat ExtraBold Italic",
+    "body": "Montserrat Light Italic"
+  },
+  "copy_limits": {
+    "headline": "exactly 2 lines, each <=14 chars, auto-shrinks",
+    "models": "label per product",
+    "claims": "no performance or ranking claims; any number needs a source link"
+  },
+  "id": "ss-product-pick-yours",
+  "name": "Product post: pick yours (light editorial)",
+  "layout": "pick-yours",
+  "products": "1 to 3",
+  "background": "#FFFFFF (matches the packshots' own white)",
+  "zones": {
+    "logo": {
+      "right": 1010,
+      "top": 60,
+      "w": 210,
+      "variant": "dark"
+    },
+    "brand": {
+      "xy": [
+        70,
+        70
+      ],
+      "font": "Light Italic 38, tracking 14",
+      "fill": "#404040"
+    },
+    "headline": {
+      "xy": [
+        66,
+        130
+      ],
+      "font": "Black Italic <=128, #0C0A0B"
+    },
+    "accent_bar": {
+      "rect": [
+        70,
+        408,
+        240,
+        418
+      ],
+      "fill": "accent"
+    },
+    "columns": {
+      "count": 3,
+      "width": "(1080-140)/3",
+      "rule_y": 480,
+      "product_cy": 720,
+      "product_w": "column+50",
+      "shadow": {
+        "strength": 70,
+        "blur": 14,
+        "dy": 18
+      },
+      "number": {
+        "y": 980,
+        "font": "Black Italic 64",
+        "fill": "accent"
+      },
+      "label": {
+        "y": 1060,
+        "font": "ExtraBold Italic <=30"
+      }
+    },
+    "footer": {
+      "rule_y": 1160,
+      "tag": {
+        "xy": [
+          70,
+          1195
+        ],
+        "font": "ExtraBold Italic 36"
+      },
+      "cta": {
+        "xy": [
+          70,
+          1250
+        ],
+        "font": "Light Italic 28",
+        "fill": "#404040"
+      }
+    }
+  },
+  "best_for": "a choice between 2 to 3 products, or a wide range seen as boxes"
+}

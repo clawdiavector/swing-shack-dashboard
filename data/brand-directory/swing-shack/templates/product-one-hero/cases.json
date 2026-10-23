@@ -1,0 +1,39 @@
+[
+  {
+    "brand": "Srixon",
+    "headline": [
+      "Z-STAR",
+      "IN STOCK."
+    ],
+    "models": [
+      {
+        "label": "XV / Z-Star / Diamond",
+        "image": "srixon__srixon-z-star-golf-ball__02.jpg"
+      }
+    ],
+    "sub": [
+      "Three models.",
+      "One name."
+    ],
+    "cta": "In stock at Swing Shack. DM us."
+  },
+  {
+    "brand": "Titleist",
+    "headline": [
+      "TOUR SOFT",
+      "IN STOCK."
+    ],
+    "models": [
+      {
+        "label": "Tour Soft 2026 white",
+        "image": "titleist__tour-soft-2026-white__03.png"
+      }
+    ],
+    "sub": [
+      "White.",
+      "2026 model."
+    ],
+    "accent": "orange",
+    "cta": "In stock at Swing Shack. DM us."
+  }
+]

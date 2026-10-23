@@ -1,0 +1,48 @@
+[
+  {
+    "brand": "Titleist",
+    "headline": [
+      "PICK YOUR",
+      "TITLEIST."
+    ],
+    "models": [
+      {
+        "label": "Tour Soft",
+        "image": "titleist__tour-soft-2026-white__01.png"
+      },
+      {
+        "label": "Tru Feel",
+        "image": "titleist__tru-feel-2026-white__01.png"
+      },
+      {
+        "label": "AVX",
+        "image": "titleist__avx-2026-white__01.png"
+      }
+    ],
+    "accent": "green",
+    "cta": "DM us to order or book a ball fitting"
+  },
+  {
+    "brand": "Srixon",
+    "headline": [
+      "PICK YOUR",
+      "Z-STAR."
+    ],
+    "models": [
+      {
+        "label": "Z-Star XV",
+        "image": "SZSXS001__front.jpg"
+      },
+      {
+        "label": "Z-Star",
+        "image": "ZS9001__front.jpg"
+      },
+      {
+        "label": "Z-Star Diamond",
+        "image": "ZD3001__front.jpg"
+      }
+    ],
+    "accent": "green",
+    "cta": "DM us to order or book a ball fitting"
+  }
+]
