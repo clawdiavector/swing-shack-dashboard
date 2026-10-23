@@ -12,6 +12,10 @@ export interface FixDraft {
   field?: 'meta_description' | 'title'
   field_label?: string
   button?: 'Fix' | 'Improve'
+  // false: WordPress will not save this field on this kind of page (Yoast hides it from pages).
+  // null or missing: unknown, so Apply is offered and the read-back decides.
+  writable?: boolean | null
+  unwritable_reason?: string | null
   current?: string
   proposal?: string | null
   min?: number
@@ -57,6 +61,9 @@ export function resultNote(r: ApplyResult): { ok: boolean; text: string } {
   }
   return { ok: true, text: 'Changed on the website and confirmed. Undo is under Changes made.' }
 }
+
+// True when the page must offer the text to copy instead of an Apply button.
+export const cannotSave = (d: Pick<FixDraft, 'writable'>): boolean => d.writable === false
 
 // Only a change that really reached the website closes the item on the page.
 export const closesItem = (r: ApplyResult): boolean => r.ok && r.entry?.status === 'applied'
