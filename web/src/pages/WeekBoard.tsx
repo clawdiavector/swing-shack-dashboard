@@ -135,7 +135,7 @@ export function WeekBoard() {
   const { trackLoad, waitForLoad } = useLoadGate()
   const [params, setParams] = useSearchParams()
   const tabParam = params.get('tab')
-  const dateParam = params.get('date')
+  const dateParam = params.get('date') || params.get('week')
   const { tab, dateIso } = dayAnchorFromParams(tabParam, dateParam)
   const isDayMode = tab === 'day'
 
@@ -261,6 +261,7 @@ export function WeekBoard() {
 
   const setDeskParams = (nextTab: 'week' | 'day', nextDate: string) => {
     const q = new URLSearchParams(params)
+    q.set('week', nextDate)
     if (nextTab === 'week') {
       q.delete('tab')
       q.delete('date')
@@ -270,6 +271,13 @@ export function WeekBoard() {
     }
     setParams(q, { replace: true })
   }
+
+  useEffect(() => {
+    if (params.get('week')) return
+    const q = new URLSearchParams(params)
+    q.set('week', dateIso)
+    setParams(q, { replace: true })
+  }, [dateIso, params, setParams])
 
   const { pastDays, futureDays } = useMemo(() => {
     const past = days.filter((d) => d.is_past)

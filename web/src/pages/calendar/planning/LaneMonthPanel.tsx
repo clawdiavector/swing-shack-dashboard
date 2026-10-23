@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { FILTER_QUERY, withQueryParam } from '../../../lib/backNav'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { planPageHref } from '../../../lib/calendarAlerts'
 import {
@@ -210,7 +211,11 @@ export function LaneMonthPanel({
   /** Called after a suggestion is approved, rejected or undone, to reload the month. */
   onChanged?: () => void
 }) {
-  const [laneFilter, setLaneFilter] = useState('')
+  const [params, setParams] = useSearchParams()
+  const laneFilter = params.get(FILTER_QUERY) || ''
+  function setLaneFilter(next: string) {
+    setParams((prev) => withQueryParam(prev, FILTER_QUERY, next || null), { replace: true })
+  }
   const [drawerIso, setDrawerIso] = useState<string | null>(null)
   const [showGhosts, setShowGhosts] = useState(readShowSuggestions)
   const noop = useCallback(() => {}, [])
@@ -269,9 +274,15 @@ export function LaneMonthPanel({
     return () => window.removeEventListener('keydown', onKey)
   }, [closeDrawer])
 
+  const laneKey = `${brand}|${monthParam}`
+  const seenLaneKey = useRef<string | null>(null)
   useEffect(() => {
-    setLaneFilter('')
-  }, [brand, monthParam])
+    if (!brand) return
+    const prev = seenLaneKey.current
+    seenLaneKey.current = laneKey
+    if (prev === null || prev === laneKey) return
+    setParams((prevParams) => withQueryParam(prevParams, FILTER_QUERY, null), { replace: true })
+  }, [brand, laneKey, setParams])
 
   if (!monthView?.ok) {
     return (

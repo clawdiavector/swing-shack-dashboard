@@ -17,6 +17,7 @@ import {
   type CalendarItem,
   type TodayPanel,
 } from '../lib/api'
+import { mondayOfIso, WEEK_QUERY } from '../lib/backNav'
 import { dayInMonth, formatDateStamp, isoDate, parseIsoDateParam } from '../lib/stamp'
 import { toolTo } from '../lib/tools'
 
@@ -214,7 +215,7 @@ function daysInMonth(year: number, month0: number) {
 export function CalendarPage() {
   const { brandId } = useBrand()
   const [params, setParams] = useSearchParams()
-  const cursor = useMemo(() => parseIsoDateParam(params.get('date')), [params])
+  const cursor = useMemo(() => parseIsoDateParam(params.get('date') || params.get(WEEK_QUERY)), [params])
   const year = cursor.getFullYear()
   const month0 = cursor.getMonth()
   const selected = cursor.getDate()
@@ -245,11 +246,27 @@ export function CalendarPage() {
     (iso: string) => {
       const p = new URLSearchParams(params)
       p.set('date', iso)
+      const week = mondayOfIso(iso)
+      if (week) p.set(WEEK_QUERY, week)
       p.delete('id')
       setParams(p, { replace: true })
     },
     [params, setParams],
   )
+
+  useEffect(() => {
+    const iso = params.get('date') || selectedIso
+    const week = mondayOfIso(iso)
+    if (!week) return
+    if (params.get('date') === iso && params.get(WEEK_QUERY) === week) return
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (!next.get('date')) next.set('date', iso)
+      next.set(WEEK_QUERY, week)
+      if (next.toString() === prev.toString()) return prev
+      return next
+    }, { replace: true })
+  }, [params, selectedIso, setParams])
 
   const selectedId = params.get('id') || ''
   const closeMoment = useCallback(() => {
