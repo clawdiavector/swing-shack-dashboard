@@ -24,7 +24,7 @@ import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
 import { groupSandboxRowsByPostId, idempotencyKeysForGroup } from '../lib/publishPostGroup'
 import { postingChannelAbbrev } from '../lib/postingWeek'
-import { publishNowConfirmText } from '../lib/publishConfirm'
+import { publishNowConfirmText, publishNowSuccessText } from '../lib/publishConfirm'
 import { sandboxGoesOutIso, sandboxRowId, sandboxTitle } from '../lib/sandboxRow'
 import { formatStamp } from '../lib/stamp'
 
@@ -58,7 +58,7 @@ export function Publish() {
           void publishDispatchNow(keys)
             .then(({ data: body }) => {
               const err = body.errors?.join('; ') || body.error
-              setPublishNote(err ? String(err) : 'Sent. Off it goes!')
+              setPublishNote(err ? String(err) : publishNowSuccessText(body.publish_at))
               if (!err) burstAtPointer(70)
               loadPanelAndQueue()
             })
