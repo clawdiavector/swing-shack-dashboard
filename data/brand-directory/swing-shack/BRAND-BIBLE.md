@@ -67,6 +67,8 @@ approver has not signed it.
 
 Each has a recommendation and the evidence.
 
+Until this file is `CONFIRMED`, hashtag, emoji and unlisted call-to-action hits are warnings (`list_enforcement: warn` in Part 4). They become hard fails when that value is set to `hard`. The hashtag cap, the allowed tags and the emoji list are unchanged.
+
 | # | Decision | Recommendation | Evidence |
 |---|---|---|---|
 | 1 | **Unsubstantiated claims** (finding 1). | Stop using every figure on the list above. Ask the owners whether any came from real data. Nothing goes back in without a row in the Proof bank. | Section 7 |
@@ -100,7 +102,7 @@ Each has a recommendation and the evidence.
 | Next review | 2027-01-13, and after any rebrand | DRAFT |
 | Sources | See header | CONFIRMED |
 
-Section status: 0 to 3 DRAFT · 4 CONFIRMED (from bible and workbook) · 5 DRAFT · 6 DRAFT · 7 mixed, row by row · 8 DRAFT · 9 DRAFT · 10 DRAFT · 11 DRAFT, colours unconfirmed · 12 and 13 CONFIRMED (workbook G, N) · 14 DRAFT · 15 DRAFT · 16 CONFIRMED (counted) · 17 DRAFT.
+Section status: 0 to 3 DRAFT · 4 CONFIRMED (from bible and workbook) · 5 DRAFT · 6 DRAFT · 7 mixed, row by row · 8 DRAFT · 9 DRAFT · 10 DRAFT · 11 CONFIRMED for colours, fonts and logo (the designer's document), layout and devices from workbook F · 12 and 13 CONFIRMED (workbook G, N) · 14 DRAFT · 15 DRAFT · 16 CONFIRMED (counted) · 17 DRAFT.
 
 ## 1. Snapshot
 
@@ -459,7 +461,17 @@ Workbook L, with the feed's habits noted. `DRAFT`.
 
 ## 11. Visual identity
 
-**Colours and fonts are unconfirmed and the sources disagree. Do not recolour from this table.** See `CampaignOS/decisions/everything-runs-through-brand-bibles-2026-10-12.md` in the wiki.
+**Update, 2026-10-15: Swing Shack's colours, fonts and logo are now settled by the designer's branding document** (5 pages, received 13 October, added to the repo on PR #88 as `swing-shack/brand-guide/swingshack-branding-document.pdf`). Where it disagrees with the workbook or the renderer's files, the designer's document wins. Source: `CampaignOS/decisions/everything-runs-through-brand-bibles-2026-10-12.md` in the wiki.
+
+| Element | The designer's branding document | Status |
+|---|---|---|
+| Main colours | `#1C1C1C`, `#404040`, `#7C7C7C`, `#FFFFFF` | CONFIRMED |
+| Accents | `#74CC46` green, `#63A3EF` blue, `#E27124` orange, `#8F4BF9` purple. "Additional accent colours to be used with discretion" | CONFIRMED |
+| Fonts | Logo: "SWING" in Aktiv Grotesk XBold Italic, "SHACK" in Calgary Script OT (-25 tracking). Social: Avenir Next Heavy Italic, Avenir Next Italic, Aktiv Grotesk XBold Italic. Website: Poppins Bold headers, Roboto Regular body | CONFIRMED |
+| Logo use | Dark logo on white. White logo on dark grey and on photos | CONFIRMED |
+| Design cues | Photo backgrounds, originals when possible. Gradient overlays from a black base to the accent colour. The logo's border frame as a design element | CONFIRMED |
+
+The workbook's navy `#0F1923`, gold `#D4AF37`, teal and Inter are wrong for Swing Shack, and so is the renderer's old teal and amber primary. The table below is the earlier comparison, kept for the record. Its layout and devices rows still stand.
 
 | Element | Workbook F says | Renderer uses | Source of truth |
 |---|---|---|---|
@@ -615,6 +627,9 @@ The best writing in the feed is in register 4 and the plainer half of register 3
 
 ```yaml
 brand: swing-shack
+# Hashtag, emoji and unlisted-CTA hits warn until this bible is CONFIRMED.
+# Set to hard when the owners sign those lists. Other mechanical bans stay hard.
+list_enforcement: warn
 language: en-ZA
 serial_comma: false
 quotes: double-curly

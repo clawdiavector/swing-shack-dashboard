@@ -1,5 +1,7 @@
+import { burstAtPointer } from '../../lib/confetti'
 import { MessageSquareText } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../../components/chrome'
 import { Badge, ClassicLink, Tip } from '../../components/ui'
@@ -28,7 +30,9 @@ const inputCls =
 export function Captions() {
   const { brandId } = useBrand()
   const scopeBrand = brandId ?? ''
-  const [brief, setBrief] = useState('')
+  // ?brief=... pre-fills the brief (used by "Make another like this" on Results).
+  const [params] = useSearchParams()
+  const [brief, setBrief] = useState(() => params.get('brief') ?? '')
   const [survivors, setSurvivors] = useState<Survivor[]>([])
   const [rejects, setRejects] = useState<Record<string, unknown[]> | null>(null)
   const [busy, setBusy] = useState(false)
@@ -73,6 +77,7 @@ export function Captions() {
       }
       setSurvivors(res.survivors || [])
       setRejects(res.rejects_by_check || null)
+      if ((res.survivors || []).length) burstAtPointer(50)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generate failed')
     } finally {
@@ -104,7 +109,7 @@ export function Captions() {
         <ClassicLink href="/?page=captions" label="Captions" />
       </PageIntro>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <HeroPanel icon={MessageSquareText} kicker="Studio" title="Brief → survivors">
           <textarea
             className={`${inputCls} mt-3 min-h-[100px]`}
@@ -119,7 +124,7 @@ export function Captions() {
               onClick={handleGenerate}
               className="mt-3 rounded-full bg-yel px-4 py-2 text-sm font-semibold text-bg disabled:opacity-50"
             >
-              {busy ? 'Working…' : 'Generate 5'}
+              {busy ? 'Writing…' : 'Generate 5'}
             </button>
           </Tip>
           {error ? <p className="mt-2 text-sm text-red">{error}</p> : null}
@@ -229,7 +234,7 @@ export function Captions() {
           <section className="glass rounded-2xl border border-white/10 p-4">
             <h2 className="text-sm font-semibold">Voice bible</h2>
             <pre className="mt-2 max-h-40 overflow-auto text-xs text-tx3">
-              {voiceBible ? JSON.stringify(voiceBible, null, 2) : 'Loading…'}
+              {voiceBible ? JSON.stringify(voiceBible, null, 2) : 'Reading the voice bible…'}
             </pre>
           </section>
           <section className="glass rounded-2xl border border-white/10 p-4">

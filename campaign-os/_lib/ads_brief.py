@@ -97,7 +97,7 @@ def _slim(f: dict, first_seen: str, today: _dt.date) -> dict:
     return {
         "key": finding_key(f), "rule": f["rule"], "status": f.get("status"),
         "severity": f["severity"], "level": f["level"],
-        "ad_name": f.get("ad_name"), "campaign_name": f.get("campaign_name"),
+        "ad_id": f.get("ad_id"), "ad_name": f.get("ad_name"), "campaign_name": f.get("campaign_name"),
         "what": f["what"], "action": f["action"],
         "first_seen": first_seen,
         "days_open": (today - _dt.date.fromisoformat(first_seen)).days,
@@ -121,6 +121,7 @@ def top_actions(open_findings: list, limit: int = 3) -> list:
                 "rule": rule, "status": group[0].get("status"), "severity": group[0]["severity"],
                 "action": action, "why": group[0]["what"],
                 "ads": [f["ad_name"] for f in group if f.get("ad_name")],
+                "ad_ids": [f["ad_id"] for f in group if f.get("ad_id")],
                 "days_open": max(f["days_open"] for f in group),
             })
             if len(out) == limit:

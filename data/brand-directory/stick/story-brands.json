@@ -1,7 +1,8 @@
 {
   "brand": "stick",
   "verified": "2026-10-12",
-  "note": "Official pages, read from each brand's own website on 2026-10-12. Swing Shack and Stick both stock these; Psycho Bunny is Stick only.",
+  "note": "Official pages, read from each brand's own website on 2026-10-12. Psycho Bunny is Stick only.",
+  "daily": ["psycho-bunny"],
   "retail": [
     {
       "id": "takomo",
@@ -62,7 +63,7 @@
     },
     {
       "id": "fitting",
-      "name": "TrackMan club fitting (at the Swing Shack bay)",
+      "name": "TrackMan club fitting (at the Stick studio, Paarl)",
       "pairs_with": "takomo",
       "source": "stick knowledge.json"
     }

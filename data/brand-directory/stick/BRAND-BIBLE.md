@@ -20,6 +20,8 @@ approvers have not yet signed it.
 These are the places where the sources disagree, or where only the owners can decide.
 Each has a recommendation and the evidence for it.
 
+Until this file is `CONFIRMED`, hashtag, emoji and unlisted call-to-action hits are warnings (`list_enforcement: warn` in Part 4). They become hard fails when that value is set to `hard`.
+
 | # | Decision | Recommendation | Evidence |
 |---|---|---|---|
 | 1 | **The voice.** The bible says "sharp, confident, direct, smart, rebellious". The old `voice/` files say "sarcastic, meme-aware". The feed reads calm and plain. | Keep "Smart Rebel" as the character. Express it as calm precision and dry understatement, never sarcasm. | Workbook D and bible section 16 say the edge "must feel like confidence, not resentment". The September posts already do this. Section 5. |
@@ -236,6 +238,7 @@ One per caption. Pick from this list only. The "how" is part of the CTA.
 | `Message us to order.` | Order-in items such as Mileseey | DRAFT |
 | `Come roll one at Stick.` / `Come try one at Stick.` | Putters, grips, bags | DRAFT |
 | `Visit us at Winelands Square.` | Events, openings, local posts | DRAFT |
+| `Book your fitting today.` | The line the feed and Swing Shack already share | DRAFT (5 captions since June 2026; not confirmed) |
 | `DM us to secure yours.` | Limited stock and drops, only where the stock is real | DRAFT (the 10 June Srixon caption) |
 
 In Part 4 a `*` in a call to action means "any words", so `DM us to *.` covers `DM us to book a fitting.` and `DM us to secure yours.`
@@ -594,6 +597,9 @@ Counted 2026-10-13 from `feedback/instagram-audit.json`: 261 posts, 258 with a c
 
 ```yaml
 brand: stick
+# Hashtag, emoji and unlisted-CTA hits warn until this bible is CONFIRMED.
+# Set to hard when the owners sign those lists. Other mechanical bans stay hard.
+list_enforcement: warn
 language: en-ZA
 serial_comma: false
 quotes: double-curly
@@ -626,6 +632,7 @@ ctas_allowed:                  # "*" matches any words
   - "Come roll one at Stick."
   - "Come try one at Stick."
   - "Visit us at Winelands Square."
+  - "Book your fitting today."
 cta_max: 1
 banned_universal: ref:L7
 banned_brand:

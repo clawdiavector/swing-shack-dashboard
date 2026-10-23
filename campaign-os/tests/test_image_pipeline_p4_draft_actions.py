@@ -213,6 +213,18 @@ def test_draft_reject_records_feedback(app_client, tmp_path):
     assert last.get("captured_signal", {}).get("qc_snapshot")
 
 
+def test_normalize_draft_id_resolves_bare_asset(app_client, tmp_path):
+    _seed_draft(tmp_path)
+    from _lib.draft_review_actions import _normalize_draft_item_id
+
+    assert _normalize_draft_item_id("asset-main") == "draft_asset:camp-stick:asset-main"
+    assert _normalize_draft_item_id("camp-stick:asset-main") == "draft_asset:camp-stick:asset-main"
+    assert (
+        _normalize_draft_item_id("draft_asset:camp-stick:asset-main")
+        == "draft_asset:camp-stick:asset-main"
+    )
+
+
 def test_gbp_draft_hidden_when_composed_gbp_on_parent(app_client, tmp_path):
     _purge()
     item_id = _seed_draft(tmp_path, gbp_sibling=True)

@@ -4,12 +4,24 @@ description: >
   Campaign OS operations hub — Layer 1 jobs, prod health, host routing, JSON
   output inspection. Use when Kyle mentions Campaign OS, swing-shack-dashboard,
   marketing cockpit, Gate P1, job crons, /ops/jobs, COS_JOB_TOKEN, or job verdicts.
+  Not for Suggest Date / TEST n / named-window Brief — that is skill campaign-os-campaign.
 ---
 
 # Campaign OS (hub skill)
 
 Modular skill for the **swing-shack-dashboard** marketing OS. Load this first;
 then open the module that matches the task.
+
+## Stop — pick the module before any API call
+
+If Kyle said **set up** / **create** a named window, **TEST n**, Suggest Date,
+or Brief: **stop this hub**. Load skill **`campaign-os-campaign`**. Run
+`suggest_campaign.py`. Do not open `operator-post.md`.
+
+If Kyle said **load a post** / **put this on the calendar** for one piece of
+content: `modules/operator-post.md`.
+
+If Kyle said a **story / Telegram link**: `modules/operator-story.md`.
 
 ## Modules
 
@@ -46,6 +58,7 @@ then open the module that matches the task.
 
 ## Foreman rules
 
+- **Named window / Suggest Date / TEST n / Brief** — skill `campaign-os-campaign` (not a module here). Run `suggest_campaign.py`. Do not lodge.
 - **Story repost link** — `modules/operator-story.md`. Ask **brand** if omitted. `POST /api/stories`; never download or publish.
 - **Lodge a post / load a post for a date** — `modules/operator-post.md`. Ask **brand** if omitted. Calendar **and** caption+image queue. Do not run Create unless Kyle says run now. Do not point at Review until the pair is complete. `event_key` must be `{brand}:…`.
 - **Prod checks** — bearer or session; never print token values

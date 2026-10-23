@@ -12,6 +12,7 @@ import {
 } from '../../lib/api'
 import { BrandChip } from '../BrandChip'
 import { useBrand, useBrandScope } from '../BrandSwitch'
+import { burstAtPointer } from '../../lib/confetti'
 import {
   defaultChannelsForBrand,
   isAttentionPostState,
@@ -168,7 +169,8 @@ export function PostCard({
     if (!ok) return
     setReleasing(true)
     await waitForReads?.()
-    await releaseMoment(rowBrandId, post.calendar_id, 'christelle', pickedChannels)
+    const released = await releaseMoment(rowBrandId, post.calendar_id, 'christelle', pickedChannels)
+    if (released?.data?.ok) burstAtPointer(50)
     setReleasing(false)
     onRefresh?.()
   }

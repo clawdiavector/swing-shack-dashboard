@@ -60,6 +60,11 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "proposal_outcome": _LAYER2_7_DAILY,
     "human_edit_signal": _LAYER2_7_DAILY,
     "ads_brief": _LAYER2_7_DAILY,
+    "ads_budget_guard": {
+        "scheduler": "GitHub Actions (ads-budget-guard-hourly.yml)",
+        "cron_sast": ["hourly"],
+        "cadence": "hourly",
+    },
 }
 
 

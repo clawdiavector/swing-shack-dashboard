@@ -94,6 +94,46 @@ def _brand_env_suffix(brand_id: str | None) -> str:
     return brand_id.upper().replace("-", "_")
 
 
+MIN_LEAD_MINUTES = 5
+
+
+def scheduled_at_least(publish_date: Optional[str], minutes: int = MIN_LEAD_MINUTES) -> Tuple[str, bool]:
+    """A publish time for Postiz that is never sooner than `minutes` from now.
+
+    Postiz has failed on posts published "now" (the media has not finished loading), so nothing is
+    sent for the current moment: no date, or a date that is already past or too close, becomes
+    now + `minutes`. Returns (ISO time in UTC ending in Z, whether it was moved). A time with no
+    time zone is read as UTC, the way Postiz reads it. A value that cannot be read is returned as is.
+    """
+    import datetime as _dt
+    now = _dt.datetime.now(_dt.timezone.utc)
+    earliest = now + _dt.timedelta(minutes=minutes)
+    if not publish_date:
+        return earliest.isoformat().replace("+00:00", "Z"), True
+    try:
+        when = _dt.datetime.fromisoformat(str(publish_date).replace("Z", "+00:00"))
+    except ValueError:
+        return str(publish_date), False
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=_dt.timezone.utc)
+    if when < earliest:
+        return earliest.isoformat().replace("+00:00", "Z"), True
+    return when.astimezone(_dt.timezone.utc).isoformat().replace("+00:00", "Z"), False
+
+
+def has_brand_key(brand_id: str | None) -> bool:
+    """True only when this brand has its OWN Postiz key. _read_api_key falls back to the shared key,
+    which belongs to another brand's account; anything that writes must not use that fallback."""
+    if not brand_id:
+        return False
+    safe = _brand_env_suffix(brand_id)
+    for key in (f"POSTIZ_API_KEY_{safe}", f"POSTIZ_API_KEY_{brand_id.upper()}", f"POSTIZ_API_KEY_{brand_id}"):
+        env = os.environ.get(key)
+        if env and env.strip():
+            return True
+    return False
+
+
 def _credentials_present(brand_id: str | None = None) -> bool:
     """True if a Postiz API key (server-to-server) is reachable.
 
@@ -367,8 +407,10 @@ def _request_multipart_upload(
     boundary = f"----postiz-{secrets.token_hex(16)}"
     body = []
     body.append(f"--{boundary}".encode())
+    import mimetypes
+    mime = mimetypes.guess_type(fpath.name)[0] or "application/octet-stream"
     body.append(f'Content-Disposition: form-data; name="file"; filename="{fpath.name}"'.encode())
-    body.append(b"Content-Type: application/octet-stream")
+    body.append(f"Content-Type: {mime}".encode())
     body.append(b"")
     body.append(fpath.read_bytes())
     body.append(f"--{boundary}--".encode())
@@ -404,7 +446,7 @@ def upload_media(
     Per the existing fixtures: response shape is
     { id: "img-...", path: "https://..." }
     """
-    return _request_multipart_upload(file_path, brand_id=brand_id)
+    return _request_multipart_upload(file_path, timeout=300, brand_id=brand_id)
 
 
 def create_post(
@@ -420,8 +462,9 @@ def create_post(
     tiktok_content_posting_method: str = "UPLOAD",
     platform_settings: Optional[dict] = None,
     group_id: Optional[str] = None,
+    draft: bool = False,
 ) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
-    """Create a draft post for one integration.
+    """Create a post for one integration. draft=True saves it in Postiz as a draft: nothing is published.
 
     Mirrors the existing tiktok-marketing/postiz-setup.md payload shape so
     the swing-shack fields and the swing-shack TikTok fields stay aligned.
@@ -430,8 +473,9 @@ def create_post(
       - tags must be an array (not null)
       - date must be a valid ISO 8601 string (even when type="now")
     """
-    import datetime as _dt
-    effective_date = publish_date or _dt.datetime.now(_dt.timezone.utc).isoformat()
+    # Never "now": Postiz has failed on posts published at once (the media has not finished loading),
+    # so a post with no time, or a time that is past or under 5 minutes away, goes out 5 minutes from now.
+    effective_date, _moved = scheduled_at_least(publish_date)
     images: list[dict[str, str]] = []
     if media:
         for item in media:
@@ -440,11 +484,11 @@ def create_post(
     elif media_ids:
         images = [{"id": str(m)} for m in media_ids]
     value = [{"content": content, "image": images, "shortLink": False, "tags": []}]
-    settings = platform_settings or {"post_type": "post"}
+    settings = platform_settings if platform_settings is not None else {"post_type": "post"}
     # Match the legacy _settings per platform by inferring from integration
     # providerIdentifier. Routes that call this can override via platform_settings.
     payload = {
-        "type": "schedule" if publish_date else "now",
+        "type": "draft" if draft else "schedule",
         "date": effective_date,
         "shortLink": False,
         "tags": [],

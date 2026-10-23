@@ -813,11 +813,10 @@ export type DraftRegenerateCaptionResult = {
 
 /** Draft id accepted by POST /api/drafts/.../regenerate-caption (photo regen uses the same shape). */
 export function reviewPieceDraftId(item: InboxItem): string | null {
+  if (item.id.startsWith('draft_asset:')) return item.id
   const cid = item.meta?.campaign_id?.trim()
   const aid = item.meta?.asset_id?.trim()
-  if (item.type === 'draft_asset' && aid) return aid
   if (cid && aid) return `${cid}:${aid}`
-  if (item.id.startsWith('draft_asset:')) return item.id
   return null
 }
 
@@ -966,6 +965,7 @@ export type InsightPost = {
   verdict?: string
   plain_english?: string
   like_count?: number
+  comments_count?: number
   timestamp?: string
   permalink?: string
   thumbnail_url?: string
@@ -977,7 +977,15 @@ export type InsightPost = {
 export type InsightsPosts = {
   ok?: boolean
   posts?: InsightPost[]
-  _meta?: { average_engagement?: number; total_scanned?: number; fetched_at?: string; reason?: string }
+  requested_brand_id?: string
+  data_source_brand_id?: string
+  _meta?: {
+    average_engagement?: number
+    total_scanned?: number
+    fetched_at?: string
+    reason?: string
+    window_days?: number
+  }
 }
 
 export function fetchTopPosts(brand?: string, limit = 3) {
@@ -1634,9 +1642,11 @@ export type VisualLibraryPayload = {
   error?: string
 }
 
-export function fetchVisualLibrary(brand: string) {
+export function fetchVisualLibrary(brand: string, limit?: number) {
+  // The roster defaults to 200 rows with an inline thumbnail each (megabytes). Ask for less when you can.
+  const q = limit ? `?limit=${limit}` : ''
   return getJson<VisualLibraryPayload>(
-    `/api/visual-library/${encodeURIComponent(brand)}/images`,
+    `/api/visual-library/${encodeURIComponent(brand)}/images${q}`,
   )
 }
 
@@ -1699,8 +1709,9 @@ export type PostizStatus = {
   error?: string
 }
 
-export async function fetchPostizStatus(): Promise<PostizStatus & { httpStatus?: number }> {
-  const res = await fetch('/api/postiz/status', { credentials: 'same-origin' })
+export async function fetchPostizStatus(brandId?: string): Promise<PostizStatus & { httpStatus?: number }> {
+  const q = brandId ? `?brand_id=${encodeURIComponent(brandId)}` : ''
+  const res = await fetch(`/api/postiz/status${q}`, { credentials: 'same-origin' })
   if (res.status === 401) {
     window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
     throw new Error('auth required')
@@ -1716,8 +1727,9 @@ export type PostizChannels = {
   error?: string
 }
 
-export async function fetchPostizChannels(): Promise<PostizChannels & { httpStatus?: number }> {
-  const res = await fetch('/api/postiz/channels', { credentials: 'same-origin' })
+export async function fetchPostizChannels(brandId?: string): Promise<PostizChannels & { httpStatus?: number }> {
+  const q = brandId ? `?brand_id=${encodeURIComponent(brandId)}` : ''
+  const res = await fetch(`/api/postiz/channels${q}`, { credentials: 'same-origin' })
   if (res.status === 401) {
     window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
     throw new Error('auth required')
@@ -1911,6 +1923,21 @@ export type GmbDraft = {
   link?: string
   imageUrl?: string
   brand?: string
+  status?: 'draft' | 'approved' | 'scheduled' | 'published'
+  approvedAt?: string
+  targetQuery?: string
+  updatedAt?: string
+}
+
+export type GmbSearchTerms = {
+  ok: boolean
+  reason?: string
+  updated?: string
+  terms: { query: string; impressions: number; clicks: number; position?: number }[]
+}
+
+export function fetchGmbSearchTerms(brandId: string) {
+  return getJson<GmbSearchTerms>(`/api/intel/gmb/search-terms?brand_id=${encodeURIComponent(brandId)}`)
 }
 
 export function fetchGmbDrafts() {
@@ -2018,6 +2045,115 @@ export async function deleteGmbDraft(id: string) {
     throw new Error('auth required')
   }
   return res.json() as Promise<{ ok?: boolean; deleted?: boolean }>
+}
+
+export type GmbReviewResult = { ok?: boolean; error?: string; problems?: string[] }
+
+async function postGmbReview(
+  id: string,
+  action: 'approve' | 'unapprove',
+  body: Record<string, unknown> = {},
+): Promise<GmbReviewResult> {
+  const res = await fetch(`/api/intel/gmb/draft/${encodeURIComponent(id)}/${action}`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return (await res.json().catch(() => ({ ok: false }))) as GmbReviewResult
+}
+
+export async function uploadGmbDraftPhoto(id: string, file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`/api/intel/gmb/draft/${encodeURIComponent(id)}/photo`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: form,
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return (await res.json().catch(() => ({ ok: false, error: `upload failed (${res.status})` }))) as {
+    ok?: boolean
+    error?: string
+  }
+}
+
+export type GbpPendingPost = {
+  title?: string
+  body?: string
+  cta?: string
+  cta_url?: string | null
+  integrity_ok?: boolean
+  integrity_violations?: string[]
+  draft_id?: string | null
+  has_photo?: boolean
+  photo_url?: string | null
+}
+
+export type GbpPending = {
+  ok: boolean
+  brand_id: string
+  display_name?: string
+  post: GbpPendingPost | null
+  reason?: string
+  integration_error?: string | null
+  /** Shown when no post is approved: the unapproved draft that should go out next. */
+  suggestion?: {
+    post: GbpPendingPost | null
+    why?: string
+    ready_count: number
+    blocked_count: number
+  } | null
+}
+
+export type GbpActionResult = {
+  ok?: boolean
+  error?: string
+  reason?: string
+  post_status?: string
+  integrity_violations?: string[]
+}
+
+export function fetchGbpPending(brandId: string) {
+  return getJson<GbpPending>(`/api/gbp/daily-poster/pending?brand_id=${encodeURIComponent(brandId)}`)
+}
+
+async function gbpAction(path: string, body: unknown): Promise<GbpActionResult> {
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return (await res.json().catch(() => ({ ok: false, error: `request failed (${res.status})` }))) as GbpActionResult
+}
+
+/** Sends the post the Today card is showing. Live: it goes to Google through Postiz. */
+export function publishGbpPending(brandId: string, draftId: string) {
+  return gbpAction(`/api/gbp/daily-poster/approve?brand_id=${encodeURIComponent(brandId)}`, { draft_id: draftId })
+}
+
+export function skipGbpPending(brandId: string) {
+  return gbpAction(`/api/gbp/daily-poster/dismiss?brand_id=${encodeURIComponent(brandId)}`, {})
+}
+
+export function approveGmbDraft(id: string, photoMatch: boolean) {
+  return postGmbReview(id, 'approve', { photoMatch })
+}
+
+export function unapproveGmbDraft(id: string) {
+  return postGmbReview(id, 'unapprove')
 }
 
 export async function scheduleGmbDraft(id: string) {
@@ -2330,7 +2466,7 @@ export function fetchStoryReposts() {
   return getJson<StoryRepostList>('/api/stories')
 }
 
-export function setStoryRepostStatus(id: string, status: 'open' | 'done') {
+export function setStoryRepostStatus(id: string, status: 'open' | 'done' | 'removed') {
   return postJson<{ ok: boolean }>(`/api/stories/${encodeURIComponent(id)}/${status}`, {})
 }
 
@@ -2355,9 +2491,33 @@ export async function submitStoryLink(body: { brand: string; url: string; note?:
 export type StorySuggestion = {
   brand: string
   date: string
-  kind: 'retail' | 'service' | 'moment'
+  kind: 'daily' | 'retail' | 'service' | 'moment' | 'stock'
   feature: string
-  repost_from: { id: string; name: string; instagram: string | null; facebook: string | null; look_for: string }
+  /** Null for a stock story: it is our own product, not a repost. */
+  repost_from: { id: string; name: string; instagram: string | null; facebook: string | null; look_for: string } | null
+  /** Why this line, for a stock story. */
+  why?: string
+}
+
+export type StorySettings = {
+  daily_on: Record<string, boolean>
+  stock_stories: number
+  stock_every_days: number
+}
+
+export type StorySettingsResult = {
+  ok: boolean
+  brand: string
+  settings: StorySettings
+  limits: { stock_stories: [number, number]; stock_every_days: [number, number] }
+}
+
+export function fetchStorySettings(brand: string) {
+  return getJson<StorySettingsResult>(`/api/stories/settings?brand=${encodeURIComponent(brand)}`)
+}
+
+export function saveStorySettings(brand: string, changes: Partial<StorySettings>) {
+  return postJson<StorySettingsResult>('/api/stories/settings', { brand, ...changes })
 }
 
 export function fetchStorySuggestions() {
@@ -2377,6 +2537,16 @@ export type StoryCandidate = {
   image: string | null
   caption: string
   score: number
+  stock?: 'match' | 'none' | 'brand-unlisted' | 'unknown'
+  stock_name?: string | null
+}
+
+export function fetchStoryMarks() {
+  return getJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks')
+}
+
+export function setStoryMark(key: string, state: 'shared' | 'skipped' | 'clear') {
+  return postJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks', { key, state })
 }
 
 export function fetchStoryCandidates(brand: string) {

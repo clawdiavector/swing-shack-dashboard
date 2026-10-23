@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import datetime as _dt
 
-from _lib import ads_brain, ads_brief, ads_creative, ads_history, ads_ideas
+from _lib import ads_actions, ads_brain, ads_brief, ads_budget, ads_cap, ads_creative, ads_history, ads_ideas
+from _lib import ads_tracking
 from _lib.brand_validate import validate_brand_id
 
 from ..layer1._io import as_dict, as_list, io_for_job
@@ -26,6 +27,39 @@ TESTS = "ads-creative/tests.json"
 ORGANIC = "post-outcomes.json"
 HISTORY = "ads-history/weekly.json"
 HISTORY_LATEST = "ads-history/latest.json"
+TRACKING = "ads-tracking/latest.json"
+BUDGET_FIGURES = "ads-budget/figures.json"
+BUDGET_SETTINGS = "ads-budget/settings.json"
+
+
+def _sync_hard_stop(io, brand, account, token, settings, figures, get=None):
+    """Keep Meta's account spending limit at the month's budget when the hard stop is on. Never raises."""
+    out = {"on": bool(settings.get("hard_stop"))}
+    try:
+        ver = ads_brain.DEFAULT_API_VERSION
+        getter = get or (lambda path, params: ads_brain._graph_get(path, token, params))
+        got, err = getter(f"/{ver}/{account}", {"fields": ads_cap.FIELDS})
+        if err or not got:
+            out["error"] = f"account read: {err}"
+            return out
+        acct = ads_cap.parse_account(got)
+        figures["account"] = acct
+        if not settings.get("hard_stop"):
+            return out
+        graph = lambda method, path, tok, params=None: ads_actions.graph_call(  # noqa: E731
+            method, path, tok, params, version=ver)
+        p = ads_cap.plan(settings, acct, figures)
+        lane = f"brands/{brand}/"
+        entry = ads_cap.apply_plan(
+            brand, p, settings, graph=graph, token=token, account_id=account,
+            read=lambda rel: io.read(rel[len(lane):], allow_flat_fallback=False),
+            write=lambda rel, obj: io.write(rel[len(lane):], obj), by="daily job")
+        if entry:
+            io.write(BUDGET_SETTINGS, settings)
+        out.update({"plan": p, "set": bool(entry)})
+    except Exception as exc:
+        out["error"] = f"{type(exc).__name__}: {str(exc)[:160]}"
+    return out
 
 
 def run(*, brand: str | None = None, today: _dt.date | None = None,
@@ -64,6 +98,30 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
         win = ads_history.winners(history)
     except Exception as exc:  # the brief below is still written
         history, history_error = None, type(exc).__name__
+
+    # Tracking health: links, UTMs and what GA4 saw, per running ad. An add-on: never costs the brief.
+    try:
+        tags, flexible, tag_err = ads_tracking.fetch_tag_info(account, token, get=get)
+        ga_rows, ga_err = ads_tracking.ga4_rows(lane_brand)
+        io.write(TRACKING, ads_tracking.build(lane_brand, full["ads"], tags, ga_rows, today=today,
+                                              errors=[e for e in (tag_err, ga_err) if e], flexible=flexible))
+    except Exception:
+        pass
+
+    # Monthly budget: this month's spend and what the live ad sets will still spend. Like the history above,
+    # an add-on: a failed read never costs the day's brief.
+    try:
+        figures = ads_budget.fetch_figures(account, token, today=today, get=get)
+        settings = as_dict(io.read(BUDGET_SETTINGS, allow_flat_fallback=False))
+        hard_stop = _sync_hard_stop(io, lane_brand, account, token, settings, figures, get)
+        io.write(BUDGET_FIGURES, figures)
+        verdict = ads_budget.evaluate(figures, settings.get("monthly_budget"))
+        daily["budget"] = ads_budget.brief_view(verdict)
+        daily["budget"]["hard_stop"] = hard_stop
+        if figures.get("complete"):
+            ads_budget.add_action(daily, verdict)
+    except Exception as exc:
+        daily["budget"] = {"status": "UNKNOWN", "headline": f"Could not read the month's spend ({type(exc).__name__})."}
 
     # Creative loop: move open tests on, then propose new ones.
     tests = as_list(io.read(TESTS, allow_flat_fallback=False))

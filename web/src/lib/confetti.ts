@@ -52,3 +52,22 @@ export function burstConfetti(x: number, y: number, count = 60) {
   }
   requestAnimationFrame(tick)
 }
+
+let lastPointer = { x: 0, y: 0, set: false }
+if (typeof document !== 'undefined') {
+  document.addEventListener(
+    'pointerdown',
+    (e) => {
+      lastPointer = { x: e.clientX, y: e.clientY, set: true }
+    },
+    true,
+  )
+}
+
+/** Confetti from wherever the person last clicked or tapped (top-middle if they have not). */
+export function burstAtPointer(count = 60) {
+  if (typeof window === 'undefined') return
+  const x = lastPointer.set ? lastPointer.x : window.innerWidth / 2
+  const y = lastPointer.set ? lastPointer.y : window.innerHeight / 3
+  burstConfetti(x, y, count)
+}

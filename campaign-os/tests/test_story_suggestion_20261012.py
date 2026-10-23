@@ -23,7 +23,8 @@ class SuggestionTests(unittest.TestCase):
         for brand in ("stick", "swing-shack"):
             for d in _days():
                 got = {s["kind"]: s for s in story_suggestion.suggest(brand, d)}
-                self.assertEqual(set(got), {"service", "retail", "moment"})
+                expect = {"service", "retail", "moment"} | ({"daily"} if brand == "stick" else set())
+                self.assertEqual(set(got), expect)
                 self.assertNotEqual(got["service"]["repost_from"]["id"], got["retail"]["repost_from"]["id"])
 
     def test_swing_shack_never_suggests_psycho_bunny(self):
@@ -82,9 +83,10 @@ class SuggestionRouteTests(unittest.TestCase):
         self.assertEqual(c.get("/api/stories/suggestion").status_code, 401)
         r = c.get("/api/stories/suggestion", headers={"Authorization": "Bearer t"}).get_json()
         self.assertEqual({s["brand"] for s in r["suggestions"]}, {"swing-shack", "stick"})
-        self.assertEqual(len(r["suggestions"]), 6)
+        # 6 from the rotation, plus Stick's daily Psycho Bunny slot (2026-10-16).
+        self.assertEqual(len(r["suggestions"]), 7)
         one = c.get("/api/stories/suggestion?brand=stick", headers={"Authorization": "Bearer t"}).get_json()
-        self.assertEqual(len(one["suggestions"]), 3)
+        self.assertEqual(len(one["suggestions"]), 4)  # service, retail, moment, daily Psycho Bunny
 
 
 if __name__ == "__main__":

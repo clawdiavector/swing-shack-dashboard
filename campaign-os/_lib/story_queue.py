@@ -5,7 +5,7 @@ here, and the Today page shows it. A person taps the link and uses the app's own
 "Share to story" button. Nothing is downloaded or published through Meta, so the
 original credit stays attached.
 
-One JSON file in DATA_DIR. Items stay open until marked done, so a link added late
+One JSON file in DATA_DIR. Items stay open until marked done (or removed, which is Undo for an accidental Add), so a link added late
 in the day is still there tomorrow.
 """
 from __future__ import annotations
@@ -110,8 +110,8 @@ def list_items(brand: str | None = None) -> dict:
 
 
 def set_status(item_id: str, status: str) -> dict:
-    if status not in ("open", "done"):
-        raise StoryError("status must be open or done")
+    if status not in ("open", "done", "removed"):
+        raise StoryError("status must be open, done or removed")
     with _LOCK:
         items = _load()
         for it in items:

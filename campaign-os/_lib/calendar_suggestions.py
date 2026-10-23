@@ -24,7 +24,11 @@ from typing import Any, Dict, Iterable, List, Optional
 from _lib.plan_profiles import event_kind
 from _lib.plan_extras import _JUNK_TITLE_RE, _key, _parse, dates_to_note, _same_event
 
-SOURCES = ("yours", "scout", "date")
+SOURCES = ("yours", "scout", "date", "stock")
+# Sources decided on by key: approve, reject or swap is written to the decisions file.
+DECIDED_SOURCES = ("date", "stock")
+# A stock suggestion every other day, so a month shows a steady rhythm and not a wall.
+STOCK_EVERY_DAYS = 2
 
 
 def month_bounds(month: str) -> tuple[_dt.date, _dt.date]:
@@ -127,6 +131,70 @@ def month_items(
         })
 
     out.sort(key=lambda i: (i["date"], i["title"]))
+    return out
+
+
+def stock_key(name: str, month: str) -> str:
+    """Stable key for a stock line in one month. Decisions are per month, so a
+    line still sitting on the shelf can be offered again next month."""
+    slug = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")
+    return f"stock:{slug}:{month}"
+
+
+def stock_items(
+    brand_id: str,
+    month: str,
+    candidates: Iterable[Dict[str, Any]],
+    decisions: Dict[str, Any],
+    approved_names: Iterable[str],
+    taken_days: Iterable[str],
+    today: _dt.date,
+    every: int = STOCK_EVERY_DAYS,
+) -> List[Dict[str, Any]]:
+    """Stock-list suggestions for `month`: one line every `every` days, from today on.
+
+    candidates   stock_pulse.candidates() for the brand, most urgent first
+    decisions    the decisions file; approved, rejected and swapped lines are left out
+    approved_names names already on the calendar
+    taken_days   ISO dates already holding another suggestion, so stock does not stack on them
+    """
+    first, last = month_bounds(month)
+    start = max(first, today)
+    if start > last:
+        return []
+    taken = set(taken_days)
+    approved = [k for k in (_key(n) for n in approved_names) if k]
+    every = max(1, int(every))
+    days = [start + _dt.timedelta(days=i) for i in range(0, (last - start).days + 1, every)]
+    days = [d for d in days if d.isoformat() not in taken]
+    open_lines = []
+    for c in candidates:
+        name = str(c.get("name") or "").strip()
+        if not name:
+            continue
+        key = stock_key(name, month)
+        if (decisions.get(key) or {}).get("decision") in ("approved", "rejected", "swapped"):
+            continue
+        if any(_same_event(_key(name), t) for t in approved):
+            continue
+        open_lines.append((key, c))
+    out: List[Dict[str, Any]] = []
+    for d, (key, c) in zip(days, open_lines):
+        reason, idea = (c.get("reason") or "").strip(), (c.get("idea") or "").strip()
+        why = f"{reason.rstrip('.')}. {idea}" if reason and idea else (reason or idea)
+        out.append({
+            "key": key,
+            "source": "stock",
+            "title": c["name"],
+            "date": d.isoformat(),
+            "end": d.isoformat(),
+            "tier": None,
+            "category": "Stock list",
+            "why": why,
+            "calendar_id": None,
+            "pillars": [],
+            "kind": "stock",
+        })
     return out
 
 

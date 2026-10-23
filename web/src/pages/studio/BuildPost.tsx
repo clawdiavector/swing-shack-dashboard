@@ -1,3 +1,4 @@
+import { burstAtPointer } from '../../lib/confetti'
 import { Hammer, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -290,6 +291,7 @@ export function BuildPost() {
         return
       }
       setPkg(res.package || null)
+      burstAtPointer(60)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Build failed')
       setPkg(null)
@@ -344,7 +346,8 @@ export function BuildPost() {
         confirmed: true,
       })
       setQueueConfirm(res)
-      if (!res.ok) setError(res.error || 'Queue failed')
+      if (res.ok) burstAtPointer(70)
+      else setError(res.error || 'Queue failed')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Queue failed')
     } finally {
@@ -375,7 +378,7 @@ export function BuildPost() {
         </span>
       </PageIntro>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <HeroPanel
           icon={Hammer}
           kicker="Studio"
@@ -518,7 +521,7 @@ export function BuildPost() {
                 className="inline-flex items-center gap-1.5 rounded-full bg-yel px-4 py-2 text-sm font-semibold text-bg hover:bg-yel/90 disabled:opacity-50"
               >
                 <Sparkles className="h-4 w-4" strokeWidth={2.5} />
-                {busy ? 'Building…' : 'Build post'}
+                {busy ? 'Building it…' : 'Build post'}
               </button>
             </Tip>
           </div>

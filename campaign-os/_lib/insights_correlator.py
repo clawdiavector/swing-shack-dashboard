@@ -28,6 +28,7 @@ Layered data model:
 from __future__ import annotations
 
 import json
+import statistics
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -120,7 +121,12 @@ def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
                     "permalink": p.get("permalink") or p.get("postUrl") or "",
                     "thumbnail_url": p.get("thumbnail_url") or p.get("thumbnailUrl")
                         or p.get("media_url") or p.get("mediaUrl") or "",
-                    "media_type": p.get("media_type") or p.get("mediaType") or "IMAGE",
+                    # The stores that predate media_type only have format_type
+                    # (reel / carousel / static). Defaulting everything to IMAGE
+                    # mislabelled reels as photos.
+                    "media_type": p.get("media_type") or p.get("mediaType")
+                        or {"reel": "VIDEO", "carousel": "CAROUSEL_ALBUM"}.get(
+                            str(p.get("format_type") or "").lower(), "IMAGE"),
                     "caption_excerpt": (
                         p.get("caption_excerpt") or p.get("captionPreview")
                         or p.get("hook_text") or p.get("caption") or ""
@@ -536,6 +542,37 @@ def get_ad_correlation_verdicts(brand_id: str | None = None, days: int = 30) -> 
     }
 
 
+WORKED_WINDOW_DAYS = 90
+
+
+def _parse_timestamp(value: Any) -> datetime | None:
+    """Parse an ISO timestamp (Instagram uses a trailing Z). Return None if unreadable."""
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _external_publications() -> dict[str, dict[str, Any]]:
+    """Instagram posts the meta post index knows by media id (permalink, media type).
+
+    Used to fill a link and the real media type when the analytics store has
+    none. Empty when the index is missing or unreadable.
+    """
+    for base in _data_roots():
+        data = _read_json(base / "meta-post-index.json")
+        if not isinstance(data, dict):
+            continue
+        idx = data.get("index") if isinstance(data.get("index"), dict) else data
+        ext = idx.get("external_publications")
+        if isinstance(ext, dict) and ext:
+            return {str(k): v for k, v in ext.items() if isinstance(v, dict)}
+    return {}
+
+
 def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict[str, Any]:
     """Surface top IG posts with thumbnails + engagement + plain-English verdict.
 
@@ -575,27 +612,53 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
                 "reason": "No posts in any IG store yet. Once IG data syncs, top posts appear here.",
             },
         }
+    # Only the last 90 days count. Posts with no parseable timestamp are kept, so older
+    # stores without dates still show up.
+    cutoff = datetime.now(timezone.utc) - timedelta(days=WORKED_WINDOW_DAYS)
     scored = []
-    total_er = 0.0
     for p in posts:
         if not isinstance(p, dict):
+            continue
+        posted = _parse_timestamp(p.get("timestamp"))
+        if posted is not None and posted < cutoff:
             continue
         try:
             er = float(p.get("engagementRate") or 0)
         except (TypeError, ValueError):
             er = 0.0
-        total_er += er
         scored.append({**p, "_er": er})
     if not scored:
-        return {"ok": True, "posts": [], "_meta": {"total_scanned": 0, "reason": "No valid posts"}}
-    avg_er = total_er / len(scored)
+        return {
+            "ok": True,
+            "posts": [],
+            "_meta": {
+                "total_scanned": 0,
+                "average_engagement": None,
+                "average_kind": "median",
+                "window_days": WORKED_WINDOW_DAYS,
+                "source": actual_source,
+                "reason": f"No posts in the last {WORKED_WINDOW_DAYS} days.",
+            },
+        }
+    # Median, not mean: one viral post should not raise the bar for every other post.
+    avg_er = statistics.median(p["_er"] for p in scored)
     scored.sort(key=lambda x: x["_er"], reverse=True)
     top = scored[:limit]
 
+    external = _external_publications()
     out_posts = []
     for p in top:
         er = p["_er"]
-        if er >= avg_er * 2:
+        known = external.get(str(p.get("id"))) or {}
+        if not p.get("permalink") and known.get("permalink"):
+            p["permalink"] = known["permalink"]
+        if known.get("media_type"):
+            p["media_type"] = known["media_type"]
+        if avg_er <= 0:
+            # A median of zero means most posts have no engagement data; no verdict is honest.
+            verdict = "Not scored"
+            emoji = "⚪"
+        elif er >= avg_er * 2:
             verdict = "Top performer"
             emoji = "🟢"
         elif er >= avg_er:
@@ -614,13 +677,18 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
         ratio = (er / avg_er) if avg_er > 0 else 0
         plain = (
             f"{emoji} {verdict}. "
-            f"Engagement {er:.2f}% vs your {avg_er:.2f}% average "
+            f"Engagement {er:.2f}% vs your {avg_er:.2f}% median over the last {WORKED_WINDOW_DAYS} days "
             f"({ratio:.1f}x{' above' if ratio > 1 else ' below'}). "
         )
-        if p.get("like_count"):
-            plain += f"{p['like_count']:,} likes, "
-        if p.get("comments_count"):
-            plain += f"{p['comments_count']:,} comments."
+        likes = int(p.get("like_count") or 0)
+        comments = int(p.get("comments_count") or 0)
+        reactions = []
+        if likes:
+            reactions.append(f"{likes:,} {'like' if likes == 1 else 'likes'}")
+        if comments:
+            reactions.append(f"{comments:,} {'comment' if comments == 1 else 'comments'}")
+        if reactions:
+            plain += ", ".join(reactions) + "."
         out_posts.append({
             "id": p.get("id"),
             "timestamp": p.get("timestamp"),
@@ -645,6 +713,8 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
         "_meta": {
             "total_scanned": len(scored),
             "average_engagement": round(avg_er, 2),
+            "average_kind": "median",
+            "window_days": WORKED_WINDOW_DAYS,
             "source": actual_source,
             "window": ig_data.get("data_window") or ig_data.get("fetched_at"),
             "fetched_at": ig_data.get("updated") or ig_data.get("fetched_at"),

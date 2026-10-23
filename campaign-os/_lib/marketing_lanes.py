@@ -1177,7 +1177,7 @@ def propose_product_calendar(
         }
 
     # Filter out of stock
-    in_stock = [p for p in products if p.get("stock_quantity", 0) > 0]
+    in_stock = [p for p in products if p.get("stock_quantity", 0) > 0 and not p.get("not_for_feed")]
     skipped_stock = [p for p in products if p.get("stock_quantity", 0) <= 0]
 
     # Filter categories if specified
@@ -1222,6 +1222,8 @@ def propose_product_calendar(
         stock = p.get("stock_quantity", 0)
         if stock <= 2:
             score += 20  # scarce — feature before sold-out
+        # Weekly stock list: still / heavy / new stock earns feed time, thin stock loses it
+        score += p.get("feed_boost", 0)
         # Lower price point gets a small boost for accessibility
         price = p.get("price", 0)
         if 0 < price < 100:
@@ -1229,6 +1231,17 @@ def propose_product_calendar(
         return -score  # negate so higher = earlier
 
     eligible.sort(key=priority_key)
+    # Grips, ferrules and towels are promoted as a brand range, once, not per colourway.
+    seen_ranges = set()
+    collapsed = []
+    for p in eligible:
+        rn = p.get("range_name")
+        if rn:
+            if rn in seen_ranges:
+                continue
+            seen_ranges.add(rn)
+        collapsed.append(p)
+    eligible = collapsed
 
     # Generate publish dates
     start_dt_date = datetime.fromisoformat(start_date[:10]).date()
@@ -1324,7 +1337,8 @@ def propose_product_calendar(
             "publish_time": "09:00",
             "platforms": ["instagram"],
             "product_id": chosen.get("id"),
-            "product_name": chosen.get("name"),
+            "product_name": chosen.get("range_name") or chosen.get("name"),
+            "range_post": bool(chosen.get("range_name")),
             "product_sku": chosen.get("sku"),
             "product_category": chosen.get("category"),
             "product_family": family_name,

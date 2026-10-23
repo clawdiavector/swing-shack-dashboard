@@ -1,4 +1,4 @@
-import { CheckCircle2, ExternalLink, Plus, Undo2 } from 'lucide-react'
+import { CheckCircle2, ExternalLink, Plus, Undo2, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import '../fun.css'
 import { burstConfetti } from '../lib/confetti'
@@ -8,8 +8,10 @@ import { useBrand } from './BrandSwitch'
 import {
   addStoryRepost,
   fetchStoryCandidates,
+  fetchStoryMarks,
   fetchStoryReposts,
   fetchStorySuggestions,
+  setStoryMark,
   setStoryRepostStatus,
   type StoryCandidate,
   type StoryRepost,
@@ -35,6 +37,7 @@ export function StoryReposts({
   const [done, setDone] = useState<StoryRepost[]>([])
   const [ideas, setIdeas] = useState<StorySuggestion[]>([])
   const [found, setFound] = useState<Record<string, StoryCandidate[]>>({})
+  const [marks, setMarks] = useState<Record<string, string>>({})
   const [failed, setFailed] = useState(false)
   const [leaving, setLeaving] = useState<string | null>(null)
   const { brands } = useBrand()
@@ -59,6 +62,30 @@ export function StoryReposts({
       .catch(() => setIdeas([]))
   }, [])
 
+  useEffect(() => {
+    fetchStoryMarks()
+      .then((r) => setMarks(r.marks))
+      .catch(() => setMarks({}))
+  }, [])
+
+  /** Shared / Not for us on an idea card or a scouted post; "clear" is Undo. */
+  async function markKey(key: string, state: 'shared' | 'skipped' | 'clear') {
+    setMarks((m) => {
+      const next = { ...m }
+      if (state === 'clear') delete next[key]
+      else next[key] = state
+      return next
+    })
+    try {
+      const r = await setStoryMark(key, state)
+      setMarks(r.marks)
+    } catch {
+      fetchStoryMarks().then((r) => setMarks(r.marks)).catch(() => {})
+    }
+  }
+  const ideaKey = (i: StorySuggestion) => `idea|${i.brand}|${i.date}|${i.kind}|${i.feature}`
+  const postKey = (url: string) => `post|${url.replace('://www.', '://').replace(/\/+$/, '')}`
+
   const scoutKey = (brandIds?.length ? brandIds : ['swing-shack', 'stick']).join(',')
   useEffect(() => {
     for (const b of scoutKey.split(',')) {
@@ -73,7 +100,7 @@ export function StoryReposts({
   const scoutRows = scoutKey
     .split(',')
     .flatMap((b) => (found[b] || []).map((c) => ({ brand: b, ...c })))
-    .filter((c) => !taken.has(norm(c.url)))
+    .filter((c) => !taken.has(norm(c.url)) && !marks[postKey(c.url)])
 
   async function addFound(brand: string, c: StoryCandidate) {
     try {
@@ -89,7 +116,7 @@ export function StoryReposts({
   const doneRows = done.filter(keep)
   const ideaRows = ideas.filter((i) => !brandIds?.length || brandIds.includes(i.brand))
 
-  async function mark(id: string, status: 'open' | 'done', at?: { x: number; y: number }) {
+  async function mark(id: string, status: 'open' | 'done' | 'removed', at?: { x: number; y: number }) {
     if (status === 'done') {
       if (at) burstConfetti(at.x, at.y, 45)
       setLeaving(id)
@@ -132,26 +159,73 @@ export function StoryReposts({
         <ul className="space-y-2" aria-label="Today's idea">
           {ideaRows.map((i) => (
             <li
-              key={`${i.brand}-${i.kind}`}
-              className="fun-idea flex flex-wrap items-center gap-2 text-sm text-tx2"
+              key={`${i.brand}-${i.kind}-${i.feature}`}
+              className={`fun-idea flex flex-wrap items-center gap-2 text-sm text-tx2${marks[ideaKey(i)] ? ' opacity-60' : ''}`}
               data-tone={toneOf(i.brand)}
             >
               <BrandChip brandId={i.brand} />
               <span className="font-semibold text-tx">
-                {i.kind === 'moment' ? 'Golf moment' : i.kind === 'service' ? 'Service' : 'Retail'}: {i.feature}
+                {i.kind === 'stock'
+                  ? 'Stock'
+                  : i.kind === 'daily'
+                    ? 'Daily'
+                    : i.kind === 'moment'
+                      ? 'Golf moment'
+                      : i.kind === 'service'
+                        ? 'Service'
+                        : 'Retail'}
+                : {i.feature}
               </span>
-              <span>· repost from {i.repost_from.name}</span>
-              {i.repost_from.instagram ? (
-                <a href={i.repost_from.instagram} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
-                  Instagram
-                </a>
+              {i.repost_from ? null : <span>· our product, make the post from our photo{i.why ? ` (${i.why})` : ''}</span>}
+              {i.repost_from ? <span>· repost from {i.repost_from.name}</span> : null}
+              {i.repost_from ? (
+                <>
+                {i.repost_from.instagram ? (
+                  <a href={i.repost_from.instagram} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
+                    Instagram
+                  </a>
+                ) : null}
+                {i.repost_from.facebook ? (
+                  <a href={i.repost_from.facebook} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
+                    Facebook
+                  </a>
+                ) : null}
+                {i.repost_from.look_for ? <span className="w-full text-xs text-tx3">{i.repost_from.look_for}</span> : null}
+                </>
               ) : null}
-              {i.repost_from.facebook ? (
-                <a href={i.repost_from.facebook} target="_blank" rel="noopener noreferrer" className="underline hover:text-ac">
-                  Facebook
-                </a>
-              ) : null}
-              {i.repost_from.look_for ? <span className="w-full text-xs text-tx3">{i.repost_from.look_for}</span> : null}
+              <span className="ml-auto flex items-center gap-1.5">
+                {marks[ideaKey(i)] ? (
+                  <>
+                    <span className="text-xs text-tx3">{marks[ideaKey(i)] === 'shared' ? 'Shared' : 'Not for us'}</span>
+                    <button
+                      type="button"
+                      onClick={() => void markKey(ideaKey(i), 'clear')}
+                      aria-label={`Undo ${i.feature}`}
+                      className="inline-flex items-center gap-1 text-xs hover:text-tx"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                      Undo
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void markKey(ideaKey(i), 'shared')}
+                      className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-tx2 hover:border-ac hover:text-ac"
+                    >
+                      <CheckCircle2 className="h-3 w-3" /> Shared
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void markKey(ideaKey(i), 'skipped')}
+                      className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-tx3 hover:text-tx"
+                    >
+                      <X className="h-3 w-3" /> Not for us
+                    </button>
+                  </>
+                )}
+              </span>
             </li>
           ))}
         </ul>
@@ -161,7 +235,7 @@ export function StoryReposts({
           <p className="text-xs font-semibold tracking-wide text-tx3 uppercase">Posts worth sharing</p>
           <ul className="space-y-2">
             {scoutRows.map((c) => (
-              <li key={`${c.brand}-${c.url}`} className="flex items-start gap-3 text-sm">
+              <li key={`${c.brand}-${c.url}`} className="flex items-start gap-3 rounded-xl border border-bd bg-surface/40 p-3 text-sm">
                 {c.image ? (
                   <img
                     src={c.image}
@@ -182,8 +256,14 @@ export function StoryReposts({
                   <p className="text-xs text-tx3">
                     {c.why} · {(c.likes ?? 0).toLocaleString()} likes
                   </p>
-                </div>
-                <div className="flex shrink-0 flex-col gap-1">
+                  {c.stock === 'match' ? (
+                    <p className="text-xs font-semibold text-emerald-400">We stock this: {c.stock_name}</p>
+                  ) : c.stock === 'none' ? (
+                    <p className="text-xs font-semibold text-amber-400">Not on our stock list. Check we have it before sharing.</p>
+                  ) : c.stock === 'brand-unlisted' ? (
+                    <p className="text-xs font-semibold text-amber-400">We list nothing from this maker. Check before sharing.</p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-1.5 pt-2">
                   <a
                     href={c.url}
                     target="_blank"
@@ -195,10 +275,26 @@ export function StoryReposts({
                   <button
                     type="button"
                     onClick={() => addFound(c.brand, c)}
+                    title="Saves it to your list below. You still share it from Instagram."
                     className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-tx2 hover:border-ac hover:text-ac"
                   >
-                    <Plus className="h-3 w-3" /> Add
+                    <Plus className="h-3 w-3" /> Save
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => void markKey(postKey(c.url), 'shared')}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-tx2 hover:border-ac hover:text-ac"
+                  >
+                    <CheckCircle2 className="h-3 w-3" /> Shared
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void markKey(postKey(c.url), 'skipped')}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-tx3 hover:text-tx"
+                  >
+                    <X className="h-3 w-3" /> Not for us
+                  </button>
+                  </div>
                 </div>
               </li>
             ))}
@@ -234,6 +330,15 @@ export function StoryReposts({
             >
               <CheckCircle2 className="h-4 w-4" />
               Shared
+            </button>
+            <button
+              type="button"
+              onClick={() => void mark(r.id, 'removed')}
+              aria-label="Remove from list"
+              className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-tx3 hover:text-tx"
+            >
+              <X className="h-3.5 w-3.5" />
+              Remove
             </button>
           </li>
         ))}

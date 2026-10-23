@@ -1,4 +1,4 @@
-"""campaign_plan.py — turn an approved brief into a dated, editable plan.
+"""campaign_plan.py — turn a brief into a dated, editable plan.
 
 A brief says WHAT the campaign is for. A plan says WHAT TO DO and WHEN,
 working backwards from the event date: research, decide, shoot, edit,
@@ -38,7 +38,10 @@ ITEM_KINDS = ("research", "decide", "shoot", "edit", "review", "post",
               "story", "boost")
 ITEM_STATUSES = ("proposed", "kept", "removed", "done")
 KIND_RANK = {k: i for i, k in enumerate(ITEM_KINDS)}
-EDITABLE_ITEM_FIELDS = ("title", "due", "kind", "channel", "note", "owner", "budget", "shots", "asked")
+EDITABLE_ITEM_FIELDS = (
+    "title", "due", "kind", "channel", "note", "owner", "budget", "shots", "asked",
+    "operator_offer",
+)
 # (a post step also carries `draft`: set only by request_draft, never edited by hand)
 
 # What to capture on a shoot step: the exact shots, one per line, as the person
@@ -151,25 +154,57 @@ def _parse_date(s: Any) -> Optional[date]:
 
 
 def _event_from_brief(brief: dict) -> tuple[Optional[date], str]:
-    """(event date, event name) from a brief, tolerant of older shapes."""
+    """(window start date, event name) — backward-compatible alias."""
+    window, _peak, name = _dates_from_brief(brief)
+    return window, name
+
+
+def _dates_from_brief(brief: dict) -> tuple[Optional[date], Optional[date], str]:
+    """(window_start, peak_date, event name).
+
+    Multi-week campaigns keep `timing.event_date` as the window start and
+    `timing.peak_date` as the commercial peak (e.g. Black Friday). Single-day
+    events use the same date for both when peak is omitted.
+    """
     src = brief.get("source_opportunity") or {}
     timing = brief.get("timing") or {}
     opp = brief.get("opportunity") or {}
-    d = (_parse_date(timing.get("event_date"))
-         or _parse_date(src.get("date")))
+    window = (_parse_date(timing.get("event_date"))
+              or _parse_date(src.get("date")))
+    peak = (_parse_date(timing.get("peak_date"))
+            or _parse_date(src.get("public_peak"))
+            or window)
+    if window and peak and peak < window:
+        peak = window
     name = src.get("name") or opp.get("what") or brief.get("brief_id") or ""
-    return d, str(name)
+    return window, peak, str(name)
+
+
+def _row_anchor(kind: str, *, multi_window: bool) -> str:
+    """Every template row counts back from the peak. (Counting runway steps back from
+    the start of a multi-week window put "Pick the offer" in August.)"""
+    return "peak"
+
+
+def _anchor_day(plan_or_brief: dict, anchor: str) -> Optional[date]:
+    if anchor == "window":
+        return (_parse_date(plan_or_brief.get("window_start"))
+                or _parse_date(plan_or_brief.get("event_date")))
+    return (_parse_date(plan_or_brief.get("peak_date"))
+            or _parse_date(plan_or_brief.get("event_date")))
 
 
 def _item(offset: int, kind: str, title: str, channel: str, owner: str,
-          note: str, event_day: date, today: date, *, source: str) -> dict:
-    due = event_day - timedelta(days=offset)
+          note: str, anchor_day: date, today: date, *, source: str,
+          anchor: str = "peak") -> dict:
+    due = anchor_day - timedelta(days=offset)
     return {
         "item_id": "it-" + uuid.uuid4().hex[:8],
         "kind": kind,
         "title": title,
         "due": due.isoformat(),
         "days_before_event": offset,
+        "anchor": anchor,
         "channel": channel,
         "owner": owner,
         "note": note,
@@ -180,16 +215,84 @@ def _item(offset: int, kind: str, title: str, channel: str, owner: str,
     }
 
 
-def build_items(event_day: date, today: Optional[date] = None,
-                profile: str = "standard", duration_days: int = 0) -> list[dict]:
-    """The proposed checklist for an event on `event_day`, soonest first,
-    shaped by `profile` (see plan_profiles)."""
+def build_items(peak_day: date, today: Optional[date] = None,
+                profile: str = "standard", duration_days: int = 0,
+                *, window_start: Optional[date] = None) -> list[dict]:
+    """Proposed checklist shaped by `profile` (see plan_profiles).
+
+    Every step counts back from `peak_day`. `window_start` is only the first day of a
+    multi-week window. A step already past is flagged late, never moved.
+    """
     today = today or _today()
-    lead = (event_day - today).days
+    window_start = window_start or peak_day
+    multi = window_start != peak_day
+    lead = (peak_day - today).days
     rows = rows_for(profile, lead, duration_days)
-    items = [_item(*r, event_day, today, source="template") for r in rows]
+    items = []
+    for r in rows:
+        anchor = _row_anchor(r[1], multi_window=multi)
+        items.append(_item(*r, peak_day, today, source="template", anchor=anchor))
     items.sort(key=lambda i: (i["due"], KIND_RANK.get(i["kind"], 9)))
     return items
+
+
+def reanchor_plan_from_brief(plan: dict, brief: dict,
+                             today: Optional[date] = None) -> dict:
+    """Re-date template steps from the brief's window/peak timing.
+
+    Keeps operator edits (status, notes, custom items). For a full rebuild with
+    a new profile, use ``propose_plan(..., force=True)`` which supersedes the
+    old plan.
+    """
+    today = today or _today()
+    window, peak, _ = _dates_from_brief(brief)
+    if not peak:
+        return plan
+    if not window:
+        window = peak
+    plan["event_date"] = window.isoformat()
+    plan["window_start"] = window.isoformat()
+    plan["peak_date"] = peak.isoformat()
+    multi = window != peak
+    for item in plan.get("items") or []:
+        if item.get("source") != "template":
+            continue
+        anchor = item.get("anchor") or _row_anchor(item.get("kind") or "", multi_window=multi)
+        item["anchor"] = anchor
+        anchor_d = window if anchor == "window" else peak
+        off = int(item.get("days_before_event") or 0)
+        due = anchor_d - timedelta(days=off)
+        item["due"] = due.isoformat()
+        item["late"] = due < today and item.get("status") not in ("done", "removed")
+    plan["items"].sort(key=lambda i: (i["due"], KIND_RANK.get(i["kind"], 9)))
+    plan["updated_at"] = _now_iso()
+    return plan
+
+
+def _attach_offer_step_payload(plan: dict, brief: dict) -> None:
+    """Copy the offer options onto the retail offer-decide step: suggestions, every stock
+    line, and the brand's services. Read-only; the operator picks or types anything."""
+    block = brief.get("candidate_offers") or {}
+    lines = block.get("items") or []
+    catalogue = block.get("catalogue") or []
+    services = block.get("services") or []
+    if not (lines or catalogue or services):
+        return
+    for item in plan.get("items") or []:
+        if item.get("kind") != "decide":
+            continue
+        if "offer" not in (item.get("title") or "").lower():
+            continue
+        item["candidate_offers"] = lines
+        item["offer_catalogue"] = catalogue
+        item["offer_services"] = services
+        item["offer_focus"] = block.get("focus_product") or ""
+        item["offer_note"] = block.get("note") or ""
+        item.setdefault(
+            "operator_offer",
+            {"selected_name": "", "price": "", "discount": ""},
+        )
+        break
 
 
 def _find_plan_for_brief(brand_id: str, brief_id: str) -> Optional[dict]:
@@ -234,10 +337,19 @@ def propose_plan(brand_id: str, brief: dict, *, force: bool = False,
     if brief.get("status") in ("rejected", "superseded"):
         return {"ok": False,
                 "error": f"brief is {brief.get('status')}; no plan for it"}
-    event_day, name = _event_from_brief(brief)
-    if not event_day:
+    window, peak, name = _dates_from_brief(brief)
+    if not window and not peak:
         return {"ok": False,
                 "error": "the brief has no event date; pin one first"}
+    if not window:
+        window = peak
+    if not peak:
+        peak = window
+    # A brief written before peak_date existed: take the peak from the calendar.
+    cal_peak = _parse_date((event_meta or {}).get("public_peak"))
+    if cal_peak and window and not (brief.get("timing") or {}).get("peak_date") \
+            and peak == window and cal_peak > window:
+        peak = cal_peak
     brief_id = brief.get("brief_id")
     existing = _find_plan_for_brief(brand_id, brief_id)
     if existing and not force:
@@ -263,7 +375,9 @@ def propose_plan(brand_id: str, brief: dict, *, force: bool = False,
         "brief_id": brief_id,
         "brief_status": brief.get("status"),
         "event_name": name,
-        "event_date": event_day.isoformat(),
+        "event_date": window.isoformat(),
+        "window_start": window.isoformat(),
+        "peak_date": peak.isoformat(),
         "status": PLAN_PROPOSED,
         "created_at": now,
         "updated_at": now,
@@ -273,9 +387,15 @@ def propose_plan(brand_id: str, brief: dict, *, force: bool = False,
         "profile": chosen,
         "profile_label": PROFILES[chosen]["label"],
         "profile_reason": reason,
-        "items": build_items(event_day, today, chosen, duration),
+        "items": build_items(
+            peak, today, chosen, duration, window_start=window),
         "edit_log": [],
     }
+    if chosen == "retail_push":
+        # Always built fresh: the stock list changes weekly and older briefs hold none.
+        from _lib import candidate_offers
+        brief = dict(brief, candidate_offers=candidate_offers.build(brand_id))
+    _attach_offer_step_payload(plan, brief)
     _write_plan(plan)
     return {"ok": True, "plan": plan, "existing": False}
 
@@ -414,14 +534,23 @@ def edit_item(brand_id: str, plan_id: str, item_id: str, patch: dict,
                 return {"ok": False, "error": why}
             if v is not None and item["kind"] != "boost":
                 return {"ok": False, "error": "only a boost carries a budget"}
+        elif k == "operator_offer":
+            if not isinstance(v, dict):
+                return {"ok": False, "error": "operator_offer must be an object"}
+            v = {
+                "selected_name": str(v.get("selected_name") or "").strip(),
+                "price": str(v.get("price") or "").strip(),
+                "discount": str(v.get("discount") or "").strip(),
+            }
         elif k not in EDITABLE_ITEM_FIELDS:
             return {"ok": False, "error": f"cannot edit field: {k}"}
         if item.get(k) != v:
             item[k] = v
             changed.append(k)
     if "due" in changed:
-        ev = _parse_date(plan["event_date"])
-        item["days_before_event"] = (ev - _parse_date(item["due"])).days
+        anchor = item.get("anchor") or "peak"
+        anchor_d = _anchor_day(plan, anchor) or _parse_date(plan["event_date"])
+        item["days_before_event"] = (anchor_d - _parse_date(item["due"])).days
         item["late"] = _parse_date(item["due"]) < _today() and item.get("status") != "done"
         item["source"] = "operator"
     if changed:
@@ -484,15 +613,14 @@ def add_item(brand_id: str, plan_id: str, item: dict,
 
 def approve_plan(brand_id: str, plan_id: str, actor: str = "operator") -> dict:
     """Record the operator's yes. Does NOT create calendar entries — that is
-    a separate, explicit step. Refused while the brief is not approved or a
-    boost has no real-video shoot item left in the plan."""
+    a separate, explicit step. Needs a brief on the plan. Refused if a boost
+    has no real-video shoot item left."""
     plan = get_plan(brand_id, plan_id)
     err = _editable(plan)
     if err:
         return {"ok": False, "error": err}
-    if plan.get("brief_status") != "approved":
-        return {"ok": False,
-                "error": "the brief is not approved yet; approve it first"}
+    if not plan.get("brief_id"):
+        return {"ok": False, "error": "this plan has no brief"}
     live = [i for i in plan["items"] if i["status"] != "removed"]
     if not live:
         return {"ok": False, "error": "every item is removed"}
@@ -546,7 +674,8 @@ def post_brief(plan: dict, item: dict) -> str:
     """What the caption writer is told about a planned post. Only what the plan
     knows: which date it is for, which step this is, and the step's own note. No
     offers, prices or claims are invented here."""
-    bits = [f"{item['title']} for {plan['event_name']} ({plan['event_date']})."]
+    when = plan.get("peak_date") or plan["event_date"]
+    bits = [f"{item['title']} for {plan['event_name']} ({when})."]
     if item.get("note"):
         bits.append(str(item["note"]).strip())
     if plan.get("profile_label"):
@@ -556,24 +685,39 @@ def post_brief(plan: dict, item: dict) -> str:
 
 def _calendar_record(plan: dict, item: dict) -> dict:
     kind = item["kind"]
-    return {
+    brand_id = plan["brand_id"]
+    due = item["due"]
+    title = f"{item['title']} — {plan['event_name']}"
+    rec = {
         "type": _CALENDAR_TYPE.get(kind, "reminder"),
-        "title": f"{item['title']} — {plan['event_name']}",
-        "event_date": item["due"],
-        "event_start": item["due"],
-        "event_end": item["due"],
+        "title": title,
+        "event_date": due,
+        "event_start": due,
+        "event_end": due,
         "primary_channel": item.get("channel") or "",
         "angle": (post_brief(plan, item) if item["kind"] == "post" else (item.get("note") or ""))
         + (f" Planned budget: R{item['budget']:,}." if item.get("budget") else ""),
         "planned_budget_zar": item.get("budget"),
         "source_type": "operator",
+        "source_origin": "internal_strategy",
+        "date_confidence": "confirmed_date",
+        "verification_status": "verified_primary",
         "created_by": "plan:" + plan["plan_id"],
         "plan_id": plan["plan_id"],
         "plan_item_id": item["item_id"],
         "plan_item_kind": kind,
         "event_kind": plan.get("event_kind") or plan.get("profile"),
         "brief_id": plan.get("brief_id"),
+        # The Plan list / month grid skip rows with no event_key, so a placed
+        # step would vanish and only the original campaign date would show.
+        "event_key": f"{brand_id}:plan-{plan['plan_id']}-{item['item_id']}",
     }
+    if kind == "post":
+        rec["post_type"] = item.get("post_type") or "feed"
+    pillars = plan.get("pillars")
+    if isinstance(pillars, list) and pillars:
+        rec["pillars"] = pillars
+    return rec
 
 
 def place_on_calendar(brand_id: str, plan_id: str, actor: str = "operator",

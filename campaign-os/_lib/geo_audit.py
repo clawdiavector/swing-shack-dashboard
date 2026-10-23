@@ -31,7 +31,7 @@ DATA_DIR = os.environ.get("DATA_DIR", "/data/campaign-os")
 _BRAND_DOMAINS = {
     "swing-shack": "https://swingshack.co.za",
     "stick":      "https://stickgolf.co.za",
-    "bag-drop":   "https://swingshack.co.za",
+    "bag-drop":   "https://thebagdrop.co.za",
 }
 
 # ── Cache helpers ────────────────────────────────────────────────────────────
@@ -126,12 +126,16 @@ def _wp_request(brand: str, method: str, path: str,
     if status == 0:
         return {"ok": False, "code": "WP_UNREACHABLE", "http": 0, "url": url,
                 "note": "Could not connect to WP REST. Manual approval required."}
-    try:
-        parsed = json.loads(data)
-    except Exception:
-        parsed = {"raw": data[:500]}
+    # _http already parses JSON bodies; only a non-JSON body arrives as text.
+    if isinstance(data, (dict, list)):
+        parsed = data
+    else:
+        try:
+            parsed = json.loads(data)
+        except Exception:
+            parsed = {"raw": str(data)[:500]}
     return {"ok": status in (200, 201), "http": status, "url": url,
-            "data": parsed, "raw": data[:500]}
+            "data": parsed, "raw": str(data)[:500]}
 
 
 # ── HTML parsing helpers ──────────────────────────────────────────────────────
@@ -802,6 +806,8 @@ def run_geo_audit(brand: str, force_refresh: bool = False) -> Dict[str, Any]:
     """
     if brand not in _BRAND_DOMAINS:
         return {"ok": False, "error": f"unknown brand: {brand}"}
+    if not _BRAND_DOMAINS[brand]:
+        return {"ok": False, "brand": brand, "error": "no website set for this brand yet"}
 
     if force_refresh:
         # V1.1: flush per-check cache so V1.1 calibration is not masked by

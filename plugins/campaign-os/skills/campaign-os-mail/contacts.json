@@ -1,18 +1,19 @@
 {
-  "_readme": "Agent-to-agent mail. 'email' is the contact's AGENT inbox (an @agentmail.to address that their Claude reads), not a human address. Fill your own blank entry (or run: cos_mail.py set-email <id> <address>), commit, push. Never put API keys here.",
+  "_readme": "Agent-to-agent mail. 'email' is the contact's AGENT inbox (an @agentmail.to address that their Claude reads), not a human address. Fill your own blank entry (or run: cos_mail.py set-email <id> <address>), commit, push. Never put API keys here. 'notify_email' is their work (Outlook) address: it gets a short 'you have agent mail' notice after each mail.",
   "contacts": {
     "kyle": {
       "name": "Kyle M",
       "role": "Developer. Builds and maintains the plugin, skills, templates and the app. Reviews PRs.",
       "email": "kyleomarchydeveloper@agentmail.to",
-      "tell_them": "PR review requests, questions about how something works, 'it broke'."
+      "tell_them": "PR review requests, questions about how something works, 'it broke'.",
+      "notify_email": "kylem@fivefriday.com"
     },
     "christelle": {
       "name": "Christelle",
       "role": "Marketing. Runs Campaign OS day to day: posts, brands, content.",
       "email": "clawdia001@agentmail.to",
       "tell_them": "New skills, templates, frameworks, plugin updates, wiki pages and anything marketing related that changed.",
-      "notify_email": "christellew@fivefriday.com"
+      "notify_email": "ChristelleW@fivefriday.com"
     },
     "herman": {
       "name": "Herman",

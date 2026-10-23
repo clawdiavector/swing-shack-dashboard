@@ -35,6 +35,12 @@ Creates row in `agent-queue.json` with id `manual-{brand}-{agent}-{reason}`.
 
 CLI on Linux: `python3 agent-control/bin/campaign_os_jobs.py status|run|output …`
 
+## Suggest Date / named window (Foreman)
+
+Skill **`campaign-os-campaign`**. Only move: run `suggest_campaign.py`
+(`POST /api/calendar/candidates` with bearer, `status=candidate`).
+Lands in Waiting for you. Do not upsert. Do not enqueue. Do not approve.
+
 ## Lodge one operator post (Foreman)
 
 Kyle: “load a post for Thursday” / one post through Heroes. Full recipe:
