@@ -91,7 +91,7 @@ class RenderTests(unittest.TestCase):
         # layout depends on the font installed (CI has a wider fallback), so a seed may be refused; what renders must be readable
         for set_id in (101, 102):  # a dark set and a light set
             ok = 0
-            for seed in (3, 4, 5, 6, 7):
+            for seed in (2, 3, 4, 5, 6, 7):
                 try:
                     _, meta = self.render(set_id=set_id, seed=seed)
                 except pr.LayoutFailed:
