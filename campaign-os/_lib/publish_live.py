@@ -138,7 +138,7 @@ def _dispatch_row_live(
     if publish_date and not str(publish_date).endswith("Z"):
         publish_date = str(publish_date)
     # Never hand Postiz "now": it has failed on posts whose media had not finished loading.
-    publish_date, _moved = scheduled_at_least(str(publish_date) if publish_date else None)
+    publish_date, moved = scheduled_at_least(str(publish_date) if publish_date else None)
 
     result, err = create_post(
         integration_id=integration_id,
@@ -177,6 +177,9 @@ def _dispatch_row_live(
         "postiz_post_id": str(postiz_id),
         "caption_preview": caption[:120],
         "would_publish_at": row.get("would_publish_at"),
+        # The time Postiz was given: scheduled_at_least's ISO, and whether that call moved it.
+        "publish_at": publish_date,
+        "moved": moved,
     }
     sandbox._append_jsonl(sandbox._receipts_path(), receipt)
     # Record asset -> template -> post at publish time. Never fail the publish
@@ -263,6 +266,8 @@ def dispatch_pending(
     refused = 0
     skipped = 0
     errors: list[str] = []
+    effective_publish_at: str | None = None
+    effective_moved: bool | None = None
 
     updated_rows: list[dict[str, Any]] = []
     target_keys = {str(t.get("idempotency_key") or "") for t in targets}
@@ -329,11 +334,15 @@ def dispatch_pending(
         row["external_id"] = receipt.get("postiz_post_id")
         sandbox._stamp_queue_row_dispatched(row, receipt)
         dispatched += 1
+        if effective_publish_at is None and receipt.get("publish_at"):
+            effective_publish_at = str(receipt.get("publish_at"))
+            moved_flag = receipt.get("moved")
+            effective_moved = moved_flag if isinstance(moved_flag, bool) else None
         updated_rows.append(row)
 
     sandbox._rewrite_jsonl(sandbox._queue_path(), updated_rows)
     errors.extend(f"{k}: not an approved pending row" for k in missing)
-    return {
+    result: dict[str, Any] = {
         "ok": dispatched > 0 and not errors,
         "mode": "live",
         "dispatched": dispatched,
@@ -344,6 +353,10 @@ def dispatch_pending(
         "brand": brand_filter,
         "writes": ["publish-sandbox/queue.jsonl", "publish-sandbox/receipts.jsonl"],
     }
+    if effective_publish_at:
+        result["publish_at"] = effective_publish_at
+        result["moved"] = effective_moved
+    return result
 
 
 def dispatch_now(idempotency_keys: list[str]) -> dict[str, Any]:
