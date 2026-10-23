@@ -22,5 +22,23 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python3 campaign-os/scripts/plan_action.py:*)",
+      "Bash(python3 campaign-os\\scripts\\plan_action.py:*)",
+      "Bash(python3 campaign-os/scripts/lodge_post.py:*)",
+      "Bash(python3 campaign-os\\scripts\\lodge_post.py:*)",
+      "Bash(python campaign-os/scripts/plan_action.py:*)",
+      "Bash(python campaign-os\\scripts\\plan_action.py:*)",
+      "Bash(python campaign-os/scripts/lodge_post.py:*)",
+      "Bash(python campaign-os\\scripts\\lodge_post.py:*)",
+      "Bash(py campaign-os/scripts/plan_action.py:*)",
+      "Bash(py campaign-os\\scripts\\plan_action.py:*)",
+      "Bash(py campaign-os/scripts/lodge_post.py:*)",
+      "Bash(py campaign-os\\scripts\\lodge_post.py:*)",
+      "PowerShell(python campaign-os\\scripts\\plan_action.py:*)",
+      "PowerShell(python campaign-os\\scripts\\lodge_post.py:*)"
+    ]
   }
 }

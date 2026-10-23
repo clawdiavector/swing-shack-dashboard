@@ -6,6 +6,7 @@ campaign-os/tests/jobs/test_layer1_io.py
 campaign-os/tests/jobs/test_ops_jobs_p1e.py
 campaign-os/tests/jobs/test_ops_agents.py
 campaign-os/tests/jobs/test_calendar_bearer_auth.py
+campaign-os/tests/jobs/test_agent_bearer_full_access.py
 campaign-os/tests/jobs/test_ops_agent_queue.py
 campaign-os/tests/jobs/test_ops_layers_ribbon.py
 campaign-os/tests/jobs/test_ops_watch.py
@@ -148,3 +149,4 @@ campaign-os/tests/test_caption_hook_pool.py
 campaign-os/tests/test_v2026_10_19_worked_median_window.py
 campaign-os/tests/test_post_routes.py
 campaign-os/tests/test_cos_mail_push_gate_20261023.py
+campaign-os/tests/test_plan_action_script.py
