@@ -2,8 +2,8 @@
 
 Someone sends a link to a good Instagram or Facebook post and wants it shared to
 the brand's Stories. Foreman adds it to the Stories list on the Today page. A
-person taps the link and uses the app's own **Share to story** button. Foreman
-never downloads or publishes anything.
+person taps the link and uses the app's own **Share to story** button, or presses
+**Post** to send a card through Postiz. Foreman never downloads the source post.
 
 ## When
 
@@ -34,9 +34,13 @@ Brand ids: `swing-shack`, `stick`, `bag-drop`.
 
 Mark one done: `POST /api/stories/<id>/done`. Undo: `/open`. List: `GET /api/stories`.
 
+## Post button
+
+`POST /api/stories/<id>/postiz` draws a 1080×1920 card from the note and the link, then sends it to that brand's Instagram story through Postiz. This runs only when `PUBLISH_MODE=live`. Sandbox returns `dry_run: true` and leaves the row open. The source post is not downloaded, so this is not the in-app reshare. **Shared** still only ticks the list.
+
 ## Never
 
-- Download the media or post it through Meta. Reposting with the app's own button keeps the original credit.
+- Download the source media. The Post button publishes a card we render. The phone **Share to story** button is what keeps the original credit.
 - Add links from sites other than Instagram and Facebook.
 - Suggest a brand's latest releases. Pick things the shop stocks or services it offers.
 

@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 CAMPAIGN_OS = Path(__file__).resolve().parents[1]
 TOKEN = "test-job-token-not-a-secret"
@@ -86,6 +87,69 @@ class StoryQueueTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/stories/nope/done", headers=BEARER).status_code, 404)
         item_id = self._add().get_json()["item"]["id"]
         self.assertEqual(self.client.post(f"/api/stories/{item_id}/bogus", headers=BEARER).status_code, 400)
+
+    def test_postiz_requires_auth_and_known_id(self):
+        self.assertEqual(self.client.post("/api/stories/nope/postiz").status_code, 401)
+        self.assertEqual(self.client.post("/api/stories/nope/postiz", headers=BEARER).status_code, 404)
+
+    def test_postiz_sandbox_does_not_publish(self):
+        item_id = self._add().get_json()["item"]["id"]
+        os.environ["PUBLISH_MODE"] = "sandbox"
+        with patch("_lib.story_postiz.list_integrations") as listed:
+            r = self.client.post(f"/api/stories/{item_id}/postiz", headers=BEARER)
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        self.assertTrue(body["dry_run"])
+        self.assertFalse(body.get("postiz_post_id"))
+        listed.assert_not_called()
+        self.assertEqual(len(self.client.get("/api/stories", headers=BEARER).get_json()["open"]), 1)
+
+    def test_postiz_live_posts_story_card_and_marks_done(self):
+        item_id = self._add().get_json()["item"]["id"]
+        os.environ["PUBLISH_MODE"] = "live"
+        uploaded = {}
+
+        def fake_upload(path, brand_id=None):
+            uploaded["path"] = path
+            uploaded["brand"] = brand_id
+            self.assertTrue(str(path).endswith(".png"))
+            self.assertGreater(os.path.getsize(path), 500)
+            with open(path, "rb") as handle:
+                self.assertEqual(handle.read(8), b"\x89PNG\r\n\x1a\n")
+            return {"id": "media-1", "path": "https://cdn.example/story.png"}, None
+
+        with patch("_lib.story_postiz.postiz_status", return_value={"configured": True}), \
+             patch("_lib.story_postiz.list_integrations", return_value=([{"id": "ig-1", "providerIdentifier": "instagram"}], None)), \
+             patch("_lib.story_postiz.upload_media", side_effect=fake_upload), \
+             patch("_lib.story_postiz.create_post", return_value=({"id": "post-9"}, None)) as created, \
+             patch("urllib.request.urlopen", side_effect=AssertionError("source post must not be downloaded")):
+            r = self.client.post(f"/api/stories/{item_id}/postiz", headers=BEARER)
+        self.assertEqual(r.status_code, 200, r.get_json())
+        body = r.get_json()
+        self.assertFalse(body["dry_run"])
+        self.assertEqual(body["postiz_post_id"], "post-9")
+        self.assertEqual(uploaded["brand"], "swing-shack")
+        kwargs = created.call_args.kwargs
+        self.assertEqual(kwargs["integration_id"], "ig-1")
+        self.assertEqual(kwargs["platform_settings"], {"post_type": "story"})
+        self.assertEqual(kwargs["media"], [{"id": "media-1", "path": "https://cdn.example/story.png"}])
+        self.assertEqual(kwargs["content"], "Psycho Bunny polo")
+        listed = self.client.get("/api/stories", headers=BEARER).get_json()
+        self.assertEqual(len(listed["open"]), 0)
+        self.assertEqual(listed["done_today"][0]["postiz_post_id"], "post-9")
+
+    def test_postiz_missing_instagram_stays_open(self):
+        item_id = self._add().get_json()["item"]["id"]
+        os.environ["PUBLISH_MODE"] = "live"
+        with patch("_lib.story_postiz.postiz_status", return_value={"configured": True}), \
+             patch("_lib.story_postiz.list_integrations", return_value=([{"id": "fb-1", "providerIdentifier": "facebook"}], None)):
+            r = self.client.post(f"/api/stories/{item_id}/postiz", headers=BEARER)
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("Instagram", r.get_json()["error"])
+        self.assertEqual(len(self.client.get("/api/stories", headers=BEARER).get_json()["open"]), 1)
+
+    def tearDown(self):
+        os.environ.pop("PUBLISH_MODE", None)
 
 
 if __name__ == "__main__":

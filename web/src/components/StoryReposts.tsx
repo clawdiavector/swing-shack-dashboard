@@ -3,18 +3,21 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   fetchStoryReposts,
   fetchStorySuggestions,
+  postStoryToPostiz,
   setStoryRepostStatus,
   type StoryRepost,
   type StorySuggestion,
 } from '../lib/api'
 import { BrandChip } from './BrandChip'
 
-/** Links people sent Foreman to share to Stories. Tap, use the app's own "Share to story", tick off. */
+/** Links people sent Foreman. Post publishes a card through Postiz. Open still uses the app's Share to story. */
 export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
   const [open, setOpen] = useState<StoryRepost[]>([])
   const [done, setDone] = useState<StoryRepost[]>([])
   const [ideas, setIdeas] = useState<StorySuggestion[]>([])
   const [failed, setFailed] = useState(false)
+  const [postingId, setPostingId] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const load = useCallback(() => {
     fetchStoryReposts()
@@ -45,6 +48,24 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
     }
   }
 
+  async function post(id: string) {
+    setPostingId(id)
+    setNotice(null)
+    try {
+      const result = await postStoryToPostiz(id)
+      if (result.dry_run) {
+        setNotice(result.error || 'Postiz sandbox is on. Nothing was published.')
+      } else if (!result.ok) {
+        setNotice(result.error || 'Post failed')
+      }
+    } catch {
+      setNotice('Post failed')
+    } finally {
+      setPostingId(null)
+      load()
+    }
+  }
+
   if (!failed && !ideaRows.length && !openRows.length && !doneRows.length) return null
 
   return (
@@ -55,6 +76,7 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
     >
       <p className="text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">Stories to share</p>
       {failed ? <p className="text-sm text-tx2">Couldn’t load the story list. Try again in a minute.</p> : null}
+      {notice ? <p className="text-sm text-tx2">{notice}</p> : null}
       {ideaRows.length ? (
         <ul className="space-y-2" aria-label="Today's idea">
           {ideaRows.map((i) => (
@@ -93,8 +115,16 @@ export function StoryReposts({ brandIds }: { brandIds?: string[] }) {
             {r.added_by ? <span className="text-xs text-tx3">from {r.added_by}</span> : null}
             <button
               type="button"
+              onClick={() => post(r.id)}
+              disabled={postingId === r.id}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-ac/40 px-3 py-1.5 text-sm font-semibold text-ac hover:border-ac disabled:opacity-50"
+            >
+              {postingId === r.id ? 'Posting…' : 'Post'}
+            </button>
+            <button
+              type="button"
               onClick={() => mark(r.id, 'done')}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-sm font-semibold text-tx2 hover:border-ac hover:text-ac"
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-sm font-semibold text-tx2 hover:border-ac hover:text-ac"
             >
               <CheckCircle2 className="h-4 w-4" />
               Shared

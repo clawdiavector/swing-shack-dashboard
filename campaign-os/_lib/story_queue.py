@@ -1,9 +1,9 @@
 """Story reposts — a short list of links to share to Instagram / Facebook Stories.
 
 Someone finds a good post, sends the link to Foreman on Telegram, Foreman adds it
-here, and the Today page shows it. A person taps the link and uses the app's own
-"Share to story" button. Nothing is downloaded or published through Meta, so the
-original credit stays attached.
+here, and the Today page shows it. A person can still open the link and use the
+app's own "Share to story" button. Post sends a card we render through Postiz.
+The source post is never downloaded.
 
 One JSON file in DATA_DIR. Items stay open until marked done, so a link added late
 in the day is still there tomorrow.
@@ -107,6 +107,31 @@ def list_items(brand: str | None = None) -> dict:
             i for i in items if i["status"] == "done" and (i.get("done_at") or "").startswith(today)
         ],
     }
+
+
+def get(item_id: str) -> dict:
+    for it in _load():
+        if it["id"] == item_id:
+            return it
+    raise KeyError(item_id)
+
+
+def record_post(item_id: str, postiz_post_id: str) -> dict:
+    """Mark a story done after Postiz accepts it."""
+    posted = (postiz_post_id or "").strip()
+    if not posted:
+        raise StoryError("postiz post id is required")
+    with _LOCK:
+        items = _load()
+        for it in items:
+            if it["id"] == item_id:
+                it["status"] = "done"
+                it["done_at"] = _now()
+                it["postiz_post_id"] = posted
+                it["posted_via"] = "postiz"
+                _save(items)
+                return it
+    raise KeyError(item_id)
 
 
 def set_status(item_id: str, status: str) -> dict:

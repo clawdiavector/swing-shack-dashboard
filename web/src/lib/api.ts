@@ -764,11 +764,10 @@ export type DraftRegenerateCaptionResult = {
 
 /** Draft id accepted by POST /api/drafts/.../regenerate-caption (photo regen uses the same shape). */
 export function reviewPieceDraftId(item: InboxItem): string | null {
+  if (item.id.startsWith('draft_asset:')) return item.id
   const cid = item.meta?.campaign_id?.trim()
   const aid = item.meta?.asset_id?.trim()
-  if (item.type === 'draft_asset' && aid) return aid
   if (cid && aid) return `${cid}:${aid}`
-  if (item.id.startsWith('draft_asset:')) return item.id
   return null
 }
 
@@ -2257,6 +2256,8 @@ export type StoryRepost = {
   added_at: string
   status: 'open' | 'done'
   done_at: string | null
+  postiz_post_id?: string
+  posted_via?: string
 }
 
 export type StoryRepostList = { ok: boolean; open: StoryRepost[]; done_today: StoryRepost[] }
@@ -2267,6 +2268,40 @@ export function fetchStoryReposts() {
 
 export function setStoryRepostStatus(id: string, status: 'open' | 'done') {
   return postJson<{ ok: boolean }>(`/api/stories/${encodeURIComponent(id)}/${status}`, {})
+}
+
+export async function postStoryToPostiz(id: string): Promise<{
+  ok: boolean
+  dry_run?: boolean
+  error?: string
+  postiz_post_id?: string
+  item?: StoryRepost
+}> {
+  const path = `/api/stories/${encodeURIComponent(id)}/postiz`
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json().catch(() => ({}))) as {
+    ok?: boolean
+    dry_run?: boolean
+    error?: string
+    postiz_post_id?: string
+    item?: StoryRepost
+  }
+  return {
+    ok: res.ok && data.ok !== false,
+    dry_run: data.dry_run,
+    error: data.error,
+    postiz_post_id: data.postiz_post_id,
+    item: data.item,
+  }
 }
 
 export type StorySuggestion = {

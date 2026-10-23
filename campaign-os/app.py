@@ -14715,6 +14715,20 @@ def stories_suggestion_route():
     return jsonify({"ok": True, "suggestions": out})
 
 
+@app.route('/api/stories/<item_id>/postiz', methods=['POST'])
+def stories_postiz_route(item_id):
+    """POST /api/stories/<id>/postiz — publish a rendered story card through Postiz."""
+    from _lib import story_postiz, story_queue
+
+    try:
+        item = story_queue.get(item_id)
+    except KeyError:
+        return jsonify({"ok": False, "error": "no such story"}), 404
+    result = story_postiz.publish_item(item)
+    code = int(result.pop("status", 200 if result.get("ok") else 502))
+    return jsonify(result), code
+
+
 @app.route('/api/stories/<item_id>/<status>', methods=['POST'])
 def stories_status_route(item_id, status):
     """POST /api/stories/<id>/done (or /open to undo)."""
