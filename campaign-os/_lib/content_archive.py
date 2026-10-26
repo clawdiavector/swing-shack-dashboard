@@ -652,7 +652,8 @@ def purge_expired(
                     _skip_purge_no_explicit_archived_at(bid, item, actor)
                     counts["skipped_legacy"] += 1
                 continue
-            if not _is_past_purge(purge_at_iso(archived_at), now=now):
+            purge_at = purge_at_iso(archived_at)
+            if not dry_run and not _is_past_purge(purge_at, now=now):
                 continue
             kind = item.get("kind")
             iid = str(item.get("id") or "")

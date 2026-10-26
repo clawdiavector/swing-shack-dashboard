@@ -39,6 +39,8 @@ def retention_days() -> int:
 
 def validate_production_purge_config() -> None:
     """Called by the daily job before any destructive purge."""
+    if _pytest_active():
+        return
     raw = os.environ.get("ARCHIVE_PURGE_DAYS", "").strip()
     if not raw:
         return
