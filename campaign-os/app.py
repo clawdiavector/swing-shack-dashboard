@@ -15300,10 +15300,19 @@ def stories_marks_route():
         return jsonify({"ok": True, "marks": story_marks.read()})
     body = request.get_json(silent=True) or {}
     try:
-        story_marks.set_mark(str(body.get('key') or ''), str(body.get('state') or ''))
+        story_marks.set_mark(str(body.get('key') or ''), str(body.get('state') or ''), str(body.get('brand') or ''))
     except story_marks.MarkError as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
     return jsonify({"ok": True, "marks": story_marks.read()})
+
+
+@app.route('/api/stories/week', methods=['GET'])
+def stories_week_route():
+    """GET /api/stories/week[?brands=a,b] — Stories shared since Monday (Johannesburg)."""
+    from _lib import story_week
+
+    brands = [b for b in (request.args.get('brands') or '').split(',') if b]
+    return jsonify({"ok": True, "shared_this_week": story_week.shared_this_week(brands or None)})
 
 
 @app.route('/api/stories/<item_id>/<status>', methods=['POST'])
@@ -15555,7 +15564,19 @@ def publish_dispatch_now_route():
     if not keys:
         return jsonify({"ok": False, "error": "idempotency_key required"}), 400
     try:
+        from _lib.postiz_client import scheduled_at_least
         from _lib.publish_mode import is_sandbox_mode
+
+        def _with_send_time(payload: dict) -> dict:
+            """Effective ISO from scheduled_at_least — the date create_post sends — and whether it moved."""
+            publish_at = payload.get("publish_at")
+            moved = payload.get("moved")
+            if not isinstance(publish_at, str) or not publish_at:
+                publish_at, moved = scheduled_at_least(None)
+            payload["publish_at"] = publish_at
+            payload["moved"] = bool(moved)
+            return payload
+
         if is_sandbox_mode():
             from _lib.publish_sandbox import approve_item, dispatch_one
             dispatched = []
@@ -15570,9 +15591,14 @@ def publish_dispatch_now_route():
                     errors.append(f"{key}: {err}")
                 else:
                     dispatched.append(key)
-            return jsonify({"ok": not errors, "mode": "sandbox", "dispatched": len(dispatched), "errors": errors}), 200
+            payload = {"ok": not errors, "mode": "sandbox", "dispatched": len(dispatched), "errors": errors}
+            if payload["dispatched"]:
+                _with_send_time(payload)
+            return jsonify(payload), 200
         from _lib.publish_live import dispatch_now
         result = dispatch_now(keys)
+        if result.get("dispatched"):
+            _with_send_time(result)
         status = 200 if result.get("ok", True) else 400
         return jsonify(result), status
     except Exception as exc:
@@ -47385,6 +47411,10 @@ def mail_intake_list():
     brand = (request.args.get("brand") or "all").strip()
     if brand != "all" and brand not in mi.BRANDS:
         return jsonify({"ok": False, "error": f"brand '{brand}' invalid"}), 400
+    try:
+        mi.resplit_existing(_jhb_today())
+    except Exception:
+        _app_log.exception("mail intake resplit failed")
     items = mi.list_items(None if brand == "all" else brand)
     return jsonify({"ok": True, "watching": mi.configured(), "count": len(items),
                     "do_now": [i for i in items if i["kind"] == "do_now"],
@@ -47393,8 +47423,9 @@ def mail_intake_list():
 
 @app.route("/api/mail-intake/<item_id>/<action>", methods=["POST"])
 def mail_intake_act(item_id, action):
-    """POST status {status} | kind {kind} | to-calendar {brand, date}. to-calendar puts an idea
-    on the calendar as a faded suggestion; approving it is still a person's call."""
+    """POST status {status} | kind {kind} | plan {brand?, date?, force?} | to-calendar {brand, date}.
+    plan makes the idea's proposed plan (a draft; nothing goes on the calendar). to-calendar puts
+    an idea on the calendar as a faded suggestion; approving it is still a person's call."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     from _lib import calendar_suggestions as cs
@@ -47405,6 +47436,26 @@ def mail_intake_act(item_id, action):
             item = mi.set_status(item_id, str(body.get("status") or ""))
         elif action == "kind":
             item = mi.set_kind(item_id, str(body.get("kind") or ""))
+        elif action == "flesh":
+            from _lib import idea_builder as ib
+            if body.get("brand") is not None or body.get("date") is not None:
+                mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
+
+            def _idea_chat(messages):
+                text, err = _openrouter_chat_completion(
+                    messages, model=os.environ.get("IDEA_MODEL") or "anthropic/claude-sonnet-5.5",
+                    temperature=0.7, max_tokens=4000, timeout=90)
+                if err:
+                    raise RuntimeError(err)
+                return text
+
+            r = ib.flesh_out(item_id, _idea_chat, _jhb_today())
+            return jsonify(r), (200 if r.get("ok") else 400)
+        elif action == "plan":
+            if body.get("brand") is not None or body.get("date") is not None:
+                mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
+            r = mi.idea_plan(item_id, _jhb_today(), force=bool(body.get("force")))
+            return jsonify(r), (200 if r.get("ok") else 400)
         elif action == "to-calendar":
             cur = mi.get_item(item_id)
             if not cur:

@@ -174,7 +174,10 @@ def candidates(brand: str, refresh: bool = False, now: datetime | None = None) -
             cands += rank_page(page, _fetch(_handle(page["instagram"])), now)
         except Exception as exc:  # one dead page must not blank the list
             errors.append(f"{page['name']}: {exc}")
-    result = {"brand": brand, "posts": pick(cands), "errors": errors, "fetched_at": time.time()}
+    best: dict[str, dict] = {}
+    for c in sorted(cands, key=lambda c: -c["score"]):
+        best.setdefault(c["page_id"], c)
+    result = {"brand": brand, "posts": pick(cands), "by_page": best, "errors": errors, "fetched_at": time.time()}
     if result["posts"] or not hit:
         cache[brand] = result
         _write_cache(cache)

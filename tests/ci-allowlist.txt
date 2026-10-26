@@ -164,4 +164,9 @@ campaign-os/tests/test_plan_idea_to_posts.py
 campaign-os/tests/test_mail_intake_routes.py
 campaign-os/tests/test_outside_posts_on_calendar_20261026.py
 campaign-os/tests/test_outside_posts_sync_schedule_20261026.py
+campaign-os/tests/test_mail_idea_cards.py
+campaign-os/tests/test_mail_intake_sender_name.py
+campaign-os/tests/test_mail_idea_routes.py
+campaign-os/tests/test_idea_builder.py
+campaign-os/tests/test_idea_builder_route.py
 campaign-os/tests/test_shadow_text_post_20261026.py
