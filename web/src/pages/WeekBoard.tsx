@@ -11,6 +11,7 @@ import { PostCard } from '../components/posting/PostCard'
 import { DayPostSuggestions } from './calendar/planning/DayPostSuggestions'
 import { useMonthSuggestions } from './calendar/planning/MonthSuggestions'
 import type { DayPrimaryPost, Suggestion } from '../lib/calendarSuggestions'
+import { postsByDayForSuggestions } from '../lib/weekBoardDaySuggestions'
 import { Badge } from '../components/ui'
 import {
   enqueueOneshotDay,
@@ -47,23 +48,6 @@ function unionPostTypeHints(templates: { post_type_hints?: string[] }[]): string
 const SCHEDULE_BRAND_LABEL: Record<string, string> = {
   'swing-shack': 'Swing Shack',
   stick: 'Stick',
-}
-
-function postsByDayForSuggestions(
-  day: PostingWeekDay,
-  postsByDay: Record<string, DayPrimaryPost[]>,
-): Record<string, DayPrimaryPost[]> {
-  const apiPrimary = postsByDay[day.date]
-  if (apiPrimary?.length) return postsByDay
-  if (day.posts.length === 0) return postsByDay
-  return {
-    ...postsByDay,
-    [day.date]: day.posts.map((p) => ({
-      calendar_id: p.calendar_id,
-      title: String(p.title ?? '').trim(),
-      state: p.state,
-    })),
-  }
 }
 
 const QUIET_LINES = [
@@ -160,7 +144,7 @@ function DaySection({
         <div className="mt-3">
           <DayPostSuggestions
             iso={day.date}
-            postsByDay={postsByDayForSuggestions(day, daySuggestions.postsByDay)}
+            postsByDay={postsByDayForSuggestions(day.date, day.posts, daySuggestions.postsByDay)}
             ghosts={daySuggestions.ghosts}
             busyKey={daySuggestions.busyKey}
             pillars={daySuggestions.pillars}
