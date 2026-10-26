@@ -95,18 +95,19 @@ def _payload_stable(previous: dict, new: dict) -> bool:
 def _write_outputs(output: dict) -> Path:
     """Persist refit output; skip bundled data/ when ./check uses a scratch DATA_DIR."""
     scratch = _scratch_data_dir()
-    bundled = SEED_DATA / "format-model-refit.json"
+    bundled = OUT_FILE
+    seed_out = SEED_DATA / "format-model-refit.json"
     targets: list[Path] = []
     if scratch is not None:
         scratch.mkdir(parents=True, exist_ok=True)
         targets.append(scratch / "format-model-refit.json")
     if scratch is None or not bundled.is_file():
-        runtime_out = OUT_FILE.resolve()
-        if runtime_out != bundled.resolve() and runtime_out not in targets:
-            targets.append(OUT_FILE)
         if bundled not in targets:
             targets.append(bundled)
-    primary = OUT_FILE if OUT_FILE in targets else (bundled if bundled in targets else targets[0])
+    elif bundled.resolve() != seed_out.resolve():
+        if bundled not in targets:
+            targets.append(bundled)
+    primary = bundled if bundled in targets else targets[0]
     serialized = json.dumps(output, indent=2)
     for path in targets:
         if path.is_file():
