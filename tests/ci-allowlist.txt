@@ -22,6 +22,7 @@ campaign-os/tests/test_caption_brand_required.py
 campaign-os/tests/test_clear_history_button_location.py
 campaign-os/tests/test_cta_studio_v2.py
 campaign-os/tests/test_freshness_sanity_range.py
+campaign-os/tests/test_foreman_morning_summary_20261026.py
 campaign-os/tests/test_ga4_page_aggregation.py
 campaign-os/tests/test_hashtag_seo.py
 campaign-os/tests/test_ig_business_v2026_08_13.py

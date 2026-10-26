@@ -47342,6 +47342,21 @@ def morning_message_route():
                     "due_today": sum(1 for s in sections.values() for x in s["steps"] if x["bucket"] == "today")}), 200
 
 
+@app.route("/api/jobs/morning-summary", methods=["GET"])
+def morning_summary_route():
+    """GET ?brand=...|all — today's scheduled posts, approval queue, failing jobs.
+
+    Plain text for Telegram or Mac cron. Session or job bearer. Sends nothing itself."""
+    brands = _todo_brands((request.args.get("brand") or "all").strip())
+    if brands is None:
+        return jsonify({"ok": False, "error": "unknown brand"}), 400
+    from _lib import foreman_morning_summary as fms
+
+    today = _jhb_today()
+    payload = fms.build_payload(brands=brands, today=today)
+    return jsonify(payload), 200
+
+
 # ── Mail from Herman, filed as Do now or Idea on the Today page ──
 @app.route("/api/mail-intake", methods=["GET"])
 def mail_intake_list():

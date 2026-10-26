@@ -5,7 +5,15 @@ from __future__ import annotations
 from typing import Callable
 
 from ..spec import JobSpec
-from . import agent_queue_writer, clublab_pull, data_archive, holiday_inject, review_sla, slot_planner
+from . import (
+    agent_queue_writer,
+    clublab_pull,
+    data_archive,
+    foreman_morning_summary,
+    holiday_inject,
+    review_sla,
+    slot_planner,
+)
 
 LAYER2_JOB_NAMES: tuple[str, ...] = (
     "slot_planner",
@@ -14,6 +22,7 @@ LAYER2_JOB_NAMES: tuple[str, ...] = (
     "holiday_inject",
     "data_archive",
     "clublab_pull",
+    "foreman_morning_summary",
 )
 
 LAYER2_DAILY = 86400
@@ -99,6 +108,17 @@ def layer2_specs() -> list[JobSpec]:
             credentials=("CLUBLAB_EMAIL", "CLUBLAB_PASSWORD", "CLUBLAB_TOKEN"),
             writes=(clublab_pull.SNAPSHOT_NAME, clublab_pull.META_NAME),
             brand_mode="fanout_internal",
+        ),
+        JobSpec(
+            name="foreman_morning_summary",
+            fn=foreman_morning_summary.run,
+            every_seconds=LAYER2_DAILY,
+            timeout_seconds=60,
+            best_effort=True,
+            criticality="LOW",
+            credentials=("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"),
+            writes=(),
+            brand_mode="global",
         ),
     ]
 
