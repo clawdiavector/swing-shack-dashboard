@@ -44,6 +44,19 @@ IG_FILE = DATA / "ig-business-analytics.json"
 OUT_FILE = DATA / "format-model-refit.json"
 
 
+def _repo_relative(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _integration_test_subprocess() -> bool:
+    """True when scripts/tests/test_refit…::test_runs_clean_with_real_data spawned us."""
+    cur = os.environ.get("PYTEST_CURRENT_TEST") or ""
+    return "test_runs_clean_with_real_data" in cur
+
+
 def _scratch_data_dir() -> Path | None:
     """Scratch DATA_DIR from ./check (not the bundled repo data/ tree)."""
     raw = os.environ.get("DATA_DIR")
@@ -71,9 +84,13 @@ def _write_outputs(output: dict) -> Path:
     if scratch is not None:
         scratch.mkdir(parents=True, exist_ok=True)
         targets.append(scratch / "format-model-refit.json")
-    if scratch is None or not bundled.is_file():
-        if bundled not in targets:
-            targets.append(bundled)
+    # Under ./check, DATA_DIR is scratch — never touch bundled data/ except the one
+    # integration test that deletes format-model-refit.json and restores it in finally.
+    allow_bundled = scratch is None or (
+        not bundled.is_file() and _integration_test_subprocess()
+    )
+    if allow_bundled and bundled not in targets:
+        targets.append(bundled)
     primary = bundled if bundled in targets else targets[0]
     serialized = json.dumps(output, indent=2)
     for path in targets:
@@ -261,8 +278,8 @@ def main():
         "schema": "https://clawdia.io/scripts/format-model-refit/v1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source_data": {
-            "post_conversion_score": str(PCS_FILE),
-            "ig_business_analytics": str(IG_FILE),
+            "post_conversion_score": _repo_relative(PCS_FILE),
+            "ig_business_analytics": _repo_relative(IG_FILE),
         },
         "scoring": {
             "old_formula": pcs.get("scoring_formula", ""),
