@@ -2,7 +2,9 @@ import { ImageIcon } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  fetchPublishMode,
   inboxAction,
+  publishDispatchNow,
   recheckVisual,
   releaseMoment,
   resolveAssetUrl,
@@ -20,6 +22,7 @@ import {
   nextActionFromStages,
   postFactLine,
   postFlagLabel,
+  postingChannelAbbrev,
   postingWeekThumbUrl,
   postStateLabel,
   postStateTone,
@@ -36,7 +39,21 @@ import { StageStepper } from './StageStepper'
 import { GapTile } from './GapTile'
 import { ChannelPicker } from './ChannelPicker'
 import { DeliveryChips } from './DeliveryChips'
+import { PublishNowButton } from './PublishNowButton'
+import { publishNowConfirmText, publishNowSuccessText, releasedCardStatus } from '../../lib/publishConfirm'
 import { releaseConfirmMessage } from './ApproveReleaseConfirm'
+
+function sandboxPublishKeys(post: PostingWeekPost): string[] {
+  const rows = (post.sandbox ?? []) as { idempotency_key?: string | null }[]
+  return rows.map((row) => String(row.idempotency_key || '').trim()).filter(Boolean)
+}
+
+function sandboxChannelLabel(post: PostingWeekPost): string {
+  return (post.sandbox ?? [])
+    .map((row) => postingChannelAbbrev(String(row.platform || 'post')))
+    .filter(Boolean)
+    .join(' · ')
+}
 
 function PostCardThumb({ imageUrl, title }: { imageUrl?: string | null; title: string }) {
   const [broken, setBroken] = useState(false)
@@ -105,6 +122,8 @@ export function PostCard({
   const rowBrandId = post.brand_id ?? focusBrandId ?? 'swing-shack'
   const [lodging, setLodging] = useState(false)
   const [releasing, setReleasing] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [sendNote, setSendNote] = useState('')
   const [editorOpen, setEditorOpen] = useState(false)
   const [editErr, setEditErr] = useState('')
   const [titleVal, setTitleVal] = useState(post.title ?? '')
@@ -173,6 +192,36 @@ export function PostCard({
     if (released?.data?.ok) burstAtPointer(50)
     setReleasing(false)
     onRefresh?.()
+  }
+
+  async function handlePublishNow(event: MouseEvent) {
+    event.preventDefault()
+    event.stopPropagation()
+    const keys = sandboxPublishKeys(post)
+    if (!keys.length || publishing) return
+    let mode: string | null = null
+    try {
+      mode = (await fetchPublishMode()).mode ?? null
+    } catch {
+      mode = null
+    }
+    const ask = publishNowConfirmText(mode, sandboxChannelLabel(post), post.title)
+    if (ask && !window.confirm(ask)) return
+    setPublishing(true)
+    setSendNote('')
+    try {
+      const { data: body } = await publishDispatchNow(keys)
+      const err = body.errors?.join('; ') || body.error
+      setSendNote(err ? String(err) : publishNowSuccessText(body.publish_at))
+      if (!err) {
+        burstAtPointer(70)
+        onRefresh?.()
+      }
+    } catch (e: unknown) {
+      setSendNote(e instanceof Error ? e.message : 'Publish failed')
+    } finally {
+      setPublishing(false)
+    }
   }
 
   async function runRecheckVisual() {
@@ -473,11 +522,17 @@ export function PostCard({
             </div>
           ) : null}
           {isReleased || needsAttention ? (
-            <p className="pt-1 text-xs font-medium text-tx2">
-              {needsAttention
-                ? 'Some platforms need attention — retry or drop a channel below.'
-                : 'Waiting to go out — the hourly job sends it at the scheduled time. Publish now is on the Publish page.'}
-            </p>
+            <div className="space-y-1 pt-1">
+              <p className="text-xs font-medium text-tx2">
+                {needsAttention
+                  ? 'Some platforms need attention — retry or drop a channel below.'
+                  : releasedCardStatus(isReleased && sandboxPublishKeys(post).length > 0)}
+              </p>
+              {isReleased && sandboxPublishKeys(post).length ? (
+                <PublishNowButton disabled={publishing} onClick={(e) => void handlePublishNow(e)} />
+              ) : null}
+              {sendNote ? <p className="text-xs font-medium text-tx2">{sendNote}</p> : null}
+            </div>
           ) : null}
         </div>
       </div>
