@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Products/MGI-RF001__front.png",
+  "layer1_metadata": {
+    "filename": "MGI-RF001__front.png",
+    "format": "PNG",
+    "mode": "RGBA",
+    "width_px": 1600,
+    "height_px": 1600,
+    "aspect_ratio": 1.0,
+    "orientation": "square",
+    "file_size_bytes": 922787,
+    "modified": 1792982425.6687174,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.7768
+      },
+      {
+        "hex": "#2f322f",
+        "rgb": [
+          47,
+          50,
+          47
+        ],
+        "share": 0.0424
+      },
+      {
+        "hex": "#222322",
+        "rgb": [
+          34,
+          35,
+          34
+        ],
+        "share": 0.0397
+      },
+      {
+        "hex": "#7d7e7e",
+        "rgb": [
+          125,
+          126,
+          126
+        ],
+        "share": 0.0322
+      },
+      {
+        "hex": "#676767",
+        "rgb": [
+          103,
+          103,
+          103
+        ],
+        "share": 0.03
+      },
+      {
+        "hex": "#49514c",
+        "rgb": [
+          73,
+          81,
+          76
+        ],
+        "share": 0.0287
+      },
+      {
+        "hex": "#393e3a",
+        "rgb": [
+          57,
+          62,
+          58
+        ],
+        "share": 0.0268
+      },
+      {
+        "hex": "#a7b1a9",
+        "rgb": [
+          167,
+          177,
+          169
+        ],
+        "share": 0.0233
+      }
+    ],
+    "mean_brightness": 18.7,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.0,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 3.9,
+    "brightness_bottom": 3.6,
+    "edge_density_grid": [
+      [
+        0.0,
+        1.77,
+        0.53
+      ],
+      [
+        6.16,
+        12.07,
+        6.44
+      ],
+      [
+        1.14,
+        1.71,
+        0.0
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": null,
+      "white_text_or_border_present": true,
+      "headings_all_caps": null,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#000000",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

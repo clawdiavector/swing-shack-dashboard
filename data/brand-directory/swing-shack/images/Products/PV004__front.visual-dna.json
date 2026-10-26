@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Products/PV004__front.png",
+  "layer1_metadata": {
+    "filename": "PV004__front.png",
+    "format": "PNG",
+    "mode": "RGBA",
+    "width_px": 2000,
+    "height_px": 2000,
+    "aspect_ratio": 1.0,
+    "orientation": "square",
+    "file_size_bytes": 2490662,
+    "modified": 1792982460.641105,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.532
+      },
+      {
+        "hex": "#1b1b1d",
+        "rgb": [
+          27,
+          27,
+          29
+        ],
+        "share": 0.1167
+      },
+      {
+        "hex": "#292a2c",
+        "rgb": [
+          41,
+          42,
+          44
+        ],
+        "share": 0.107
+      },
+      {
+        "hex": "#343638",
+        "rgb": [
+          52,
+          54,
+          56
+        ],
+        "share": 0.1034
+      },
+      {
+        "hex": "#0c0c0d",
+        "rgb": [
+          12,
+          12,
+          13
+        ],
+        "share": 0.0963
+      },
+      {
+        "hex": "#5d5959",
+        "rgb": [
+          93,
+          89,
+          89
+        ],
+        "share": 0.0284
+      },
+      {
+        "hex": "#010001",
+        "rgb": [
+          1,
+          0,
+          1
+        ],
+        "share": 0.0162
+      },
+      {
+        "hex": "#000001",
+        "rgb": [
+          0,
+          0,
+          1
+        ],
+        "share": 0.0001
+      }
+    ],
+    "mean_brightness": 18.4,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.0,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 16.2,
+    "brightness_bottom": 5.3,
+    "edge_density_grid": [
+      [
+        2.83,
+        2.48,
+        2.12
+      ],
+      [
+        5.1,
+        8.65,
+        5.5
+      ],
+      [
+        1.15,
+        1.1,
+        2.28
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 4,
+    "text_preview": "#] ball in golf\u201d"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 42,
+    "median_text_height_px": 41,
+    "likely_heading_text": "#] ball in",
+    "is_all_caps": false,
+    "sample_text_colour": "#141517"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": false,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#000000",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "#] ball in golf\u201d",
+      "all_caps_detected": false
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}
