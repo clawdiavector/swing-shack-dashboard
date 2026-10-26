@@ -152,3 +152,4 @@ campaign-os/tests/test_cos_mail_push_gate_20261023.py
 campaign-os/tests/test_post_studio.py
 campaign-os/tests/test_post_qa.py
 campaign-os/tests/test_outside_posts_on_calendar_20261026.py
+campaign-os/tests/test_outside_posts_sync_schedule_20261026.py

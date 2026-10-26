@@ -23,7 +23,7 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
         "cadence": "every 12h",
     },
     "outside_posts_sync": {
-        "scheduler": "Hermes / manual (every 4h recommended)",
+        "scheduler": "GitHub Actions (outside-posts-sync-4h.yml)",
         "cron_sast": ["06:00", "10:00", "14:00", "18:00", "22:00"],
         "cadence": "every 4h",
     },
