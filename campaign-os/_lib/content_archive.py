@@ -15,7 +15,7 @@ from typing import Any, Optional
 
 _LOG = logging.getLogger("campaign_os.content_archive")
 
-from _lib.archive_retention import purge_at_iso, retention_days
+from _lib.archive_retention import purge_at_iso, purge_live_enabled, retention_days
 from _lib.brand_validate import validate_brand_id
 
 KINDS = frozenset({"draft", "plan", "suggestion"})
@@ -568,14 +568,91 @@ def _skip_purge_published_draft(
     )
 
 
-def purge_expired(*, now: datetime | None = None, actor: str = "job:archive_purge") -> dict[str, Any]:
+def _skip_purge_no_explicit_archived_at(
+    brand_id: str,
+    item: dict[str, Any],
+    actor: str,
+) -> None:
+    kind = str(item.get("kind") or "")
+    iid = str(item.get("id") or "")
+    _LOG.info("purge skipped legacy archive brand=%s kind=%s id=%s", brand_id, kind, iid)
+    append_audit(
+        action="purge_skipped",
+        kind=kind,
+        item_id=iid,
+        brand_id=brand_id,
+        actor=actor,
+        title=str(item.get("title") or ""),
+        extra={"reason": "no_explicit_archived_at"},
+    )
+
+
+def _explicit_archived_at(brand_id: str, item: dict[str, Any]) -> str | None:
+    """Return archived_at only when T16 stamped it on the source record (not inferred)."""
+    kind = item.get("kind")
+    iid = str(item.get("id") or "")
+    if kind == "draft":
+        cid = str(item.get("campaign_id") or "")
+        from _lib.unified_inbox import _load_campaign_data  # noqa: PLC0415
+
+        data = _load_campaign_data()
+        asset = ((data.get("campaigns") or {}).get(cid) or {}).get("assets", {}).get(iid)
+        if isinstance(asset, dict) and asset.get("archived_at"):
+            return str(asset["archived_at"])
+        return None
+    if kind == "plan":
+        from _lib import campaign_plan as cp  # noqa: PLC0415
+
+        plan = cp.get_plan(brand_id, iid)
+        if isinstance(plan, dict) and plan.get("archived_at"):
+            return str(plan["archived_at"])
+        return None
+    if kind == "suggestion":
+        extra = item.get("suggestion_source")
+        if extra == "decision":
+            from _lib import calendar_suggestions as cs  # noqa: PLC0415
+
+            dec = cs.read_decisions(brand_id).get(iid) or {}
+            if dec.get("at"):
+                return str(dec["at"])
+            return None
+        from _lib import marketing_calendar as mc  # noqa: PLC0415
+
+        row = mc._newest_row(brand_id, iid)  # noqa: SLF001
+        if isinstance(row, dict) and row.get("archived_at"):
+            return str(row["archived_at"])
+        return None
+    return None
+
+
+def purge_expired(
+    *,
+    now: datetime | None = None,
+    actor: str = "job:archive_purge",
+    dry_run: bool | None = None,
+) -> dict[str, Any]:
     """Delete items archived past retention. Returns counts per kind."""
     now = now or datetime.now(timezone.utc)
-    counts: dict[str, int] = {"draft": 0, "plan": 0, "suggestion": 0, "skipped_published": 0}
+    if dry_run is None:
+        dry_run = not purge_live_enabled()
+    counts: dict[str, int] = {
+        "draft": 0,
+        "plan": 0,
+        "suggestion": 0,
+        "skipped_published": 0,
+        "skipped_legacy": 0,
+        "dry_run": 0,
+    }
     brands = ("swing-shack", "stick", "bag-drop")
     for bid in brands:
         for item in list_archived(bid):
-            if not _is_past_purge(str(item.get("purge_at") or ""), now=now):
+            archived_at = _explicit_archived_at(bid, item)
+            if not archived_at:
+                if _is_past_purge(str(item.get("purge_at") or ""), now=now):
+                    _skip_purge_no_explicit_archived_at(bid, item, actor)
+                    counts["skipped_legacy"] += 1
+                continue
+            if not _is_past_purge(purge_at_iso(archived_at), now=now):
                 continue
             kind = item.get("kind")
             iid = str(item.get("id") or "")
@@ -590,51 +667,91 @@ def purge_expired(*, now: datetime | None = None, actor: str = "job:archive_purg
                         )
                         counts["skipped_published"] += 1
                         continue
-                    _purge_draft(bid, iid, str(item.get("campaign_id") or ""), actor)
+                    _purge_draft(
+                        bid,
+                        iid,
+                        str(item.get("campaign_id") or ""),
+                        actor,
+                        dry_run=dry_run,
+                    )
                     counts["draft"] += 1
+                    if dry_run:
+                        counts["dry_run"] += 1
                 elif kind == "plan":
-                    _purge_plan(bid, iid, actor)
+                    _purge_plan(bid, iid, actor, dry_run=dry_run)
                     counts["plan"] += 1
+                    if dry_run:
+                        counts["dry_run"] += 1
                 elif kind == "suggestion":
-                    _purge_suggestion(bid, item, actor)
+                    _purge_suggestion(bid, item, actor, dry_run=dry_run)
                     counts["suggestion"] += 1
+                    if dry_run:
+                        counts["dry_run"] += 1
             except (ValueError, OSError):
                 continue
     total = counts["draft"] + counts["plan"] + counts["suggestion"]
-    return {"ok": True, "purged": counts, "total": total}
+    return {"ok": True, "purged": counts, "total": total, "dry_run": dry_run}
 
 
-def _purge_draft(brand_id: str, asset_id: str, campaign_id: str, actor: str) -> None:
+def _purge_draft(
+    brand_id: str,
+    asset_id: str,
+    campaign_id: str,
+    actor: str,
+    *,
+    dry_run: bool = False,
+) -> None:
+    action = "purge_dry_run" if dry_run else "purge"
+    append_audit(action=action, kind="draft", item_id=asset_id, brand_id=brand_id, actor=actor)
+    if dry_run:
+        return
     from _lib.library_shelf import _delete_draft  # noqa: PLC0415
 
     _delete_postiz_on_purge(brand_id, asset_id)
     _delete_draft(asset_id, campaign_id)
-    append_audit(action="purge", kind="draft", item_id=asset_id, brand_id=brand_id, actor=actor)
 
 
-def _purge_plan(brand_id: str, plan_id: str, actor: str) -> None:
+def _purge_plan(
+    brand_id: str,
+    plan_id: str,
+    actor: str,
+    *,
+    dry_run: bool = False,
+) -> None:
+    action = "purge_dry_run" if dry_run else "purge"
+    append_audit(action=action, kind="plan", item_id=plan_id, brand_id=brand_id, actor=actor)
+    if dry_run:
+        return
     from _lib import campaign_plan as cp  # noqa: PLC0415
 
     cp.purge_plan(brand_id, plan_id, actor)
-    append_audit(action="purge", kind="plan", item_id=plan_id, brand_id=brand_id, actor=actor)
 
 
-def _purge_suggestion(brand_id: str, item: dict[str, Any], actor: str) -> None:
+def _purge_suggestion(
+    brand_id: str,
+    item: dict[str, Any],
+    actor: str,
+    *,
+    dry_run: bool = False,
+) -> None:
     from _lib import calendar_suggestions as cs  # noqa: PLC0415
     from _lib import marketing_calendar as mc  # noqa: PLC0415
 
     extra = item.get("suggestion_source")
     iid = str(item.get("id") or "")
-    if extra == "decision":
-        cs.clear_decision(brand_id, iid)
-    else:
-        cid = iid
-        mc.transition_status(brand_id, cid, "purged", reason=f"purged by {actor}")
+    action = "purge_dry_run" if dry_run else "purge"
     append_audit(
-        action="purge",
+        action=action,
         kind="suggestion",
         item_id=iid,
         brand_id=brand_id,
         actor=actor,
         title=str(item.get("title") or ""),
     )
+    if dry_run:
+        return
+    if extra == "decision":
+        cs.clear_decision(brand_id, iid)
+    else:
+        cid = iid
+        mc.transition_status(brand_id, cid, "purged", reason=f"purged by {actor}")

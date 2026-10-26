@@ -38,48 +38,31 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
-SEED_DATA = ROOT / "data"
-DATA = SEED_DATA
+DATA = ROOT / "data"
 PCS_FILE = DATA / "post-conversion-score.json"
 IG_FILE = DATA / "ig-business-analytics.json"
 OUT_FILE = DATA / "format-model-refit.json"
 
 
-def _runtime_data_dir() -> Path:
-    """Where PCS/IG/refit output live for this run.
-
-    ./check gives pytest a scratch DATA_DIR; this CLI still reads committed seed
-    inputs and must not write refit output into tracked data/ when scratch is set.
-    Production runs with DATA_DIR=/data/campaign-os read and write under that dir.
-    """
-    scratch = os.environ.get("DATA_DIR")
-    if not scratch:
-        return SEED_DATA
-    scratch_p = Path(scratch).resolve()
-    seed_p = SEED_DATA.resolve()
-    if scratch_p == seed_p:
-        return SEED_DATA
-    if os.environ.get("PYTEST_CURRENT_TEST"):
-        return SEED_DATA
-    return scratch_p
-
-
-def _bind_data_paths() -> None:
-    global DATA, PCS_FILE, IG_FILE, OUT_FILE
-    data = _runtime_data_dir()
-    DATA = data
-    PCS_FILE = data / "post-conversion-score.json"
-    IG_FILE = data / "ig-business-analytics.json"
-    OUT_FILE = data / "format-model-refit.json"
+def _under_repo_seed_data(path: Path) -> bool:
+    try:
+        resolved = path.resolve()
+        seed = DATA.resolve()
+        return resolved == seed or seed in resolved.parents
+    except OSError:
+        return False
 
 
 def _scratch_data_dir() -> Path | None:
     """Scratch DATA_DIR from ./check (not the bundled repo data/ tree)."""
+    check = os.environ.get("COS_CHECK_SCRATCH")
+    if check:
+        return Path(check)
     raw = os.environ.get("DATA_DIR")
     if not raw:
         return None
     resolved = Path(raw).resolve()
-    if resolved == SEED_DATA.resolve():
+    if _under_repo_seed_data(resolved):
         return None
     return resolved
 
@@ -96,18 +79,13 @@ def _write_outputs(output: dict) -> Path:
     """Persist refit output; skip bundled data/ when ./check uses a scratch DATA_DIR."""
     scratch = _scratch_data_dir()
     bundled = OUT_FILE
-    seed_out = SEED_DATA / "format-model-refit.json"
-    targets: list[Path] = []
-    if scratch is not None:
-        scratch.mkdir(parents=True, exist_ok=True)
-        targets.append(scratch / "format-model-refit.json")
-    if scratch is None or not bundled.is_file():
-        if bundled not in targets:
-            targets.append(bundled)
-    elif bundled.resolve() != seed_out.resolve():
-        if bundled not in targets:
-            targets.append(bundled)
-    primary = bundled if bundled in targets else targets[0]
+    under_check = bool(os.environ.get("COS_CHECK_SCRATCH"))
+    if under_check and scratch is not None:
+        primary = scratch / "format-model-refit.json"
+        targets = [primary]
+    else:
+        primary = bundled
+        targets = [bundled]
     serialized = json.dumps(output, indent=2)
     for path in targets:
         if path.is_file():
@@ -340,5 +318,4 @@ def main():
 
 
 if __name__ == "__main__":
-    _bind_data_paths()
     main()
