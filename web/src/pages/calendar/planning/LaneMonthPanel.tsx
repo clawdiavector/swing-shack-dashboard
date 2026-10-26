@@ -26,7 +26,8 @@ import {
 } from '../../../lib/calendarSuggestions'
 import { stepsByDay } from '../../../lib/planSteps'
 import { PlanStepChip, useMonthPlanSteps } from './PlanStepChips'
-import { GhostChip, SuggestionBar, useMonthSuggestions } from './MonthSuggestions'
+import { DayPostSuggestions } from './DayPostSuggestions'
+import { SuggestionBar, useMonthSuggestions } from './MonthSuggestions'
 
 const DOW = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
@@ -455,7 +456,8 @@ export function LaneMonthPanel({
         {cells.map((cell) => {
           const allItems = monthView.days?.[cell.iso] || []
           const items = filterMonthItemsByLane(allItems, laneFilter)
-          const ghosts = ghostsByDay[cell.iso] || []
+          const ghosts = showGhosts ? ghostsByDay[cell.iso] || [] : []
+          const dayPrimary = sug.postsByDay[cell.iso] || []
           const steps = planStepsByDay[cell.iso] || []
           const isFeatured = cell.iso === featuredDate
           return (
@@ -505,7 +507,11 @@ export function LaneMonthPanel({
                   ) : null}
                 </div>
               </div>
-              {items.length === 0 && ghosts.length === 0 && steps.length === 0 && cell.inMonth ? (
+              {items.length === 0 &&
+              ghosts.length === 0 &&
+              dayPrimary.length === 0 &&
+              steps.length === 0 &&
+              cell.inMonth ? (
                 <span className="text-[9px] text-tx3 italic">no content</span>
               ) : (
                 <div className="flex flex-col gap-0.5">
@@ -519,17 +525,18 @@ export function LaneMonthPanel({
                   {steps.map((st) => (
                     <PlanStepChip key={st.key} s={st} brandId={brandId} />
                   ))}
-                  {ghosts.map((g) => (
-                    <GhostChip
-                      key={g.key}
-                      s={g}
-                      busy={sug.busyKey === g.key}
+                  {brandId ? (
+                    <DayPostSuggestions
+                      iso={cell.iso}
+                      postsByDay={sug.postsByDay}
+                      ghosts={ghosts}
+                      busyKey={sug.busyKey}
                       pillars={sug.pillars}
-                      onApprove={(pillar) => void sug.approve(g, pillar)}
-                      onReject={() => void sug.reject(g)}
-                      onSwap={g.source === 'stock' ? () => void sug.swap(g) : undefined}
+                      onApprove={(g, pillar) => void sug.approve(g, pillar)}
+                      onReject={(g) => void sug.reject(g)}
+                      onSwap={(g) => void sug.swap(g)}
                     />
-                  ))}
+                  ) : null}
                 </div>
               )}
             </button>
