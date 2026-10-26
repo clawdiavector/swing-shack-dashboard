@@ -157,3 +157,4 @@ campaign-os/tests/test_postiz_clear_guard_20261026.py
 campaign-os/tests/test_mail_intake.py
 campaign-os/tests/test_plan_idea_to_posts.py
 campaign-os/tests/test_mail_intake_routes.py
+campaign-os/tests/test_shadow_text_post_20261026.py
