@@ -17201,8 +17201,11 @@ def gmb_schedule_draft(draft_id):
             )
             if post_err:
                 err = f"create_post {post_err[0]}: {post_err[1]}"
-            elif result and result.get("id"):
-                postiz_id = result["id"]
+            else:
+                # Postiz answers with a list ([{"postId": ...}]) as often as a single object.
+                first = result[0] if isinstance(result, list) and result else result
+                if isinstance(first, dict):
+                    postiz_id = first.get("id") or first.get("postId")
         except Exception as exc:
             err = f"create_post exception: {exc}"
     if not postiz_id:
