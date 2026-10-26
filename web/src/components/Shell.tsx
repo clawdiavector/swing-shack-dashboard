@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { BrandProvider, BrandSwitch } from './BrandSwitch'
+import { BrandProvider, BrandRefresh, BrandSwitch, useBrand } from './BrandSwitch'
 import { PlanAlertDot } from './PlanAlertDot'
 import { BackButton, PressIcon, Tip } from './ui'
 import { formatStamp } from '../lib/stamp'
@@ -14,6 +14,15 @@ const PLAN_PATH = '/calendar/lanes'
 
 const RAIL_ON =
   'bg-yel/12 text-yel shadow-[inset_0_0_0_1.5px_rgba(251,191,36,.85)]'
+
+function RoutedPage() {
+  const { brandVersion } = useBrand()
+  return (
+    <BrandRefresh>
+      <Outlet key={brandVersion} />
+    </BrandRefresh>
+  )
+}
 
 function RailLink({ item, on }: { item: RailItem; on: boolean }) {
   const loc = useLocation()
@@ -153,7 +162,7 @@ export function Shell() {
               : 'mx-auto w-full max-w-[1680px] min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-5 md:px-8 md:py-8'
           }
         >
-          <Outlet />
+          <RoutedPage />
         </main>
       </div>
 

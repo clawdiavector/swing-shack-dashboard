@@ -9,6 +9,10 @@ import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { PageIntro } from '../components/chrome'
 import { PostCard } from '../components/posting/PostCard'
+import { DayPostSuggestions } from './calendar/planning/DayPostSuggestions'
+import { useMonthSuggestions } from './calendar/planning/MonthSuggestions'
+import type { DayPrimaryPost, Suggestion } from '../lib/calendarSuggestions'
+import { postsByDayForSuggestions } from '../lib/weekBoardDaySuggestions'
 import { Badge } from '../components/ui'
 import {
   enqueueOneshotDay,
@@ -69,6 +73,7 @@ function DaySection({
   onSchedule,
   scheduling,
   scheduleMessage,
+  daySuggestions,
 }: {
   day: PostingWeekDay
   waitForReads?: () => Promise<void>
@@ -79,6 +84,15 @@ function DaySection({
   onSchedule?: (dateIso: string) => void
   scheduling?: boolean
   scheduleMessage?: string
+  daySuggestions?: {
+    postsByDay: Record<string, DayPrimaryPost[]>
+    ghosts: Suggestion[]
+    busyKey: string | null
+    pillars: import('../lib/calendarSuggestions').PillarOption[]
+    onApprove: (s: Suggestion, pillar: string) => void
+    onReject: (s: Suggestion) => void
+    onSwap: (s: Suggestion) => void
+  }
 }) {
   return (
     <section key={day.date}>
@@ -127,6 +141,21 @@ function DaySection({
           ))}
         </ul>
       )}
+      {daySuggestions ? (
+        <div className="mt-3">
+          <DayPostSuggestions
+            iso={day.date}
+            postsByDay={postsByDayForSuggestions(day.date, day.posts, daySuggestions.postsByDay)}
+            ghosts={daySuggestions.ghosts}
+            busyKey={daySuggestions.busyKey}
+            pillars={daySuggestions.pillars}
+            onApprove={daySuggestions.onApprove}
+            onReject={daySuggestions.onReject}
+            onSwap={daySuggestions.onSwap}
+            hidePrimaryChips={day.posts.length > 0}
+          />
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -217,6 +246,30 @@ export function WeekBoard() {
   useEffect(() => {
     load()
   }, [load])
+
+  const dayMonth = dateIso.slice(0, 7)
+  const monthSug = useMonthSuggestions(
+    singleBrandId,
+    dayMonth,
+    isDayMode && !isAll && Boolean(singleBrandId),
+    load,
+  )
+  const dayGhosts = useMemo(
+    () => monthSug.items.filter((s) => s.date === dateIso),
+    [monthSug.items, dateIso],
+  )
+  const daySuggestionProps =
+    isDayMode && !isAll
+      ? {
+          postsByDay: monthSug.postsByDay,
+          ghosts: dayGhosts,
+          busyKey: monthSug.busyKey,
+          pillars: monthSug.pillars,
+          onApprove: (s: Suggestion, pillar: string) => void monthSug.approve(s, pillar),
+          onReject: (s: Suggestion) => void monthSug.reject(s),
+          onSwap: (s: Suggestion) => void monthSug.swap(s),
+        }
+      : undefined
 
   useEffect(() => {
     if (!isDayMode) {
@@ -508,6 +561,7 @@ export function WeekBoard() {
             onSchedule={isDayMode ? handleScheduleDay : undefined}
             scheduling={scheduling}
             scheduleMessage={scheduleMessage}
+            daySuggestions={daySuggestionProps}
           />
         ))}
       </div>
