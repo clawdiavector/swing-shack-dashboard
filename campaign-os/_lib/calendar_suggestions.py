@@ -182,7 +182,7 @@ def stock_items(
     for d, (key, c) in zip(days, open_lines):
         reason, idea = (c.get("reason") or "").strip(), (c.get("idea") or "").strip()
         why = f"{reason.rstrip('.')}. {idea}" if reason and idea else (reason or idea)
-        out.append({
+        item = {
             "key": key,
             "source": "stock",
             "title": c["name"],
@@ -194,7 +194,15 @@ def stock_items(
             "calendar_id": None,
             "pillars": [],
             "kind": "stock",
-        })
+        }
+        if brand_id == "swing-shack":
+            from _lib import retail_campaign as rc  # noqa: PLC0415
+
+            hist = rc.product_layout_history(brand_id)
+            layout = rc.suggest_product_layout(1, hist)
+            item["product_layout"] = layout
+            item["archetype_id"] = rc.archetype_for_layout(layout)
+        out.append(item)
     return out
 
 
