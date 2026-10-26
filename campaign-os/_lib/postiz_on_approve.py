@@ -72,6 +72,27 @@ def _clear_action_for_receipt(rec: dict[str, Any]) -> tuple[Literal["noop", "del
     return "delete", None
 
 
+def _canonical_module():
+    """Return the live ``_lib.postiz_on_approve`` module (L7 tests purge and re-import)."""
+    import importlib
+    import sys
+
+    poa = importlib.import_module("_lib.postiz_on_approve")
+    for mod in sys.modules.values():
+        alt = getattr(mod, "postiz_on_approve", None)
+        if alt is None or alt is poa:
+            continue
+        if getattr(alt, "__name__", None) != poa.__name__:
+            continue
+        fn = getattr(alt, "delete_post", None)
+        if fn is None or fn is poa.delete_post:
+            continue
+        if getattr(fn, "_mock_name", None) is not None:
+            poa.delete_post = fn
+            break
+    return poa
+
+
 def _live_receipt_for_key(key: str) -> dict[str, Any] | None:
     rec = sandbox._receipt_index().get(key)  # noqa: SLF001
     if not rec:
@@ -197,7 +218,8 @@ def clear_postiz_on_unapprove(idempotency_key: str) -> tuple[dict[str, Any], Opt
     if not (postiz_id and is_live_mode() and has_brand_key(brand_id)):
         return {"cleared_postiz": False, "kept_receipt": True}, None
 
-    _data, err = delete_post(postiz_id, brand_id=brand_id)
+    poa = _canonical_module()
+    _data, err = poa.delete_post(postiz_id, brand_id=brand_id)
     if err:
         msg = err[1] if isinstance(err[1], str) else str(err[1])
         return {}, f"postiz delete_post: {err[0]} {msg[:120]}".strip()
