@@ -33,7 +33,7 @@ export type Undo = {
   plan_id?: string
 }
 
-type Result = { ok: boolean; error?: string; items?: Suggestion[]; undo?: Undo }
+type Result = { ok: boolean; error?: string; warning?: string; items?: Suggestion[]; undo?: Undo }
 
 export const SOURCE_LABEL: Record<SuggestionSource, string> = {
   yours: 'Your suggestion',

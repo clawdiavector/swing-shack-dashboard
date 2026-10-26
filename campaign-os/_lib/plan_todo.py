@@ -73,6 +73,8 @@ def todo_steps(brand_id: str, plans: Iterable[Dict[str, Any]], today: _dt.date) 
             needs: List[str] = []
             if kind == "shoot" and not i.get("shots"):
                 needs.append("no shot list yet")
+            if kind == "shoot" and i.get("shots") and i.get("shots_suggested"):
+                needs.append("suggested shots: check them")
             if kind == "shoot" and not i.get("asked"):
                 needs.append("nobody asked yet")
             if kind == "boost" and not i.get("budget"):
