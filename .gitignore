@@ -85,3 +85,6 @@ data/paid-media-v24/
 data/analytics/ga4-sessions.json
 data/analytics/ga4-pages.json
 
+
+.agent-job.json
+.agent-job/
