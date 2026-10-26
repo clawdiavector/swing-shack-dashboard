@@ -126,8 +126,12 @@ def test_ss_is_swing_shack():
 
 # ── a proposed plan from an idea ──────────────────────────────────────
 
+_N = [0]
+
+
 def _idea(brand=None, day=None):
-    it = mi.file_message(mail("What if we ran a ladies day at the shop?", mid="p1"), TODAY)
+    _N[0] += 1
+    it = mi.file_message(mail("What if we ran a ladies day at the shop?", mid=f"p{_N[0]}"), TODAY)
     if brand or day:
         it = mi.set_brand_date(it["id"], brand, day)
     return it

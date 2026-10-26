@@ -159,3 +159,4 @@ campaign-os/tests/test_plan_idea_to_posts.py
 campaign-os/tests/test_mail_intake_routes.py
 campaign-os/tests/test_mail_idea_cards.py
 campaign-os/tests/test_mail_intake_sender_name.py
+campaign-os/tests/test_mail_idea_routes.py

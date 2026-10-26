@@ -47353,6 +47353,10 @@ def mail_intake_list():
     brand = (request.args.get("brand") or "all").strip()
     if brand != "all" and brand not in mi.BRANDS:
         return jsonify({"ok": False, "error": f"brand '{brand}' invalid"}), 400
+    try:
+        mi.resplit_existing(_jhb_today())
+    except Exception:
+        _app_log.exception("mail intake resplit failed")
     items = mi.list_items(None if brand == "all" else brand)
     return jsonify({"ok": True, "watching": mi.configured(), "count": len(items),
                     "do_now": [i for i in items if i["kind"] == "do_now"],
@@ -47361,8 +47365,9 @@ def mail_intake_list():
 
 @app.route("/api/mail-intake/<item_id>/<action>", methods=["POST"])
 def mail_intake_act(item_id, action):
-    """POST status {status} | kind {kind} | to-calendar {brand, date}. to-calendar puts an idea
-    on the calendar as a faded suggestion; approving it is still a person's call."""
+    """POST status {status} | kind {kind} | plan {brand?, date?, force?} | to-calendar {brand, date}.
+    plan makes the idea's proposed plan (a draft; nothing goes on the calendar). to-calendar puts
+    an idea on the calendar as a faded suggestion; approving it is still a person's call."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     from _lib import calendar_suggestions as cs
@@ -47373,6 +47378,11 @@ def mail_intake_act(item_id, action):
             item = mi.set_status(item_id, str(body.get("status") or ""))
         elif action == "kind":
             item = mi.set_kind(item_id, str(body.get("kind") or ""))
+        elif action == "plan":
+            if body.get("brand") is not None or body.get("date") is not None:
+                mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
+            r = mi.idea_plan(item_id, _jhb_today(), force=bool(body.get("force")))
+            return jsonify(r), (200 if r.get("ok") else 400)
         elif action == "to-calendar":
             cur = mi.get_item(item_id)
             if not cur:
