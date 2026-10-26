@@ -64,7 +64,7 @@ def read() -> dict[str, str]:
     return {k: v["state"] for k, v in _load().items() if isinstance(v, dict) and v.get("state") in STATES}
 
 
-def set_mark(key: str, state: str) -> None:
+def set_mark(key: str, state: str, brand: str = "") -> None:
     """state is shared, skipped, or clear (removes the mark, for Undo)."""
     if not key or not key.startswith(("idea|", "post|")):
         raise MarkError("key must start with idea| or post|")
@@ -77,5 +77,5 @@ def set_mark(key: str, state: str) -> None:
         if state == "clear":
             data.pop(key, None)
         else:
-            data[key] = {"state": state, "at": datetime.now(_TZ).isoformat(timespec="seconds")}
+            data[key] = {"state": state, "at": datetime.now(_TZ).isoformat(timespec="seconds"), "brand": brand[:40]}
         _save(data)

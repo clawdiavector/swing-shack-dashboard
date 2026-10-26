@@ -15300,10 +15300,19 @@ def stories_marks_route():
         return jsonify({"ok": True, "marks": story_marks.read()})
     body = request.get_json(silent=True) or {}
     try:
-        story_marks.set_mark(str(body.get('key') or ''), str(body.get('state') or ''))
+        story_marks.set_mark(str(body.get('key') or ''), str(body.get('state') or ''), str(body.get('brand') or ''))
     except story_marks.MarkError as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
     return jsonify({"ok": True, "marks": story_marks.read()})
+
+
+@app.route('/api/stories/week', methods=['GET'])
+def stories_week_route():
+    """GET /api/stories/week[?brands=a,b] — Stories shared since Monday (Johannesburg)."""
+    from _lib import story_week
+
+    brands = [b for b in (request.args.get('brands') or '').split(',') if b]
+    return jsonify({"ok": True, "shared_this_week": story_week.shared_this_week(brands or None)})
 
 
 @app.route('/api/stories/<item_id>/<status>', methods=['POST'])
@@ -15555,7 +15564,19 @@ def publish_dispatch_now_route():
     if not keys:
         return jsonify({"ok": False, "error": "idempotency_key required"}), 400
     try:
+        from _lib.postiz_client import scheduled_at_least
         from _lib.publish_mode import is_sandbox_mode
+
+        def _with_send_time(payload: dict) -> dict:
+            """Effective ISO from scheduled_at_least — the date create_post sends — and whether it moved."""
+            publish_at = payload.get("publish_at")
+            moved = payload.get("moved")
+            if not isinstance(publish_at, str) or not publish_at:
+                publish_at, moved = scheduled_at_least(None)
+            payload["publish_at"] = publish_at
+            payload["moved"] = bool(moved)
+            return payload
+
         if is_sandbox_mode():
             from _lib.publish_sandbox import approve_item, dispatch_one
             dispatched = []
@@ -15570,9 +15591,14 @@ def publish_dispatch_now_route():
                     errors.append(f"{key}: {err}")
                 else:
                     dispatched.append(key)
-            return jsonify({"ok": not errors, "mode": "sandbox", "dispatched": len(dispatched), "errors": errors}), 200
+            payload = {"ok": not errors, "mode": "sandbox", "dispatched": len(dispatched), "errors": errors}
+            if payload["dispatched"]:
+                _with_send_time(payload)
+            return jsonify(payload), 200
         from _lib.publish_live import dispatch_now
         result = dispatch_now(keys)
+        if result.get("dispatched"):
+            _with_send_time(result)
         status = 200 if result.get("ok", True) else 400
         return jsonify(result), status
     except Exception as exc:
