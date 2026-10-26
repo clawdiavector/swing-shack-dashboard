@@ -44,6 +44,48 @@ IG_FILE = DATA / "ig-business-analytics.json"
 OUT_FILE = DATA / "format-model-refit.json"
 
 
+def _seed_data_dir() -> Path:
+    bundled = (os.environ.get("BUNDLED_DATA_DIR") or "").strip()
+    if bundled:
+        return Path(bundled)
+    return DATA
+
+
+def resolve_paths() -> tuple[Path, Path, Path]:
+    """Inputs prefer runtime DATA_DIR, then seed; output always under runtime or seed."""
+    seed = _seed_data_dir()
+    runtime_raw = (os.environ.get("DATA_DIR") or "").strip()
+    runtime = Path(runtime_raw) if runtime_raw else seed
+
+    def _input(name: str) -> Path:
+        for base in (runtime, seed):
+            candidate = base / name
+            if candidate.is_file():
+                return candidate
+        return seed / name
+
+    pcs = _input("post-conversion-score.json")
+    ig = _input("ig-business-analytics.json")
+    out_base = runtime if runtime_raw else seed
+    out_base.mkdir(parents=True, exist_ok=True)
+    out = out_base / "format-model-refit.json"
+    return pcs, ig, out
+
+
+def _source_data_refs(pcs: Path, ig: Path) -> dict[str, str]:
+    """Stable relative paths for JSON output (no machine-specific absolutes)."""
+    refs: dict[str, str] = {}
+    for key, path in (
+        ("post_conversion_score", pcs),
+        ("ig_business_analytics", ig),
+    ):
+        try:
+            refs[key] = path.relative_to(ROOT).as_posix()
+        except ValueError:
+            refs[key] = path.name
+    return refs
+
+
 def load_json(p):
     if not p.exists():
         sys.exit(f"FATAL: {p} missing")
@@ -62,6 +104,9 @@ def classify_format(media_type, metrics=None):
 
 
 def main():
+    global PCS_FILE, IG_FILE, OUT_FILE
+    if __name__ == "__main__":
+        PCS_FILE, IG_FILE, OUT_FILE = resolve_paths()
     pcs = load_json(PCS_FILE)
     ig = load_json(IG_FILE)
     posts = pcs.get("posts_ranked", [])
@@ -215,10 +260,7 @@ def main():
     output = {
         "schema": "https://clawdia.io/scripts/format-model-refit/v1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "source_data": {
-            "post_conversion_score": str(PCS_FILE),
-            "ig_business_analytics": str(IG_FILE),
-        },
+        "source_data": _source_data_refs(PCS_FILE, IG_FILE),
         "scoring": {
             "old_formula": pcs.get("scoring_formula", ""),
             "new_formula": "(direct*10 + (sessions/3)*3 + reach*0.001 + efficiency*50) * theme_mult * format_mult",
