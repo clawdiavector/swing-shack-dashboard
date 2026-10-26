@@ -49,9 +49,8 @@ def _runtime_data_dir() -> Path:
     """Where PCS/IG/refit output live for this run.
 
     ./check gives pytest a scratch DATA_DIR; this CLI still reads committed seed
-    inputs and (when run under pytest) must not write refit output into that scratch
-    tree or leave tracked data/ dirty. Production runs with DATA_DIR=/data/campaign-os
-    should read and write under that runtime dir.
+    inputs and must not write refit output into tracked data/ when scratch is set.
+    Production runs with DATA_DIR=/data/campaign-os read and write under that dir.
     """
     scratch = os.environ.get("DATA_DIR")
     if not scratch:
@@ -74,6 +73,54 @@ def _bind_data_paths() -> None:
     OUT_FILE = data / "format-model-refit.json"
 
 
+def _scratch_data_dir() -> Path | None:
+    """Scratch DATA_DIR from ./check (not the bundled repo data/ tree)."""
+    raw = os.environ.get("DATA_DIR")
+    if not raw:
+        return None
+    resolved = Path(raw).resolve()
+    if resolved == SEED_DATA.resolve():
+        return None
+    return resolved
+
+
+def _payload_stable(previous: dict, new: dict) -> bool:
+    a = dict(new)
+    b = dict(previous)
+    a.pop("generated_at", None)
+    b.pop("generated_at", None)
+    return a == b
+
+
+def _write_outputs(output: dict) -> Path:
+    """Persist refit output; skip bundled data/ when ./check uses a scratch DATA_DIR."""
+    scratch = _scratch_data_dir()
+    bundled = SEED_DATA / "format-model-refit.json"
+    targets: list[Path] = []
+    if scratch is not None:
+        scratch.mkdir(parents=True, exist_ok=True)
+        targets.append(scratch / "format-model-refit.json")
+    if scratch is None or not bundled.is_file():
+        runtime_out = OUT_FILE.resolve()
+        if runtime_out != bundled.resolve() and runtime_out not in targets:
+            targets.append(OUT_FILE)
+        if bundled not in targets:
+            targets.append(bundled)
+    primary = OUT_FILE if OUT_FILE in targets else (bundled if bundled in targets else targets[0])
+    serialized = json.dumps(output, indent=2)
+    for path in targets:
+        if path.is_file():
+            try:
+                previous = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                previous = None
+            if previous is not None and _payload_stable(previous, output):
+                continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(serialized, encoding="utf-8")
+    return primary
+
+
 def load_json(p):
     if not p.exists():
         sys.exit(f"FATAL: {p} missing")
@@ -92,11 +139,6 @@ def classify_format(media_type, metrics=None):
 
 
 def main():
-    seed_out_snapshot: bytes | None = None
-    if os.environ.get("PYTEST_CURRENT_TEST") and _runtime_data_dir().resolve() == SEED_DATA.resolve():
-        if OUT_FILE.is_file():
-            seed_out_snapshot = OUT_FILE.read_bytes()
-
     pcs = load_json(PCS_FILE)
     ig = load_json(IG_FILE)
     posts = pcs.get("posts_ranked", [])
@@ -271,36 +313,29 @@ def main():
         "posts": post_output,
     }
 
-    try:
-        with open(OUT_FILE, "w") as f:
-            json.dump(output, f, indent=2)
+    written_to = _write_outputs(output)
 
-        print("=" * 70)
-        print(f"FORMAT MODEL REFIT - {output['generated_at']}")
-        print("=" * 70)
-        print(f"\nMedian conversion efficiency: {median_eff:.4f} (sessions per reach unit)")
-        print(f"\nFormat multipliers:")
-        for fmt, m in format_mult.items():
-            print(f"  {fmt}: {m:.3f}")
-        print(f"\nOld winning format: {old_winning_format} (avg score {old_format_summary.get(old_winning_format, 0):.1f})")
-        print(f"New winning format: {new_winning_format} (avg score {new_format_summary.get(new_winning_format, 0):.1f})")
-        if format_flip:
-            print(f"\n*** FORMAT FLIP DETECTED ***")
-        print(f"\nTop 5 posts (new ranking):")
-        for p in post_output[:5]:
-            delta = p["delta_normalized"]
-            delta_str = f"+{delta:.1f}" if delta >= 0 else f"{delta:.1f}"
-            print(
-                f"  #{p['new_rank']} (was #{p['old_rank']}): {p['format']:6} score {p['new_normalized']:.1f} (delta {delta_str}) "
-                f"reach {p['reach']} sessions {p['sessions']} eff {p['conversion_efficiency']:.3f}"
-            )
-        print(f"\nVerdict:")
-        for line in verdict_lines:
-            print(f"  {line}")
-        print(f"\nWritten to {OUT_FILE}")
-    finally:
-        if seed_out_snapshot is not None:
-            OUT_FILE.write_bytes(seed_out_snapshot)
+    print("=" * 70)
+    print(f"FORMAT MODEL REFIT - {output['generated_at']}")
+    print("=" * 70)
+    print(f"\nMedian conversion efficiency: {median_eff:.4f} (sessions per reach unit)")
+    print(f"\nFormat multipliers:")
+    for fmt, m in format_mult.items():
+        print(f"  {fmt}: {m:.3f}")
+    print(f"\nOld winning format: {old_winning_format} (avg score {old_format_summary.get(old_winning_format, 0):.1f})")
+    print(f"New winning format: {new_winning_format} (avg score {new_format_summary.get(new_winning_format, 0):.1f})")
+    if format_flip:
+        print(f"\n*** FORMAT FLIP DETECTED ***")
+    print(f"\nTop 5 posts (new ranking):")
+    for p in post_output[:5]:
+        delta = p["delta_normalized"]
+        delta_str = f"+{delta:.1f}" if delta >= 0 else f"{delta:.1f}"
+        print(f"  #{p['new_rank']} (was #{p['old_rank']}): {p['format']:6} score {p['new_normalized']:.1f} (delta {delta_str}) "
+              f"reach {p['reach']} sessions {p['sessions']} eff {p['conversion_efficiency']:.3f}")
+    print(f"\nVerdict:")
+    for line in verdict_lines:
+        print(f"  {line}")
+    print(f"\nWritten to {written_to}")
 
 
 if __name__ == "__main__":
