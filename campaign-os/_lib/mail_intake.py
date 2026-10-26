@@ -131,6 +131,14 @@ def sender_address(from_field: Any) -> str:
     return (m.group(1) if m else s).strip().lower()
 
 
+def sender_name(from_field: Any) -> str:
+    """A first name for the page: the display name's first word, else the start of the address."""
+    s = str(from_field or "")
+    shown = s.split("<")[0].strip().strip('"').strip() if "<" in s else ""
+    word = shown.split()[0] if shown else re.split(r"[._\-+]", sender_address(s).split("@")[0])[0]
+    return word.capitalize()[:40]
+
+
 def _contacts_path() -> str:
     here = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(here, "..", "..", "plugins", "campaign-os", "skills",
@@ -275,6 +283,7 @@ def file_message(m: Dict[str, Any], today: date) -> Optional[Dict[str, Any]]:
         "id": "mi-" + hashlib.sha1(mid.encode()).hexdigest()[:10],
         "message_id": mid,
         "from": sender_address(m.get("from")),
+        "from_name": sender_name(m.get("from")),
         "subject": subject[:200],
         "summary": body[:SUMMARY_MAX],
         "kind": kind,

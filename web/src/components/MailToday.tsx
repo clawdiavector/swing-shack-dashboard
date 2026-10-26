@@ -4,7 +4,7 @@ import { fetchMailIntake, mailToCalendar, markMail, moveMail, type MailIntake, t
 import { brandLabel } from '../lib/planMessages'
 import { Badge } from './ui'
 
-// Herman's mail to the agent inbox, sorted for you. Do now: something to act on. Idea: goes on the
+// Mail to the agent inbox from the CEO, sorted for you. Do now: something to act on. Idea: goes on the
 // calendar as a faded suggestion, where Approve and Make a plan already work. Shows nothing when
 // the inbox is quiet. Nothing is posted from here.
 
@@ -45,19 +45,10 @@ export function MailToday({ brandId }: { brandId?: string }) {
 
   return (
     <section
-      aria-label="Mail from Herman"
+      aria-label="Do now and ideas from the agent inbox"
       className="glass rounded-2xl border-[1.5px] border-red/40 p-4 backdrop-blur-xl"
       data-testid="mail-today"
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="font-display text-lg font-semibold">From Herman</h2>
-        {data.do_now.length ? <Badge tone="red">{data.do_now.length} to do now</Badge> : null}
-        {data.ideas.length ? (
-          <Badge tone="gold">
-            {data.ideas.length} idea{data.ideas.length === 1 ? '' : 's'}
-          </Badge>
-        ) : null}
-      </div>
       {!data.watching.inbox ? (
         <p className="mt-2 text-xs text-yel" data-testid="mail-not-watching">
           Nobody is watching the agent inbox from this server yet, so new mail will not show up here.
@@ -66,8 +57,11 @@ export function MailToday({ brandId }: { brandId?: string }) {
       {error ? <p className="mt-2 text-xs text-red">{error}</p> : null}
 
       {data.do_now.length ? (
-        <div className="mt-3">
-          <p className="text-[11px] font-bold tracking-widest text-tx3 uppercase">Do now</p>
+        <div className="mt-3 first:mt-0">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-lg font-semibold">Do now</h2>
+            <Badge tone="red">{data.do_now.length}</Badge>
+          </div>
           <ul className="mt-1 space-y-3 text-sm">
             {data.do_now.map((m) => (
               <li key={m.id} data-testid="mail-do-now">
@@ -90,8 +84,11 @@ export function MailToday({ brandId }: { brandId?: string }) {
       ) : null}
 
       {data.ideas.length ? (
-        <div className="mt-3">
-          <p className="text-[11px] font-bold tracking-widest text-tx3 uppercase">Ideas</p>
+        <div className="mt-3 first:mt-0">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-lg font-semibold">Ideas</h2>
+            <Badge tone="gold">{data.ideas.length}</Badge>
+          </div>
           <ul className="mt-1 space-y-3 text-sm">
             {data.ideas.map((m) => (
               <li key={m.id} data-testid="mail-idea">
@@ -113,6 +110,9 @@ function MailHead({ m }: { m: MailItem }) {
         <span className="font-semibold text-tx">{m.subject || '(no subject)'}</span>
         {m.brand ? <Badge tone="blue">{brandLabel(m.brand)}</Badge> : null}
         {m.date ? <span className="text-xs text-tx3">{m.date}</span> : null}
+        <span className="text-[11px] text-tx3" data-testid="mail-from">
+          from {m.from_name || 'Herman'}
+        </span>
       </div>
       {m.summary ? <p className="mt-0.5 line-clamp-3 text-xs whitespace-pre-line text-tx2">{m.summary}</p> : null}
     </>

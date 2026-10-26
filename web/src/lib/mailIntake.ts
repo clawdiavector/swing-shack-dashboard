@@ -9,6 +9,8 @@ export type MailItem = {
   id: string
   kind: MailKind
   subject: string
+  /** First name of who sent it. Older items have none; only Herman's mail is filed. */
+  from_name?: string
   summary: string
   reason: string
   brand: string | null
