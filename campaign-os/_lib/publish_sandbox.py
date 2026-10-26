@@ -806,6 +806,43 @@ def approve_item(idempotency_key: str) -> tuple[Optional[dict[str, Any]], Option
     if not found:
         return None, "queue item not found or not pending"
     _rewrite_jsonl(_queue_path(), rows)
+    from _lib.postiz_on_approve import schedule_row_on_approve  # noqa: PLC0415
+
+    _receipt, sched_err = schedule_row_on_approve(found)
+    if sched_err:
+        return None, sched_err
+    return found, None
+
+
+def unapprove_item(idempotency_key: str) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+    """Clear human approval; remove live Postiz schedule when on-approve is active."""
+    key = str(idempotency_key or "").strip()
+    if not key:
+        return None, "idempotency_key required"
+    from _lib.postiz_on_approve import clear_postiz_on_unapprove  # noqa: PLC0415
+
+    _, clear_err = clear_postiz_on_unapprove(key)
+    if clear_err:
+        return None, clear_err
+    rows = _read_jsonl(_queue_path())
+    found: Optional[dict[str, Any]] = None
+    for row in rows:
+        if row.get("idempotency_key") != key:
+            continue
+        if str(row.get("status") or "") in ("skipped", "failed", "rejected"):
+            return None, "queue item not approvable"
+        row["human_approved"] = False
+        row["human_approved_at"] = None
+        if str(row.get("status") or "") == "dispatched":
+            row["status"] = "pending"
+            row.pop("dispatched_at", None)
+            row.pop("sandbox_post_id", None)
+            row.pop("external_id", None)
+        found = row
+        break
+    if not found:
+        return None, "queue item not found"
+    _rewrite_jsonl(_queue_path(), rows)
     return found, None
 
 
@@ -1026,6 +1063,21 @@ def release_moment(
             _, err = dispatch_one(key)
             if not err:
                 dispatched.append(key)
+
+    from _lib.postiz_on_approve import schedule_row_on_approve  # noqa: PLC0415
+
+    queue_by_key = {str(r.get("idempotency_key") or ""): r for r in _read_jsonl(_queue_path())}
+    for key in released:
+        row = queue_by_key.get(key)
+        if row and row.get("human_approved"):
+            _receipt, sched_err = schedule_row_on_approve(row)
+            if sched_err:
+                return {
+                    "ok": False,
+                    "error": sched_err,
+                    "code": "postiz_schedule_failed",
+                    "state": state,
+                }
 
     after = post_state_for(brand_id, cal_id) or state_doc
     return {

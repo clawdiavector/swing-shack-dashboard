@@ -1045,7 +1045,7 @@ def _rollup_stages(
         "approved": False,
         "queued": bool(sandbox_rows),
         "released": any(bool(r.get("human_approved")) for r in sandbox_rows),
-        "posted": bool(receipts),
+        "posted": any(str(r.get("mode") or "") != "sandbox" for r in receipts),
     }
     if draft:
         if draft.get("caption", "").strip():
@@ -1411,6 +1411,9 @@ def post_state(
     out["channels_locked"] = onepost.channels_locked_for_state(state)
     out["deliveries"] = deliveries
     out["delivery_summary"] = delivery_summary
+    if any(str(d.get("status") or "") == "sandbox_only" for d in deliveries):
+        if not any(str(d.get("status") or "") == "posted" for d in deliveries):
+            out["next_action"] = "Sandbox only (not sent)"
     return out
 
 
