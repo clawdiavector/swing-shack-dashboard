@@ -199,6 +199,169 @@ def stock_items(
 
 
 LATER_DAYS = 14
+PRODUCT_NEARBY_DAYS = 7
+
+# Posting states that count as real work on a day (lodged, approved, scheduled, …).
+PRIMARY_POST_STATES = frozenset(
+    {"booked", "drafting", "needs_fix", "draft_ready", "scheduled", "released", "posted"}
+)
+
+
+def is_primary_post(state: str) -> bool:
+    return str(state or "") in PRIMARY_POST_STATES
+
+
+def _layout_slug_from_template(template_id: str) -> str:
+    tid = (template_id or "").lower()
+    for slug in ("one-hero", "type-hero", "pick-yours"):
+        if slug in tid:
+            return slug
+    return ""
+
+
+def posts_by_day_for_month(brand_id: str, month: str) -> Dict[str, List[Dict[str, Any]]]:
+    """Primary (non-candidate) posts keyed by go-live ISO date in `month`."""
+    from _lib.unified_inbox import week_board  # noqa: PLC0415
+
+    first, last = month_bounds(month)
+    span = (last - first).days + 1
+    try:
+        payload = week_board(
+            brand_id=brand_id,
+            start=first,
+            days=span,
+            past_days=0,
+            include_candidates=True,
+            include_undated=False,
+        )
+    except ValueError:
+        return {}
+    out: Dict[str, List[Dict[str, Any]]] = {}
+    for day in payload.get("days_list") or []:
+        iso = str(day.get("date") or "")
+        if not iso.startswith(month):
+            continue
+        primaries: List[Dict[str, Any]] = []
+        for post in day.get("posts") or []:
+            if not is_primary_post(str(post.get("state") or "")):
+                continue
+            row: Dict[str, Any] = {
+                "calendar_id": post.get("calendar_id"),
+                "title": str(post.get("title") or "").strip(),
+                "state": post.get("state"),
+            }
+            tid = str(post.get("template_id") or "")
+            if tid:
+                row["template_id"] = tid
+                layout = _layout_slug_from_template(tid)
+                if layout:
+                    row["layout"] = layout
+            primaries.append(row)
+        if primaries:
+            out[iso] = primaries
+    return out
+
+
+def _product_nearby(title: str, day: _dt.date, posts_by_day: Dict[str, List[Dict[str, Any]]], window: int) -> bool:
+    key = _key(title)
+    if not key:
+        return False
+    for offset in range(-window, window + 1):
+        if offset == 0:
+            continue
+        other = day + _dt.timedelta(days=offset)
+        for post in posts_by_day.get(other.isoformat()) or []:
+            if _key(str(post.get("title") or "")) == key:
+                return True
+    return False
+
+
+def _layout_on_previous_day(day: _dt.date, posts_by_day: Dict[str, List[Dict[str, Any]]]) -> str:
+    prev = (day - _dt.timedelta(days=1)).isoformat()
+    for post in posts_by_day.get(prev) or []:
+        layout = str(post.get("layout") or "")
+        if layout:
+            return layout
+    return ""
+
+
+def _annotate_stock_layouts(
+    items: List[Dict[str, Any]],
+    brand_id: str,
+    posts_by_day: Dict[str, List[Dict[str, Any]]],
+) -> List[Dict[str, Any]]:
+    if brand_id != "swing-shack":
+        return items
+    from _lib import product_post_templates as pt  # noqa: PLC0415
+
+    history: List[str] = []
+    for iso in sorted(posts_by_day):
+        for post in posts_by_day[iso]:
+            layout = str(post.get("layout") or "")
+            if layout:
+                history.append(layout)
+    out: List[Dict[str, Any]] = []
+    for it in sorted(items, key=lambda i: (i.get("date") or "", i.get("title") or "")):
+        if it.get("source") != "stock":
+            out.append(it)
+            continue
+        layout = pt.layout_for(1, history)
+        out.append({**it, "_layout": layout})
+        history.append(layout)
+    return out
+
+
+def filter_suggestions_nearby_scheduled(
+    items: List[Dict[str, Any]],
+    posts_by_day: Dict[str, List[Dict[str, Any]]],
+    brand_id: str,
+    *,
+    product_window: int = PRODUCT_NEARBY_DAYS,
+) -> List[Dict[str, Any]]:
+    """Drop stock lines that repeat a nearby product or the same layout twice in a row."""
+    annotated = _annotate_stock_layouts(items, brand_id, posts_by_day)
+    kept: List[Dict[str, Any]] = []
+    for it in annotated:
+        if it.get("source") != "stock":
+            kept.append({k: v for k, v in it.items() if k != "_layout"})
+            continue
+        day = _parse(str(it.get("date") or ""))
+        if not day:
+            continue
+        if _product_nearby(str(it.get("title") or ""), day, posts_by_day, product_window):
+            continue
+        if brand_id == "swing-shack":
+            prev_layout = _layout_on_previous_day(day, posts_by_day)
+            if prev_layout and str(it.get("_layout") or "") == prev_layout:
+                continue
+        kept.append({k: v for k, v in it.items() if k != "_layout"})
+    return kept
+
+
+def month_suggestions_bundle(
+    brand_id: str,
+    month: str,
+    today: _dt.date,
+    pending_rows: Iterable[Dict[str, Any]],
+    typed_by_operator,
+    note_rows: Iterable[Dict[str, Any]],
+    decisions: Dict[str, Any],
+    approved_names: Iterable[str],
+    stock_candidates: Iterable[Dict[str, Any]],
+    stock_every: int,
+) -> Dict[str, Any]:
+    """Faded suggestions plus primary posts per day for the month grid and Today."""
+    items = month_items(
+        brand_id, month, pending_rows, typed_by_operator, note_rows, decisions, approved_names, today
+    )
+    taken = [i["date"] for i in items]
+    items += stock_items(
+        brand_id, month, stock_candidates, decisions, approved_names, taken, today, stock_every
+    )
+    posts_by_day = posts_by_day_for_month(brand_id, month)
+    items = filter_suggestions_nearby_scheduled(items, posts_by_day, brand_id)
+    items.sort(key=lambda i: (i["date"], i["title"]))
+    return {"items": items, "posts_by_day": posts_by_day}
 
 
 def triage_items(
