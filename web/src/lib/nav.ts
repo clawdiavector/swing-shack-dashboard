@@ -66,7 +66,10 @@ export const RAIL: RailItem[] = [
     hint: 'Posts, captions, images',
     icon: Sparkles,
     match: ['/create'],
-    pages: [{ to: '/create', label: 'Create' }],
+    pages: [
+      { to: '/create', label: 'Create' },
+      { to: '/create/post-studio', label: 'Post studio' },
+    ],
   },
   {
     to: '/publish',
