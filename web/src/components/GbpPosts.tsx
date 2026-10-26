@@ -30,10 +30,42 @@ export function problemWords(codes: string[]): string[] {
   return codes.map((c) => PROBLEM_WORDS[c] ?? (c.startsWith('stick_location') || c.startsWith('ss_location') ? 'names a place this brand is not in' : c.replace(/_/g, ' ')))
 }
 
+const SAST_MS = 2 * 3600 * 1000
+const QUEUE_HOUR = 9
+
+function sastDay(t: Date): string {
+  return new Date(t.getTime() + SAST_MS).toISOString().slice(0, 10)
+}
+
+/** The day each approved post goes out: one a day per brand, earliest approval first, about 09:00 SAST. */
+export function queueDates(drafts: GmbDraft[], now: Date = new Date()): Record<string, string> {
+  const out: Record<string, string> = {}
+  const brands = [...new Set(drafts.map((d) => d.brand ?? ''))]
+  const sastNow = new Date(now.getTime() + SAST_MS)
+  for (const brand of brands) {
+    const mine = drafts.filter((d) => (d.brand ?? '') === brand)
+    const sentToday = mine.some((d) => postStage(d) === 'sent' && d.updatedAt && sastDay(new Date(d.updatedAt)) === sastDay(now))
+    const start = sentToday || sastNow.getUTCHours() >= QUEUE_HOUR ? 1 : 0
+    const ready = mine
+      .filter((d) => postStage(d) === 'ready' && d.id)
+      .sort((a, b) => String(a.approvedAt || '').localeCompare(String(b.approvedAt || '')))
+    const base = Date.UTC(sastNow.getUTCFullYear(), sastNow.getUTCMonth(), sastNow.getUTCDate())
+    ready.forEach((d, i) => {
+      out[d.id as string] = new Date(base + (start + i) * 86400000).toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      })
+    })
+  }
+  return out
+}
+
 /** What the person should do next, in one plain sentence. */
-export function nextStep(counts: Record<GbpStage, number>): string {
+export function nextStep(counts: Record<GbpStage, number>, firstGoesOut?: string): string {
   if (counts.ready > 0)
-    return `${counts.ready} post${counts.ready === 1 ? ' is' : 's are'} approved and waiting. Open “Ready to send” and press Publish when you want one to go out.`
+    return `${counts.ready} post${counts.ready === 1 ? ' is' : 's are'} approved and waiting. One goes out each day at about 09:00${firstGoesOut ? `, starting ${firstGoesOut}` : ''}. Open “Ready to send” to see the order, or press Publish on a post to send it sooner.`
   if (counts.check > 0)
     return `${counts.check} post${counts.check === 1 ? ' needs' : 's need'} your check. Open “To check”, look at the photo, tick the box and press Approve.`
   if (counts.sent > 0) return 'Everything has been sent. Press “New post” to write another one.'
@@ -147,6 +179,7 @@ export function PostCard({
   handlers,
   brandName,
   suggestedWhy,
+  goesOut,
 }: {
   d: GmbDraft
   busy: boolean
@@ -154,6 +187,7 @@ export function PostCard({
   handlers: PostHandlers
   brandName?: string
   suggestedWhy?: string
+  goesOut?: string
 }) {
   const stage = postStage(d)
   const id = d.id ?? ''
@@ -251,7 +285,9 @@ export function PostCard({
                   Move back to “To check”
                 </button>
               </div>
-              <p className="text-xs text-tx3">Publish sends it to the Google listing. You will be asked to confirm first.</p>
+              <p className="text-xs text-tx3">
+                {goesOut ? `Goes out on its own on ${goesOut} at about 09:00. ` : ''}Publish to Google sends it now instead. You will be asked to confirm first.
+              </p>
             </div>
           ) : null}
 

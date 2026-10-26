@@ -17124,24 +17124,23 @@ def gmb_edit_draft(draft_id):
     return jsonify({"ok": True, "draft": draft}), 200
 
 
-@app.route('/api/intel/gmb/draft/<draft_id>/schedule', methods=['POST'])
-def gmb_schedule_draft(draft_id):
-    """Push the draft to Postiz as a GMB-platform post and mark scheduled."""
+def _gmb_publish_draft(draft_id):
+    """Push an approved draft to its brand's Google listing via Postiz and mark it scheduled. Returns (body, status)."""
     path = _gmb_draft_path(draft_id)
     if not path or not os.path.exists(path):
-        return jsonify({"ok": False, "error": "draft not found"}), 404
+        return ({"ok": False, "error": "draft not found"}), 404
     try:
         with open(path, 'r', encoding='utf-8') as f:
             draft = json.load(f)
     except Exception as exc:
-        return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
+        return ({"ok": False, "error": f"read failed: {exc}"}), 500
     if draft.get('status') != 'approved':
-        return jsonify({"ok": False, "error": "draft must be approved before it is published",
+        return ({"ok": False, "error": "draft must be approved before it is published",
                         "status": draft.get('status')}), 409
     postiz_id = None
     err = None
     if not _POSTIZ_CLIENT_AVAILABLE:
-        return jsonify({"ok": False, "error": "postiz client unavailable"}), 503
+        return ({"ok": False, "error": "postiz client unavailable"}), 503
     assert _postiz_lib is not None
     # The draft's own brand decides which Postiz account and which Google channel
     # are used. Never take "the first Google channel": all keys can see Stick's.
@@ -17149,7 +17148,7 @@ def gmb_schedule_draft(draft_id):
     wanted = ((_gdp.BRAND_PROFILES.get(brand_id) or {}).get("postiz_gbp_integration_id") if _gdp else None)
     integration_id = None
     if not wanted or not _postiz_lib.has_brand_key(brand_id):
-        return jsonify({
+        return ({
             "ok": False,
             "error": f"no GMB integration set up for {brand_id}: it needs its own Postiz key and Google channel.",
         }), 400
@@ -17163,7 +17162,7 @@ def gmb_schedule_draft(draft_id):
     except Exception as exc:
         _app_log.warning("gmb_schedule_draft: channel lookup failed: %s", exc)
     if not integration_id:
-        return jsonify({
+        return ({
             "ok": False,
             "error": f"no GMB integration for {brand_id} under its Postiz workspace. "
                      "Connect its Google Business Profile in Postiz and retry.",
@@ -17209,14 +17208,80 @@ def gmb_schedule_draft(draft_id):
         except Exception as exc:
             err = f"create_post exception: {exc}"
     if not postiz_id:
-        return jsonify({"ok": False, "error": f"postiz push failed: {err or 'unknown'}"}), 502
+        return ({"ok": False, "error": f"postiz push failed: {err or 'unknown'}"}), 502
     draft['postizId'] = postiz_id
     draft['integrationId'] = integration_id
     draft['status'] = 'scheduled'
     draft['updatedAt'] = _now_iso()
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(draft, f, indent=2, ensure_ascii=False)
-    return jsonify({"ok": True, "draft": draft, "postizId": postiz_id}), 200
+    _gbp_rebuild_plan(brand_id)
+    return ({"ok": True, "draft": draft, "postizId": postiz_id}), 200
+
+
+def _gbp_rebuild_plan(brand_id):
+    """Refresh the Today card's plan so a post that was just sent is not offered again."""
+    try:
+        _gdp.save_plan(_gdp.rebuild_plan(brand_id, previous=_gdp.latest_plan(brand_id), drafts_dir=GMB_DRAFTS_DIR))
+    except Exception as exc:
+        _app_log.warning("gbp: plan rebuild failed for %s: %s", brand_id, exc)
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/schedule', methods=['POST'])
+def gmb_schedule_draft(draft_id):
+    """Publish one approved draft now (the Publish button on the page)."""
+    body, code = _gmb_publish_draft(draft_id)
+    return jsonify(body), code
+
+
+# The daily queue: one approved post per brand goes out each morning, earliest approval first.
+GBP_QUEUE_TZ_HOURS = 2  # SAST
+GBP_QUEUE_HOUR = 9
+
+
+def _gbp_sast_date(iso):
+    try:
+        t = _dt_cls.fromisoformat(str(iso).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=_tz.utc)
+    return (t + _td(hours=GBP_QUEUE_TZ_HOURS)).date()
+
+
+def _gbp_publish_next(*, brand=None):
+    """09:00 SAST job: send the earliest-approved Google post for a brand, once a day.
+
+    Posts that no longer pass review (photo gone, text rule) go back to review and the next one is tried.
+    A Postiz failure stops the run and leaves the post approved, so tomorrow retries it.
+    """
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return {"ok": False, "error": "gbp_daily_poster not loaded"}
+    brand_id = (brand or "").strip().lower()
+    profile = _gdp.BRAND_PROFILES.get(brand_id) or {}
+    now = _dt_cls.now(_tz.utc)
+    if not profile.get("postiz_gbp_integration_id"):
+        return {"ok": True, "brand": brand_id, "skipped": "no_postiz_integration"}
+    today = _gbp_sast_date(now.isoformat())
+    drafts_dir = Path(GMB_DRAFTS_DIR)
+    for d in _gdp.load_drafts(brand_id, drafts_dir):
+        if d.get("status") in ("scheduled", "published") and _gbp_sast_date(d.get("updatedAt") or d.get("statusAt") or "") == today:
+            return {"ok": True, "brand": brand_id, "skipped": "already_sent_today", "draft_id": d.get("id")}
+    returned = []
+    for d in _gdp.approved_drafts(brand_id, drafts_dir):
+        problems = _gdp.review_problems(d)
+        if problems:
+            _gdp.set_draft_status(d["id"], "draft", drafts_dir=drafts_dir)
+            returned.append({"draft_id": d["id"], "problems": problems})
+            continue
+        body, code = _gmb_publish_draft(d["id"])
+        out = {"ok": bool(body.get("ok")), "brand": brand_id, "draft_id": d["id"], "title": d.get("title"),
+               "ran_at": now.isoformat(), "returned_to_review": returned}
+        if not body.get("ok"):
+            out["error"] = body.get("error")
+        return out
+    _gbp_rebuild_plan(brand_id)
+    return {"ok": True, "brand": brand_id, "skipped": "nothing_approved", "returned_to_review": returned}
 
 
 @app.route('/api/intel/gmb/draft/<draft_id>/approve', methods=['POST'])
@@ -19209,7 +19274,7 @@ try:
     # and Stick at 12:00 SAST.
     _register_job(_JobSpec(
         name="gbp_publish",
-        fn=_gbp_daily_publish,
+        fn=_gbp_publish_next,
         every_seconds=86400,
         criticality="MEDIUM",
         credentials=("GOOGLE_OAUTH_CLIENT_SECRET", "POSTIZ_API_KEY"),
