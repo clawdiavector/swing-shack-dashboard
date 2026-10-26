@@ -308,7 +308,13 @@ def _caption_unavailable(result: dict[str, Any]) -> bool:
 def _pick_caption(result: dict[str, Any]) -> str:
     survivors = result.get("survivors") or []
     if survivors and isinstance(survivors[0], dict):
-        return str(survivors[0].get("body") or "").strip()
+        first = survivors[0]
+        body = str(first.get("body") or "").strip()
+        if body:
+            return body
+        pkg = first.get("copy_package")
+        if isinstance(pkg, dict):
+            return str(pkg.get("caption_body") or "").strip()
     return ""
 
 
@@ -546,7 +552,7 @@ def _process_caption_row(
     caption = _pick_caption(result)
     if not caption:
         lodge = str(pipeline_in.get("lodge_title") or "").strip()
-        if keep_id and lodge:
+        if lodge:
             caption = lodge
         else:
             return None, "caption pipeline returned no survivors"
