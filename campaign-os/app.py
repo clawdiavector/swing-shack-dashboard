@@ -53669,7 +53669,7 @@ def _ads_cap_sync(brand_id):
     settings = _ads_lane_load(brand_id, "ads-budget/settings.json") or {}
     account = _cap.read_account(c["graph"], c["token"], c["account_id"])
     figures = _ab.fetch_figures(c["account_id"], c["token"], today=sast_today(),
-                                api_version=_META_GRAPH_API_VERSION)
+                                api_version=_META_GRAPH_API_VERSION, period=_ab.period_of(settings))
     p = _cap.plan(settings, account, figures)
     entry = _cap.apply_plan(brand_id, p, settings, graph=c["graph"], token=c["token"],
                             account_id=c["account_id"], read=c["read"], write=c["write"])
@@ -53686,6 +53686,7 @@ def _ads_guard_view(brand_id, c=None):
     last = _ads_lane_load(brand_id, "ads-budget/guard.json")
     log = (_ads_lane_load(brand_id, "ads-actions/log.json") or {}).get("entries") or []
     return {"ok": True, "auto_pause": bool(settings.get("auto_pause")), "budget": settings.get("monthly_budget"),
+            "period": "week" if settings.get("budget_period") == "week" else "month",
             "writes_enabled": _aa.writes_enabled(), "last": last, "paused": _g.guarded(log)[:20]}
 
 
@@ -53720,7 +53721,7 @@ def meta_ads_guard_set(brand_id):
             return jsonify({"ok": False, "error": "Set a monthly budget first."}), 400
         if not body.get("confirm"):
             figures = _ab.fetch_figures(c["account_id"], c["token"], today=sast_today(),
-                                        api_version=_META_GRAPH_API_VERSION)
+                                        api_version=_META_GRAPH_API_VERSION, period=_ab.period_of(settings))
             now = datetime.datetime.now(datetime.timezone.utc)
             running, e = _g.fetch_running(c["account_id"], c["token"], now=now, api_version=_META_GRAPH_API_VERSION)
             if e:
@@ -53756,7 +53757,7 @@ def meta_ads_hard_stop(brand_id):
             if not settings.get("monthly_budget"):
                 return jsonify({"ok": False, "error": "Set a monthly budget first."}), 400
             figures = _ab.fetch_figures(c["account_id"], c["token"], today=sast_today(),
-                                        api_version=_META_GRAPH_API_VERSION)
+                                        api_version=_META_GRAPH_API_VERSION, period=_ab.period_of(settings))
             p = _cap.plan(dict(settings, hard_stop=True), account, figures)
             if not body.get("confirm"):
                 return jsonify({"ok": True, "preview": {
@@ -53806,7 +53807,8 @@ def meta_ads_budget(brand_id):
 
 @app.route("/api/meta/ads/<brand_id>/budget", methods=["POST"])
 def meta_ads_budget_set(brand_id):
-    """POST {monthly_budget} — set the brand's monthly ad budget (0 clears it). Changes nothing in Meta."""
+    """POST {monthly_budget, budget_period?} — set the brand's ad budget (0 clears it) and whether it is a "week" or
+    a "month" budget (the amount keeps its old field name). Changes nothing in Meta."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in _ADS_BRIEF_BRANDS:
@@ -53820,9 +53822,31 @@ def meta_ads_budget_set(brand_id):
         return jsonify({"ok": False, "error": "monthly_budget must be between 0 and 1,000,000"}), 400
     from _lib.jobs.layer1._io import atomic_write
     settings = _ads_lane_load(brand_id, "ads-budget/settings.json") or {}
+    period = (request.get_json(silent=True) or {}).get("budget_period")
+    if period not in (None, "week", "month"):
+        return jsonify({"ok": False, "error": 'budget_period must be "week" or "month"'}), 400
+    changed = bool(period) and period != ("week" if settings.get("budget_period") == "week" else "month")
     settings.update({"monthly_budget": amount or None, "currency": "ZAR", "set_at": _now_iso()})
+    if period:
+        settings["budget_period"] = period
     atomic_write(f"brands/{brand_id}/ads-budget/settings.json", settings)
-    _app_log.warning("ads budget: %s monthly budget set to %s", brand_id, amount)
+    _app_log.warning("ads budget: %s %s budget set to %s", brand_id, settings.get("budget_period") or "month", amount)
+    if changed:
+        # The saved figures are for the old period; read the new one now (read-only) so the page and the guard agree.
+        try:
+            from _lib import ads_budget as _ab
+            from _lib.ads_brief import sast_today
+            _label, tok = _v23_resolve_ads_token(brand_id)
+            acct = _v23_resolve_ads_account(brand_id)
+            if tok and acct:
+                old_figs = _ads_lane_load(brand_id, "ads-budget/figures.json") or {}
+                fresh = _ab.fetch_figures(acct, tok, today=sast_today(), api_version=_META_GRAPH_API_VERSION,
+                                          period=_ab.period_of(settings))
+                if old_figs.get("account"):
+                    fresh["account"] = old_figs["account"]
+                atomic_write(f"brands/{brand_id}/ads-budget/figures.json", fresh)
+        except Exception:
+            _app_log.exception("ads budget: could not refresh figures after the period changed for %s", brand_id)
     note = None
     if settings.get("hard_stop"):
         # The Meta limit follows the budget at once, not tomorrow.

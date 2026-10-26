@@ -126,8 +126,9 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
     # Monthly budget: this month's spend and what the live ad sets will still spend. Like the history above,
     # an add-on: a failed read never costs the day's brief.
     try:
-        figures = ads_budget.fetch_figures(account, token, today=today, get=get)
         settings = as_dict(io.read(BUDGET_SETTINGS, allow_flat_fallback=False))
+        figures = ads_budget.fetch_figures(account, token, today=today, get=get,
+                                           period=ads_budget.period_of(settings))
         hard_stop = _sync_hard_stop(io, lane_brand, account, token, settings, figures, get)
         io.write(BUDGET_FIGURES, figures)
         verdict = ads_budget.evaluate(figures, settings.get("monthly_budget"))
