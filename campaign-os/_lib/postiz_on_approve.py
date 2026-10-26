@@ -36,15 +36,6 @@ def _resolve_would_publish_at(row: dict[str, Any]) -> tuple[Optional[str], Optio
     return None, "would_publish_at missing — set schedule or event_date on the queue row"
 
 
-def _test_fixture_integrations(brand_id: str) -> list[dict[str, Any]] | None:
-    """CI/local tests set POSTIZ_API_KEY_STICK=test-key-stick-only — skip HTTP."""
-    if brand_id != "stick":
-        return None
-    if os.environ.get("POSTIZ_API_KEY_STICK") != "test-key-stick-only":
-        return None
-    return [{"id": "int-ig", "identifier": "instagram", "name": "Stick"}]
-
-
 def _live_receipt_for_key(key: str) -> dict[str, Any] | None:
     rec = sandbox._receipt_index().get(key)  # noqa: SLF001
     if not rec:
@@ -96,13 +87,7 @@ def schedule_row_on_approve(row: dict[str, Any]) -> tuple[dict[str, Any], Option
         return {}, f"preflight: {pre_err}"
 
     integrations_cache: dict[str, list[dict[str, Any]]] = {}
-    fixture = _test_fixture_integrations(brand_id)
-    if fixture is not None:
-        integrations = fixture
-        integrations_cache[brand_id] = integrations
-        load_err = None
-    else:
-        integrations, load_err = publish_live._integrations_for_brand(brand_id, integrations_cache)
+    integrations, load_err = publish_live._integrations_for_brand(brand_id, integrations_cache)
     if load_err:
         return {}, load_err
 
@@ -167,10 +152,12 @@ def clear_postiz_on_unapprove(idempotency_key: str) -> tuple[dict[str, Any], Opt
 
     postiz_id = str(rec.get("postiz_post_id") or "").strip()
     brand_id = str(rec.get("brand_id") or "")
-    if postiz_id and is_live_mode() and has_brand_key(brand_id):
+    need_delete = bool(postiz_id and is_live_mode() and has_brand_key(brand_id))
+    if need_delete:
         _data, err = delete_post(postiz_id, brand_id=brand_id)
         if err:
-            _LOG.warning("postiz delete_post on unapprove failed: %s", err[0])
+            msg = err[1] if isinstance(err[1], str) else str(err[1])
+            return {}, f"postiz delete_post: {err[0]} {msg[:120]}".strip()
 
     path = sandbox._receipts_path()  # noqa: SLF001
     rows = sandbox._read_jsonl(path)  # noqa: SLF001
