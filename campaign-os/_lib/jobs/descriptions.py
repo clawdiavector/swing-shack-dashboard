@@ -282,6 +282,15 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Updates archive/manifest.json. Does not touch stale-only files."
         ),
     },
+    "archive_purge": {
+        "title": "Content archive purge",
+        "summary": "Permanently removes drafts, plans, and suggestions archived past retention.",
+        "detail": (
+            "Scans archived drafts, plans, and calendar suggestions per brand. Items whose "
+            "purge_at is in the past are deleted and logged to archive/content-audit.jsonl. "
+            "Retention defaults to 30 days (ARCHIVE_PURGE_DAYS)."
+        ),
+    },
     "auto_release": {
         "title": "Auto release scheduled posts",
         "summary": "On go-live day (SAST), mark today's scheduled posts human-approved before dispatch.",

@@ -17,6 +17,7 @@ import {
 import { EventTypeIcon, EventTypeLegend } from '../../../components/EventTypeIcon'
 import { HoverChip } from './HoverChip'
 import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
+import { archiveBrandItem, previewBrandArchive } from '../../../lib/api'
 import { actorName, planFromEvent } from '../../../lib/plan'
 import { plainCategory, plainNotes, tierLabel } from '../../../lib/planning'
 
@@ -80,6 +81,35 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
     }
     setPlanNote(null)
     setDecided({ undo: r.undo, title: s.title })
+    settle()
+  }
+
+  async function archive(s: Suggestion) {
+    const name = actorName()
+    if (!name) {
+      setError('A name is needed so the calendar knows who decided.')
+      return
+    }
+    const id = s.calendar_id || s.key
+    const preview = await previewBrandArchive(brandId, {
+      kind: 'suggestion',
+      id,
+      suggestion_key: s.key,
+      title: s.title,
+    })
+    if (!preview.message || !window.confirm(preview.message)) return
+    setBusyKey(s.key)
+    setError(null)
+    const r = await archiveBrandItem(
+      brandId,
+      { kind: 'suggestion', id, suggestion_key: s.key, title: s.title },
+      name,
+    )
+    setBusyKey(null)
+    if (!r.ok) {
+      setError(r.error || 'Archive failed.')
+      return
+    }
     settle()
   }
 
@@ -155,6 +185,7 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
     decided,
     approve: (s: Suggestion, pillar?: string) => decide(s, 'approve', pillar),
     reject: (s: Suggestion) => decide(s, 'reject'),
+    archive,
     swap,
     undo,
     makePlan,
@@ -177,6 +208,7 @@ export function GhostChip({
   pillars,
   onApprove,
   onReject,
+  onArchive,
   onSwap,
 }: {
   s: Suggestion
@@ -184,6 +216,7 @@ export function GhostChip({
   pillars: PillarOption[]
   onApprove: (pillar: string) => void
   onReject: () => void
+  onArchive?: () => void
   onSwap?: () => void
 }) {
   const [pillar, setPillar] = useState('')
@@ -255,6 +288,17 @@ export function GhostChip({
         >
           Reject
         </button>
+        {onArchive ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onArchive}
+            data-testid="ghost-archive"
+            className="rounded-full border border-bd px-3 py-1 text-xs font-semibold text-tx2 hover:text-tx disabled:opacity-60"
+          >
+            Archive
+          </button>
+        ) : null}
         {onSwap ? (
           <button
             type="button"
