@@ -11,8 +11,10 @@ keep. That part is an add-on and can never cost the day's brief.
 from __future__ import annotations
 
 import datetime as _dt
+import sys
+import time
 
-from _lib import ads_actions, ads_brain, ads_brief, ads_budget, ads_cap, ads_creative, ads_history, ads_ideas
+from _lib import ads_actions, ads_brain, ads_brief, ads_budget, ads_cache_warm, ads_cap, ads_creative, ads_history, ads_ideas
 from _lib import ads_tracking
 from _lib.brand_validate import validate_brand_id
 
@@ -28,6 +30,8 @@ ORGANIC = "post-outcomes.json"
 HISTORY = "ads-history/weekly.json"
 HISTORY_LATEST = "ads-history/latest.json"
 TRACKING = "ads-tracking/latest.json"
+# The cache warm-up only starts a refresh before this many seconds into the run (the job has 300).
+WARM_DEADLINE_SECONDS = 200
 BUDGET_FIGURES = "ads-budget/figures.json"
 BUDGET_SETTINGS = "ads-budget/settings.json"
 
@@ -65,6 +69,7 @@ def _sync_hard_stop(io, brand, account, token, settings, figures, get=None):
 def run(*, brand: str | None = None, today: _dt.date | None = None,
         get=None, get_as=None) -> dict:
     """Build today's brief for one brand. ``today``, ``get`` and ``get_as`` are for tests."""
+    t0 = time.monotonic()
     if not brand:
         return {"ok": False, "error": "brand required"}
     try:
@@ -167,8 +172,23 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
         io.write(f"ads-brief/weekly/{daily['date']}.json", weekly)
         wrote_weekly = True
 
+    # Last, and only with time to spare: refresh the Meta ad cache the weekly report reads, so its first load of the
+    # day is not the one that has to ingest. Only inside the running app, which owns the ingest; never costs the brief.
+    app_module = sys.modules.get("app")
+    cache_warm: dict
+    if app_module is None or not hasattr(app_module, "_v23_ingest_paid_media"):
+        cache_warm = {"skipped": "not running inside the app"}
+    else:
+        try:
+            from ..layer1._io import data_dir
+            cache_warm = ads_cache_warm.warm(lane_brand, ingest=app_module._v23_ingest_paid_media,
+                                             data_dir=getattr(app_module, "DATA_DIR", None) or data_dir(),
+                                             deadline=t0 + WARM_DEADLINE_SECONDS)
+        except Exception as exc:
+            cache_warm = {"error": type(exc).__name__}
+
     return {
-        "ok": True, "brand": lane_brand, "date": daily["date"],
+        "ok": True, "brand": lane_brand, "date": daily["date"], "cache_warm": cache_warm,
         "headline": daily["headline"], "wrote_weekly": wrote_weekly,
         "scoring_version": daily["scoring_version"],
         "creative_tests": {k: len(daily["creative"][k]) for k in ("proposed", "running")},
