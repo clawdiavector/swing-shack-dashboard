@@ -85,6 +85,7 @@ def build(f: dict) -> dict:
     ads = f.get("ads")
     budget = (ads or {}).get("budget") or {}
     status = budget.get("status")
+    w = "week" if budget.get("period") == "week" else "month"
     paused = (ads or {}).get("paused_now") or 0
     guard_on = bool((ads or {}).get("guard_on"))
     rows, totals = _rows(f)
@@ -102,14 +103,14 @@ def build(f: dict) -> dict:
     lines = []
     if ads and over:
         if paused:
-            lines.append(f"The month's ad budget of {_R(budget.get('budget'))} is used up ({_R(budget.get('mtd_spend'))} spent), so the "
+            lines.append(f"The {w}'s ad budget of {_R(budget.get('budget'))} is used up ({_R(budget.get('mtd_spend'))} spent), so the "
                          f"hard stop paused {paused} ad set{'s' if paused != 1 else ''}"
                          + (f" and ad spend this week fell {abs(spend_chg)}% to {_R(spend.get('cur'))}." if spend_chg is not None and spend_chg < 0 else "."))
         else:
-            lines.append(f"The month's ad budget of {_R(budget.get('budget'))} is used up ({_R(budget.get('mtd_spend'))} spent) "
+            lines.append(f"The {w}'s ad budget of {_R(budget.get('budget'))} is used up ({_R(budget.get('mtd_spend'))} spent) "
                          f"and nothing has paused the ads, so they are still spending.")
     elif ads and at_risk:
-        lines.append(f"On the current settings the month's ads will end near {_R(budget.get('projected_total'))}, over the "
+        lines.append(f"On the current settings the {w}'s ads will end near {_R(budget.get('projected_total'))}, over the "
                      f"{_R(budget.get('budget'))} budget.")
     elif spend.get("cur") is not None:
         lines.append(f"Ads spent {_R(spend.get('cur'))} this week" + (f" ({_signed(spend_chg)} on last week)." if spend_chg is not None else "."))
@@ -169,7 +170,7 @@ def build(f: dict) -> dict:
         {"label": "Visitors who stayed", "value": "—" if eng.get("cur") is None else f"{eng['cur']:.0f}%",
          "vs": "no comparison" if eng.get("prev") is None else f"was {eng['prev']:.0f}%",
          "note": ("Of all website visits" + (f"; paid visitors alone: {totals['ga_engaged_pct']:g}% (28 days)" if totals.get("ga_engaged_pct") is not None else ""))},
-        {"label": "This month's ad budget",
+        {"label": f"This {w}'s ad budget",
          "value": f"{_R(budget.get('mtd_spend'))} spent" if budget else "—",
          "vs": (f"of {_R(budget['budget'])}" if budget.get("budget") else "no budget set"),
          "note": ("Used up" if over else "Heading over" if at_risk else "On track" if status == "OK" else "")},
@@ -186,14 +187,14 @@ def build(f: dict) -> dict:
         if daily and days and cpl:
             est = int(rest // cpl)
             rec = (f"Keep traffic ads off until the pages are fixed. Restart the lead-form ads only if a lead is worth more than {_R(cpl)} "
-                   f"to the business: running them to month end costs about {_R(rest)} ({_R(daily)} a day) and, if the cost per lead holds, "
+                   f"to the business: running them to the end of the {w} costs about {_R(rest)} ({_R(daily)} a day) and, if the cost per lead holds, "
                    f"brings about {est} leads.")
         else:
             rec = ("Keep traffic ads off until the pages are fixed. Restart the lead-form ads only if a lead is worth more than "
                    "they cost; a lead price needs a few more weeks of results.")
         because = (f"The {_R(budget.get('budget'))} budget is used up ({_R(budget.get('mtd_spend'))} spent)."
                    + (f" Lead-form ads are the only ones with a result we can price: {totals['leads']} leads at {_R(cpl)} each over 31 days." if cpl and totals.get("leads") else ""))
-        decisions.append({"decision": "Decide the ad budget for the rest of the month", "recommendation": rec, "because": because,
+        decisions.append({"decision": f"Decide the ad budget for the rest of the {w}", "recommendation": rec, "because": because,
                           "confidence": "medium"})
     if low:
         top = low[:3]
@@ -215,7 +216,7 @@ def build(f: dict) -> dict:
     if not f.get("targets"):
         decisions.append({
             "decision": "Set the marketing targets",
-            "recommendation": "Agree a monthly lead target and the most you will pay for a lead, for each brand.",
+            "recommendation": f"Agree a {w}ly lead target and the most you will pay for a lead, for each brand.",
             "because": "Without a target the report can only compare with last week; it cannot say whether a week was good.",
             "confidence": "high"})
     decisions = decisions[:4]
@@ -256,13 +257,13 @@ def build(f: dict) -> dict:
     next_week = []
     titles = " ".join(d["decision"] for d in decisions).lower()
     if "budget" in titles:
-        next_week.append("Herman: decide the ad budget for the rest of the month, starting from what a lead is worth to the business.")
+        next_week.append(f"Herman: decide the ad budget for the rest of the {w}, starting from what a lead is worth to the business.")
     if "pages" in titles:
         next_week.append("Christelle: send each traffic ad to the page for its offer, then restart one ad as a test.")
     if "bookings" in titles:
         next_week.append("Kyle: get ClubLab's confirmed-booking event into Google Analytics.")
     if "targets" in titles:
-        next_week.append("Herman: set a monthly lead target and a maximum cost per lead for each brand.")
+        next_week.append(f"Herman: set a {w}ly lead target and a maximum cost per lead for each brand.")
     if not next_week:
         next_week.append("Christelle: keep the current plan. Nothing needs deciding this week.")
 
