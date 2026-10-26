@@ -44,19 +44,6 @@ IG_FILE = DATA / "ig-business-analytics.json"
 OUT_FILE = DATA / "format-model-refit.json"
 
 
-def _repo_relative(path: Path) -> str:
-    try:
-        return str(path.relative_to(ROOT))
-    except ValueError:
-        return str(path)
-
-
-def _integration_test_subprocess() -> bool:
-    """True when scripts/tests/test_refit…::test_runs_clean_with_real_data spawned us."""
-    cur = os.environ.get("PYTEST_CURRENT_TEST") or ""
-    return "test_runs_clean_with_real_data" in cur
-
-
 def _under_repo_seed_data(path: Path) -> bool:
     try:
         resolved = path.resolve()
@@ -93,16 +80,9 @@ def _write_outputs(output: dict) -> Path:
     scratch = _scratch_data_dir()
     bundled = OUT_FILE
     under_check = bool(os.environ.get("COS_CHECK_SCRATCH"))
-    targets: list[Path] = []
     if under_check and scratch is not None:
         primary = scratch / "format-model-refit.json"
         targets = [primary]
-    elif scratch is not None:
-        scratch.mkdir(parents=True, exist_ok=True)
-        targets.append(scratch / "format-model-refit.json")
-        if not bundled.is_file() and _integration_test_subprocess():
-            targets.append(bundled)
-        primary = bundled if bundled in targets else targets[0]
     else:
         primary = bundled
         targets = [bundled]
@@ -292,8 +272,8 @@ def main():
         "schema": "https://clawdia.io/scripts/format-model-refit/v1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source_data": {
-            "post_conversion_score": _repo_relative(PCS_FILE),
-            "ig_business_analytics": _repo_relative(IG_FILE),
+            "post_conversion_score": str(PCS_FILE),
+            "ig_business_analytics": str(IG_FILE),
         },
         "scoring": {
             "old_formula": pcs.get("scoring_formula", ""),
