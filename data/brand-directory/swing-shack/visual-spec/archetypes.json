@@ -2635,7 +2635,9 @@
         "h": 1201
       },
       "vetted": true
-    },
+    }
+  ],
+  "product_post_archetypes": [
     {
       "id": "ss-product-type-hero",
       "name": "Product post: type hero (dark)",
