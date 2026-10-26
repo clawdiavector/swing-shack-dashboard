@@ -47429,6 +47429,10 @@ def _cs_inputs(brand_id, years):
 def _cs_items(brand_id, month):
     """Faded suggestions for a month, from the operator store and the
     important-dates list, minus anything already on the calendar."""
+    return _cs_bundle(brand_id, month)["items"]
+
+
+def _cs_bundle(brand_id, month):
     from zoneinfo import ZoneInfo
     from _lib import calendar_suggestions as cs
     from _lib import stock_pulse as sp
@@ -47436,9 +47440,6 @@ def _cs_items(brand_id, month):
     today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
     note_rows, names = _cs_inputs(brand_id, sorted({first.year, last.year}))
     decisions = cs.read_decisions(brand_id)
-    items = cs.month_items(
-        brand_id, month, _operator_pending_suggestions(brand_id), _typed_by_operator,
-        note_rows, decisions, names, today)
     try:
         stock = sp.candidates_for(brand_id)
     except Exception:
@@ -47447,9 +47448,18 @@ def _cs_items(brand_id, month):
     from _lib import story_settings as ss
     from _lib import story_suggestion as sug
     every = ss.read(brand_id, sug.daily_ids(brand_id))["stock_every_days"]
-    items += cs.stock_items(brand_id, month, stock, decisions, names, [i["date"] for i in items], today, every)
-    items.sort(key=lambda i: (i["date"], i["title"]))
-    return items
+    return cs.month_suggestions_bundle(
+        brand_id,
+        month,
+        today,
+        _operator_pending_suggestions(brand_id),
+        _typed_by_operator,
+        note_rows,
+        decisions,
+        names,
+        stock,
+        every,
+    )
 
 
 @app.route("/api/calendar-suggestions/<brand_id>/triage", methods=["GET"])
@@ -47496,11 +47506,18 @@ def calendar_suggestions_list(brand_id):
         return bad
     month = (request.args.get("month") or "").strip()
     try:
-        items = _cs_items(brand_id, month)
+        bundle = _cs_bundle(brand_id, month)
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
-    return jsonify({"ok": True, "brand_id": brand_id, "month": month,
-                    "count": len(items), "items": items}), 200
+    items = bundle["items"]
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "month": month,
+        "count": len(items),
+        "items": items,
+        "posts_by_day": bundle.get("posts_by_day") or {},
+    }), 200
 
 
 def _cs_find(brand_id, body):
