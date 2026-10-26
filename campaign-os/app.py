@@ -54141,6 +54141,22 @@ def meta_ads_actions_log(brand_id):
                     "actions": list(reversed(entries))[:50]}), 200
 
 
+@app.route("/api/meta/ads/<brand_id>/campaign-resume", methods=["POST"])
+def meta_ads_campaign_resume(brand_id):
+    """POST {campaign_id} — turn a paused campaign of this brand on. Logged; undo pauses it again."""
+    err, c = _ads_actions_ctx(brand_id)
+    if err:
+        return err
+    cid = (request.get_json(silent=True) or {}).get("campaign_id")
+    try:
+        entry = c["aa"].resume_campaign(brand_id, cid, graph=c["graph"], token=c["token"],
+                                        account_id=c["account_id"], read=c["read"], write=c["write"])
+    except c["aa"].ActionRefused as e:
+        return jsonify({"ok": False, "error": str(e)}), e.status
+    _app_log.warning("ads action: resumed campaign %s for %s", cid, brand_id)
+    return jsonify({"ok": True, "action": entry}), 200
+
+
 @app.route("/api/meta/ads/<brand_id>/actions/<action_id>/undo", methods=["POST"])
 def meta_ads_action_undo(brand_id, action_id):
     """POST — put an ad back as it was, if nothing else has touched it."""
