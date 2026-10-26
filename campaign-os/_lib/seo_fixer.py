@@ -182,8 +182,11 @@ def build_draft(io: Any, brand: str, item_id: str, wp: smp.WpClient) -> dict:
     html = (page.get("content") or {}).get("rendered", "")
     proposal = DRAFTERS[field](html, brand, page_name, current)
     f = smp.FIELDS_META[field]
+    writable = smp.page_field_writable(wp, field)
     return {
         "ok": True,
+        "writable": writable,
+        "unwritable_reason": smp.PAGE_UNWRITABLE_WHY if writable is False else None,
         "item_id": item_id,
         "page": page_name,
         "page_id": page.get("id"),
@@ -223,6 +226,8 @@ def apply_fix(
     field = button["field"]
     page_name = item["page"]
     text = re.sub(r"\s+", " ", (text or "")).strip()
+    if smp.page_field_writable(wp, field) is False:
+        return {"ok": False, "status": 409, "error": smp.PAGE_UNWRITABLE_WHY}
 
     checks = check_text(field, text, brand)
     if checks["errors"]:

@@ -158,6 +158,31 @@ def current_description(page: dict) -> str:
     return str(from_meta or from_head or "").strip()
 
 
+def page_field_writable(wp: WpClient, field: str = "meta_description") -> bool | None:
+    """Does WordPress let the REST API save this Yoast field on pages?
+
+    Yoast registers its fields as REST-writable for posts only. On pages a write is
+    accepted and silently dropped (found live 2026-10-23). True or False from
+    WordPress's own schema; None when it cannot be told, in which case callers go
+    ahead and rely on the read-back after writing.
+    """
+    key = FIELDS_META[field]["key"]
+    try:
+        r = wp("OPTIONS", "/pages")
+        props = (((r.get("data") or {}).get("schema") or {}).get("properties") or {}).get("meta", {}).get("properties")
+        if not isinstance(props, dict) or not props:
+            return None
+        return key in props
+    except Exception:  # noqa: BLE001
+        return None
+
+
+PAGE_UNWRITABLE_WHY = (
+    "WordPress does not let Campaign OS save Yoast fields on pages yet. "
+    "A small WordPress snippet makes the field writable; until then paste the text into Yoast by hand."
+)
+
+
 def fetch_page(wp: WpClient, slug: str) -> dict | None:
     r = wp("GET", f"/pages?slug={slug}&context=edit&_fields={_FIELDS}")
     data = r.get("data") if r.get("ok") else None
@@ -241,6 +266,10 @@ def run_auto(io: Any, brand: str, queue: dict | None, wp: WpClient, now: str, ru
             continue
         page_name = item.get("page")
         if item.get("type") not in seo_fix_queue.AUTO_PUBLISH_TYPES or page_name not in PAGE_SLUGS:
+            continue
+
+        if page_field_writable(wp, "meta_description") is False:
+            summary["skipped"].append({"page": page_name, "why": PAGE_UNWRITABLE_WHY})
             continue
 
         page = fetch_page(wp, PAGE_SLUGS[page_name])

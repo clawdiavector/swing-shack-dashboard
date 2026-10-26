@@ -89,7 +89,7 @@ def layer7_specs() -> list[JobSpec]:
             name="ads_brief",
             fn=ads_brief.run,
             every_seconds=LAYER7_DAILY,
-            timeout_seconds=180,
+            timeout_seconds=300,
             # New and read-only: a bad Meta day should read LATE, not page anyone.
             best_effort=True,
             criticality="LOW",
