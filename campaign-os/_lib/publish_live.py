@@ -116,7 +116,7 @@ def _dispatch_row_live(
         return {}, "idempotency_key required"
 
     existing = sandbox._receipt_index().get(key)
-    if existing:
+    if existing and str(existing.get("mode") or "") != "sandbox":
         return existing, None
 
     brand_id = validate_brand_id(row.get("brand_id") or "")

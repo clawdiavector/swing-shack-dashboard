@@ -42,6 +42,7 @@ export type Undo = {
 type Result = {
   ok: boolean
   error?: string
+  warning?: string
   items?: Suggestion[]
   posts_by_day?: Record<string, DayPrimaryPost[]>
   undo?: Undo

@@ -404,6 +404,25 @@ def triage_items(
     return out
 
 
+SOON_DAYS = 7
+
+
+def approval_date_check(date_iso: Any, today: _dt.date) -> Dict[str, Any]:
+    """Can this date be approved? A date that has passed cannot. One only days away can,
+    with a warning, because most of its plan steps will already be late."""
+    d = _parse(date_iso)
+    if not d:
+        return {"ok": False, "error": "this one has no date yet, so it cannot be approved"}
+    days = (d - today).days
+    if days < 0:
+        return {"ok": False, "days": days, "error": f"that date has passed ({d.isoformat()}); pick a date still to come"}
+    warning = ""
+    if days <= SOON_DAYS:
+        warning = (f"Only {days} day{'s' if days != 1 else ''} away, so most plan steps will be late."
+                   if days else "That is today, so most plan steps will be late.")
+    return {"ok": True, "days": days, "warning": warning}
+
+
 # ── undo tokens ───────────────────────────────────────────────────────
 #
 # Approve and reject hand back a token; undo takes the token, not the details.
