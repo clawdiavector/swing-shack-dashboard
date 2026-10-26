@@ -2568,7 +2568,7 @@ export function fetchStoriesWeek(brands?: string[]) {
 }
 
 export function fetchStoryCandidates(brand: string) {
-  return getJson<{ ok: boolean; posts: StoryCandidate[]; errors: string[] }>(
+  return getJson<{ ok: boolean; posts: StoryCandidate[]; by_page?: Record<string, StoryCandidate>; errors: string[] }>(
     `/api/stories/candidates?brand=${encodeURIComponent(brand)}`,
   )
 }

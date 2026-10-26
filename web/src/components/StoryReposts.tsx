@@ -44,6 +44,7 @@ export function StoryReposts({
   const [ideas, setIdeas] = useState<StorySuggestion[]>([])
   const [weekCount, setWeekCount] = useState<number | null>(null)
   const [found, setFound] = useState<Record<string, StoryCandidate[]>>({})
+  const [byPage, setByPage] = useState<Record<string, StoryCandidate>>({})
   const [marks, setMarks] = useState<Record<string, string>>({})
   const [failed, setFailed] = useState(false)
   const [leaving, setLeaving] = useState<string | null>(null)
@@ -107,7 +108,10 @@ export function StoryReposts({
   useEffect(() => {
     for (const b of scoutKey.split(',')) {
       fetchStoryCandidates(b)
-        .then((r) => setFound((f) => ({ ...f, [b]: r.posts })))
+        .then((r) => {
+          setFound((f) => ({ ...f, [b]: r.posts }))
+          setByPage((m) => ({ ...m, ...Object.fromEntries(Object.entries(r.by_page || {}).map(([id, c]) => [`${b}|${id}`, c])) }))
+        })
         .catch(() => setFound((f) => ({ ...f, [b]: [] })))
     }
   }, [scoutKey])
@@ -242,8 +246,14 @@ export function StoryReposts({
                   ) : (
                     <>
                       {i.repost_from?.instagram ? (
-                        <a href={i.repost_from.instagram} target="_blank" rel="noopener noreferrer" className={OPEN_DARK}>
-                          Open Instagram <ExternalLink className="h-3.5 w-3.5" />
+                        <a
+                          href={byPage[`${i.brand}|${i.repost_from.id}`]?.url || i.repost_from.instagram}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={OPEN_DARK}
+                        >
+                          {byPage[`${i.brand}|${i.repost_from.id}`] ? 'Open post on Instagram' : 'Open Instagram'}{' '}
+                          <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       ) : null}
                       {i.repost_from?.facebook ? (
