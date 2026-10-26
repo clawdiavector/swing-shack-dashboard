@@ -431,6 +431,10 @@ def idea_plan(item_id: str, today: date, force: bool = False) -> Dict[str, Any]:
     res = cp.propose_plan(it["brand"], brief, force=force, today=today)
     if not res.get("ok"):
         return res
+    if it.get("fleshed") and not res.get("existing"):
+        from _lib import idea_builder as ib  # noqa: PLC0415
+        ib.apply_to_plan(res["plan"], it["fleshed"])
+        cp._write_plan(res["plan"])
     _update(item_id, plan_id=res["plan"]["plan_id"], brief_id=brief["brief_id"])
     return {"ok": True, "plan": res["plan"], "item": get_item(item_id)}
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   fetchMailIntake,
   ideaHeading,
+  mailIdeaFlesh,
   mailIdeaPlan,
   markMail,
   moveMail,
@@ -10,6 +11,7 @@ import {
 } from '../lib/mailIntake'
 import { brandLabel } from '../lib/planMessages'
 import { PlanPanel } from '../pages/calendar/planning/PlanPanel'
+import { IdeaBuilt } from './IdeaBuilt'
 import { Badge } from './ui'
 
 // Mail to the agent inbox from the CEO, sorted for you. Do now: something to act on. Ideas: one card
@@ -137,6 +139,8 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [version, setVersion] = useState(0)
+  const [writing, setWriting] = useState(false)
+  const [showIdea, setShowIdea] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const ready = Boolean(brand && date)
@@ -157,6 +161,19 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
     }
     setVersion((v) => v + 1)
     setOpen(true)
+    void run(Promise.resolve({ ok: true }))
+  }
+
+  async function fleshOut() {
+    setWriting(true)
+    setError(null)
+    const r = await mailIdeaFlesh(m.id, brand, date)
+    setWriting(false)
+    if (!r.ok) {
+      setError(r.error || 'Could not write the idea.')
+      return
+    }
+    setShowIdea(true)
     void run(Promise.resolve({ ok: true }))
   }
 
@@ -182,6 +199,16 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
         <button
           type="button"
           className={btn}
+          disabled={!brand || writing}
+          title={brand ? 'Claude builds the idea out: concept, content, shots and next steps.' : 'Pick the brand first'}
+          onClick={() => void fleshOut()}
+          data-testid="mail-idea-flesh"
+        >
+          {writing ? 'Writing…' : m.fleshed ? 'Write it again' : 'Flesh out this idea'}
+        </button>
+        <button
+          type="button"
+          className={btn}
           disabled={!ready || busy}
           title={ready ? 'A draft plan you can edit. Nothing goes on the calendar yet.' : 'Pick the brand and the date first'}
           onClick={() => void showPlan()}
@@ -196,6 +223,20 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
           Dismiss
         </button>
       </div>
+      {error ? <p className="mt-1 text-xs text-red">{error}</p> : null}
+      {m.fleshed ? (
+        <div className="mt-3">
+          <button type="button" className={quiet} onClick={() => setShowIdea((v) => !v)}>
+            {showIdea ? 'Hide the suggested idea' : 'Show the suggested idea'}
+          </button>
+          {showIdea ? <IdeaBuilt f={m.fleshed} /> : null}
+          {m.plan_id ? (
+            <p className="mt-1 text-[11px] text-tx3">
+              If you rewrite the idea after the plan was made, use Start again in the plan to rebuild it from the idea.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {error ? <p className="mt-1 text-xs text-red">{error}</p> : null}
       {open && brand && briefId ? (
         <div className="mt-3 rounded-lg border border-bd" data-testid="mail-idea-plan">

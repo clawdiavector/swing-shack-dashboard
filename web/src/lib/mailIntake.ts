@@ -5,6 +5,17 @@ import { getJson } from './api'
 
 export type MailKind = 'do_now' | 'idea'
 
+export type Fleshed = {
+  concept: { name: string; one_line: string; why_it_works: string; audience: string }
+  offer: { what: string; to_confirm: string[] }
+  content: Array<{ kind: string; title: string; idea: string; caption_direction: string }>
+  shots: string[]
+  next_steps: Array<{ step: string; who: string }>
+  questions: string[]
+  risks: string[]
+  generated_at: string
+}
+
 export type MailItem = {
   id: string
   kind: MailKind
@@ -26,6 +37,8 @@ export type MailItem = {
   /** Set once its proposed plan has been made; the plan itself is found by brief_id. */
   plan_id?: string
   brief_id?: string
+  /** The idea built out into a concept, content, shots and next steps. */
+  fleshed?: Fleshed
   received_at: string
 }
 
@@ -67,6 +80,9 @@ export const moveMail = (id: string, kind: MailKind) => act(id, 'kind', { kind }
 /** Make the idea's proposed plan. A draft: nothing goes on the calendar until the plan is placed. */
 export const mailIdeaPlan = (id: string, brand: string, date: string, force = false) =>
   act(id, 'plan', { brand, date, force })
+
+/** Build the idea out into a whole concept. Takes a while: a model writes it. */
+export const mailIdeaFlesh = (id: string, brand: string, date: string) => act(id, 'flesh', { brand, date })
 
 /** The card's heading: its own title, else the mail's subject. */
 export const ideaHeading = (m: MailItem) => m.title || m.subject || '(no subject)'

@@ -47378,6 +47378,21 @@ def mail_intake_act(item_id, action):
             item = mi.set_status(item_id, str(body.get("status") or ""))
         elif action == "kind":
             item = mi.set_kind(item_id, str(body.get("kind") or ""))
+        elif action == "flesh":
+            from _lib import idea_builder as ib
+            if body.get("brand") is not None or body.get("date") is not None:
+                mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
+
+            def _idea_chat(messages):
+                text, err = _openrouter_chat_completion(
+                    messages, model=os.environ.get("IDEA_MODEL") or "anthropic/claude-sonnet-5.5",
+                    temperature=0.7, max_tokens=4000, timeout=90)
+                if err:
+                    raise RuntimeError(err)
+                return text
+
+            r = ib.flesh_out(item_id, _idea_chat, _jhb_today())
+            return jsonify(r), (200 if r.get("ok") else 400)
         elif action == "plan":
             if body.get("brand") is not None or body.get("date") is not None:
                 mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
