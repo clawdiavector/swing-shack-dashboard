@@ -66,6 +66,16 @@ def _sync_hard_stop(io, brand, account, token, settings, figures, get=None):
     return out
 
 
+def _app_module():
+    """The running app, which owns the Meta ingest. The server starts as `python app.py`, so it is `__main__`; when
+    something imported it, it is `app`. None when this is not the app (tests, scripts)."""
+    for name in ("app", "__main__"):
+        m = sys.modules.get(name)
+        if m is not None and hasattr(m, "_v23_ingest_paid_media"):
+            return m
+    return None
+
+
 def run(*, brand: str | None = None, today: _dt.date | None = None,
         get=None, get_as=None) -> dict:
     """Build today's brief for one brand. ``today``, ``get`` and ``get_as`` are for tests."""
@@ -174,9 +184,9 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
 
     # Last, and only with time to spare: refresh the Meta ad cache the weekly report reads, so its first load of the
     # day is not the one that has to ingest. Only inside the running app, which owns the ingest; never costs the brief.
-    app_module = sys.modules.get("app")
+    app_module = _app_module()
     cache_warm: dict
-    if app_module is None or not hasattr(app_module, "_v23_ingest_paid_media"):
+    if app_module is None:
         cache_warm = {"skipped": "not running inside the app"}
     else:
         try:
@@ -186,6 +196,8 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
                                              deadline=t0 + WARM_DEADLINE_SECONDS)
         except Exception as exc:
             cache_warm = {"error": type(exc).__name__}
+
+    print(f"ads_brief cache_warm {lane_brand}: {cache_warm}", flush=True)  # shows in the Railway logs
 
     return {
         "ok": True, "brand": lane_brand, "date": daily["date"], "cache_warm": cache_warm,
