@@ -1,0 +1,29 @@
+name: GBP publish next approved post (09:00 SAST)
+
+on:
+  schedule:
+    # 07:00 UTC = 09:00 SAST. One approved Google Business post per brand goes out each morning.
+    - cron: '0 7 * * *'
+  workflow_dispatch:  # manual trigger for testing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: POST /api/jobs/run/gbp_publish on Railway
+        env:
+          COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${COS_JOB_TOKEN:-}" ]; then
+            echo "::error::COS_JOB_TOKEN secret is not set — refuse to fall back to password login"
+            exit 1
+          fi
+          curl -sf -X POST "https://swing-shack-dashboard-production.up.railway.app/api/jobs/run/gbp_publish?all=1" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            | tee /tmp/job-run.json
+          echo
+          python3 scripts/cos_job_summary.py print /tmp/job-run.json
+          echo "gbp_publish fired. Output above."
