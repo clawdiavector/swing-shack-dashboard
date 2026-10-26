@@ -533,6 +533,10 @@ export function publishDispatchNow(idempotencyKeyOrKeys: string | string[]) {
     dispatched?: number
     errors?: string[]
     mode?: string
+    /** ISO from scheduled_at_least on the Publish now path. */
+    publish_at?: string
+    /** True when that call moved the time to now + 5 minutes. */
+    moved?: boolean
   }>('/api/publish/dispatch-now', body)
 }
 

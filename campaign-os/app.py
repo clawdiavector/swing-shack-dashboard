@@ -15564,7 +15564,19 @@ def publish_dispatch_now_route():
     if not keys:
         return jsonify({"ok": False, "error": "idempotency_key required"}), 400
     try:
+        from _lib.postiz_client import scheduled_at_least
         from _lib.publish_mode import is_sandbox_mode
+
+        def _with_send_time(payload: dict) -> dict:
+            """Effective ISO from scheduled_at_least — the date create_post sends — and whether it moved."""
+            publish_at = payload.get("publish_at")
+            moved = payload.get("moved")
+            if not isinstance(publish_at, str) or not publish_at:
+                publish_at, moved = scheduled_at_least(None)
+            payload["publish_at"] = publish_at
+            payload["moved"] = bool(moved)
+            return payload
+
         if is_sandbox_mode():
             from _lib.publish_sandbox import approve_item, dispatch_one
             dispatched = []
@@ -15579,9 +15591,14 @@ def publish_dispatch_now_route():
                     errors.append(f"{key}: {err}")
                 else:
                     dispatched.append(key)
-            return jsonify({"ok": not errors, "mode": "sandbox", "dispatched": len(dispatched), "errors": errors}), 200
+            payload = {"ok": not errors, "mode": "sandbox", "dispatched": len(dispatched), "errors": errors}
+            if payload["dispatched"]:
+                _with_send_time(payload)
+            return jsonify(payload), 200
         from _lib.publish_live import dispatch_now
         result = dispatch_now(keys)
+        if result.get("dispatched"):
+            _with_send_time(result)
         status = 200 if result.get("ok", True) else 400
         return jsonify(result), status
     except Exception as exc:
