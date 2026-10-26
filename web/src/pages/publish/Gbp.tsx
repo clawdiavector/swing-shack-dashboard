@@ -7,6 +7,7 @@ import {
   nextStep,
   postStage,
   problemWords,
+  queueDates,
   PostCard,
   PostForm,
   StepBar,
@@ -132,6 +133,11 @@ export function Gbp() {
     [brandDrafts, tab],
   )
   const terms = useMemo(() => (searchTerms?.terms ?? []).map((t) => t.query), [searchTerms])
+  const queue = useMemo(() => queueDates(brandDrafts), [brandDrafts])
+  const firstGoesOut = useMemo(() => {
+    const ready = brandDrafts.filter((d) => postStage(d) === 'ready' && d.id).sort((a, b) => String(a.approvedAt || '').localeCompare(String(b.approvedAt || '')))
+    return ready.length ? queue[ready[0].id as string] : undefined
+  }, [brandDrafts, queue])
   // Best ready post to send next: most-searched phrase first, then the one waiting longest.
   const suggestion = useMemo(() => {
     if (tab !== 'check') return null
@@ -287,7 +293,7 @@ export function Gbp() {
       </PageIntro>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-2xl text-sm">{loaded ? nextStep(counts) : 'Loading your posts...'}</p>
+        <p className="max-w-2xl text-sm">{loaded ? nextStep(counts, firstGoesOut) : 'Loading your posts...'}</p>
         <button type="button" className={primaryBtn} onClick={() => setTab('new')}>
           + New post
         </button>
@@ -307,6 +313,7 @@ export function Gbp() {
               handlers={handlers}
               brandName={nameOf(d.brand)}
               suggestedWhy={suggestion && d.id === suggestion.id ? suggestion.why : undefined}
+              goesOut={d.id ? queue[d.id] : undefined}
             />
           ))}
           {loaded && !shown.length ? <li className="text-sm text-tx3">{emptyText[tab]}</li> : null}

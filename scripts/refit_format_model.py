@@ -33,7 +33,6 @@ Outputs data/format-model-refit.json with:
 """
 import json
 import os
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,74 +42,51 @@ DATA = ROOT / "data"
 PCS_FILE = DATA / "post-conversion-score.json"
 IG_FILE = DATA / "ig-business-analytics.json"
 OUT_FILE = DATA / "format-model-refit.json"
-_VOLATILE_KEYS = ("generated_at", "source_data")
 
 
-def _refit_body(doc):
-    if not isinstance(doc, dict):
+def _scratch_data_dir() -> Path | None:
+    """Scratch DATA_DIR from ./check (not the bundled repo data/ tree)."""
+    raw = os.environ.get("DATA_DIR")
+    if not raw:
         return None
-    return {key: value for key, value in doc.items() if key not in _VOLATILE_KEYS}
-
-
-def _committed_refit_bytes():
-    """Bytes of the tracked refit file at HEAD, or None if git cannot show it."""
-    try:
-        rel = OUT_FILE.resolve().relative_to(ROOT.resolve())
-    except ValueError:
+    resolved = Path(raw).resolve()
+    if resolved == DATA.resolve():
         return None
-    try:
-        proc = subprocess.run(
-            ["git", "show", f"HEAD:{rel.as_posix()}"],
-            cwd=ROOT,
-            capture_output=True,
-            check=False,
-        )
-    except OSError:
-        return None
-    if proc.returncode != 0 or not proc.stdout:
-        return None
-    return proc.stdout
+    return resolved
 
 
-def _write_refit(output):
-    """Write the refit result.
+def _payload_stable(previous: dict, new: dict) -> bool:
+    a = dict(new)
+    b = dict(previous)
+    a.pop("generated_at", None)
+    b.pop("generated_at", None)
+    return a == b
 
-    A manual run updates data/format-model-refit.json. ./check points DATA_DIR
-    at a scratch directory and fails if that tracked file changes. Under
-    DATA_DIR, the fresh JSON goes to the scratch dir. The tracked file is
-    rewritten with its committed bytes when the scores are unchanged, so a
-    new timestamp or this machine's absolute paths do not dirty git.
-    """
-    default_out = (DATA / "format-model-refit.json").resolve()
-    runtime = os.environ.get("DATA_DIR")
-    writing_default = Path(OUT_FILE).resolve() == default_out
-    runtime_dir = Path(runtime).resolve() if runtime else None
-    redirect = bool(runtime_dir and writing_default and runtime_dir != DATA.resolve())
 
-    if not redirect:
-        with open(OUT_FILE, "w") as handle:
-            json.dump(output, handle, indent=2)
-        return OUT_FILE
-
-    runtime_dir.mkdir(parents=True, exist_ok=True)
-    scratch = runtime_dir / "format-model-refit.json"
-    with open(scratch, "w") as handle:
-        json.dump(output, handle, indent=2)
-
-    committed = _committed_refit_bytes()
-    same = False
-    if committed:
-        try:
-            previous = json.loads(committed.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            previous = None
-        same = _refit_body(previous) == _refit_body(output)
-    if same:
-        OUT_FILE.write_bytes(committed)
-    else:
-        with open(OUT_FILE, "w") as handle:
-            json.dump(output, handle, indent=2)
-    return scratch
+def _write_outputs(output: dict) -> Path:
+    """Persist refit output; skip bundled data/ when ./check uses a scratch DATA_DIR."""
+    scratch = _scratch_data_dir()
+    bundled = OUT_FILE
+    targets: list[Path] = []
+    if scratch is not None:
+        scratch.mkdir(parents=True, exist_ok=True)
+        targets.append(scratch / "format-model-refit.json")
+    if scratch is None or not bundled.is_file():
+        if bundled not in targets:
+            targets.append(bundled)
+    primary = bundled if bundled in targets else targets[0]
+    serialized = json.dumps(output, indent=2)
+    for path in targets:
+        if path.is_file():
+            try:
+                previous = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                previous = None
+            if previous is not None and _payload_stable(previous, output):
+                continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(serialized, encoding="utf-8")
+    return primary
 
 
 def load_json(p):
@@ -305,7 +281,7 @@ def main():
         "posts": post_output,
     }
 
-    written = _write_refit(output)
+    written_to = _write_outputs(output)
 
     print("=" * 70)
     print(f"FORMAT MODEL REFIT - {output['generated_at']}")
@@ -327,7 +303,7 @@ def main():
     print(f"\nVerdict:")
     for line in verdict_lines:
         print(f"  {line}")
-    print(f"\nWritten to {written}")
+    print(f"\nWritten to {written_to}")
 
 
 if __name__ == "__main__":
