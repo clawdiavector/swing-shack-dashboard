@@ -116,6 +116,8 @@ def delivery_chip_status(
     if status == "failed":
         return "failed"
     if receipt:
+        if str(receipt.get("mode") or "") == "sandbox":
+            return "sandbox_only"
         return "posted"
     if status == "dispatched":
         return "posted"
@@ -160,7 +162,7 @@ def build_deliveries(
             summary["posted"] += 1
         elif chip == "failed":
             summary["failed"] += 1
-        elif chip in ("queued", "sending", "awaiting_approval"):
+        elif chip in ("queued", "sending", "awaiting_approval", "sandbox_only"):
             summary["queued"] += 1
         ext = row.get("external_id")
         if not ext and receipt:

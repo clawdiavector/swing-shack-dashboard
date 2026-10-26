@@ -15409,7 +15409,6 @@ def publish_release_route():
         return jsonify({"ok": False, "error": "brand_id and calendar_id required", "code": "bad_request"}), 400
     try:
         from _lib.brand_validate import validate_brand_id
-        from _lib.publish_mode import is_sandbox_mode
         from _lib.publish_sandbox import release_moment
 
         brand_id = validate_brand_id(brand_id)
@@ -15420,7 +15419,7 @@ def publish_release_route():
             brand_id=brand_id,
             calendar_id=calendar_id,
             editor=editor,
-            dispatch=is_sandbox_mode(),
+            dispatch=False,
             channels=channels,
         )
     except ValueError as exc:
