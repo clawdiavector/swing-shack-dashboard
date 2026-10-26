@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Literal, Optional
 
 _LOG = logging.getLogger("campaign_os.postiz_on_approve")
 
@@ -34,6 +35,41 @@ def _resolve_would_publish_at(row: dict[str, Any]) -> tuple[Optional[str], Optio
     if derived:
         return derived, None
     return None, "would_publish_at missing — set schedule or event_date on the queue row"
+
+
+_CLEAR_BUFFER = timedelta(minutes=2)
+
+
+def _parse_postiz_scheduled_at(value: str | None) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _clear_action_for_receipt(rec: dict[str, Any]) -> tuple[Literal["noop", "delete", "refuse"], Optional[str]]:
+    """Whether un-approve may delete a Postiz post tied to this live receipt."""
+    scheduled_raw = str(rec.get("postiz_scheduled_at") or "").strip()
+    if not scheduled_raw:
+        return "noop", None
+
+    when = _parse_postiz_scheduled_at(scheduled_raw)
+    if when is None:
+        return "noop", None
+
+    now = datetime.now(timezone.utc)
+    if when <= now + _CLEAR_BUFFER:
+        return "refuse", f"already sent to Postiz at {scheduled_raw}; cannot un-approve"
+
+    return "delete", None
 
 
 def _live_receipt_for_key(key: str) -> dict[str, Any] | None:
@@ -141,7 +177,7 @@ def schedule_row_on_approve(row: dict[str, Any]) -> tuple[dict[str, Any], Option
 
 
 def clear_postiz_on_unapprove(idempotency_key: str) -> tuple[dict[str, Any], Optional[str]]:
-    """Delete a scheduled Postiz post and drop the live receipt when un-approving."""
+    """Delete a future schedule-on-approve Postiz post and drop that receipt only."""
     key = str(idempotency_key or "").strip()
     if not key:
         return {}, "idempotency_key required"
@@ -150,18 +186,25 @@ def clear_postiz_on_unapprove(idempotency_key: str) -> tuple[dict[str, Any], Opt
     if not rec:
         return {}, None
 
+    action, refuse_err = _clear_action_for_receipt(rec)
+    if action == "refuse":
+        return {}, refuse_err
+    if action == "noop":
+        return {"cleared_postiz": False, "kept_receipt": True}, None
+
     postiz_id = str(rec.get("postiz_post_id") or "").strip()
     brand_id = str(rec.get("brand_id") or "")
-    need_delete = bool(postiz_id and is_live_mode() and has_brand_key(brand_id))
-    if need_delete:
-        _data, err = delete_post(postiz_id, brand_id=brand_id)
-        if err:
-            msg = err[1] if isinstance(err[1], str) else str(err[1])
-            return {}, f"postiz delete_post: {err[0]} {msg[:120]}".strip()
+    if not (postiz_id and is_live_mode() and has_brand_key(brand_id)):
+        return {"cleared_postiz": False, "kept_receipt": True}, None
+
+    _data, err = delete_post(postiz_id, brand_id=brand_id)
+    if err:
+        msg = err[1] if isinstance(err[1], str) else str(err[1])
+        return {}, f"postiz delete_post: {err[0]} {msg[:120]}".strip()
 
     path = sandbox._receipts_path()  # noqa: SLF001
     rows = sandbox._read_jsonl(path)  # noqa: SLF001
     kept = [r for r in rows if str(r.get("idempotency_key") or "") != key]
     if len(kept) != len(rows):
         sandbox._rewrite_jsonl(path, kept)  # noqa: SLF001
-    return {"removed_receipt": True, "postiz_post_id": postiz_id or None}, None
+    return {"removed_receipt": True, "postiz_post_id": postiz_id}, None

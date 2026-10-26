@@ -152,6 +152,7 @@ class PostizScheduleOnApproveTests(unittest.TestCase):
                 "idempotency_key": "qc-unapprove",
                 "postiz_post_id": "postiz-del-1",
                 "brand_id": "stick",
+                "postiz_scheduled_at": "2099-06-01T12:00:00Z",
             },
         )
         rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())

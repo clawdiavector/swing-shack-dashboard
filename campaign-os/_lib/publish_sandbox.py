@@ -1080,24 +1080,6 @@ def release_moment(
             if not err:
                 dispatched.append(key)
 
-    from _lib.postiz_on_approve import schedule_row_on_approve  # noqa: PLC0415
-
-    queue_by_key = {str(r.get("idempotency_key") or ""): r for r in _read_jsonl(_queue_path())}
-    for key in released:
-        row = queue_by_key.get(key)
-        if row and row.get("human_approved"):
-            _receipt, sched_err = schedule_row_on_approve(row)
-            if sched_err:
-                for prev in released:
-                    unapprove_item(prev)
-                return {
-                    "ok": False,
-                    "error": sched_err,
-                    "code": "postiz_schedule_failed",
-                    "state": state,
-                    "released": released,
-                }
-
     after = post_state_for(brand_id, cal_id) or state_doc
     return {
         "ok": True,

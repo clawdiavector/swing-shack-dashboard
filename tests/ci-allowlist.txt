@@ -153,3 +153,4 @@ campaign-os/tests/test_post_studio.py
 campaign-os/tests/test_post_qa.py
 campaign-os/tests/test_postiz_schedule_on_approve_20261026.py
 campaign-os/tests/test_postiz_schedule_on_approve_review_20261026.py
+campaign-os/tests/test_postiz_clear_guard_20261026.py
