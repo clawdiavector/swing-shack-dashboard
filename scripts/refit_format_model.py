@@ -57,13 +57,25 @@ def _integration_test_subprocess() -> bool:
     return "test_runs_clean_with_real_data" in cur
 
 
+def _under_repo_seed_data(path: Path) -> bool:
+    try:
+        resolved = path.resolve()
+        seed = DATA.resolve()
+        return resolved == seed or seed in resolved.parents
+    except OSError:
+        return False
+
+
 def _scratch_data_dir() -> Path | None:
     """Scratch DATA_DIR from ./check (not the bundled repo data/ tree)."""
+    check = os.environ.get("COS_CHECK_SCRATCH")
+    if check:
+        return Path(check)
     raw = os.environ.get("DATA_DIR")
     if not raw:
         return None
     resolved = Path(raw).resolve()
-    if resolved == DATA.resolve():
+    if _under_repo_seed_data(resolved):
         return None
     return resolved
 
@@ -80,18 +92,20 @@ def _write_outputs(output: dict) -> Path:
     """Persist refit output; skip bundled data/ when ./check uses a scratch DATA_DIR."""
     scratch = _scratch_data_dir()
     bundled = OUT_FILE
+    under_check = bool(os.environ.get("COS_CHECK_SCRATCH"))
     targets: list[Path] = []
-    if scratch is not None:
+    if under_check and scratch is not None:
+        primary = scratch / "format-model-refit.json"
+        targets = [primary]
+    elif scratch is not None:
         scratch.mkdir(parents=True, exist_ok=True)
         targets.append(scratch / "format-model-refit.json")
-    # Under ./check, DATA_DIR is scratch — never touch bundled data/ except the one
-    # integration test that deletes format-model-refit.json and restores it in finally.
-    allow_bundled = scratch is None or (
-        not bundled.is_file() and _integration_test_subprocess()
-    )
-    if allow_bundled and bundled not in targets:
-        targets.append(bundled)
-    primary = bundled if bundled in targets else targets[0]
+        if not bundled.is_file() and _integration_test_subprocess():
+            targets.append(bundled)
+        primary = bundled if bundled in targets else targets[0]
+    else:
+        primary = bundled
+        targets = [bundled]
     serialized = json.dumps(output, indent=2)
     for path in targets:
         if path.is_file():
