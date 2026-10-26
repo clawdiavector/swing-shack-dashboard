@@ -48,16 +48,11 @@ def test_runs_clean_with_real_data():
         print("SKIP test_runs_clean_with_real_data (no ig data file)")
         return
 
-    runtime_dd = (os.environ.get("DATA_DIR") or "").strip()
-    if runtime_dd and Path(runtime_dd).resolve() != DATA.resolve():
-        out_path = Path(runtime_dd) / "format-model-refit.json"
-        backup = None
-    else:
-        out_path = DATA / "format-model-refit.json"
-        backup = None
-        if out_path.exists():
-            backup = out_path.read_bytes()
-            out_path.unlink()
+    out_path = DATA / "format-model-refit.json"
+    backup = None
+    if out_path.exists():
+        backup = out_path.read_bytes()
+        out_path.unlink()
 
     try:
         result = subprocess.run(
