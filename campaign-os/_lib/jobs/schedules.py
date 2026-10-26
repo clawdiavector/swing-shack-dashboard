@@ -22,6 +22,11 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
         "cron_sast": ["06:30", "18:30"],
         "cadence": "every 12h",
     },
+    "outside_posts_sync": {
+        "scheduler": "GitHub Actions (outside-posts-sync-4h.yml)",
+        "cron_sast": ["06:00", "10:00", "14:00", "18:00", "22:00"],
+        "cadence": "every 4h",
+    },
     "social_ingest": {
         "scheduler": "GitHub Actions (social_ingest.yml)",
         "cron_sast": ["05:00"],

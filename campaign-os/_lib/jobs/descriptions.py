@@ -14,6 +14,15 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "to $DATA_DIR. Powers intel views and downstream insights_hooks."
         ),
     },
+    "outside_posts_sync": {
+        "title": "Outside posts on calendar",
+        "summary": "Read-back Meta + Postiz; unmatched posts appear on the Plan grid.",
+        "detail": (
+            "Pulls Instagram feed/reels/stories, Facebook page posts, and Postiz published "
+            "rows. Matches Campaign OS by Postiz id, then time (±30 min) and caption. "
+            "Unmatched live posts upsert grey outside chips on the Plan month calendar."
+        ),
+    },
     "social_ingest": {
         "title": "Social history ingest",
         "summary": "Caches IG/FB posts under brand-directory for Visuals + reference pickers.",

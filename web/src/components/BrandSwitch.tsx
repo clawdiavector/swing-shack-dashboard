@@ -1,6 +1,8 @@
 import { ChevronDown } from 'lucide-react'
 import { Fragment, createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchBrands, selectBrand, type BrandSocialLink } from '../lib/api'
+import { appPathname, routeOwnsBrandQuery } from '../lib/backNav'
 import { filterOperatingBrandIds } from '../lib/brands'
 import {
   readStoredScope,
@@ -74,6 +76,8 @@ export function BrandRefresh({ children }: { children: ReactNode }) {
 }
 
 export function BrandProvider({ children }: { children: ReactNode }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { pathname } = useLocation()
   const [brandId, setId] = useState<string>()
   const [brandLabel, setLabel] = useState<string>()
   const [brandVersion, setBrandVersion] = useState(0)
@@ -96,18 +100,25 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           }))
           .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
         setBrands(rows)
-        const id = payload.active_brand_id || payload.default_brand_id || rows[0]?.id
-        setId(id)
-        setLabel(rows.find((row) => row.id === id)?.label || (id ? prettyBrand(id) : undefined))
+        let id = payload.active_brand_id || payload.default_brand_id || rows[0]?.id
         const orderedOperating = filterOperatingBrandIds(rows.map((r) => r.id))
+        const path = appPathname(window.location.pathname)
+        const queryScopeRaw = routeOwnsBrandQuery(path) ? '' : (searchParams.get('brand') || '').trim()
+        const preferredScope = queryScopeRaw || readStoredScope()
         if (!scopeInitialized.current) {
           scopeInitialized.current = true
-          const initial = resolveInitialScope(readStoredScope(), orderedOperating)
+          const initial = resolveInitialScope(preferredScope, orderedOperating)
           setScope(initial)
+          if (initial !== 'all' && initial !== id) {
+            id = initial
+            void selectBrand(initial)
+          }
           // First paint is "All" before storage is read. Remount once so a
           // restored brand is what the page fetches, without a browser reload.
           if (initial !== 'all') setBrandVersion((v) => v + 1)
         }
+        setId(id)
+        setLabel(rows.find((row) => row.id === id)?.label || (id ? prettyBrand(id) : undefined))
       })
       .catch(() => setBrands([]))
   }, [])
@@ -119,6 +130,37 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const operatingBrandIds = useMemo(() => filterOperatingBrandIds(brands.map((r) => r.id)), [brands])
 
   const brandIds = useMemo(() => scopeBrandIds(scope, operatingBrandIds), [scope, operatingBrandIds])
+  const scopeFromUrl = useRef(false)
+
+  useEffect(() => {
+    if (!operatingBrandIds.length || routeOwnsBrandQuery(pathname)) return
+    const queryScopeRaw = (searchParams.get('brand') || '').trim()
+    if (!queryScopeRaw) return
+    const queryScope = resolveInitialScope(queryScopeRaw, operatingBrandIds)
+    if (queryScope === scope) return
+    scopeFromUrl.current = true
+    writeStoredScope(queryScope)
+    setScope(queryScope)
+    if (queryScope !== 'all' && queryScope !== brandId) {
+      const row = brands.find((brand) => brand.id === queryScope)
+      if (row) void setBrand(row.id, row.label)
+    }
+  }, [operatingBrandIds, scope, searchParams, pathname, brandId, brands])
+
+  useEffect(() => {
+    if (!scopeInitialized.current || routeOwnsBrandQuery(pathname)) return
+    if (scopeFromUrl.current) {
+      scopeFromUrl.current = false
+      return
+    }
+    const wanted = scope === 'all' ? 'all' : scope
+    setSearchParams((prev) => {
+      if ((prev.get('brand') || '').trim() === wanted) return prev
+      const next = new URLSearchParams(prev)
+      next.set('brand', wanted)
+      return next
+    }, { replace: true })
+  }, [scope, pathname, setSearchParams])
 
   function setScopeAll() {
     if (scope === 'all') return

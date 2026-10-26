@@ -446,14 +446,13 @@ def _ensure_calendar_dir() -> Path:
     """
     global _CALENDAR_DIR, _CALENDAR_DIR_READY
     runtime_calendar = _runtime_data_dir() / "intelligence" / "marketing-calendar"
-    if _CALENDAR_DIR_READY and _CALENDAR_DIR == runtime_calendar:
+    if _CALENDAR_DIR_READY:
         return _CALENDAR_DIR
-    _CALENDAR_DIR_READY = False
-    candidates_dirs = [
-        runtime_calendar,
-        Path(os.path.dirname(os.path.abspath(__file__))) / ".." / "data" / "calendar",  # baked
-    ]
-    # First try the existing _CALENDAR_DIR (the canonical DATA_DIR/intelligence/marketing-calendar)
+    baked = Path(os.path.dirname(os.path.abspath(__file__))) / ".." / "data" / "calendar"
+    candidates_dirs: list[Path] = []
+    for cand in (_CALENDAR_DIR, runtime_calendar, baked):
+        if cand not in candidates_dirs:
+            candidates_dirs.append(cand)
     for cand in candidates_dirs:
         try:
             cand.mkdir(parents=True, exist_ok=True)

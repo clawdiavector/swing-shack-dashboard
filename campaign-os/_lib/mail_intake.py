@@ -92,7 +92,7 @@ def detect_brand(text: str) -> Optional[str]:
     found = set()
     if re.search(r"\bStick\b", text) or re.search(r"\bstick\s+(?:golf|paarl)\b", text, re.I):
         found.add("stick")
-    if re.search(r"\bswing\s*shack\b", text, re.I):
+    if re.search(r"\bswing\s*shack\b", text, re.I) or re.search(r"\bSS\b", text):
         found.add("swing-shack")
     if re.search(r"\bbag\s*drop\b", text, re.I):
         found.add("bag-drop")
@@ -131,6 +131,14 @@ def sender_address(from_field: Any) -> str:
     return (m.group(1) if m else s).strip().lower()
 
 
+def sender_name(from_field: Any) -> str:
+    """A first name for the page: the display name's first word, else the start of the address."""
+    s = str(from_field or "")
+    shown = s.split("<")[0].strip().strip('"').strip() if "<" in s else ""
+    word = shown.split()[0] if shown else re.split(r"[._\-+]", sender_address(s).split("@")[0])[0]
+    return word.capitalize()[:40]
+
+
 def _contacts_path() -> str:
     here = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(here, "..", "..", "plugins", "campaign-os", "skills",
@@ -158,6 +166,63 @@ def _clean_body(text: str) -> str:
             break
         out.append(line)
     return "\n".join(out).strip()
+
+
+# ── one idea per card ─────────────────────────────────────────────────
+
+_SIGN_OFF = re.compile(r"^\s*(?:thanks|thank you|regards|kind regards|best|cheers|groete|dankie|sent from|--)\b", re.I)
+_INTRO = re.compile(r"^\s*(?:\w+\s+)?(?:ideas?|idees?)\b.{0,60}:\s*$", re.I)
+_LIST_ITEM = re.compile(r"^\s*(?:\d+[.)]|[-•*])\s+")
+TITLE_MAX = 80
+
+
+def split_ideas(body: str) -> List[str]:
+    """One text per idea. Blank lines separate ideas, or a numbered or bulleted list does.
+    The intro line ("Two ideas for discussion:") and the sign-off are dropped. Fewer than two
+    ideas found means the whole text is one idea."""
+    lines = str(body or "").strip().splitlines()
+    cut = next((n for n, ln in enumerate(lines) if n > 0 and _SIGN_OFF.match(ln)), len(lines))
+    text = "\n".join(lines[:cut]).strip()
+
+    def keep(blocks: List[str]) -> List[str]:
+        out = []
+        for b in blocks:
+            b = b.strip()
+            if len(b) < 12 or _INTRO.match(b) or (b.endswith(":") and len(b) <= 120):
+                continue
+            out.append(_LIST_ITEM.sub("", b, count=1))
+        return out
+
+    blocks = keep(re.split(r"\n\s*\n", text))
+    if len(blocks) < 2:
+        rows, cur = [], []
+        for ln in text.splitlines():
+            if _LIST_ITEM.match(ln) and cur:
+                rows.append("\n".join(cur))
+                cur = []
+            cur.append(ln)
+        rows.append("\n".join(cur))
+        listed = keep(rows)
+        if len(listed) >= 2 and sum(1 for ln in text.splitlines() if _LIST_ITEM.match(ln)) >= 2:
+            blocks = listed
+    return blocks if len(blocks) >= 2 else [text]
+
+
+def _title_from(text: str, fallback: str = "") -> str:
+    """A card heading: the first sentence, cut at a word."""
+    t = re.sub(r"^\s*(?:idea|ideas|idee|idees|voorstel|suggestion)\s*[:\-–]\s*", "", text.strip(), flags=re.I)
+    t = t.replace("“", "").replace("”", "").replace('"', "")
+    first = t.strip().splitlines()[0] if t.strip() else ""
+    t = re.split(r"(?<=[.!?])\s", first)[0].rstrip(".")
+    if not t:
+        t = fallback.strip() or "Idea"
+    if len(t) > TITLE_MAX:
+        t = t[:TITLE_MAX].rsplit(" ", 1)[0].rstrip(",;:/ ") + "…"
+    return t
+
+
+def idea_title(item: Dict[str, Any]) -> str:
+    return str(item.get("title") or "") or _title_from(item.get("summary") or "", item.get("subject") or "")
 
 
 # ── the store ─────────────────────────────────────────────────────────
@@ -259,38 +324,119 @@ def mark_on_calendar(item_id: str, calendar_id: str) -> Optional[Dict[str, Any]]
     return _update(item_id, calendar_id=calendar_id, needs=[])
 
 
-def file_message(m: Dict[str, Any], today: date) -> Optional[Dict[str, Any]]:
-    """File one message. None when the sender is not allowed or it is already filed."""
-    if sender_address(m.get("from")) not in allowed_senders():
-        return None
-    mid = str(m.get("message_id") or "")
-    if not mid or mid in known_message_ids():
-        return None
-    subject = str(m.get("subject") or "").strip()
-    body = _clean_body(m.get("text") or m.get("preview") or "")
-    kind, why = classify(subject, body)
-    whole = f"{subject}\n{body}"
-    d = extract_date(whole, today)
+def _new_item(m: Dict[str, Any], mid: str, kind: str, why: str, subject: str, text: str,
+              today: date, n: int, total: int) -> Dict[str, Any]:
+    """One card. `text` is what this card is about: the whole mail, or one idea from it."""
+    d = extract_date(text, today)
     item = {
-        "id": "mi-" + hashlib.sha1(mid.encode()).hexdigest()[:10],
+        "id": "mi-" + hashlib.sha1((mid if total == 1 else f"{mid}#{n}").encode()).hexdigest()[:10],
         "message_id": mid,
         "from": sender_address(m.get("from")),
+        "from_name": sender_name(m.get("from")),
         "subject": subject[:200],
-        "summary": body[:SUMMARY_MAX],
+        "summary": text[:SUMMARY_MAX],
         "kind": kind,
         "reason": why,
-        "brand": detect_brand(whole),
+        "brand": detect_brand(text),
         "date": d.isoformat() if d else None,
         "status": "open",
         "calendar_id": None,
         "received_at": str(m.get("timestamp") or ""),
         "filed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
+    if kind == "idea":
+        item.update(title=_title_from(text, subject), idea_index=n, idea_total=total)
     item["needs"] = _needs(item)
-    items = _read()
-    items.append(item)
-    _write(items)
     return item
+
+
+def _file(m: Dict[str, Any], today: date) -> List[Dict[str, Any]]:
+    """File one message as one card, or as one card per idea when an idea mail holds several."""
+    if sender_address(m.get("from")) not in allowed_senders():
+        return []
+    mid = str(m.get("message_id") or "")
+    if not mid or mid in known_message_ids():
+        return []
+    subject = str(m.get("subject") or "").strip()
+    body = _clean_body(m.get("text") or m.get("preview") or "")
+    kind, why = classify(subject, body)
+    texts = split_ideas(body) if kind == "idea" else [f"{subject}\n{body}".strip()]
+    if kind == "idea" and len(texts) == 1:
+        texts = [f"{subject}\n{body}".strip()]
+    new = [_new_item(m, mid, kind, why, subject, t, today, n, len(texts)) for n, t in enumerate(texts, 1)]
+    _write(_read() + new)
+    return new
+
+
+def file_message(m: Dict[str, Any], today: date) -> Optional[Dict[str, Any]]:
+    """File one message. The first card made, or None when the sender is not allowed
+    or the message is already filed."""
+    new = _file(m, today)
+    return new[0] if new else None
+
+
+def resplit_existing(today: date) -> int:
+    """Cards filed before ideas were split: a mail with several ideas becomes one card each.
+    A card that has a plan, or is already on the calendar, is left alone."""
+    items, out, changed = _read(), [], 0
+    for it in items:
+        if (it.get("kind") != "idea" or it.get("status") != "open" or it.get("plan_id")
+                or it.get("calendar_id") or "idea_total" in it):
+            out.append(it)
+            continue
+        parts = split_ideas(it.get("summary") or "")
+        if len(parts) < 2:
+            out.append(dict(it, title=_title_from(it.get("summary") or "", it.get("subject") or ""),
+                            idea_index=1, idea_total=1))
+            changed += 1
+            continue
+        for n, t in enumerate(parts, 1):
+            new = _new_item({"from": it.get("from"), "timestamp": it.get("received_at")}, it["message_id"],
+                            "idea", it.get("reason") or "", it.get("subject") or "", t, today, n, len(parts))
+            new["from_name"] = it.get("from_name") or new["from_name"]
+            new["filed_at"] = it.get("filed_at") or new["filed_at"]
+            if n == 1:
+                new["id"] = it["id"]
+            out.append(new)
+        changed += 1
+    if changed:
+        _write(out)
+    return changed
+
+
+def _no_calendar(brand: str, item: Dict[str, Any]) -> str:
+    """The job does not put ideas on the calendar. A person looks at the proposed plan first."""
+    return ""
+
+
+def idea_plan(item_id: str, today: date, force: bool = False) -> Dict[str, Any]:
+    """Make (or fetch) the proposed plan for an idea. Nothing is put on the calendar: the plan
+    is a draft that can be edited, approved and placed from the card. The person who picked
+    the brand and date has vouched for them, so no brief gate stands in the way."""
+    it = get_item(item_id)
+    if not it or it.get("kind") != "idea":
+        return {"ok": False, "error": "idea not found"}
+    if not it.get("brand"):
+        return {"ok": False, "error": "pick the brand first"}
+    d = extract_date(str(it.get("date") or ""), date.min)
+    if not d:
+        return {"ok": False, "error": "pick the date first"}
+    if d < today:
+        return {"ok": False, "error": f"that date has passed ({d.isoformat()}); pick a date still to come"}
+    from _lib import campaign_plan as cp  # noqa: PLC0415
+    title = idea_title(it)
+    brief = {"brief_id": "brf-" + it["id"], "status": "approved",
+             "source_opportunity": {"name": title, "date": d.isoformat()},
+             "timing": {"event_date": d.isoformat(), "peak_date": d.isoformat()}}
+    res = cp.propose_plan(it["brand"], brief, force=force, today=today)
+    if not res.get("ok"):
+        return res
+    if it.get("fleshed") and not res.get("existing"):
+        from _lib import idea_builder as ib  # noqa: PLC0415
+        ib.apply_to_plan(res["plan"], it["fleshed"])
+        cp._write_plan(res["plan"])
+    _update(item_id, plan_id=res["plan"]["plan_id"], brief_id=brief["brief_id"])
+    return {"ok": True, "plan": res["plan"], "item": get_item(item_id)}
 
 
 # ── the job ───────────────────────────────────────────────────────────
@@ -301,9 +447,9 @@ def _notice_text(new: List[Dict[str, Any]]) -> str:
         label = "Do now" if i["kind"] == "do_now" else "Idea"
         extra = ""
         if i["kind"] == "idea":
-            extra = " (on the calendar, waiting for your Approve)" if i.get("calendar_id") else (
-                f" (needs {' and '.join(i['needs'])} before it can go on the calendar)" if i.get("needs") else "")
-        lines.append(f"- {label}: {i['subject'] or '(no subject)'}{extra}")
+            extra = (f" (needs {' and '.join(i['needs'])} before its plan can be shown)" if i.get("needs")
+                     else " (ready: open it on Today to see the proposed plan)")
+        lines.append(f"- {label}: {(idea_title(i) if i['kind'] == 'idea' else i['subject']) or '(no subject)'}{extra}")
     lines += ["", "Open the Today page to see them."]
     return "\n".join(lines)
 
@@ -314,19 +460,18 @@ def run_intake(fetch: Callable[[], List[Dict[str, Any]]],
                today: date) -> Dict[str, Any]:
     if not allowed_senders():
         return {"ok": False, "error": "no allowed senders: set MAIL_INTAKE_SENDERS"}
+    resplit_existing(today)
     new = []
     for m in fetch():
-        it = file_message(m, today)
-        if not it:
-            continue
-        if it["kind"] == "idea" and not it["needs"]:
-            try:
-                cid = add_suggestion(it["brand"], it)
-                mark_on_calendar(it["id"], cid)
-                it = get_item(it["id"]) or it
-            except Exception as e:  # keep the item; a person can add it by hand
-                _update(it["id"], calendar_error=str(e)[:200])
-        new.append(it)
+        for it in _file(m, today):
+            if it["kind"] == "idea" and not it["needs"]:
+                try:
+                    cid = add_suggestion(it["brand"], it)
+                    mark_on_calendar(it["id"], cid)
+                    it = get_item(it["id"]) or it
+                except Exception as e:  # keep the item; a person can add it by hand
+                    _update(it["id"], calendar_error=str(e)[:200])
+            new.append(it)
     out = {"ok": True, "filed": len(new),
            "do_now": sum(1 for i in new if i["kind"] == "do_now"),
            "ideas": sum(1 for i in new if i["kind"] == "idea")}
@@ -375,15 +520,6 @@ def _notify_live(to: str, subject: str, text: str) -> None:
     _api("POST", f"/inboxes/{box}/messages/send", {"to": to, "subject": subject, "text": text})
 
 
-def idea_title(item: Dict[str, Any]) -> str:
-    t = re.sub(r"^\s*(?:idea|ideas|idee|idees|voorstel|suggestion)\s*[:\-–]\s*", "",
-               item.get("subject") or "", flags=re.I).strip()
-    if not t:
-        s = (item.get("summary") or "").strip()
-        t = s.splitlines()[0] if s else ""
-    return (t or "Idea from Herman")[:80]
-
-
 def add_suggestion_live(brand: str, item: Dict[str, Any]) -> str:
     """File the idea as a faded suggestion on the calendar. Nothing is approved here."""
     from _lib import marketing_calendar as mc  # noqa: PLC0415
@@ -417,6 +553,6 @@ def run_intake_live(today: Optional[date] = None) -> Dict[str, Any]:
         except Exception:
             today = date.today() + timedelta(0)
     try:
-        return run_intake(_fetch_live, _notify_live, add_suggestion_live, today)
+        return run_intake(_fetch_live, _notify_live, _no_calendar, today)
     except (urllib.error.URLError, OSError) as e:
         return {"ok": False, "error": f"AgentMail could not be reached: {e}"}
