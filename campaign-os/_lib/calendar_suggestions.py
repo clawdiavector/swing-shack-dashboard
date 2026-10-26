@@ -21,6 +21,7 @@ import re
 import uuid
 from typing import Any, Dict, Iterable, List, Optional
 
+from _lib.data_paths import runtime_data_dir as _runtime_data_dir
 from _lib.plan_profiles import event_kind
 from _lib.plan_extras import _JUNK_TITLE_RE, _key, _parse, dates_to_note, _same_event
 
@@ -434,8 +435,7 @@ UNDO_TTL_HOURS = 24
 
 
 def _undo_path(brand_id: str) -> str:
-    return os.path.join(os.environ.get("DATA_DIR", "data"), "calendar-suggestion-undo",
-                        f"{brand_id}.json")
+    return os.path.join(str(_runtime_data_dir()), "calendar-suggestion-undo", f"{brand_id}.json")
 
 
 def _read_undo(brand_id: str) -> Dict[str, Any]:
@@ -491,8 +491,7 @@ def drop_undo(brand_id: str, token: Any) -> None:
 # ── decisions on important dates ──────────────────────────────────────
 
 def _decisions_path(brand_id: str) -> str:
-    return os.path.join(os.environ.get("DATA_DIR", "data"), "calendar-suggestion-decisions",
-                        f"{brand_id}.json")
+    return os.path.join(str(_runtime_data_dir()), "calendar-suggestion-decisions", f"{brand_id}.json")
 
 
 def read_decisions(brand_id: str) -> Dict[str, Any]:

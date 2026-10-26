@@ -42,24 +42,12 @@ _DEFAULT_LOCAL_DIR = Path(
     os.environ.get("BRAND_DIR_LOCAL", "/Users/fivefriday/hermes-fleet/shared/data/brand-directory")
 )
 _REPO_DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "brand-directory"  # repo-local data/brand-directory/
+from _lib.data_paths import runtime_data_dir as _runtime_data_dir
+
 _SEED_DATA_ROOT = Path(__file__).resolve().parents[2] / "data"
 _DATA_DIR = Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
 _CALENDAR_DIR = _DATA_DIR / "intelligence" / "marketing-calendar"
 _CALENDAR_DIR_READY = False
-
-
-def _runtime_data_dir() -> Path:
-    """Writable DATA_DIR; redirects off the committed repo data/ seed tree."""
-    configured = Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
-    try:
-        if configured.resolve() == _SEED_DATA_ROOT.resolve():
-            scratch = os.environ.get("COS_CHECK_SCRATCH") or os.environ.get("COS_RUNTIME_DATA")
-            base = Path(scratch) if scratch else Path("/tmp/cos-runtime-data")
-            base.mkdir(parents=True, exist_ok=True)
-            return base
-    except OSError:
-        pass
-    return configured
 
 # ─── Constants ──────────────────────────────────────────────────────────────
 VALID_BRAND_IDS = ["swing-shack", "stick", "bag-drop"]
