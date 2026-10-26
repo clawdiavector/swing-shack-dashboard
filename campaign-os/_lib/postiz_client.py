@@ -530,10 +530,14 @@ def get_post(post_id: str) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
     return _request("GET", f"/posts/{post_id}")
 
 
-def delete_post(post_id: str) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
+def delete_post(
+    post_id: str,
+    *,
+    brand_id: str | None = None,
+) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
     """Delete a draft (only DRAFT state is deletable per the postiz-ui-vs-api
     protocol — never silently delete a published post)."""
-    return _request("DELETE", f"/posts/{post_id}")
+    return _request("DELETE", f"/posts/{post_id}", brand_id=brand_id)
 
 
 def list_integrations(

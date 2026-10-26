@@ -4,7 +4,7 @@ import { useBrand } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, StatCard } from '../components/ui'
 import { getJson } from '../lib/api'
-import { closesItem, fieldLabel, lengthState, resultNote, type ApplyResult, type FixDraft } from '../lib/seoFixer'
+import { cannotSave, closesItem, fieldLabel, lengthState, resultNote, type ApplyResult, type FixDraft } from '../lib/seoFixer'
 import { fixLabel, splitByButton, type SeoFix, type SeoFixQueue } from '../lib/seoFixQueue'
 import { canUndo, modeNote, statusLabel, type MetaChange, type PublishMode } from '../lib/seoMetaPublish'
 
@@ -121,6 +121,7 @@ function FixEditor({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id:
   const [busy, setBusy] = useState(false)
   const [warnings, setWarnings] = useState<string[] | null>(null)
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     let live = true
@@ -143,6 +144,16 @@ function FixEditor({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id:
   const len = lengthState(text, min, max)
   const unchanged = text.trim() === (draft.current ?? '').trim()
   const practice = draft.mode === 'dry-run'
+  const noSave = cannotSave(draft)
+
+  async function copyText() {
+    try {
+      await navigator.clipboard.writeText(text.trim().replace(/\s+/g, ' '))
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
 
   async function apply(confirm: boolean) {
     setBusy(true)
@@ -205,6 +216,16 @@ function FixEditor({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id:
         ) : null}
       </div>
 
+      {noSave ? (
+        <div className="mt-2 rounded-lg border border-gold/40 p-2 text-xs text-tx2">
+          <p className="font-semibold text-tx">Campaign OS cannot save this one for you yet.</p>
+          <p className="mt-1">
+            WordPress keeps Yoast's {draft.field_label?.toLowerCase()} hidden from pages, so a save is quietly dropped. Copy the text above and
+            paste it into the Yoast box on the page in WordPress. Blog posts are not affected. A one-time WordPress snippet makes pages work.
+          </p>
+        </div>
+      ) : null}
+
       {warnings ? (
         <div className="mt-2 rounded-lg border border-gold/40 p-2 text-xs text-tx2">
           {warnings.map((w) => (
@@ -214,16 +235,30 @@ function FixEditor({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id:
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {noSave ? (
+          <button
+            type="button"
+            onClick={() => void copyText()}
+            disabled={len.state !== 'ok'}
+            className="glass-pill rounded-full border border-white/10 px-4 py-1.5 text-sm font-semibold text-tx hover:border-ac hover:text-ac disabled:opacity-50"
+          >
+            {copied ? 'Copied' : 'Copy text'}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => void apply(warnings !== null)}
-          disabled={busy || len.state !== 'ok' || unchanged}
+          disabled={busy || noSave || len.state !== 'ok' || unchanged}
           className="glass-pill rounded-full border border-white/10 px-4 py-1.5 text-sm font-semibold text-tx hover:border-ac hover:text-ac disabled:opacity-50"
         >
           {busy ? 'Working…' : warnings ? 'Apply anyway' : practice ? 'Record (practice mode)' : 'Apply'}
         </button>
         <span className="text-xs text-tx3">
-          {practice ? 'Practice mode: nothing is changed on the website.' : 'Changes the live website. You can undo it afterwards.'}
+          {noSave
+            ? 'Nothing is changed on the website from here.'
+            : practice
+              ? 'Practice mode: nothing is changed on the website.'
+              : 'Changes the live website. You can undo it afterwards.'}
         </span>
       </div>
       {note ? <p className={`mt-2 text-sm ${note.ok ? 'text-ac' : 'text-red'}`}>{note.text}</p> : null}

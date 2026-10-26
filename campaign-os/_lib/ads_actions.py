@@ -195,6 +195,9 @@ def undo(brand_id: str, action_id: str, *, graph, token: str, account_id: str,
     if entry.get("kind") == "set_adset_budget":
         return _undo_budget(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
                             write=write, by=by)
+    if entry.get("kind") == "resume_campaign":
+        return _undo_campaign_resume(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
+                                     write=write, by=by)
     if entry.get("kind") == "pause_adset":
         return _undo_adset_pause(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
                                  write=write, by=by)
@@ -315,6 +318,44 @@ def _undo_end_date(brand_id, entries, entry, *, graph, token, account_id, write,
 
 
 # ── pause_adset (made by the budget guard) ─────────────────────────────────
+
+def resume_campaign(brand_id: str, campaign_id, *, graph, token: str, account_id: str, read, write,
+                    by: str = "dashboard") -> dict:
+    """Turn a paused campaign on, then log it. Undo pauses it again."""
+    if not writes_enabled():
+        raise ActionRefused("One-click ad changes are switched off.", 403)
+    cid = _valid_ad_id(campaign_id)
+    camp = graph("GET", cid, token, {"fields": "id,name,status,account_id"})
+    if f"act_{camp.get('account_id')}" != account_id:
+        raise ActionRefused("That campaign does not belong to this brand's ad account.", 403)
+    if camp.get("status") != "PAUSED":
+        raise ActionRefused(f"The campaign is {str(camp.get('status')).lower()}, not paused. Check Ads Manager.", 409)
+    res = graph("POST", cid, token, {"status": "ACTIVE"})
+    if not res.get("success"):
+        raise ActionRefused("Meta did not confirm turning the campaign on. Check Ads Manager.", 502)
+    entry = {"id": uuid.uuid4().hex[:12], "at": _now(), "by": by, "kind": "resume_campaign", "ad_id": cid,
+             "ad_name": camp.get("name"), "before": "PAUSED", "after": "ACTIVE", "undone_at": None}
+    entries = load_log(brand_id, read)
+    entries.append(entry)
+    _save(brand_id, entries, write)
+    return entry
+
+
+def _undo_campaign_resume(brand_id, entries, entry, *, graph, token, account_id, write, by) -> dict:
+    camp = graph("GET", entry["ad_id"], token, {"fields": "id,name,status,account_id"})
+    if f"act_{camp.get('account_id')}" != account_id:
+        raise ActionRefused("That campaign does not belong to this brand's ad account.", 403)
+    if camp.get("status") != "ACTIVE":
+        raise ActionRefused(f"The campaign is now {str(camp.get('status')).lower()}, not active, so it was changed "
+                            "somewhere else. Check Ads Manager.", 409)
+    res = graph("POST", entry["ad_id"], token, {"status": "PAUSED"})
+    if not res.get("success"):
+        raise ActionRefused("Meta did not confirm the undo. Check Ads Manager.", 502)
+    entry["undone_at"] = _now()
+    entry["undone_by"] = by
+    _save(brand_id, entries, write)
+    return entry
+
 
 def _undo_adset_pause(brand_id, entries, entry, *, graph, token, account_id, write, by) -> dict:
     adset = graph("GET", entry["ad_id"], token, {"fields": "id,name,status,account_id"})

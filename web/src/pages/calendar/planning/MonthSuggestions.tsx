@@ -20,11 +20,12 @@ import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { actorName, planFromEvent } from '../../../lib/plan'
 import { plainCategory, plainNotes, tierLabel } from '../../../lib/planning'
 
-export type Decided = { undo: Undo; title: string }
+export type Decided = { undo: Undo; title: string; warning?: string }
 
 /** The faded suggestions for one month, and the three things you can do with them. */
 export function useMonthSuggestions(brandId: string, month: string, enabled: boolean, onChanged: () => void) {
   const [items, setItems] = useState<Suggestion[]>([])
+  const [postsByDay, setPostsByDay] = useState<Record<string, import('../../../lib/calendarSuggestions').DayPrimaryPost[]>>({})
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [decided, setDecided] = useState<Decided | null>(null)
@@ -38,8 +39,10 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
     let cancelled = false
     void fetchSuggestions(brandId, month).then((r) => {
       if (cancelled) return
-      if (r.ok) setItems(r.items || [])
-      else setError(r.error || 'Could not load the suggestions.')
+      if (r.ok) {
+        setItems(r.items || [])
+        setPostsByDay(r.posts_by_day || {})
+      } else setError(r.error || 'Could not load the suggestions.')
     })
     return () => {
       cancelled = true
@@ -101,7 +104,7 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
       return
     }
     setPlanNote(null)
-    setDecided({ undo: r.undo, title: s.title })
+    setDecided({ undo: r.undo, title: s.title, warning: r.warning || undefined })
     settle()
     // An approved date nearly always needs a plan, so make it now. If it cannot be
     // made (no pillar, or the brief is refused) the reason shows and Make a plan stays.
@@ -149,6 +152,7 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
 
   return {
     items: enabled && brandId ? items : [],
+    postsByDay: enabled && brandId ? postsByDay : {},
     pillars,
     busyKey,
     error,
@@ -175,6 +179,7 @@ export function GhostChip({
   s,
   busy,
   pillars,
+  compact,
   onApprove,
   onReject,
   onSwap,
@@ -182,6 +187,7 @@ export function GhostChip({
   s: Suggestion
   busy: boolean
   pillars: PillarOption[]
+  compact?: boolean
   onApprove: (pillar: string) => void
   onReject: () => void
   onSwap?: () => void
@@ -195,7 +201,11 @@ export function GhostChip({
       chipTestId="ghost-chip"
       cardTestId="ghost-card"
       cardLabel={`Suggestion: ${s.title}`}
-      chipClass="flex max-w-full cursor-pointer items-center gap-1 rounded-full border border-dashed border-tx3/50 bg-tx3/5 px-1.5 py-0.5 text-[10.5px] font-semibold text-tx2 opacity-60 hover:opacity-100"
+      chipClass={
+        compact
+          ? 'flex max-w-full cursor-pointer items-center gap-1 rounded-full border border-dashed border-tx3/40 bg-tx3/5 px-1 py-0.5 text-[9px] font-semibold text-tx3 opacity-70 hover:opacity-100'
+          : 'flex max-w-full cursor-pointer items-center gap-1 rounded-full border border-dashed border-tx3/50 bg-tx3/5 px-1.5 py-0.5 text-[10.5px] font-semibold text-tx2 opacity-60 hover:opacity-100'
+      }
       chip={
         <>
           <EventTypeIcon kind={s.kind} size="sm" className="!border-0 !bg-transparent !p-0" />
@@ -335,6 +345,11 @@ export function SuggestionBar({
           data-testid="undo-bar"
         >
           <span>{undoMessage(decided.undo.kind, decided.title)}</span>
+          {decided.warning ? (
+            <span className="font-semibold text-yel" data-testid="approve-warning">
+              {decided.warning}
+            </span>
+          ) : null}
           {decided.undo.kind === 'approve' && decided.undo.event_key && onMakePlan && !planNote ? (
             <button
               type="button"

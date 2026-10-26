@@ -1,5 +1,10 @@
 {
   "schema_version": "0.1",
   "image_path": "data/brand-directory/swing-shack/images/Swing Shack RAW/IMG_1884.jpeg",
-  "error": "cannot identify image file 'data/brand-directory/swing-shack/images/Swing Shack RAW/IMG_1884.jpeg'"
+  "error": "cannot identify image file 'data/brand-directory/swing-shack/images/Swing Shack RAW/IMG_1884.jpeg'",
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
 }

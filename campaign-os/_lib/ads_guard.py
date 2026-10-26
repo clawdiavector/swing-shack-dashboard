@@ -31,20 +31,21 @@ _ADSET_FIELDS = "id,name,effective_status,end_time,campaign{id,name}"
 
 def trigger(figures: dict, budget) -> dict:
     """Is the budget used up, or will the next hour use it up? A failed read never triggers."""
+    w = ads_budget.word((figures or {}).get("period"))
     if not budget:
-        return {"go": False, "reason": "No monthly budget is set."}
+        return {"go": False, "reason": f"No {w}ly budget is set."}
     if not figures or not figures.get("complete"):
-        return {"go": False, "reason": "This month's spend could not be read, so nothing is paused."}
+        return {"go": False, "reason": f"This {w}'s spend could not be read, so nothing is paused."}
     mtd = figures.get("mtd_spend") or 0.0
     # One hour of the live ad sets' daily budgets (with Meta's usual quarter of over-delivery): what could be
     # spent before the next check.
     hour = (figures.get("daily_run_rate") or 0.0) / 24.0 * ads_budget.OVERDELIVERY
     if mtd >= budget:
-        return {"go": True, "reason": f"The month's budget of R{budget:,.0f} is used up (R{mtd:,.0f} spent)."}
+        return {"go": True, "reason": f"The {w}'s budget of R{budget:,.0f} is used up (R{mtd:,.0f} spent)."}
     if mtd + hour >= budget:
-        return {"go": True, "reason": f"R{budget - mtd:,.0f} of the R{budget:,.0f} budget is left, less than the next "
+        return {"go": True, "reason": f"R{budget - mtd:,.0f} of the {w}'s R{budget:,.0f} budget is left, less than the next "
                                       f"hour can spend (about R{hour:,.0f})."}
-    return {"go": False, "reason": f"Within budget: R{mtd:,.0f} of R{budget:,.0f} spent."}
+    return {"go": False, "reason": f"Within the {w}'s budget: R{mtd:,.0f} of R{budget:,.0f} spent."}
 
 
 def running_sets(rows: list[dict], now: _dt.datetime) -> list[dict]:

@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Products/FJRL001-S__front.png",
+  "layer1_metadata": {
+    "filename": "FJRL001-S__front.png",
+    "format": "PNG",
+    "mode": "RGBA",
+    "width_px": 2000,
+    "height_px": 2000,
+    "aspect_ratio": 1.0,
+    "orientation": "square",
+    "file_size_bytes": 3558610,
+    "modified": 1792982296.5645316,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.375
+      },
+      {
+        "hex": "#f3f2f3",
+        "rgb": [
+          243,
+          242,
+          243
+        ],
+        "share": 0.1921
+      },
+      {
+        "hex": "#a69589",
+        "rgb": [
+          166,
+          149,
+          137
+        ],
+        "share": 0.153
+      },
+      {
+        "hex": "#416588",
+        "rgb": [
+          65,
+          101,
+          136
+        ],
+        "share": 0.1232
+      },
+      {
+        "hex": "#193655",
+        "rgb": [
+          25,
+          54,
+          85
+        ],
+        "share": 0.0656
+      },
+      {
+        "hex": "#dedcda",
+        "rgb": [
+          222,
+          220,
+          218
+        ],
+        "share": 0.0634
+      },
+      {
+        "hex": "#010000",
+        "rgb": [
+          1,
+          0,
+          0
+        ],
+        "share": 0.0158
+      },
+      {
+        "hex": "#000001",
+        "rgb": [
+          0,
+          0,
+          1
+        ],
+        "share": 0.0121
+      }
+    ],
+    "mean_brightness": 97.4,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.0,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 66.8,
+    "brightness_bottom": 97.6,
+    "edge_density_grid": [
+      [
+        2.98,
+        4.53,
+        4.61
+      ],
+      [
+        24.2,
+        15.87,
+        16.77
+      ],
+      [
+        16.42,
+        3.11,
+        9.55
+      ]
+    ],
+    "subject_estimate_position": "left"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 13,
+    "text_preview": "Advanced Wet Weather Performance \u201c1 GLOVE IN GOLF \u00aeHYDROSERIE intial Equipment for Rain-Re"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 29,
+    "median_text_height_px": 19,
+    "likely_heading_text": "Wet",
+    "is_all_caps": false,
+    "sample_text_colour": "#004e9d"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": false,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#000000",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "left",
+      "ocr_text": "Advanced Wet Weather Performance \u201c1 GLOVE IN GOLF \u00aeHYDROSERIE intial Equipment for Rain-Re",
+      "all_caps_detected": false
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

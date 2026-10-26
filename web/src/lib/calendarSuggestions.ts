@@ -4,6 +4,12 @@
 
 export type SuggestionSource = 'yours' | 'scout' | 'date' | 'stock'
 
+export type DayPrimaryPost = {
+  calendar_id?: string | null
+  title: string
+  state?: string
+}
+
 export type Suggestion = {
   key: string
   source: SuggestionSource
@@ -33,7 +39,14 @@ export type Undo = {
   plan_id?: string
 }
 
-type Result = { ok: boolean; error?: string; items?: Suggestion[]; undo?: Undo }
+type Result = {
+  ok: boolean
+  error?: string
+  warning?: string
+  items?: Suggestion[]
+  posts_by_day?: Record<string, DayPrimaryPost[]>
+  undo?: Undo
+}
 
 export const SOURCE_LABEL: Record<SuggestionSource, string> = {
   yours: 'Your suggestion',
@@ -107,6 +120,17 @@ export function groupByDay(items: Suggestion[]): Record<string, Suggestion[]> {
   const out: Record<string, Suggestion[]> = {}
   for (const s of items) (out[s.date] ||= []).push(s)
   return out
+}
+
+/** When a day already has a lodged or scheduled post, suggestions are secondary. */
+export function suggestionsUnderPrimary(
+  iso: string,
+  postsByDay: Record<string, DayPrimaryPost[]>,
+  ghosts: Suggestion[],
+): { primary: DayPrimaryPost[]; secondary: Suggestion[]; showMoreLabel: boolean } {
+  const primary = postsByDay[iso] || []
+  const showMoreLabel = primary.length > 0 && ghosts.length > 0
+  return { primary, secondary: ghosts, showMoreLabel }
 }
 
 /** "14 Mar" or "14 – 21 Mar" for the hover card. */

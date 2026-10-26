@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Products/FJSL001-S__front.png",
+  "layer1_metadata": {
+    "filename": "FJSL001-S__front.png",
+    "format": "PNG",
+    "mode": "RGBA",
+    "width_px": 2000,
+    "height_px": 2000,
+    "aspect_ratio": 1.0,
+    "orientation": "square",
+    "file_size_bytes": 2810936,
+    "modified": 1792982305.822457,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.5788
+      },
+      {
+        "hex": "#dee0e2",
+        "rgb": [
+          222,
+          224,
+          226
+        ],
+        "share": 0.1215
+      },
+      {
+        "hex": "#272728",
+        "rgb": [
+          39,
+          39,
+          40
+        ],
+        "share": 0.1138
+      },
+      {
+        "hex": "#eaebea",
+        "rgb": [
+          234,
+          235,
+          234
+        ],
+        "share": 0.0755
+      },
+      {
+        "hex": "#f2f4f5",
+        "rgb": [
+          242,
+          244,
+          245
+        ],
+        "share": 0.0531
+      },
+      {
+        "hex": "#9f9d94",
+        "rgb": [
+          159,
+          157,
+          148
+        ],
+        "share": 0.0485
+      },
+      {
+        "hex": "#000002",
+        "rgb": [
+          0,
+          0,
+          2
+        ],
+        "share": 0.0083
+      },
+      {
+        "hex": "#010000",
+        "rgb": [
+          1,
+          0,
+          0
+        ],
+        "share": 0.0005
+      }
+    ],
+    "mean_brightness": 69.5,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.0,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 49.6,
+    "brightness_bottom": 44.4,
+    "edge_density_grid": [
+      [
+        3.41,
+        12.5,
+        3.17
+      ],
+      [
+        7.88,
+        16.38,
+        7.49
+      ],
+      [
+        3.81,
+        9.32,
+        3.48
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 21,
+    "text_preview": "Softer, Advanced Performance Leathe; Sensational Soft Feel All-Climate Grip & Durability Sensation de Douceur & onnelle ip Tous Temps & Durable"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 19,
+    "median_text_height_px": 11,
+    "likely_heading_text": "Grip Durability",
+    "is_all_caps": false,
+    "sample_text_colour": "#181819"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": false,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#000000",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "Softer, Advanced Performance Leathe; Sensational Soft Feel All-Climate Grip & Durability Sensation de Douceur & onnelle ip Tous Temps & Durable",
+      "all_caps_detected": false
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}
