@@ -7,9 +7,13 @@ Archived items stay in DATA_DIR until a daily job purges them past retention
 from __future__ import annotations
 
 import json
+import logging
 import os
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Optional
+
+_LOG = logging.getLogger("campaign_os.content_archive")
 
 from _lib.archive_retention import purge_at_iso, retention_days
 from _lib.brand_validate import validate_brand_id
@@ -463,10 +467,111 @@ def _is_past_purge(purge_at: str, *, now: datetime | None = None) -> bool:
     return pt <= now
 
 
+def _meta_post_link(asset_id: str) -> dict[str, Any] | None:
+    from _lib.post_links import INDEX_NAME, _load_index  # noqa: PLC0415
+
+    path = Path(_data_dir()) / INDEX_NAME
+    if not path.is_file():
+        return None
+    idx = _load_index(path)
+    link = (idx.get("by_asset_id") or {}).get(asset_id)
+    return link if isinstance(link, dict) else None
+
+
+def _published_items_has_asset(asset_id: str) -> bool:
+    path = Path(_data_dir()) / "published-items.json"
+    if not path.is_file():
+        return False
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    rows = doc.get("published") if isinstance(doc, dict) else None
+    if not isinstance(rows, list):
+        return False
+    for it in rows:
+        if not isinstance(it, dict):
+            continue
+        for key in ("asset_id", "assetId", "id", "item_id", "publish_id", "publishId"):
+            if str(it.get(key) or "") == asset_id:
+                return True
+    return False
+
+
+def draft_is_published(asset_id: str) -> bool:
+    """True when this draft asset has already shipped (must never be purged)."""
+    link = _meta_post_link(asset_id)
+    if link and link.get("published_at"):
+        return True
+    if _published_items_has_asset(asset_id):
+        return True
+    from _lib.unified_inbox import _campaign_asset_for_id, _load_campaign_data  # noqa: PLC0415
+
+    _cid, asset = _campaign_asset_for_id(_load_campaign_data(), asset_id)
+    if isinstance(asset, dict):
+        status = str(asset.get("approvalStatus") or asset.get("publishStatus") or "").lower()
+        if status == "published":
+            return True
+    return False
+
+
+def _postiz_post_id_for_archived_draft(brand_id: str, asset_id: str) -> str:
+    link = _meta_post_link(asset_id)
+    if link:
+        pid = str(link.get("postiz_post_id") or "").strip()
+        if pid:
+            return pid
+    from _lib import publish_sandbox as sandbox  # noqa: PLC0415
+    from _lib.unified_inbox import asset_id_from_queue_row  # noqa: PLC0415
+
+    for rec in sandbox._read_jsonl(sandbox._receipts_path()):  # noqa: SLF001
+        if str(rec.get("brand_id") or "") != brand_id:
+            continue
+        aid = asset_id_from_queue_row(rec)
+        if aid != asset_id:
+            continue
+        pid = str(rec.get("postiz_post_id") or "").strip()
+        if pid:
+            return pid
+    return ""
+
+
+def _delete_postiz_on_purge(brand_id: str, asset_id: str) -> None:
+    postiz_id = _postiz_post_id_for_archived_draft(brand_id, asset_id)
+    if not postiz_id:
+        return
+    from _lib.postiz_client import delete_post  # noqa: PLC0415
+
+    _data, err = delete_post(postiz_id)
+    if err:
+        code = err[0] if err else "error"
+        msg = err[1] if len(err) > 1 and err[1] else ""
+        raise ValueError(f"postiz delete_post failed: {code} {msg}"[:200])
+
+
+def _skip_purge_published_draft(
+    brand_id: str,
+    asset_id: str,
+    actor: str,
+    *,
+    title: str = "",
+) -> None:
+    _LOG.info("purge skipped published draft brand=%s asset=%s", brand_id, asset_id)
+    append_audit(
+        action="purge_skipped",
+        kind="draft",
+        item_id=asset_id,
+        brand_id=brand_id,
+        actor=actor,
+        title=title,
+        extra={"reason": "published"},
+    )
+
+
 def purge_expired(*, now: datetime | None = None, actor: str = "job:archive_purge") -> dict[str, Any]:
     """Delete items archived past retention. Returns counts per kind."""
     now = now or datetime.now(timezone.utc)
-    counts = {"draft": 0, "plan": 0, "suggestion": 0}
+    counts: dict[str, int] = {"draft": 0, "plan": 0, "suggestion": 0, "skipped_published": 0}
     brands = ("swing-shack", "stick", "bag-drop")
     for bid in brands:
         for item in list_archived(bid):
@@ -476,6 +581,15 @@ def purge_expired(*, now: datetime | None = None, actor: str = "job:archive_purg
             iid = str(item.get("id") or "")
             try:
                 if kind == "draft":
+                    if draft_is_published(iid):
+                        _skip_purge_published_draft(
+                            bid,
+                            iid,
+                            actor,
+                            title=str(item.get("title") or ""),
+                        )
+                        counts["skipped_published"] += 1
+                        continue
                     _purge_draft(bid, iid, str(item.get("campaign_id") or ""), actor)
                     counts["draft"] += 1
                 elif kind == "plan":
@@ -486,13 +600,14 @@ def purge_expired(*, now: datetime | None = None, actor: str = "job:archive_purg
                     counts["suggestion"] += 1
             except (ValueError, OSError):
                 continue
-    total = sum(counts.values())
+    total = counts["draft"] + counts["plan"] + counts["suggestion"]
     return {"ok": True, "purged": counts, "total": total}
 
 
 def _purge_draft(brand_id: str, asset_id: str, campaign_id: str, actor: str) -> None:
     from _lib.library_shelf import _delete_draft  # noqa: PLC0415
 
+    _delete_postiz_on_purge(brand_id, asset_id)
     _delete_draft(asset_id, campaign_id)
     append_audit(action="purge", kind="draft", item_id=asset_id, brand_id=brand_id, actor=actor)
 
