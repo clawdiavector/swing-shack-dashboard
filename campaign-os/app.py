@@ -19271,6 +19271,24 @@ try:
         writes=("publish-sandbox/", "campaign-data.json"),
         brand_mode="global",
     ))
+
+    def _run_outside_posts_sync(brand=None):
+        from _lib.outside_posts_sync import run as _outside_posts_run
+
+        return _outside_posts_run(brand=brand)
+
+    _register_job(_JobSpec(
+        name="outside_posts_sync",
+        fn=_run_outside_posts_sync,
+        every_seconds=14400,  # 4h — stories expire in 24h
+        timeout_seconds=120,
+        criticality="MEDIUM",
+        best_effort=True,
+        writes=("intelligence/marketing-calendar/",),
+        brand_mode="per_brand",
+        requires_integrations=("meta",),
+        upstream=("meta_refresh",),
+    ))
     _JOBS_AVAILABLE = True
 except Exception as _jobs_exc:  # noqa: BLE001
     _JOBS_AVAILABLE = False
@@ -45243,6 +45261,7 @@ def planning_month_view(brand_id):
             lane = r.get("lane") or _pillar0 or ""
             # A video that is already in Postiz reads as scheduled (or a Postiz draft), not just approved.
             _item_status = {"schedule": "SCHEDULED", "draft": "DRAFT", "posted": "POSTED"}.get(r.get("postiz_mode"), "APPROVED")
+            _post_type = r.get("post_type") or ""
             item = {
                 "id": ek or start_iso,
                 "title": r.get("title") or r.get("name") or "(operator-approved)",
@@ -45255,10 +45274,19 @@ def planning_month_view(brand_id):
                 "is_paid_supported": bool(r.get("is_paid_supported")),
                 "scheduled_date": start_iso,
                 "is_demo": False,
-                "execution_type": "operator_approved",
+                "execution_type": (
+                    "outside_campaign_os"
+                    if _post_type == "posted-outside-campaign-os"
+                    else "operator_approved"
+                ),
                 "source": r.get("source_origin") or "operator-store",
                 "tier": r.get("tier"),
                 "event_key": ek,
+                "post_type": _post_type or None,
+                "permalink": r.get("permalink"),
+                "thumbnail_url": r.get("thumbnail_url"),
+                "outside_label": r.get("outside_label")
+                or ("Posted outside Campaign OS" if _post_type == "posted-outside-campaign-os" else None),
                 # A step a plan put on the calendar carries the type of its event.
                 "kind": r.get("event_kind") or _month_kind(r),
             }
@@ -45273,10 +45301,14 @@ def planning_month_view(brand_id):
                 "subtitle": item["subtitle"],
                 "status": _item_status,
                 "is_demo": False,
-                "execution_type": "operator_approved",
+                "execution_type": item["execution_type"],
                 "source": "operator-store",
-                "channel": "main-calendar",
+                "channel": r.get("channel") or "main-calendar",
                 "kind": item["kind"],
+                "post_type": item.get("post_type"),
+                "permalink": item.get("permalink"),
+                "thumbnail_url": item.get("thumbnail_url"),
+                "outside_label": item.get("outside_label"),
                 "event_key": ek,
             })
             # Also surface in days_extended for the three-layer panel.
