@@ -1,8 +1,10 @@
 import { Camera } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge } from '../components/ui'
+import { FILTER_QUERY, PHOTO_QUERY, photoFilterFromQuery } from '../lib/backNav'
 import { actorName } from '../lib/plan'
 
 type Status = 'needs-check' | 'approved' | 'rejected'
@@ -568,9 +570,10 @@ function InboxCard({
 }
 
 export function Photos() {
+  const [params, setParams] = useSearchParams()
   const { focusBrandId, isAll } = useBrandScope()
   const brand = focusBrandId || ''
-  const [tab, setTab] = useState<Tab>('needs-check')
+  const [tab, setTab] = useState<Tab>(() => photoFilterFromQuery(params.get(FILTER_QUERY)))
   const [review, setReview] = useState<ReviewPayload | null>(null)
   const [inbox, setInbox] = useState<InboxPayload | null>(null)
   const [video, setVideo] = useState<VideoPayload | null>(null)
@@ -578,6 +581,33 @@ export function Photos() {
   const [error, setError] = useState('')
   const [note, setNote] = useState('')
   const [finding, setFinding] = useState(false)
+
+  useEffect(() => {
+    setTab(photoFilterFromQuery(params.get(FILTER_QUERY)))
+  }, [params])
+
+  const openFile = params.get(PHOTO_QUERY) || ''
+
+  const setTabWithQuery = useCallback(
+    (next: Tab) => {
+      setTab(next)
+      const p = new URLSearchParams(params)
+      if (next === 'needs-check') p.delete(FILTER_QUERY)
+      else p.set(FILTER_QUERY, next)
+      p.delete(PHOTO_QUERY)
+      setParams(p, { replace: true })
+    },
+    [params, setParams],
+  )
+
+  function openPhoto(file: string) {
+    if (params.get(PHOTO_QUERY) === file) return
+    setParams((prev) => {
+      const p = new URLSearchParams(prev)
+      p.set(PHOTO_QUERY, file)
+      return p
+    })
+  }
 
   const load = useCallback(async () => {
     if (!brand) return
@@ -665,14 +695,14 @@ export function Photos() {
         <>
           <div className="flex flex-wrap items-center gap-2">
             {(Object.keys(TAB_LABEL) as Status[]).map((s) => (
-              <button key={s} type="button" className={tab === s ? pillOn : pill} onClick={() => setTab(s)}>
+              <button key={s} type="button" className={tab === s ? pillOn : pill} onClick={() => setTabWithQuery(s)}>
                 {TAB_LABEL[s]} ({review?.counts?.[s] ?? 0})
               </button>
             ))}
-            <button type="button" className={tab === 'inbox' ? pillOn : pill} onClick={() => setTab('inbox')}>
+            <button type="button" className={tab === 'inbox' ? pillOn : pill} onClick={() => setTabWithQuery('inbox')}>
               Drive Inbox ({waitingInbox})
             </button>
-            <button type="button" className={tab === 'video' ? pillOn : pill} onClick={() => setTab('video')}>
+            <button type="button" className={tab === 'video' ? pillOn : pill} onClick={() => setTabWithQuery('video')}>
               Video
             </button>
             <div className="flex-1" />
@@ -726,10 +756,19 @@ export function Photos() {
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {list.map((e) => (
-                <div key={e.file} className="glass overflow-hidden rounded-2xl border border-white/10">
-                  <Thumb url={e.image_url} viewable={e.viewable} name={e.product} />
+                <div
+                  key={e.file}
+                  className={`glass overflow-hidden rounded-2xl border border-white/10 ${
+                    openFile === e.file ? 'ring-2 ring-yel' : ''
+                  }`}
+                >
+                  <button type="button" className="block w-full" onClick={() => openPhoto(e.file)} aria-label={`Open ${e.product}`}>
+                    <Thumb url={e.image_url} viewable={e.viewable} name={e.product} />
+                  </button>
                   <div className="space-y-2 p-3 text-sm">
-                    <div className="font-semibold">{e.product}</div>
+                    <button type="button" className="font-semibold" onClick={() => openPhoto(e.file)}>
+                      {e.product}
+                    </button>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-tx2">
                       <Badge>{e.sku}</Badge>
                       <span>
