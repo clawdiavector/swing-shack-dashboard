@@ -25,6 +25,20 @@
         "Swing Shack RAW": 14
       },
       "dry_run": false
+    },
+    {
+      "date": "2026-10-26",
+      "method": "public_folder_http",
+      "folder_id": "1n9pHD6hwr7oEfRBAGBriRrsqv_I-qGge",
+      "files_downloaded": 71,
+      "files_skipped_dedupe": 144,
+      "files_skipped_non_image": 3,
+      "download_errors": 0,
+      "counts_by_folder": {
+        "Location": 1,
+        "Products": 70
+      },
+      "dry_run": false
     }
   ]
 }

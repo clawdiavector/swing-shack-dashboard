@@ -20,7 +20,7 @@ import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { actorName, planFromEvent } from '../../../lib/plan'
 import { plainCategory, plainNotes, tierLabel } from '../../../lib/planning'
 
-export type Decided = { undo: Undo; title: string }
+export type Decided = { undo: Undo; title: string; warning?: string }
 
 /** The faded suggestions for one month, and the three things you can do with them. */
 export function useMonthSuggestions(brandId: string, month: string, enabled: boolean, onChanged: () => void) {
@@ -101,7 +101,7 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
       return
     }
     setPlanNote(null)
-    setDecided({ undo: r.undo, title: s.title })
+    setDecided({ undo: r.undo, title: s.title, warning: r.warning || undefined })
     settle()
     // An approved date nearly always needs a plan, so make it now. If it cannot be
     // made (no pillar, or the brief is refused) the reason shows and Make a plan stays.
@@ -335,6 +335,11 @@ export function SuggestionBar({
           data-testid="undo-bar"
         >
           <span>{undoMessage(decided.undo.kind, decided.title)}</span>
+          {decided.warning ? (
+            <span className="font-semibold text-yel" data-testid="approve-warning">
+              {decided.warning}
+            </span>
+          ) : null}
           {decided.undo.kind === 'approve' && decided.undo.event_key && onMakePlan && !planNote ? (
             <button
               type="button"

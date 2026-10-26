@@ -32,6 +32,11 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
         "cron_sast": ["06:00"],
         "cadence": "daily",
     },
+    "gbp_publish": {
+        "scheduler": "GitHub Actions (gbp-publish-cron.yml)",
+        "cron_sast": ["09:00"],
+        "cadence": "daily",
+    },
     "freshness_scan": _LAYER1_DAILY,
     "golf_news": _LAYER1_DAILY,
     "youtube_trends": _LAYER1_DAILY,
