@@ -46,6 +46,9 @@ OUT_FILE = DATA / "format-model-refit.json"
 
 def _scratch_data_dir() -> Path | None:
     """Scratch DATA_DIR from ./check (not the bundled repo data/ tree)."""
+    check = os.environ.get("COS_CHECK_SCRATCH")
+    if check:
+        return Path(check)
     raw = os.environ.get("DATA_DIR")
     if not raw:
         return None
@@ -68,10 +71,11 @@ def _write_outputs(output: dict) -> Path:
     scratch = _scratch_data_dir()
     bundled = OUT_FILE
     targets: list[Path] = []
+    under_check = bool(os.environ.get("COS_CHECK_SCRATCH"))
     if scratch is not None:
         scratch.mkdir(parents=True, exist_ok=True)
         targets.append(scratch / "format-model-refit.json")
-    if scratch is None or not bundled.is_file():
+    if not under_check and (scratch is None or not bundled.is_file()):
         if bundled not in targets:
             targets.append(bundled)
     primary = bundled if bundled in targets else targets[0]

@@ -42,9 +42,24 @@ _DEFAULT_LOCAL_DIR = Path(
     os.environ.get("BRAND_DIR_LOCAL", "/Users/fivefriday/hermes-fleet/shared/data/brand-directory")
 )
 _REPO_DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "brand-directory"  # repo-local data/brand-directory/
+_SEED_DATA_ROOT = Path(__file__).resolve().parents[2] / "data"
 _DATA_DIR = Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
 _CALENDAR_DIR = _DATA_DIR / "intelligence" / "marketing-calendar"
 _CALENDAR_DIR_READY = False
+
+
+def _runtime_data_dir() -> Path:
+    """Writable DATA_DIR; redirects off the committed repo data/ seed tree."""
+    configured = Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
+    try:
+        if configured.resolve() == _SEED_DATA_ROOT.resolve():
+            scratch = os.environ.get("COS_CHECK_SCRATCH") or os.environ.get("COS_RUNTIME_DATA")
+            base = Path(scratch) if scratch else Path("/tmp/cos-runtime-data")
+            base.mkdir(parents=True, exist_ok=True)
+            return base
+    except OSError:
+        pass
+    return configured
 
 # ─── Constants ──────────────────────────────────────────────────────────────
 VALID_BRAND_IDS = ["swing-shack", "stick", "bag-drop"]
@@ -433,10 +448,12 @@ def _ensure_calendar_dir() -> Path:
     same fallback chain as the brand-planning directory.
     """
     global _CALENDAR_DIR, _CALENDAR_DIR_READY
-    if _CALENDAR_DIR_READY:
+    runtime_calendar = _runtime_data_dir() / "intelligence" / "marketing-calendar"
+    if _CALENDAR_DIR_READY and _CALENDAR_DIR == runtime_calendar:
         return _CALENDAR_DIR
+    _CALENDAR_DIR_READY = False
     candidates_dirs = [
-        _CALENDAR_DIR,  # DATA_DIR/calendar
+        runtime_calendar,
         Path(os.path.dirname(os.path.abspath(__file__))) / ".." / "data" / "calendar",  # baked
     ]
     # First try the existing _CALENDAR_DIR (the canonical DATA_DIR/intelligence/marketing-calendar)
@@ -2388,7 +2405,7 @@ def _ensure_runs_dir() -> "Path":
     with DATA_DIR/_system as the production preferred location.
     """
     for candidate in (
-        _DATA_DIR / "_system" / "calendar_runs",
+        _runtime_data_dir() / "_system" / "calendar_runs",
         Path("/tmp/calendar_runs"),
     ):
         try:
