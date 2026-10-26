@@ -1,6 +1,0 @@
-{"ts": "2026-10-26T06:03:24.312430Z", "job": "job-20261026-cos-t4-implement", "actor": "supervisor", "event": "created", "message": "Cursor implement \u2014 T4 retail campaign generator", "data": {"ports": {"web": 3294}, "branch": "cos/t4-retail-campaign", "kind": "cursor"}}
-{"ts": "2026-10-26T06:03:29.339442Z", "job": "job-20261026-cos-t4-implement", "actor": "supervisor", "event": "bound", "message": "job-cos-t4-implement on w6H:pPA", "data": {"workspace_id": "w6H", "pane_id": "w6H:pPA", "agent_name": "job-cos-t4-implement"}}
-{"ts": "2026-10-26T06:03:35.527876Z", "job": "job-20261026-cos-t4-implement", "actor": "worker", "event": "started", "message": "Reading job file and task spec"}
-{"ts": "2026-10-26T06:05:29.443376Z", "job": "job-20261026-cos-t4-implement", "actor": "supervisor", "event": "status", "message": "running"}
-{"ts": "2026-10-26T06:05:29.501783Z", "job": "job-20261026-cos-t4-implement", "actor": "supervisor", "event": "prompted", "message": "spawn-pending-jobs Herdr job-cos-t4-implement", "data": {"run_id": "20261026T060325-implement-b1a22e", "attempt": 1, "triggered_by": "schedule", "role": "implement"}}
-{"ts": "2026-10-26T06:06:37.982911Z", "job": "job-20261026-cos-t4-implement", "actor": "worker", "event": "progress", "message": "Implementing retail campaign lib, job, archetypes, calendar layout_for"}
