@@ -121,15 +121,123 @@ def released_today(brand_id: str, today: _dt.date, tz: ZoneInfo = _TZ) -> int:
     return _human_edits_today(brand_id, "release", today, tz)
 
 
-def on_social_today(brand_id: str, today: _dt.date, tz: ZoneInfo = _TZ) -> int:
-    """Receipts dispatched today (Postiz hand-off that reached the feed)."""
-    from _lib import publish_sandbox  # noqa: PLC0415
+def _local_day_utc_bounds(today: _dt.date, tz: ZoneInfo) -> tuple[str, str]:
+    start = _dt.datetime.combine(today, _dt.time.min, tzinfo=tz).astimezone(_dt.timezone.utc)
+    end = _dt.datetime.combine(today + _dt.timedelta(days=1), _dt.time.min, tzinfo=tz).astimezone(
+        _dt.timezone.utc
+    )
+    def _iso_z(dt: _dt.datetime) -> str:
+        return dt.isoformat().replace("+00:00", "Z")
 
+    return _iso_z(start), _iso_z(end)
+
+
+def _postiz_posts_list(raw: Any) -> list[dict[str, Any]]:
+    if isinstance(raw, list):
+        return [p for p in raw if isinstance(p, dict)]
+    if isinstance(raw, dict):
+        for key in ("posts", "data", "items"):
+            val = raw.get(key)
+            if isinstance(val, list):
+                return [p for p in val if isinstance(p, dict)]
+    return []
+
+
+def _postiz_integrations(brand_id: str) -> list[dict[str, Any]]:
+    from _lib import postiz_client as pz  # noqa: PLC0415
+
+    raw, err = pz.list_integrations(brand_id=brand_id)
+    if err or raw is None:
+        return []
+    if isinstance(raw, list):
+        items = raw
+    elif isinstance(raw, dict):
+        items = raw.get("integrations") or raw.get("identities") or raw.get("data") or []
+    else:
+        items = []
+    return [i for i in items if isinstance(i, dict)]
+
+
+def _postiz_live_key(post: dict[str, Any]) -> str:
+    group = post.get("group")
+    if group:
+        return f"postiz-group:{group}"
+    pid = post.get("id") or post.get("postId")
+    return f"postiz:{pid}"
+
+
+def _postiz_published_today(brand_id: str, today: _dt.date, tz: ZoneInfo = _TZ) -> int | None:
+    """Count Postiz PUBLISHED posts for today. None when Postiz is not configured."""
+    from _lib import postiz_client as pz  # noqa: PLC0415
+
+    if not pz.postiz_status(brand_id).get("api_key_present"):
+        return None
+    start_iso, end_iso = _local_day_utc_bounds(today, tz)
+    keys: set[str] = set()
+    for integration in _postiz_integrations(brand_id):
+        int_id = integration.get("id") or integration.get("_id")
+        if not int_id:
+            continue
+        raw, err = pz.list_posts(
+            str(int_id),
+            start_date=start_iso,
+            end_date=end_iso,
+            state="PUBLISHED",
+            brand_id=brand_id,
+        )
+        if err:
+            continue
+        for post in _postiz_posts_list(raw):
+            state = str(post.get("state") or post.get("status") or "").upper()
+            if state and state != "PUBLISHED":
+                continue
+            when = (
+                post.get("publishDate")
+                or post.get("publish_date")
+                or post.get("date")
+                or post.get("scheduled_date")
+            )
+            if not _ts_on_local_day(str(when or ""), today, tz):
+                continue
+            keys.add(_postiz_live_key(post))
+    return len(keys)
+
+
+def _meta_ig_published_today(brand_id: str, today: _dt.date, tz: ZoneInfo = _TZ) -> int:
+    from _lib import meta_api as ma  # noqa: PLC0415
+
+    try:
+        cfg = ma.load_brand_integration(brand_id)
+    except Exception:
+        return 0
+    if not cfg.get("ig_business_account_id") or not cfg.get("configured", True):
+        return 0
+    try:
+        resp = ma.list_recent_posts_for_brand(brand_id, limit=50) or {}
+    except Exception:
+        return 0
+    meta = resp.get("_meta") or {}
+    if (
+        meta.get("ig_account_id")
+        and cfg.get("ig_business_account_id")
+        and meta["ig_account_id"] != cfg["ig_business_account_id"]
+    ):
+        return 0
     n = 0
-    for rec in publish_sandbox.receipts_for_brand(brand_id):
-        if _ts_on_local_day(str(rec.get("dispatched_at") or rec.get("ts") or ""), today, tz):
+    for post in resp.get("data") or []:
+        if not isinstance(post, dict):
+            continue
+        if _ts_on_local_day(str(post.get("timestamp") or ""), today, tz):
             n += 1
     return n
+
+
+def on_social_today(brand_id: str, today: _dt.date, tz: ZoneInfo = _TZ) -> int:
+    """Posts live on brand channels today (Postiz or Meta read-back, never sandbox receipts)."""
+    postiz_n = _postiz_published_today(brand_id, today, tz)
+    if postiz_n is not None:
+        return postiz_n
+    return _meta_ig_published_today(brand_id, today, tz)
 
 
 def rest_of_week_days(brand_id: str, today: _dt.date) -> List[Dict[str, Any]]:

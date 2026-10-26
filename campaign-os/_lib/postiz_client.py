@@ -514,6 +514,7 @@ def list_posts(
     end_date: Optional[str] = None,
     state: Optional[str] = None,
     limit: int = 50,
+    brand_id: str | None = None,
 ) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
     """List posts. Per Postiz docs, startDate + endDate are required for /posts."""
     params = {
@@ -523,7 +524,7 @@ def list_posts(
         "state": state,
         "limit": limit,
     }
-    return _request("GET", "/posts", params=params)
+    return _request("GET", "/posts", params=params, brand_id=brand_id)
 
 
 def get_post(post_id: str) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
