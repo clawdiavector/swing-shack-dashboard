@@ -26919,6 +26919,7 @@ def weekly_report_api():
             payload["brand_id"] = raw_payload.get("brand_id") or bid
             payload["as_of"] = raw_payload.get("as_of")
             payload["generator"] = raw_payload.get("generator")
+            payload["cmo"] = raw_payload.get("cmo")
             # V3.6 compat: synthesize `metrics` + `brand_meta` aliases so
             # the React Week.tsx page (which reads brandJson.metrics and
             # brandJson.brand_meta) renders the real KPIs instead of the
