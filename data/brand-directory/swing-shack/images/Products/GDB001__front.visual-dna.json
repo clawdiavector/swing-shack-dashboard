@@ -1,0 +1,186 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Products/GDB001__front.jpg",
+  "layer1_metadata": {
+    "filename": "GDB001__front.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1600,
+    "height_px": 2000,
+    "aspect_ratio": 0.8,
+    "orientation": "portrait",
+    "file_size_bytes": 510596,
+    "modified": 1792982331.8872964,
+    "exif": {
+      "296": 2,
+      "34665": 112,
+      "274": 1,
+      "316": "imagery4"
+    }
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#ffffff",
+        "rgb": [
+          255,
+          255,
+          255
+        ],
+        "share": 0.469
+      },
+      {
+        "hex": "#736e70",
+        "rgb": [
+          115,
+          110,
+          112
+        ],
+        "share": 0.1603
+      },
+      {
+        "hex": "#403839",
+        "rgb": [
+          64,
+          56,
+          57
+        ],
+        "share": 0.1276
+      },
+      {
+        "hex": "#575051",
+        "rgb": [
+          87,
+          80,
+          81
+        ],
+        "share": 0.1203
+      },
+      {
+        "hex": "#b0afb0",
+        "rgb": [
+          176,
+          175,
+          176
+        ],
+        "share": 0.0588
+      },
+      {
+        "hex": "#fafafa",
+        "rgb": [
+          250,
+          250,
+          250
+        ],
+        "share": 0.0518
+      },
+      {
+        "hex": "#fefffe",
+        "rgb": [
+          254,
+          255,
+          254
+        ],
+        "share": 0.0121
+      },
+      {
+        "hex": "#fffffe",
+        "rgb": [
+          255,
+          255,
+          254
+        ],
+        "share": 0.0001
+      }
+    ],
+    "mean_brightness": 181.7,
+    "luminance_category": "light"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 197.2,
+    "brightness_bottom": 185.5,
+    "edge_density_grid": [
+      [
+        11.08,
+        26.98,
+        10.98
+      ],
+      [
+        16.82,
+        54.69,
+        21.79
+      ],
+      [
+        15.05,
+        36.55,
+        15.72
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 5,
+    "text_preview": "Tot WV & 8S i"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 123,
+    "median_text_height_px": 123,
+    "likely_heading_text": "8S",
+    "is_all_caps": true,
+    "sample_text_colour": "#ccc3c4"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#ffffff",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "Tot WV & 8S i",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

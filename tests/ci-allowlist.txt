@@ -151,3 +151,9 @@ campaign-os/tests/test_stick_retail_templates_20261023.py
 campaign-os/tests/test_cos_mail_push_gate_20261023.py
 campaign-os/tests/test_post_studio.py
 campaign-os/tests/test_post_qa.py
+campaign-os/tests/test_postiz_schedule_on_approve_20261026.py
+campaign-os/tests/test_postiz_schedule_on_approve_review_20261026.py
+campaign-os/tests/test_postiz_clear_guard_20261026.py
+campaign-os/tests/test_mail_intake.py
+campaign-os/tests/test_plan_idea_to_posts.py
+campaign-os/tests/test_mail_intake_routes.py
