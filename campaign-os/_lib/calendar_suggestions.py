@@ -219,6 +219,13 @@ def _layout_slug_from_template(template_id: str) -> str:
     return ""
 
 
+def _post_layout(post: Dict[str, Any]) -> str:
+    layout = str(post.get("layout") or "")
+    if layout:
+        return layout
+    return _layout_slug_from_template(str(post.get("template_id") or ""))
+
+
 def posts_by_day_for_month(brand_id: str, month: str) -> Dict[str, List[Dict[str, Any]]]:
     """Primary (non-candidate) posts keyed by go-live ISO date in `month`."""
     from _lib.unified_inbox import week_board  # noqa: PLC0415
@@ -253,7 +260,7 @@ def posts_by_day_for_month(brand_id: str, month: str) -> Dict[str, List[Dict[str
             tid = str(post.get("template_id") or "")
             if tid:
                 row["template_id"] = tid
-                layout = _layout_slug_from_template(tid)
+                layout = _post_layout({"template_id": tid})
                 if layout:
                     row["layout"] = layout
             primaries.append(row)
@@ -279,7 +286,7 @@ def _product_nearby(title: str, day: _dt.date, posts_by_day: Dict[str, List[Dict
 def _layout_on_previous_day(day: _dt.date, posts_by_day: Dict[str, List[Dict[str, Any]]]) -> str:
     prev = (day - _dt.timedelta(days=1)).isoformat()
     for post in posts_by_day.get(prev) or []:
-        layout = str(post.get("layout") or "")
+        layout = _post_layout(post)
         if layout:
             return layout
     return ""
@@ -297,7 +304,7 @@ def _annotate_stock_layouts(
     history: List[str] = []
     for iso in sorted(posts_by_day):
         for post in posts_by_day[iso]:
-            layout = str(post.get("layout") or "")
+            layout = _post_layout(post)
             if layout:
                 history.append(layout)
     out: List[Dict[str, Any]] = []

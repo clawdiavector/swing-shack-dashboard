@@ -49,6 +49,23 @@ const SCHEDULE_BRAND_LABEL: Record<string, string> = {
   stick: 'Stick',
 }
 
+function postsByDayForSuggestions(
+  day: PostingWeekDay,
+  postsByDay: Record<string, DayPrimaryPost[]>,
+): Record<string, DayPrimaryPost[]> {
+  const apiPrimary = postsByDay[day.date]
+  if (apiPrimary?.length) return postsByDay
+  if (day.posts.length === 0) return postsByDay
+  return {
+    ...postsByDay,
+    [day.date]: day.posts.map((p) => ({
+      calendar_id: p.calendar_id,
+      title: String(p.title ?? '').trim(),
+      state: p.state,
+    })),
+  }
+}
+
 const QUIET_LINES = [
   'Nothing going out. Room for something fun?',
   'A blank slate. Fill me up!',
@@ -143,13 +160,14 @@ function DaySection({
         <div className="mt-3">
           <DayPostSuggestions
             iso={day.date}
-            postsByDay={day.posts.length > 0 ? {} : daySuggestions.postsByDay}
+            postsByDay={postsByDayForSuggestions(day, daySuggestions.postsByDay)}
             ghosts={daySuggestions.ghosts}
             busyKey={daySuggestions.busyKey}
             pillars={daySuggestions.pillars}
             onApprove={daySuggestions.onApprove}
             onReject={daySuggestions.onReject}
             onSwap={daySuggestions.onSwap}
+            hidePrimaryChips={day.posts.length > 0}
           />
         </div>
       ) : null}

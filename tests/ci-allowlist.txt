@@ -151,3 +151,5 @@ campaign-os/tests/test_stick_retail_templates_20261023.py
 campaign-os/tests/test_cos_mail_push_gate_20261023.py
 campaign-os/tests/test_post_studio.py
 campaign-os/tests/test_post_qa.py
+campaign-os/tests/test_scheduled_over_suggestions_20261026.py
+campaign-os/tests/test_scheduled_over_suggestions_layout_real_20261026.py

@@ -23,6 +23,7 @@ export function DayPostSuggestions({
   onApprove,
   onReject,
   onSwap,
+  hidePrimaryChips = false,
 }: {
   iso: string
   postsByDay: Record<string, DayPrimaryPost[]>
@@ -32,15 +33,17 @@ export function DayPostSuggestions({
   onApprove: (s: Suggestion, pillar: string) => void
   onReject: (s: Suggestion) => void
   onSwap?: (s: Suggestion) => void
+  /** Week board already rendered full post cards for this day. */
+  hidePrimaryChips?: boolean
 }) {
   const { primary, secondary, showMoreLabel } = suggestionsUnderPrimary(iso, postsByDay, ghosts)
   if (!primary.length && !secondary.length) return null
 
   return (
     <div className="flex flex-col gap-0.5" data-testid="day-post-suggestions">
-      {primary.map((p) => (
-        <PrimaryPostChip key={`${p.calendar_id || p.title}`} post={p} />
-      ))}
+      {!hidePrimaryChips
+        ? primary.map((p) => <PrimaryPostChip key={`${p.calendar_id || p.title}`} post={p} />)
+        : null}
       {showMoreLabel ? (
         <p className="pt-0.5 text-[8px] font-bold tracking-wide text-tx3 uppercase" data-testid="more-ideas-label">
           More ideas for this day
