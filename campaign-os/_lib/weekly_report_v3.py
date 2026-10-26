@@ -2172,11 +2172,44 @@ def _ads_extras_lines(x: Optional[dict]) -> dict:
             f"{s.get('never_reach_site', 0)} ad(s) (lead forms and chats) never reach the site and are measured in Meta.")
     ch = x.get("changes") or []
     if ch:
+        out["changes_summary"] = _changes_summary(ch)
         out["changes"] = [f"{_CHANGE_LABEL.get(e.get('kind'), e.get('kind'))}: {e.get('ad_name') or e.get('ad_id')}"
                           + (f" ({e.get('before')} → {e.get('after')})" if e.get("kind", "").startswith(("rename_", "set_adset_budget")) else "")
-                          + (" (undone)" if e.get("undone_at") else "") for e in ch[-12:]]
+                          + (" (undone)" if e.get("undone_at") else "") for e in ch[-5:]]
         out["changes_total"] = len(ch)
     return out
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def _changes_summary(ch: List[dict]) -> List[str]:
+    """One short line per kind of change, so a week of renames does not bury the pauses."""
+    def of(*kinds):
+        return [e for e in ch if e.get("kind") in kinds]
+
+    def undone(es):
+        n = sum(1 for e in es if e.get("undone_at"))
+        return f" ({n} undone)" if n else ""
+
+    lines = []
+    ren = of("rename_campaign", "rename_adset", "rename_ad")
+    if ren:
+        parts = [_plural(len(of("rename_campaign")), "campaign", "campaigns"),
+                 _plural(len(of("rename_adset")), "ad set", "ad sets"), _plural(len(of("rename_ad")), "ad", "ads")]
+        parts = [p for p in parts if not p.startswith("0 ")]
+        lines.append(f"{_plural(len(ren), 'rename', 'renames')} ({', '.join(parts)}){undone(ren)}")
+    for kinds, one, many in ((("pause_adset",), "ad set paused by the hard stop", "ad sets paused by the hard stop"),
+                             (("pause_ad",), "ad paused", "ads paused"),
+                             (("set_end_date",), "end date set", "end dates set"),
+                             (("set_adset_budget",), "daily budget change", "daily budget changes"),
+                             (("set_url_tags",), "ad given UTM tags", "ads given UTM tags"),
+                             (("set_spend_cap",), "Meta spending limit change", "Meta spending limit changes")):
+        es = of(*kinds)
+        if es:
+            lines.append(f"{_plural(len(es), one, many)}{undone(es)}")
+    return lines
 
 
 def _render_ads_extras(x: Optional[dict]) -> str:
@@ -2215,14 +2248,15 @@ def _render_ads_extras(x: Optional[dict]) -> str:
     <p>{_esc(d.get('tracking'))}</p>
   </div>"""
     if d.get("changes"):
+        summary = "".join(f"<li>{_esc(c)}</li>" for c in d.get("changes_summary") or [])
         items = "".join(f"<li>{_esc(c)}</li>" for c in d["changes"])
-        more = d["changes_total"] - len(d["changes"])
-        tail = f"<p>and {more} more.</p>" if more > 0 else ""
         html += f"""
   <div class="ad-group">
     <h3>Changes made to the ads this week</h3>
     <p class="lead">Each is logged and can be put back from the Trends page.</p>
-    <ul>{items}</ul>{tail}
+    <ul>{summary}</ul>
+    <p>Latest:</p>
+    <ul>{items}</ul>
   </div>"""
     return html
 
@@ -2245,11 +2279,8 @@ def _ads_extras_markdown(x: Optional[dict]) -> List[str]:
         L += ["", str(d.get("tracking")), ""]
     if d.get("changes"):
         L += ["### Changes made to the ads this week", "Each is logged and can be put back from the Trends page.", ""]
-        L += [f"- {c}" for c in d["changes"]]
-        more = d["changes_total"] - len(d["changes"])
-        if more > 0:
-            L.append(f"- and {more} more.")
-        L.append("")
+        L += [f"- {c}" for c in d.get("changes_summary") or []]
+        L += ["", "Latest:"] + [f"- {c}" for c in d["changes"]] + [""]
     return L
 
 
