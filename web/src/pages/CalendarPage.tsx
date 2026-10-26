@@ -17,6 +17,7 @@ import {
   type CalendarItem,
   type TodayPanel,
 } from '../lib/api'
+import { mondayOfIso, WEEK_QUERY } from '../lib/backNav'
 import { dayInMonth, formatDateStamp, isoDate, parseIsoDateParam } from '../lib/stamp'
 import { toolTo } from '../lib/tools'
 
@@ -211,10 +212,32 @@ function daysInMonth(year: number, month0: number) {
   return new Date(year, month0 + 1, 0).getDate()
 }
 
+/** Same-page moment link. Week comes from the day. Brand is filled in at render. */
+function calendarMomentSearch(date: string, id: string): string {
+  const next = new URLSearchParams()
+  next.set('date', date)
+  const week = mondayOfIso(date)
+  if (week) next.set(WEEK_QUERY, week)
+  if (id) next.set('id', id)
+  return `?${next.toString()}`
+}
+
+function withBrandOnSearch(to: string, search: string): string {
+  if (!to.startsWith('?')) return to
+  const next = new URLSearchParams(to.slice(1))
+  const current = new URLSearchParams(search)
+  for (const key of ['brand', 'filter']) {
+    const value = current.get(key)?.trim()
+    if (value) next.set(key, value)
+  }
+  const rendered = next.toString()
+  return rendered ? `?${rendered}` : to
+}
+
 export function CalendarPage() {
   const { brandId } = useBrand()
   const [params, setParams] = useSearchParams()
-  const cursor = useMemo(() => parseIsoDateParam(params.get('date')), [params])
+  const cursor = useMemo(() => parseIsoDateParam(params.get('date') || params.get(WEEK_QUERY)), [params])
   const year = cursor.getFullYear()
   const month0 = cursor.getMonth()
   const selected = cursor.getDate()
@@ -245,11 +268,27 @@ export function CalendarPage() {
     (iso: string) => {
       const p = new URLSearchParams(params)
       p.set('date', iso)
+      const week = mondayOfIso(iso)
+      if (week) p.set(WEEK_QUERY, week)
       p.delete('id')
       setParams(p, { replace: true })
     },
     [params, setParams],
   )
+
+  useEffect(() => {
+    const iso = params.get('date') || selectedIso
+    const week = mondayOfIso(iso)
+    if (!week) return
+    if (params.get('date') === iso && params.get(WEEK_QUERY) === week) return
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (!next.get('date')) next.set('date', iso)
+      next.set(WEEK_QUERY, week)
+      if (next.toString() === prev.toString()) return prev
+      return next
+    }, { replace: true })
+  }, [params, selectedIso, setParams])
 
   const selectedId = params.get('id') || ''
   const closeMoment = useCallback(() => {
@@ -331,7 +370,7 @@ export function CalendarPage() {
                 day,
                 title: item.title || 'Untitled',
                 badge: item.status || item.type || 'moment',
-                to: `?date=${date}&id=${encodeURIComponent(item.calendar_id || '')}`,
+                to: calendarMomentSearch(date, item.calendar_id || ''),
                 stamp: item.event_date || item.campaign_start,
                 stampKind,
                 source: 'moment',
@@ -653,7 +692,7 @@ export function CalendarPage() {
               return (
                 <QueueItem
                   key={row.key}
-                  to={row.to}
+                  to={withBrandOnSearch(row.to, params.toString())}
                   badge={row.badge}
                   tone="green"
                   title={row.title}

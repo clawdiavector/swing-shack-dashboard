@@ -1,12 +1,14 @@
 import { useEffect } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BrandProvider, BrandRefresh, BrandSwitch, useBrand } from './BrandSwitch'
 import { PlanAlertDot } from './PlanAlertDot'
-import { PressIcon, Tip } from './ui'
+import { BackButton, PressIcon, Tip } from './ui'
 import { formatStamp } from '../lib/stamp'
 import { KICKER_SUBPAGES, RAIL, SETTINGS, sectionFor, sectionPageFor, type RailItem } from '../lib/nav'
 import { TOOL_BY_SLUG, parentLabel } from '../lib/tools'
 import { useTheme } from '../lib/theme'
+import { backTarget } from '../lib/backNav'
+import { persistedQuerySearch, withPersistedQuery } from '../lib/queryState'
 
 const PLAN_PATH = '/calendar/lanes'
 
@@ -23,12 +25,14 @@ function RoutedPage() {
 }
 
 function RailLink({ item, on }: { item: RailItem; on: boolean }) {
+  const loc = useLocation()
   const Icon = item.icon
   const tip = `Go to ${item.label}: ${item.hint}.`
+  const to = withPersistedQuery(item.to, loc.search)
   return (
     <Tip text={tip} block>
       <Link
-        to={item.to}
+        to={to}
         title={tip}
         aria-current={on ? 'page' : undefined}
         className={[
@@ -51,6 +55,7 @@ function RailLink({ item, on }: { item: RailItem; on: boolean }) {
 
 export function Shell() {
   const loc = useLocation()
+  const navigate = useNavigate()
   const [theme, toggleTheme] = useTheme()
   const toolSlug = loc.pathname.startsWith('/tool/') ? loc.pathname.split('/')[2] : ''
   const tool = toolSlug ? TOOL_BY_SLUG[toolSlug] : undefined
@@ -67,6 +72,21 @@ export function Shell() {
     const name = tool?.label ?? page ?? section?.label
     document.title = name ? `${name} · Campaign OS` : 'Campaign OS'
   }, [loc.pathname, tool])
+
+  function goBack() {
+    const target = backTarget(window.history.state)
+    if (!target) {
+      navigate(-1)
+      return
+    }
+    navigate(
+      {
+        pathname: target,
+        search: persistedQuerySearch(loc.search),
+      },
+      { replace: true },
+    )
+  }
 
   return (
     <BrandProvider>
@@ -104,6 +124,7 @@ export function Shell() {
       <div className="flex min-h-dvh flex-col pb-20 lg:h-dvh lg:min-h-0 lg:overflow-visible lg:pb-0">
         <header className="glass sticky top-0 z-30 flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
+            <BackButton onClick={goBack} />
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-bg lg:hidden">
               <svg viewBox="0 0 32 32" className="h-6 w-6" fill="none">
                 <path d="M10 26V6" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
@@ -155,7 +176,7 @@ export function Shell() {
           return (
             <Link
               key={item.to}
-              to={item.to}
+              to={withPersistedQuery(item.to, loc.search)}
               title={`Go to ${item.label}: ${item.hint}.`}
               aria-current={on ? 'page' : undefined}
               className={[
