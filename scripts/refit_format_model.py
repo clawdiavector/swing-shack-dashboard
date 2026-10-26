@@ -45,9 +45,17 @@ OUT_FILE = DATA / "format-model-refit.json"
 
 
 def _seed_data_dir() -> Path:
-    bundled = (os.environ.get("BUNDLED_DATA_DIR") or "").strip()
-    if bundled:
-        return Path(bundled)
+    """Committed refit inputs live under repo data/; ignore scratch-only BUNDLED_DATA_DIR."""
+    bundled_raw = (os.environ.get("BUNDLED_DATA_DIR") or "").strip()
+    data_raw = (os.environ.get("DATA_DIR") or "").strip()
+    if bundled_raw:
+        bundled = Path(bundled_raw).resolve()
+        if data_raw:
+            runtime = Path(data_raw).resolve()
+            if runtime != DATA.resolve() and bundled == runtime:
+                return DATA
+        if (bundled / "post-conversion-score.json").is_file():
+            return bundled
     return DATA
 
 
