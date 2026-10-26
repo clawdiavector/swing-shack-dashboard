@@ -33,6 +33,7 @@ Outputs data/format-model-refit.json with:
 """
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -42,6 +43,74 @@ DATA = ROOT / "data"
 PCS_FILE = DATA / "post-conversion-score.json"
 IG_FILE = DATA / "ig-business-analytics.json"
 OUT_FILE = DATA / "format-model-refit.json"
+_VOLATILE_KEYS = ("generated_at", "source_data")
+
+
+def _refit_body(doc):
+    if not isinstance(doc, dict):
+        return None
+    return {key: value for key, value in doc.items() if key not in _VOLATILE_KEYS}
+
+
+def _committed_refit_bytes():
+    """Bytes of the tracked refit file at HEAD, or None if git cannot show it."""
+    try:
+        rel = OUT_FILE.resolve().relative_to(ROOT.resolve())
+    except ValueError:
+        return None
+    try:
+        proc = subprocess.run(
+            ["git", "show", f"HEAD:{rel.as_posix()}"],
+            cwd=ROOT,
+            capture_output=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if proc.returncode != 0 or not proc.stdout:
+        return None
+    return proc.stdout
+
+
+def _write_refit(output):
+    """Write the refit result.
+
+    A manual run updates data/format-model-refit.json. ./check points DATA_DIR
+    at a scratch directory and fails if that tracked file changes. Under
+    DATA_DIR, the fresh JSON goes to the scratch dir. The tracked file is
+    rewritten with its committed bytes when the scores are unchanged, so a
+    new timestamp or this machine's absolute paths do not dirty git.
+    """
+    default_out = (DATA / "format-model-refit.json").resolve()
+    runtime = os.environ.get("DATA_DIR")
+    writing_default = Path(OUT_FILE).resolve() == default_out
+    runtime_dir = Path(runtime).resolve() if runtime else None
+    redirect = bool(runtime_dir and writing_default and runtime_dir != DATA.resolve())
+
+    if not redirect:
+        with open(OUT_FILE, "w") as handle:
+            json.dump(output, handle, indent=2)
+        return OUT_FILE
+
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    scratch = runtime_dir / "format-model-refit.json"
+    with open(scratch, "w") as handle:
+        json.dump(output, handle, indent=2)
+
+    committed = _committed_refit_bytes()
+    same = False
+    if committed:
+        try:
+            previous = json.loads(committed.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            previous = None
+        same = _refit_body(previous) == _refit_body(output)
+    if same:
+        OUT_FILE.write_bytes(committed)
+    else:
+        with open(OUT_FILE, "w") as handle:
+            json.dump(output, handle, indent=2)
+    return scratch
 
 
 def load_json(p):
@@ -236,8 +305,7 @@ def main():
         "posts": post_output,
     }
 
-    with open(OUT_FILE, "w") as f:
-        json.dump(output, f, indent=2)
+    written = _write_refit(output)
 
     print("=" * 70)
     print(f"FORMAT MODEL REFIT - {output['generated_at']}")
@@ -259,7 +327,7 @@ def main():
     print(f"\nVerdict:")
     for line in verdict_lines:
         print(f"  {line}")
-    print(f"\nWritten to {OUT_FILE}")
+    print(f"\nWritten to {written}")
 
 
 if __name__ == "__main__":
