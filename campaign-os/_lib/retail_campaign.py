@@ -8,11 +8,17 @@ from __future__ import annotations
 
 import io
 import re
+import sys
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 from zoneinfo import ZoneInfo
 
 from _lib import product_post_templates as pt
+
+_SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
 
 TZ = ZoneInfo("Africa/Johannesburg")
 
@@ -89,6 +95,24 @@ def _default_cta(brand_id: str) -> str:
     return "DM us for details"
 
 
+def _hook_max_chars(brand_id: str) -> int | None:
+    import caption_lint  # noqa: PLC0415
+
+    rules = caption_lint.load_rules(brand_id)
+    hook_max = rules.get("hook_max_chars")
+    return int(hook_max) if hook_max else None
+
+
+def _fit_hook(hook: str, max_chars: int) -> str:
+    hook = hook.strip()
+    if len(hook) <= max_chars:
+        return hook
+    trimmed = hook[:max_chars].rstrip()
+    if " " in trimmed:
+        trimmed = trimmed.rsplit(" ", 1)[0]
+    return trimmed.rstrip(".,;:- ")
+
+
 def build_caption(brand_id: str, product_name: str, idea: str = "", status: str = "") -> str:
     hook = idea.strip() or f"{product_name} is in store now."
     if status == "new":
@@ -96,6 +120,9 @@ def build_caption(brand_id: str, product_name: str, idea: str = "", status: str 
     elif status == "back":
         hook = f"Back in stock: {product_name}."
     hook = hook.rstrip(".")
+    hook_max = _hook_max_chars(brand_id)
+    if hook_max:
+        hook = _fit_hook(hook, hook_max)
     cta = _default_cta(brand_id)
     if brand_id == "stick":
         return f"{hook}.\nBook a fitting at Stick.\nBetter begins here."
@@ -103,7 +130,7 @@ def build_caption(brand_id: str, product_name: str, idea: str = "", status: str 
 
 
 def caption_hard_fails(brand_id: str, caption: str) -> List[str]:
-    import caption_lint  # noqa: PLC0415
+    import caption_lint  # noqa: PLC0415, E402
 
     try:
         res = caption_lint.lint(brand_id, caption, cross_brand=False)
