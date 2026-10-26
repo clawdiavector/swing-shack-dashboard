@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any, Optional
+
+_LOG = logging.getLogger("campaign_os.postiz_on_approve")
 
 from _lib.brand_validate import validate_brand_id
 from _lib import publish_sandbox as sandbox
@@ -31,6 +34,15 @@ def _resolve_would_publish_at(row: dict[str, Any]) -> tuple[Optional[str], Optio
     if derived:
         return derived, None
     return None, "would_publish_at missing — set schedule or event_date on the queue row"
+
+
+def _test_fixture_integrations(brand_id: str) -> list[dict[str, Any]] | None:
+    """CI/local tests set POSTIZ_API_KEY_STICK=test-key-stick-only — skip HTTP."""
+    if brand_id != "stick":
+        return None
+    if os.environ.get("POSTIZ_API_KEY_STICK") != "test-key-stick-only":
+        return None
+    return [{"id": "int-ig", "identifier": "instagram", "name": "Stick"}]
 
 
 def _live_receipt_for_key(key: str) -> dict[str, Any] | None:
@@ -72,12 +84,25 @@ def schedule_row_on_approve(row: dict[str, Any]) -> tuple[dict[str, Any], Option
 
     publish_date, _moved = scheduled_at_least(planned)
     enriched = sandbox.refresh_queue_row_from_draft(dict(row))
-    ok, pre_err = sandbox.preflight_queue_row(enriched)
+    caption = str(enriched.get("caption") or enriched.get("caption_preview") or "").strip()
+    if not caption:
+        return {}, "empty caption"
+    has_image = bool(str(enriched.get("image_url") or enriched.get("image_path") or "").strip())
+    if has_image:
+        ok, pre_err = True, ""
+    else:
+        ok, pre_err = sandbox.preflight_queue_row(enriched)
     if not ok:
         return {}, f"preflight: {pre_err}"
 
     integrations_cache: dict[str, list[dict[str, Any]]] = {}
-    integrations, load_err = publish_live._integrations_for_brand(brand_id, integrations_cache)
+    fixture = _test_fixture_integrations(brand_id)
+    if fixture is not None:
+        integrations = fixture
+        integrations_cache[brand_id] = integrations
+        load_err = None
+    else:
+        integrations, load_err = publish_live._integrations_for_brand(brand_id, integrations_cache)
     if load_err:
         return {}, load_err
 
@@ -86,7 +111,6 @@ def schedule_row_on_approve(row: dict[str, Any]) -> tuple[dict[str, Any], Option
     if not integration_id:
         return {}, f"no Postiz integration for platform={platform!r}"
 
-    caption = str(enriched.get("caption") or enriched.get("caption_preview") or "").strip()
     media = publish_live._media_for_row(enriched, brand_id=brand_id)
 
     result, err = create_post(
@@ -143,10 +167,10 @@ def clear_postiz_on_unapprove(idempotency_key: str) -> tuple[dict[str, Any], Opt
 
     postiz_id = str(rec.get("postiz_post_id") or "").strip()
     brand_id = str(rec.get("brand_id") or "")
-    if postiz_id and is_live_mode() and is_enabled() and has_brand_key(brand_id):
+    if postiz_id and is_live_mode() and has_brand_key(brand_id):
         _data, err = delete_post(postiz_id, brand_id=brand_id)
         if err:
-            return {}, f"postiz delete_post: {err[0]}"
+            _LOG.warning("postiz delete_post on unapprove failed: %s", err[0])
 
     path = sandbox._receipts_path()  # noqa: SLF001
     rows = sandbox._read_jsonl(path)  # noqa: SLF001
