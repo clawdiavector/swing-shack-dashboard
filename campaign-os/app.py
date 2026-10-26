@@ -19282,6 +19282,24 @@ try:
         brand_mode="per_brand",
         requires_integrations=("gbp",),
     ))
+    def _run_mail_intake_job():
+        """Herman's mail to the agent inbox, filed as Do now or Idea. Quiet when the
+        inbox is not connected on this server; the Today page says so."""
+        from _lib import mail_intake as _mi
+        out = _mi.run_intake_live()
+        if not out.get("ok") and not _mi.configured()["inbox"]:
+            return {"ok": True, "skipped": True, "note": out.get("error")}
+        return out
+
+    _register_job(_JobSpec(
+        name="mail_intake",
+        fn=_run_mail_intake_job,
+        every_seconds=1800,
+        criticality="MEDIUM",
+        credentials=("AGENTMAIL_API_KEY", "AGENTMAIL_INBOX"),
+        writes=("mail-intake/items.json",),
+        brand_mode="global",
+    ))
     _register_job(_JobSpec(
         name="freshness_scan",
         fn=_run_freshness_scan_job,
@@ -26255,6 +26273,22 @@ def plan_v1_draft(brand_id, plan_id, item_id):
     actor = (request.headers.get('X-Actor-Display-Name') or body.get("actor") or "operator")
     try:
         r = _plan_import().request_draft(brand_id, plan_id, item_id, str(actor).strip() or "operator")
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/drafts', methods=['POST'])
+def plan_v1_draft_all(brand_id, plan_id):
+    """Ask for a caption draft of every post step that has not been asked for. The drafts
+    land in Approve drafts for a person to approve; nothing is posted."""
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    body = request.get_json(silent=True) or {}
+    actor = (request.headers.get('X-Actor-Display-Name') or body.get("actor") or "operator")
+    try:
+        r = _plan_import().request_all_drafts(brand_id, plan_id, str(actor).strip() or "operator")
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
     return jsonify(r), (200 if r.get("ok") else 400)
@@ -47308,6 +47342,61 @@ def morning_message_route():
                     "due_today": sum(1 for s in sections.values() for x in s["steps"] if x["bucket"] == "today")}), 200
 
 
+# ── Mail from Herman, filed as Do now or Idea on the Today page ──
+@app.route("/api/mail-intake", methods=["GET"])
+def mail_intake_list():
+    """GET ?brand=stick|swing-shack|bag-drop|all — open Do now and Idea items, newest first,
+    and whether anyone is actually watching the inbox on this server."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import mail_intake as mi
+    brand = (request.args.get("brand") or "all").strip()
+    if brand != "all" and brand not in mi.BRANDS:
+        return jsonify({"ok": False, "error": f"brand '{brand}' invalid"}), 400
+    items = mi.list_items(None if brand == "all" else brand)
+    return jsonify({"ok": True, "watching": mi.configured(), "count": len(items),
+                    "do_now": [i for i in items if i["kind"] == "do_now"],
+                    "ideas": [i for i in items if i["kind"] == "idea"]}), 200
+
+
+@app.route("/api/mail-intake/<item_id>/<action>", methods=["POST"])
+def mail_intake_act(item_id, action):
+    """POST status {status} | kind {kind} | to-calendar {brand, date}. to-calendar puts an idea
+    on the calendar as a faded suggestion; approving it is still a person's call."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import calendar_suggestions as cs
+    from _lib import mail_intake as mi
+    body = request.get_json(silent=True) or {}
+    try:
+        if action == "status":
+            item = mi.set_status(item_id, str(body.get("status") or ""))
+        elif action == "kind":
+            item = mi.set_kind(item_id, str(body.get("kind") or ""))
+        elif action == "to-calendar":
+            cur = mi.get_item(item_id)
+            if not cur:
+                return jsonify({"ok": False, "error": "not found"}), 404
+            day = str(body.get("date") or cur.get("date") or "")
+            chk = cs.approval_date_check(day, _jhb_today())
+            if not chk["ok"]:
+                return jsonify({"ok": False, "error": chk["error"]}), 400
+            item = mi.set_brand_date(item_id, str(body.get("brand") or cur.get("brand") or ""), day)
+            if item and not item.get("needs") and not item.get("calendar_id"):
+                cid = mi.add_suggestion_live(item["brand"], item)
+                item = mi.mark_on_calendar(item_id, cid)
+        else:
+            return jsonify({"ok": False, "error": "unknown action"}), 404
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception:
+        _app_log.exception("mail intake %s failed for %s", action, item_id)
+        return jsonify({"ok": False, "error": "could not do that; nothing was changed"}), 500
+    if not item:
+        return jsonify({"ok": False, "error": "not found"}), 404
+    return jsonify({"ok": True, "item": item}), 200
+
+
 # ── Suggestions on the month calendar: faded until approved or rejected ──
 def _cs_guard(brand_id):
     if not _is_authed():
@@ -47441,6 +47530,9 @@ def calendar_suggestions_approve(brand_id):
     if not item:
         return jsonify({"ok": False, "error": "that suggestion is no longer there"}), 404
     actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    date_check = cs.approval_date_check(item.get("date"), _jhb_today())
+    if not date_check["ok"]:
+        return jsonify({"ok": False, "error": date_check["error"]}), 400
     cid, made = item.get("calendar_id"), False
     pillars = [p for p in (body.get("pillars") or []) if isinstance(p, str) and p]
     if item["source"] not in cs.DECIDED_SOURCES and pillars and not item.get("pillars"):
@@ -47485,7 +47577,7 @@ def calendar_suggestions_approve(brand_id):
     undo = {"kind": "approve", "key": item["key"], "source": item["source"],
             "calendar_id": cid, "event_key": data.get("event_key"), "month": body.get("month")}
     undo["token"] = cs.issue_undo(brand_id, undo)
-    return jsonify({"ok": True, "undo": undo}), 200
+    return jsonify({"ok": True, "undo": undo, "warning": date_check["warning"]}), 200
 
 
 @app.route("/api/calendar-suggestions/<brand_id>/reject", methods=["POST"])

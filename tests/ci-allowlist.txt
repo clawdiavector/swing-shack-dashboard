@@ -153,3 +153,4 @@ campaign-os/tests/test_post_studio.py
 campaign-os/tests/test_post_qa.py
 campaign-os/tests/test_mail_intake.py
 campaign-os/tests/test_plan_idea_to_posts.py
+campaign-os/tests/test_mail_intake_routes.py
