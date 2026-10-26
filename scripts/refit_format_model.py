@@ -38,10 +38,40 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
-DATA = ROOT / "data"
+SEED_DATA = ROOT / "data"
+DATA = SEED_DATA
 PCS_FILE = DATA / "post-conversion-score.json"
 IG_FILE = DATA / "ig-business-analytics.json"
 OUT_FILE = DATA / "format-model-refit.json"
+
+
+def _runtime_data_dir() -> Path:
+    """Where PCS/IG/refit output live for this run.
+
+    ./check gives pytest a scratch DATA_DIR; this CLI still reads committed seed
+    inputs and (when run under pytest) must not write refit output into that scratch
+    tree or leave tracked data/ dirty. Production runs with DATA_DIR=/data/campaign-os
+    should read and write under that runtime dir.
+    """
+    scratch = os.environ.get("DATA_DIR")
+    if not scratch:
+        return SEED_DATA
+    scratch_p = Path(scratch).resolve()
+    seed_p = SEED_DATA.resolve()
+    if scratch_p == seed_p:
+        return SEED_DATA
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return SEED_DATA
+    return scratch_p
+
+
+def _bind_data_paths() -> None:
+    global DATA, PCS_FILE, IG_FILE, OUT_FILE
+    data = _runtime_data_dir()
+    DATA = data
+    PCS_FILE = data / "post-conversion-score.json"
+    IG_FILE = data / "ig-business-analytics.json"
+    OUT_FILE = data / "format-model-refit.json"
 
 
 def load_json(p):
@@ -62,6 +92,11 @@ def classify_format(media_type, metrics=None):
 
 
 def main():
+    seed_out_snapshot: bytes | None = None
+    if os.environ.get("PYTEST_CURRENT_TEST") and _runtime_data_dir().resolve() == SEED_DATA.resolve():
+        if OUT_FILE.is_file():
+            seed_out_snapshot = OUT_FILE.read_bytes()
+
     pcs = load_json(PCS_FILE)
     ig = load_json(IG_FILE)
     posts = pcs.get("posts_ranked", [])
@@ -236,31 +271,38 @@ def main():
         "posts": post_output,
     }
 
-    with open(OUT_FILE, "w") as f:
-        json.dump(output, f, indent=2)
+    try:
+        with open(OUT_FILE, "w") as f:
+            json.dump(output, f, indent=2)
 
-    print("=" * 70)
-    print(f"FORMAT MODEL REFIT - {output['generated_at']}")
-    print("=" * 70)
-    print(f"\nMedian conversion efficiency: {median_eff:.4f} (sessions per reach unit)")
-    print(f"\nFormat multipliers:")
-    for fmt, m in format_mult.items():
-        print(f"  {fmt}: {m:.3f}")
-    print(f"\nOld winning format: {old_winning_format} (avg score {old_format_summary.get(old_winning_format, 0):.1f})")
-    print(f"New winning format: {new_winning_format} (avg score {new_format_summary.get(new_winning_format, 0):.1f})")
-    if format_flip:
-        print(f"\n*** FORMAT FLIP DETECTED ***")
-    print(f"\nTop 5 posts (new ranking):")
-    for p in post_output[:5]:
-        delta = p["delta_normalized"]
-        delta_str = f"+{delta:.1f}" if delta >= 0 else f"{delta:.1f}"
-        print(f"  #{p['new_rank']} (was #{p['old_rank']}): {p['format']:6} score {p['new_normalized']:.1f} (delta {delta_str}) "
-              f"reach {p['reach']} sessions {p['sessions']} eff {p['conversion_efficiency']:.3f}")
-    print(f"\nVerdict:")
-    for line in verdict_lines:
-        print(f"  {line}")
-    print(f"\nWritten to {OUT_FILE}")
+        print("=" * 70)
+        print(f"FORMAT MODEL REFIT - {output['generated_at']}")
+        print("=" * 70)
+        print(f"\nMedian conversion efficiency: {median_eff:.4f} (sessions per reach unit)")
+        print(f"\nFormat multipliers:")
+        for fmt, m in format_mult.items():
+            print(f"  {fmt}: {m:.3f}")
+        print(f"\nOld winning format: {old_winning_format} (avg score {old_format_summary.get(old_winning_format, 0):.1f})")
+        print(f"New winning format: {new_winning_format} (avg score {new_format_summary.get(new_winning_format, 0):.1f})")
+        if format_flip:
+            print(f"\n*** FORMAT FLIP DETECTED ***")
+        print(f"\nTop 5 posts (new ranking):")
+        for p in post_output[:5]:
+            delta = p["delta_normalized"]
+            delta_str = f"+{delta:.1f}" if delta >= 0 else f"{delta:.1f}"
+            print(
+                f"  #{p['new_rank']} (was #{p['old_rank']}): {p['format']:6} score {p['new_normalized']:.1f} (delta {delta_str}) "
+                f"reach {p['reach']} sessions {p['sessions']} eff {p['conversion_efficiency']:.3f}"
+            )
+        print(f"\nVerdict:")
+        for line in verdict_lines:
+            print(f"  {line}")
+        print(f"\nWritten to {OUT_FILE}")
+    finally:
+        if seed_out_snapshot is not None:
+            OUT_FILE.write_bytes(seed_out_snapshot)
 
 
 if __name__ == "__main__":
+    _bind_data_paths()
     main()
