@@ -994,7 +994,20 @@ export function fetchTopPosts(brand?: string, limit = 3) {
   return getJson<InsightsPosts>(`/api/insights/top-instagram-posts?${q}`)
 }
 
+export type CmoBrief = {
+  week?: { current?: string; previous?: string }
+  verdict: { headline: string; tone: 'act' | 'watch' | 'good'; lines: string[] }
+  numbers: { label: string; value: string; vs: string; note?: string }[]
+  decisions: { decision: string; recommendation: string; because: string; confidence: string }[]
+  working: string[]
+  not_working: string[]
+  risks: string[]
+  gaps: string[]
+  next_week: string[]
+}
+
 export type WeeklyReportJson = {
+  cmo?: CmoBrief | null
   brand_id?: string
   data_source_brand_id?: string
   brand_meta?: Record<string, unknown>

@@ -38,6 +38,7 @@ Workflows under `.github/workflows/` include (verify with `ls .github/workflows/
 - `layer1-daily-cron.yml`
 - `layer2-7-daily-cron.yml`
 - `gbp-daily-cron.yml`
+- `mail-intake-cron.yml` — every 30 min; files Herman's agent-inbox mail as Do now / Idea (needs `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX`, `MAIL_INTAKE_SENDERS`, `MAIL_INTAKE_NOTIFY_TO` on Railway; quiet until they are set)
 - `meta-live-fetch.yml`
 - `ci.yml`, `lint-brand-copy.yml`
 

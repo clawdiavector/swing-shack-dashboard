@@ -51,8 +51,8 @@ def _seed_data_dir() -> Path:
     return DATA
 
 
-def resolve_paths() -> tuple[Path, Path, Path]:
-    """Inputs prefer runtime DATA_DIR, then seed; output always under runtime or seed."""
+def resolve_paths() -> tuple[Path, Path]:
+    """Inputs prefer runtime DATA_DIR, then seed."""
     seed = _seed_data_dir()
     runtime_raw = (os.environ.get("DATA_DIR") or "").strip()
     runtime = Path(runtime_raw) if runtime_raw else seed
@@ -64,12 +64,7 @@ def resolve_paths() -> tuple[Path, Path, Path]:
                 return candidate
         return seed / name
 
-    pcs = _input("post-conversion-score.json")
-    ig = _input("ig-business-analytics.json")
-    out_base = runtime if runtime_raw else seed
-    out_base.mkdir(parents=True, exist_ok=True)
-    out = out_base / "format-model-refit.json"
-    return pcs, ig, out
+    return _input("post-conversion-score.json"), _input("ig-business-analytics.json")
 
 
 def _source_data_refs(pcs: Path, ig: Path) -> dict[str, str]:
@@ -84,6 +79,51 @@ def _source_data_refs(pcs: Path, ig: Path) -> dict[str, str]:
         except ValueError:
             refs[key] = path.name
     return refs
+
+
+def _scratch_data_dir() -> Path | None:
+    """Scratch DATA_DIR from ./check (not the bundled repo data/ tree)."""
+    raw = os.environ.get("DATA_DIR")
+    if not raw:
+        return None
+    resolved = Path(raw).resolve()
+    if resolved == DATA.resolve():
+        return None
+    return resolved
+
+
+def _payload_stable(previous: dict, new: dict) -> bool:
+    a = dict(new)
+    b = dict(previous)
+    a.pop("generated_at", None)
+    b.pop("generated_at", None)
+    return a == b
+
+
+def _write_outputs(output: dict) -> Path:
+    """Persist refit output; skip bundled data/ when ./check uses a scratch DATA_DIR."""
+    scratch = _scratch_data_dir()
+    bundled = OUT_FILE
+    targets: list[Path] = []
+    if scratch is not None:
+        scratch.mkdir(parents=True, exist_ok=True)
+        targets.append(scratch / "format-model-refit.json")
+    if scratch is None or not bundled.is_file():
+        if bundled not in targets:
+            targets.append(bundled)
+    primary = bundled if bundled in targets else targets[0]
+    serialized = json.dumps(output, indent=2)
+    for path in targets:
+        if path.is_file():
+            try:
+                previous = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                previous = None
+            if previous is not None and _payload_stable(previous, output):
+                continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(serialized, encoding="utf-8")
+    return primary
 
 
 def load_json(p):
@@ -104,9 +144,9 @@ def classify_format(media_type, metrics=None):
 
 
 def main():
-    global PCS_FILE, IG_FILE, OUT_FILE
+    global PCS_FILE, IG_FILE
     if __name__ == "__main__":
-        PCS_FILE, IG_FILE, OUT_FILE = resolve_paths()
+        PCS_FILE, IG_FILE = resolve_paths()
     pcs = load_json(PCS_FILE)
     ig = load_json(IG_FILE)
     posts = pcs.get("posts_ranked", [])
@@ -278,8 +318,7 @@ def main():
         "posts": post_output,
     }
 
-    with open(OUT_FILE, "w") as f:
-        json.dump(output, f, indent=2)
+    written_to = _write_outputs(output)
 
     print("=" * 70)
     print(f"FORMAT MODEL REFIT - {output['generated_at']}")
@@ -301,7 +340,7 @@ def main():
     print(f"\nVerdict:")
     for line in verdict_lines:
         print(f"  {line}")
-    print(f"\nWritten to {OUT_FILE}")
+    print(f"\nWritten to {written_to}")
 
 
 if __name__ == "__main__":

@@ -54,6 +54,8 @@ export type PlanItem = {
   budget?: number | null
   /** A shoot step: the exact shots to capture, one per entry. */
   shots?: string[]
+  /** Written by the plan, not by a person: check it before asking anyone to shoot. */
+  shots_suggested?: boolean
   /** A shoot step: who has been asked to shoot it, and when. */
   asked?: { to: string; at: string } | null
   /** A post step: set once a caption draft has been asked for. */
@@ -193,6 +195,12 @@ export const addPlanItem = (
  *  Approve drafts; nothing is posted. */
 export const requestDraft = (brand: string, planId: string, itemId: string, name: string) =>
   call('POST', `${base(brand)}/${encodeURIComponent(planId)}/item/${encodeURIComponent(itemId)}/draft`, {}, {
+    'X-Actor-Display-Name': name,
+  })
+
+/** Ask for a caption draft of every post step that has none yet. They arrive in Approve drafts. */
+export const requestAllDrafts = (brand: string, planId: string, name: string) =>
+  call('POST', `${base(brand)}/${encodeURIComponent(planId)}/drafts`, {}, {
     'X-Actor-Display-Name': name,
   })
 
