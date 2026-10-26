@@ -150,6 +150,7 @@ campaign-os/tests/test_v2026_10_19_worked_median_window.py
 campaign-os/tests/test_post_routes.py
 campaign-os/tests/test_stick_retail_templates_20261023.py
 campaign-os/tests/test_cos_mail_push_gate_20261023.py
+campaign-os/tests/test_cos_mail_cc_owners.py
 campaign-os/tests/test_post_studio.py
 campaign-os/tests/test_post_qa.py
 campaign-os/tests/test_postiz_schedule_on_approve_20261026.py
