@@ -85,7 +85,7 @@ export function Archive() {
             </p>
           ) : null}
           {!loading && items.length === 0 ? (
-            <HeroPanel title="Nothing archived">
+            <HeroPanel icon={ArchiveRestore} kicker="Archive" title="Nothing archived">
               <p className="text-sm text-tx2">Use Archive on a draft, plan, or calendar suggestion.</p>
             </HeroPanel>
           ) : null}
