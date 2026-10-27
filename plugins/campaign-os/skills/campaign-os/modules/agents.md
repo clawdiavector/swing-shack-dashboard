@@ -95,7 +95,7 @@ Same shape as the morning message: bearer `GET`, plain `text`, sends nothing its
 | When | Route | Says |
 |---|---|---|
 | Monday 09:00 SAST | `/api/jobs/weekly-selling-message` | what is on each facility's calendar Mon to Sun (approved entries) |
-| Tuesday | `/api/jobs/weekly-report-message` | the `/weekly-report?brand=` page link per facility (`links` + `text`), open without a login |
+| Tuesday | `/api/jobs/weekly-report-message` | the `/weekly-report?brand=` page link per facility (`links` + `text`); needs a Campaign OS login, the page redirects to sign-in |
 
 Not wired into a cron yet; that is a Mac change for Kyle. Built from `_lib/plan_todo.py`.
 

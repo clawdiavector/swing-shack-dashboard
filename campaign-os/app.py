@@ -47643,7 +47643,7 @@ def weekly_selling_message_route():
 @app.route("/api/jobs/weekly-report-message", methods=["GET"])
 def weekly_report_message_route():
     """GET ?brand=...|all — Tuesday message: the link to each facility's weekly report page
-    (/weekly-report, open without a login), as plain text for Foreman to send. Sends nothing itself."""
+    (/weekly-report, needs a login), as plain text for Foreman to send. Sends nothing itself."""
     brands = _facility_brands(request.args.get("brand"))
     if brands is None:
         return jsonify({"ok": False, "error": "unknown brand"}), 400

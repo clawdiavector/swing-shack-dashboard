@@ -64,7 +64,7 @@ def loaded_app(tmp_path_factory):
     mp.undo()
 
 
-def test_the_routes_need_the_job_token_and_the_report_link_opens_without_login(loaded_app, monkeypatch, tmp_path):
+def test_the_routes_need_the_job_token_and_the_report_link_needs_a_login(loaded_app, monkeypatch, tmp_path):
     from _lib import marketing_calendar as mc
 
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
@@ -85,6 +85,7 @@ def test_the_routes_need_the_job_token_and_the_report_link_opens_without_login(l
     assert r["ok"] and "Stick:" in r["text"] and "Swing Shack:" in r["text"]
     link = r["links"]["stick"]
     assert link.endswith("/weekly-report?brand=stick")
-    # the link itself must open with no login and no bearer
-    path = link.split("//", 1)[1].split("/", 1)[1]
-    assert anon.get("/" + path).status_code == 200
+    # the page needs a login: anonymous goes to sign-in
+    path = "/" + link.split("//", 1)[1].split("/", 1)[1]
+    r2 = anon.get(path)
+    assert r2.status_code == 302 and "login" in r2.headers["Location"]
