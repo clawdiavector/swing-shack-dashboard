@@ -84,7 +84,7 @@ def test_the_routes_need_the_job_token_and_the_report_link_opens_without_login(l
     r = anon.get("/api/jobs/weekly-report-message", headers=auth).get_json()
     assert r["ok"] and "Stick:" in r["text"] and "Swing Shack:" in r["text"]
     link = r["links"]["stick"]
-    assert "brand=stick" in link and "share=" in link
+    assert link.endswith("/weekly-report?brand=stick")
     # the link itself must open with no login and no bearer
     path = link.split("//", 1)[1].split("/", 1)[1]
     assert anon.get("/" + path).status_code == 200

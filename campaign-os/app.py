@@ -47642,16 +47642,15 @@ def weekly_selling_message_route():
 
 @app.route("/api/jobs/weekly-report-message", methods=["GET"])
 def weekly_report_message_route():
-    """GET ?brand=...|all — Tuesday message: a no-login weekly report link per facility
-    (signed share token, 24 hours), as plain text for Foreman to send. Sends nothing itself."""
+    """GET ?brand=...|all — Tuesday message: the link to each facility's weekly report page
+    (/weekly-report, open without a login), as plain text for Foreman to send. Sends nothing itself."""
     brands = _facility_brands(request.args.get("brand"))
     if brands is None:
         return jsonify({"ok": False, "error": "unknown brand"}), 400
     from _lib import plan_todo as pt
     today = _jhb_today()
     host = request.host_url.rstrip("/")
-    token = _serializer.dumps({"scope": "weekly_report_export", "v": 1})
-    links = {b: f"{host}/api/intel/weekly_report/export?brand={b}&format=html&share={token}" for b in brands}
+    links = {b: f"{host}/weekly-report?brand={b}" for b in brands}
     return jsonify({"ok": True, "date": today.isoformat(), "links": links,
                     "text": pt.weekly_report_text(links, today)}), 200
 

@@ -203,5 +203,5 @@ def weekly_report_text(links: Dict[str, str], today: _dt.date) -> str:
     """Tuesday's message: one weekly report link per facility."""
     lines = [f"Good morning. The weekly report, {_day(today)}.", ""]
     lines += [f"{BRAND_LABEL.get(b, b)}: {url}" for b, url in links.items()]
-    lines += ["", "Each link opens without a login and works for 24 hours."]
+    lines += ["", "Sign in to Campaign OS first if the link asks."]
     return "\n".join(lines)
