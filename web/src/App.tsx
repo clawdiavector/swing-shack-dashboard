@@ -36,6 +36,7 @@ import { Week } from './pages/results/Week'
 import { Templates } from './pages/results/Templates'
 import { Worked } from './pages/results/Worked'
 import { BrandVisuals } from './pages/BrandVisuals'
+import { Archive } from './pages/Archive'
 import { Library } from './pages/Library'
 import GEO from './pages/GEO'
 import { ReachPage } from './pages/ReachPage'
@@ -91,6 +92,7 @@ export default function App() {
         <Route path="desk" element={<Desk />} />
         <Route path="brand/visuals" element={<BrandVisuals />} />
         <Route path="library" element={<Library />} />
+        <Route path="archive" element={<Archive />} />
         <Route path="tool/:slug" element={<Tool />} />
         <Route path="*" element={<Navigate to="/daily" replace />} />
       </Route>

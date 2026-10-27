@@ -5,7 +5,15 @@ from __future__ import annotations
 from typing import Callable
 
 from ..spec import JobSpec
-from . import agent_queue_writer, clublab_pull, data_archive, holiday_inject, retail_campaign, review_sla, slot_planner
+from . import (
+    agent_queue_writer,
+    clublab_pull,
+    data_archive,
+    holiday_inject,
+    retail_campaign,
+    review_sla,
+    slot_planner,
+)
 
 LAYER2_JOB_NAMES: tuple[str, ...] = (
     "slot_planner",

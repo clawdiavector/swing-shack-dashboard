@@ -546,6 +546,7 @@ export function LaneMonthPanel({
                       pillars={sug.pillars}
                       onApprove={(g, pillar) => void sug.approve(g, pillar)}
                       onReject={(g) => void sug.reject(g)}
+                      onArchive={(g) => void sug.archive(g)}
                       onSwap={(g) => void sug.swap(g)}
                     />
                   ) : null}
