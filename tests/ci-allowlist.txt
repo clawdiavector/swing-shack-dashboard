@@ -178,3 +178,4 @@ campaign-os/tests/test_idea_builder_route.py
 campaign-os/tests/test_shadow_text_post_20261026.py
 campaign-os/tests/test_yoast_title_roundtrip_20261026.py
 campaign-os/tests/test_carousel_check_20261027.py
+campaign-os/tests/test_carousel_manifest_20261027.py
