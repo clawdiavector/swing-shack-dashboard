@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { FILTER_QUERY, withQueryParam } from '../../../lib/backNav'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { planPageHref } from '../../../lib/calendarAlerts'
 import {
@@ -30,6 +31,42 @@ import { DayPostSuggestions } from './DayPostSuggestions'
 import { SuggestionBar, useMonthSuggestions } from './MonthSuggestions'
 
 const DOW = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+
+const OUTSIDE_GREY = '#9ca3af'
+
+function isOutsideCampaignItem(it: PlanningMonthItem): boolean {
+  return (
+    it.post_type === 'posted-outside-campaign-os' ||
+    it.execution_type === 'outside_campaign_os'
+  )
+}
+
+function OutsidePostChip({ item }: { item: PlanningMonthItem }) {
+  const label = item.outside_label || 'Posted outside Campaign OS'
+  const title = truncateChipTitle(item.title || label)
+  return (
+    <span
+      className="inline-flex max-w-full items-center gap-1 truncate rounded-full border px-2 py-0.5 text-[10.5px] font-semibold"
+      style={{
+        background: `${OUTSIDE_GREY}22`,
+        color: OUTSIDE_GREY,
+        borderColor: `${OUTSIDE_GREY}66`,
+      }}
+      title={label}
+    >
+      {item.thumbnail_url ? (
+        <img
+          src={item.thumbnail_url}
+          alt=""
+          className="h-4 w-4 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: OUTSIDE_GREY }} />
+      )}
+      {title}
+    </span>
+  )
+}
 
 function LaneChip({
   lane,
@@ -110,6 +147,7 @@ function DayDrawer({
         ) : (
           <ul className="space-y-4">
             {items.map((it, i) => {
+              const outside = isOutsideCampaignItem(it)
               const statusColor =
                 it.status === 'READY'
                   ? '#10b981'
@@ -119,7 +157,11 @@ function DayDrawer({
               return (
                 <li key={`${it.title}-${i}`} className="space-y-2 border-b border-bd/50 pb-4 last:border-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <LaneChip lane={it.lane} title={laneLabel(it.lane, brand)} status={it.status} kind={it.kind} />
+                    {outside ? (
+                      <OutsidePostChip item={it} />
+                    ) : (
+                      <LaneChip lane={it.lane} title={laneLabel(it.lane, brand)} status={it.status} kind={it.kind} />
+                    )}
                     {it.status ? (
                       <span
                         className="rounded-full border px-2 py-0.5 text-[10px]"
@@ -139,6 +181,26 @@ function DayDrawer({
                     ) : null}
                   </div>
                   <p className="font-semibold">{it.title || it.hook || '—'}</p>
+                  {outside && it.outside_label ? (
+                    <p className="text-xs font-semibold text-tx3">{it.outside_label}</p>
+                  ) : null}
+                  {outside && it.thumbnail_url ? (
+                    <img
+                      src={it.thumbnail_url}
+                      alt=""
+                      className="max-h-32 rounded-lg border border-bd object-cover"
+                    />
+                  ) : null}
+                  {outside && it.permalink ? (
+                    <a
+                      href={it.permalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex text-xs font-semibold text-yel hover:underline"
+                    >
+                      Open post
+                    </a>
+                  ) : null}
                   {it.subtitle ? <p className="text-sm text-tx2">{it.subtitle}</p> : null}
                   <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-tx2">
                     <dt className="text-tx3">Pillar</dt>
@@ -211,7 +273,11 @@ export function LaneMonthPanel({
   /** Called after a suggestion is approved, rejected or undone, to reload the month. */
   onChanged?: () => void
 }) {
-  const [laneFilter, setLaneFilter] = useState('')
+  const [params, setParams] = useSearchParams()
+  const laneFilter = params.get(FILTER_QUERY) || ''
+  function setLaneFilter(next: string) {
+    setParams((prev) => withQueryParam(prev, FILTER_QUERY, next || null), { replace: true })
+  }
   const [drawerIso, setDrawerIso] = useState<string | null>(null)
   const [showGhosts, setShowGhosts] = useState(readShowSuggestions)
   const noop = useCallback(() => {}, [])
@@ -270,9 +336,16 @@ export function LaneMonthPanel({
     return () => window.removeEventListener('keydown', onKey)
   }, [closeDrawer])
 
+  const seenMonth = useRef<string | null>(null)
   useEffect(() => {
-    setLaneFilter('')
-  }, [brand, monthParam])
+    if (seenMonth.current === null) {
+      seenMonth.current = monthParam
+      return
+    }
+    if (seenMonth.current === monthParam) return
+    seenMonth.current = monthParam
+    setParams((prevParams) => withQueryParam(prevParams, FILTER_QUERY, null), { replace: true })
+  }, [monthParam, setParams])
 
   if (!monthView?.ok) {
     return (
@@ -454,9 +527,13 @@ export function LaneMonthPanel({
                 <span className="text-[9px] text-tx3 italic">no content</span>
               ) : (
                 <div className="flex flex-col gap-0.5">
-                  {items.map((it, idx) => (
-                    <LaneChip key={`${it.title}-${idx}`} lane={it.lane} title={it.title} status={it.status} kind={it.kind} />
-                  ))}
+                  {items.map((it, idx) =>
+                    isOutsideCampaignItem(it) ? (
+                      <OutsidePostChip key={`outside-${it.title}-${idx}`} item={it} />
+                    ) : (
+                      <LaneChip key={`${it.title}-${idx}`} lane={it.lane} title={it.title} status={it.status} kind={it.kind} />
+                    ),
+                  )}
                   {steps.map((st) => (
                     <PlanStepChip key={st.key} s={st} brandId={brandId} />
                   ))}

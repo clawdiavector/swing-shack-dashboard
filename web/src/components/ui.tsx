@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { ExternalLink } from 'lucide-react'
+import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { toDesk } from '../lib/desk'
@@ -20,6 +20,24 @@ export function PressIcon({
       <Icon className="icon-press-hi size-full" strokeWidth={2.5} />
       <Icon className="icon-press-ink size-full" strokeWidth={2.5} />
     </span>
+  )
+}
+
+/** One header control. The shell decides whether it pops history or opens Today. */
+export function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Tip text="Back to where you came from, or Today when this page was opened directly.">
+      <button
+        type="button"
+        onClick={onClick}
+        className="glass-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-tx2 hover:border-ac hover:text-ac"
+        title="Back"
+        aria-label="Back"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
+        Back
+      </button>
+    </Tip>
   )
 }
 
