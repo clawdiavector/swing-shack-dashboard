@@ -7769,6 +7769,105 @@ def brand_library_bulk(brand_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+from _lib import content_archive as _content_archive  # noqa: E402
+
+
+def _archive_actor() -> str:
+    return (request.headers.get("X-Actor-Display-Name") or "").strip() or "operator"
+
+
+@app.route("/api/brands/<brand_id>/archive", methods=["GET"])
+def brand_archive_list(brand_id):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        items = _content_archive.list_archived(brand_id)
+        return jsonify({"ok": True, "brand_id": brand_id, "count": len(items), "items": items}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception:
+        _app_log.exception("brand_archive_list failed")
+        return jsonify({"ok": False, "error": "could not load archive"}), 500
+
+
+@app.route("/api/brands/<brand_id>/archive/preview", methods=["POST"])
+def brand_archive_preview(brand_id):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        payload = _content_archive.preview_archive(
+            brand_id,
+            kind=str(body.get("kind") or ""),
+            item_id=str(body.get("id") or body.get("item_id") or ""),
+            suggestion_key=body.get("suggestion_key"),
+            title_hint=body.get("title"),
+        )
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/brands/<brand_id>/archive", methods=["POST"])
+def brand_archive_apply(brand_id):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        payload = _content_archive.archive_item(
+            brand_id,
+            kind=str(body.get("kind") or ""),
+            item_id=str(body.get("id") or body.get("item_id") or ""),
+            actor=_archive_actor(),
+            suggestion_key=body.get("suggestion_key"),
+            title_hint=body.get("title"),
+        )
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception:
+        _app_log.exception("brand_archive_apply failed")
+        return jsonify({"ok": False, "error": "archive failed"}), 500
+
+
+@app.route("/api/brands/<brand_id>/archive/restore", methods=["POST"])
+def brand_archive_restore(brand_id):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        payload = _content_archive.restore_item(
+            brand_id,
+            kind=str(body.get("kind") or ""),
+            item_id=str(body.get("id") or body.get("item_id") or ""),
+            actor=_archive_actor(),
+            suggestion_key=body.get("suggestion_key"),
+        )
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception:
+        _app_log.exception("brand_archive_restore failed")
+        return jsonify({"ok": False, "error": "restore failed"}), 500
+
+
+@app.route("/api/brands/<brand_id>/archive/purge", methods=["POST"])
+def brand_archive_purge(brand_id):
+    """Archive page "Delete expired": items past retention. Dry run unless ARCHIVE_PURGE_LIVE."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib.archive_retention import ArchivePurgeConfigError
+
+    try:
+        payload = _content_archive.purge_brand(brand_id, actor=_archive_actor())
+        return jsonify(payload), 200
+    except (ValueError, ArchivePurgeConfigError) as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception:
+        _app_log.exception("brand_archive_purge failed")
+        return jsonify({"ok": False, "error": "purge failed"}), 500
+
+
 @app.route('/brand-directory-media/<brand_id>/<path:relpath>', methods=['GET'])
 def brand_directory_media(brand_id, relpath):
     """Serve brand-directory assets (template refs, goldens) with traversal guard."""

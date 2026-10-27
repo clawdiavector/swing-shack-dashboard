@@ -2417,6 +2417,105 @@ export function postBrandLibraryBulk(
   )
 }
 
+export type ArchivedItem = {
+  kind: 'draft' | 'plan' | 'suggestion'
+  id: string
+  title: string
+  archived_at: string
+  archived_by: string
+  purge_at: string
+  touches?: string[]
+  suggestion_key?: string
+  campaign_id?: string
+}
+
+export type BrandArchivePayload = {
+  ok?: boolean
+  brand_id?: string
+  count?: number
+  items?: ArchivedItem[]
+  error?: string
+}
+
+export function fetchBrandArchive(brandId: string) {
+  return getJson<BrandArchivePayload>(`/api/brands/${encodeURIComponent(brandId)}/archive`)
+}
+
+export function previewBrandArchive(
+  brandId: string,
+  body: {
+    kind: string
+    id: string
+    suggestion_key?: string
+    title?: string
+  },
+) {
+  return postJson<{ ok?: boolean; message?: string; title?: string; touches?: string[]; error?: string }>(
+    `/api/brands/${encodeURIComponent(brandId)}/archive/preview`,
+    body,
+  )
+}
+
+export async function archiveBrandItem(
+  brandId: string,
+  body: {
+    kind: string
+    id: string
+    suggestion_key?: string
+    title?: string
+  },
+  actorName?: string,
+) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (actorName) headers['X-Actor-Display-Name'] = actorName
+  const res = await fetch(`/api/brands/${encodeURIComponent(brandId)}/archive`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers,
+    body: JSON.stringify(body),
+  })
+  return (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+}
+
+export async function restoreBrandArchiveItem(
+  brandId: string,
+  body: { kind: string; id: string; suggestion_key?: string },
+  actorName?: string,
+) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (actorName) headers['X-Actor-Display-Name'] = actorName
+  const res = await fetch(`/api/brands/${encodeURIComponent(brandId)}/archive/restore`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers,
+    body: JSON.stringify(body),
+  })
+  return (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+}
+
+export type BrandArchivePurgeResult = {
+  ok?: boolean
+  error?: string
+  total?: number
+  dry_run?: boolean
+  live?: boolean
+  retention_days?: number
+  purged?: Record<string, number>
+}
+
+/** Archive page "Delete expired": items past retention. Dry run unless ARCHIVE_PURGE_LIVE is on. */
+export async function purgeExpiredBrandArchive(brandId: string, actorName?: string) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (actorName) headers['X-Actor-Display-Name'] = actorName
+  const res = await fetch(`/api/brands/${encodeURIComponent(brandId)}/archive/purge`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers,
+    body: '{}',
+  })
+  return (await res.json().catch(() => ({}))) as BrandArchivePurgeResult
+}
+
 export function fetchTemplateGallery(brandId: string) {
   return getJson<TemplateGalleryPayload>(
     `/api/brands/${encodeURIComponent(brandId)}/template-gallery`,
