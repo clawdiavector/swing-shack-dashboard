@@ -10,7 +10,14 @@ from typing import Any, Optional
 from _lib import post_links
 from _lib import publish_sandbox as sandbox
 from _lib.brand_validate import validate_brand_id
-from _lib.postiz_client import create_post, list_integrations, postiz_status, scheduled_at_least, upload_media
+from _lib.postiz_client import (
+    create_post,
+    list_integrations,
+    postiz_status,
+    scheduled_at_least,
+    settings_for_provider,
+    upload_media,
+)
 from _lib.publish_image import resolve_queue_upload_path
 
 _log = logging.getLogger(__name__)
@@ -48,6 +55,13 @@ def _integration_for_platform(integrations: list[dict[str, Any]], platform: str)
             if iid:
                 return iid
     return None
+
+
+def _provider_of(integrations: list[dict[str, Any]], integration_id: str) -> str:
+    for it in integrations:
+        if isinstance(it, dict) and str(it.get("id") or it.get("_id") or "") == integration_id:
+            return str(it.get("providerIdentifier") or it.get("provider") or it.get("identifier") or it.get("type") or "")
+    return ""
 
 
 def _normalize_integrations(raw: Any) -> list[dict[str, Any]]:
@@ -146,7 +160,7 @@ def _dispatch_row_live(
         media=media,
         brand_id=brand_id,
         publish_date=str(publish_date) if publish_date else None,
-        platform_settings={"post_type": "post"},
+        platform_settings=settings_for_provider(_provider_of(integrations, integration_id), caption),
     )
     if err:
         return {}, f"postiz create_post: {err[0]} {err[1][:200] if err[1] else ''}"
