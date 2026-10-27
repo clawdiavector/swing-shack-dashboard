@@ -87,6 +87,22 @@ overdue, and plan steps due today. It says "Nothing needs you today." when there
 the agent that sends the Telegram brief (cos-triage, or the 07:00 Mac digest) reads it and adds `text` to its message.
 Not wired into a cron yet; that is a Mac change for Kyle. Built from `_lib/plan_todo.py` and `_lib/calendar_alerts.py`.
 
+## Calendar evening message (foreman end-of-day)
+
+`GET /api/jobs/evening-message?brand=all` (or per brand) with the job bearer returns plain
+text for the 18:00 SAST Telegram report:
+
+```json
+{"ok": true, "date": "2026-10-26", "text": "Stick, today\nCreated 3 · Approved 2 · ...",
+ "counts": {"created": 3, "approved": 2, "released": 2, "on_social": 1},
+ "pending_approval": 2}
+```
+
+Per brand: today's created / approved / released / on-social counts, rest-of-week ready/planned
+(with gap labels), then what is waiting for approval and a one-tap Approve drafts link.
+Built from `_lib/foreman_eod.py` and the same calendar join as the week board. Not on a Mac cron
+yet — wire alongside the morning message when Kyle sets send time and recipients.
+
 No dedicated Mac LaunchAgent poller yet — agents run on cron (disabled) or manual Hermes invoke.
 
 ## Cron ids (Mac — check runtime, not this table)
