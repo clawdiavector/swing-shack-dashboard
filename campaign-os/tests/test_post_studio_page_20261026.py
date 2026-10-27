@@ -76,6 +76,23 @@ class PostStudioPageTests(unittest.TestCase):
         ig = (doc.get("images") or {}).get("instagram") or ""
         self.assertTrue(ig.startswith("data:image/png;base64,"), ig[:40])
 
+    def _preview_with_photo(self, photo):
+        return self.client.post(
+            "/api/posts/studio/preview",
+            json={"brand": BRAND, "archetype": ARCHETYPE, "channels": ["instagram"], "photo": photo},
+            headers=self.auth,
+        )
+
+    def test_preview_refuses_photo_outside_brand_files(self):
+        for photo in ("/etc/hostname", "data/brand-directory/swing-shack/../../../app.py", "app.py"):
+            r = self._preview_with_photo(photo)
+            self.assertEqual(r.status_code, 400, (photo, r.get_json()))
+
+    def test_preview_missing_photo_is_400_not_exit(self):
+        r = self._preview_with_photo(f"data/brand-directory/{BRAND}/images/no-such-file.jpg")
+        self.assertEqual(r.status_code, 400, r.get_json())
+        self.assertIn("photo not found", r.get_json().get("error", ""))
+
     def test_preview_refuses_unknown_archetype(self):
         r = self.client.post(
             "/api/posts/studio/preview",

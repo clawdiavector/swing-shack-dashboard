@@ -67,6 +67,27 @@ def text_field_specs(brand_id: str, archetype_id: str) -> list[dict[str, Any]]:
     return specs
 
 
+def _studio_photo(render_post, brand: str, arc: dict[str, Any], photo: str | None) -> bytes | None:
+    """Photo bytes for a preview. Only relative paths inside the brand's own files.
+
+    render_post._pick_photo raises SystemExit when a path is missing; that must not
+    reach the web worker.
+    """
+    from pathlib import PurePosixPath  # noqa: PLC0415
+
+    raw = (photo or "").strip()
+    if raw:
+        parts = PurePosixPath(raw.replace("\\", "/")).parts
+        if raw.startswith(("/", "~")) or ".." in parts or ":" in raw:
+            raise StudioPageError("photo must be a path inside the brand's files")
+        if "brand-directory" not in parts or brand not in parts:
+            raise StudioPageError("photo must be one of this brand's files")
+    try:
+        return render_post._pick_photo(brand, arc, raw or None, None)
+    except SystemExit:
+        raise StudioPageError("photo not found — pick one from the library or the template pack") from None
+
+
 def preview_compose(
     *,
     brand_id: str,
@@ -94,7 +115,7 @@ def preview_compose(
     if not isinstance(use_channels, list) or not use_channels:
         raise StudioPageError("channels must be a non-empty list")
 
-    photo_bytes = render_post._pick_photo(brand, arc, (photo or "").strip() or None, None)
+    photo_bytes = _studio_photo(render_post, brand, arc, photo)
     if applies.get("needs_photo") and photo_bytes is None:
         raise StudioPageError(
             f"{archetype_id} needs a photo — pick one from the library or the template pack"
