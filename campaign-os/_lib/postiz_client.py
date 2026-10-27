@@ -535,7 +535,32 @@ def create_story(
     """
     settings = story_settings(provider)
     if settings is None:
-        return None, ("400", "Postiz has no story type for %s; only Instagram stories are supported" % (provider or "this channel"))
+        return None, ("400", "Postiz has no story type for %s; Instagram stories use create_story, Facebook create_facebook_story" % (provider or "this channel"))
+    return _send_story(integration_id, settings, image_path, brand_id, publish_date, draft)
+
+
+def facebook_story_settings() -> dict:
+    """Postiz settings for a Facebook Page story.
+
+    Not in Postiz's public docs: its Facebook provider reads post_type "story" and publishes through
+    photo_stories (postiz-app main, facebook.provider.ts, checked 2026-10-27). Confirm on the first live run.
+    """
+    return {"__type": "facebook", "post_type": "story"}
+
+
+def create_facebook_story(
+    integration_id: str,
+    image_path: str,
+    *,
+    brand_id: str | None = None,
+    publish_date: Optional[str] = None,
+    draft: bool = True,
+) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
+    """Upload a finished 9:16 image and create it as a Facebook Page story. A draft unless draft=False."""
+    return _send_story(integration_id, facebook_story_settings(), image_path, brand_id, publish_date, draft)
+
+
+def _send_story(integration_id, settings, image_path, brand_id, publish_date, draft):
     up, err = upload_media(image_path, brand_id=brand_id)
     if err or not up or not up.get("id") or not up.get("path"):
         return None, err or ("502", "Postiz upload returned no media: %s" % (up,))
