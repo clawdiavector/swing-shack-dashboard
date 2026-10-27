@@ -33,6 +33,7 @@ ALLOWED_BRAND_IDS = ("swing-shack", "stick", "bag-drop")
 PLAN_PROPOSED = "proposed"      # editable, nothing committed
 PLAN_APPROVED = "approved"      # operator said yes; locked until reopened
 PLAN_SUPERSEDED = "superseded"  # replaced by a newer plan for the same brief
+PLAN_ARCHIVED = "archived"      # hidden until restored; purged after retention
 
 ITEM_KINDS = ("research", "decide", "shoot", "edit", "review", "post",
               "story", "boost")
@@ -513,7 +514,12 @@ def list_plans(brand_id: str, status: Optional[str] = None) -> list[dict]:
     for fn in sorted(os.listdir(d)):
         if fn.endswith(".json"):
             p = _read_json(os.path.join(d, fn))
-            if p and (not status or p.get("status") == status):
+            if not p:
+                continue
+            if status:
+                if p.get("status") == status:
+                    out.append(refresh_late(p))
+            elif p.get("status") != PLAN_ARCHIVED:
                 out.append(refresh_late(p))
     return out
 
@@ -530,6 +536,8 @@ def _editable(plan: Optional[dict]) -> Optional[str]:
         return "plan not found"
     if plan.get("status") == PLAN_SUPERSEDED:
         return "plan is superseded"
+    if plan.get("status") == PLAN_ARCHIVED:
+        return "plan is archived; restore it to edit"
     if plan.get("status") == PLAN_APPROVED:
         return "plan is approved; reopen it to edit"
     return None
@@ -906,3 +914,51 @@ def take_off_calendar(brand_id: str, plan_id: str, actor: str = "operator",
     if failed:
         out["error"] = f"{len(failed)} steps could not be taken off"
     return out
+
+
+def archive_plan(brand_id: str, plan_id: str, actor: str = "operator") -> dict:
+    plan = get_plan(brand_id, plan_id)
+    if not plan:
+        return {"ok": False, "error": "plan not found"}
+    if plan.get("status") == PLAN_ARCHIVED:
+        return {"ok": False, "error": "plan is already archived"}
+    if plan.get("status") == PLAN_SUPERSEDED:
+        return {"ok": False, "error": "plan is superseded"}
+    plan["status_before_archive"] = plan.get("status")
+    plan["status"] = PLAN_ARCHIVED
+    plan["archived_at"] = _now_iso()
+    plan["archived_by"] = actor
+    from _lib.archive_retention import purge_at_iso  # noqa: PLC0415
+
+    plan["purge_at"] = purge_at_iso(plan["archived_at"])
+    _log(plan, actor, "archived")
+    _write_plan(plan)
+    return {"ok": True, "plan": plan}
+
+
+def restore_plan(brand_id: str, plan_id: str, actor: str = "operator") -> dict:
+    plan = get_plan(brand_id, plan_id)
+    if not plan:
+        return {"ok": False, "error": "plan not found"}
+    if plan.get("status") != PLAN_ARCHIVED:
+        return {"ok": False, "error": "plan is not archived"}
+    prev = plan.get("status_before_archive") or PLAN_PROPOSED
+    if prev == PLAN_ARCHIVED:
+        prev = PLAN_PROPOSED
+    plan["status"] = prev
+    for k in ("archived_at", "archived_by", "purge_at", "status_before_archive"):
+        plan.pop(k, None)
+    _log(plan, actor, "restored from archive")
+    _write_plan(plan)
+    return {"ok": True, "plan": plan}
+
+
+def purge_plan(brand_id: str, plan_id: str, actor: str = "operator") -> dict:
+    path = _plan_path(brand_id, plan_id)
+    if not os.path.isfile(path):
+        return {"ok": False, "error": "plan not found"}
+    try:
+        os.remove(path)
+    except OSError as e:
+        return {"ok": False, "error": str(e)}
+    return {"ok": True, "plan_id": plan_id, "actor": actor}

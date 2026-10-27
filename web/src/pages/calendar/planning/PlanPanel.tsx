@@ -5,6 +5,7 @@ import { MessageComposer } from './MessageComposer'
 import { defaultShots, shootRequest, shootSteps, signOffMessage, stepsWithoutShots } from '../../../lib/planMessages'
 import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { useCallback, useEffect, useState } from 'react'
+import { archiveBrandItem, previewBrandArchive } from '../../../lib/api'
 import {
   KIND_LABEL,
   KIND_ORDER,
@@ -751,6 +752,32 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
               }}
             >
               Start again
+            </button>
+            <button
+              type="button"
+              className={btnQuiet}
+              disabled={busy}
+              onClick={() => {
+                void (async () => {
+                  const preview = await previewBrandArchive(brandId, {
+                    kind: 'plan',
+                    id: plan.plan_id,
+                  })
+                  if (!preview.message || !window.confirm(preview.message)) return
+                  const name = actorName()
+                  if (!name) return
+                  const r = await archiveBrandItem(brandId, { kind: 'plan', id: plan.plan_id }, name)
+                  if (!r.ok) {
+                    setError(r.error || 'Archive failed.')
+                    return
+                  }
+                  notifyAlertsChanged()
+                  setPlan(null)
+                })()
+              }}
+              data-testid="plan-archive"
+            >
+              Archive
             </button>
             <select
               aria-label="Change the shape of the plan"

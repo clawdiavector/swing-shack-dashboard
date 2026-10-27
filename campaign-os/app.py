@@ -6997,7 +6997,7 @@ def photos_inbox_set():
 
 _VIDEO_LIST_CACHE = {}
 # Where a Ready video can be sent in Postiz: provider prefix -> name shown to people.
-_VIDEO_CHANNELS = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube"}
+_VIDEO_CHANNELS = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube", "tiktok": "TikTok"}
 
 
 def _drive_listing(brand_id, ttl=60):
@@ -7154,6 +7154,8 @@ def photos_video_draft():
     elif channel_name == "youtube":
         # Private until someone changes it in YouTube; Postiz needs a title.
         settings = {"title": topic.capitalize()[:100], "type": "private", "tags": []}
+    elif channel_name == "tiktok":
+        settings = _postiz_lib.settings_for_provider(_postiz_provider(channel), caption)
     else:
         settings = {}
     # Never "now": the time is the one chosen, or at least 5 minutes ahead.
@@ -7767,6 +7769,105 @@ def brand_library_bulk(brand_id):
     except Exception as e:
         _app_log.exception("brand_library_bulk failed")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+from _lib import content_archive as _content_archive  # noqa: E402
+
+
+def _archive_actor() -> str:
+    return (request.headers.get("X-Actor-Display-Name") or "").strip() or "operator"
+
+
+@app.route("/api/brands/<brand_id>/archive", methods=["GET"])
+def brand_archive_list(brand_id):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        items = _content_archive.list_archived(brand_id)
+        return jsonify({"ok": True, "brand_id": brand_id, "count": len(items), "items": items}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception:
+        _app_log.exception("brand_archive_list failed")
+        return jsonify({"ok": False, "error": "could not load archive"}), 500
+
+
+@app.route("/api/brands/<brand_id>/archive/preview", methods=["POST"])
+def brand_archive_preview(brand_id):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        payload = _content_archive.preview_archive(
+            brand_id,
+            kind=str(body.get("kind") or ""),
+            item_id=str(body.get("id") or body.get("item_id") or ""),
+            suggestion_key=body.get("suggestion_key"),
+            title_hint=body.get("title"),
+        )
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/brands/<brand_id>/archive", methods=["POST"])
+def brand_archive_apply(brand_id):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        payload = _content_archive.archive_item(
+            brand_id,
+            kind=str(body.get("kind") or ""),
+            item_id=str(body.get("id") or body.get("item_id") or ""),
+            actor=_archive_actor(),
+            suggestion_key=body.get("suggestion_key"),
+            title_hint=body.get("title"),
+        )
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception:
+        _app_log.exception("brand_archive_apply failed")
+        return jsonify({"ok": False, "error": "archive failed"}), 500
+
+
+@app.route("/api/brands/<brand_id>/archive/restore", methods=["POST"])
+def brand_archive_restore(brand_id):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        payload = _content_archive.restore_item(
+            brand_id,
+            kind=str(body.get("kind") or ""),
+            item_id=str(body.get("id") or body.get("item_id") or ""),
+            actor=_archive_actor(),
+            suggestion_key=body.get("suggestion_key"),
+        )
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception:
+        _app_log.exception("brand_archive_restore failed")
+        return jsonify({"ok": False, "error": "restore failed"}), 500
+
+
+@app.route("/api/brands/<brand_id>/archive/purge", methods=["POST"])
+def brand_archive_purge(brand_id):
+    """Archive page "Delete expired": items past retention. Dry run unless ARCHIVE_PURGE_LIVE."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib.archive_retention import ArchivePurgeConfigError
+
+    try:
+        payload = _content_archive.purge_brand(brand_id, actor=_archive_actor())
+        return jsonify(payload), 200
+    except (ValueError, ArchivePurgeConfigError) as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception:
+        _app_log.exception("brand_archive_purge failed")
+        return jsonify({"ok": False, "error": "purge failed"}), 500
 
 
 @app.route('/brand-directory-media/<brand_id>/<path:relpath>', methods=['GET'])
@@ -15300,10 +15401,19 @@ def stories_marks_route():
         return jsonify({"ok": True, "marks": story_marks.read()})
     body = request.get_json(silent=True) or {}
     try:
-        story_marks.set_mark(str(body.get('key') or ''), str(body.get('state') or ''))
+        story_marks.set_mark(str(body.get('key') or ''), str(body.get('state') or ''), str(body.get('brand') or ''))
     except story_marks.MarkError as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
     return jsonify({"ok": True, "marks": story_marks.read()})
+
+
+@app.route('/api/stories/week', methods=['GET'])
+def stories_week_route():
+    """GET /api/stories/week[?brands=a,b] — Stories shared since Monday (Johannesburg)."""
+    from _lib import story_week
+
+    brands = [b for b in (request.args.get('brands') or '').split(',') if b]
+    return jsonify({"ok": True, "shared_this_week": story_week.shared_this_week(brands or None)})
 
 
 @app.route('/api/stories/<item_id>/<status>', methods=['POST'])
@@ -15555,7 +15665,19 @@ def publish_dispatch_now_route():
     if not keys:
         return jsonify({"ok": False, "error": "idempotency_key required"}), 400
     try:
+        from _lib.postiz_client import scheduled_at_least
         from _lib.publish_mode import is_sandbox_mode
+
+        def _with_send_time(payload: dict) -> dict:
+            """Effective ISO from scheduled_at_least — the date create_post sends — and whether it moved."""
+            publish_at = payload.get("publish_at")
+            moved = payload.get("moved")
+            if not isinstance(publish_at, str) or not publish_at:
+                publish_at, moved = scheduled_at_least(None)
+            payload["publish_at"] = publish_at
+            payload["moved"] = bool(moved)
+            return payload
+
         if is_sandbox_mode():
             from _lib.publish_sandbox import approve_item, dispatch_one
             dispatched = []
@@ -15570,9 +15692,14 @@ def publish_dispatch_now_route():
                     errors.append(f"{key}: {err}")
                 else:
                     dispatched.append(key)
-            return jsonify({"ok": not errors, "mode": "sandbox", "dispatched": len(dispatched), "errors": errors}), 200
+            payload = {"ok": not errors, "mode": "sandbox", "dispatched": len(dispatched), "errors": errors}
+            if payload["dispatched"]:
+                _with_send_time(payload)
+            return jsonify(payload), 200
         from _lib.publish_live import dispatch_now
         result = dispatch_now(keys)
+        if result.get("dispatched"):
+            _with_send_time(result)
         status = 200 if result.get("ok", True) else 400
         return jsonify(result), status
     except Exception as exc:
@@ -19355,6 +19482,24 @@ try:
         best_effort=True,
         writes=("publish-sandbox/", "campaign-data.json"),
         brand_mode="global",
+    ))
+
+    def _run_outside_posts_sync(brand=None):
+        from _lib.outside_posts_sync import run as _outside_posts_run
+
+        return _outside_posts_run(brand=brand)
+
+    _register_job(_JobSpec(
+        name="outside_posts_sync",
+        fn=_run_outside_posts_sync,
+        every_seconds=14400,  # 4h — stories expire in 24h
+        timeout_seconds=120,
+        criticality="MEDIUM",
+        best_effort=True,
+        writes=("intelligence/marketing-calendar/",),
+        brand_mode="per_brand",
+        requires_integrations=("meta",),
+        upstream=("meta_refresh",),
     ))
     _JOBS_AVAILABLE = True
 except Exception as _jobs_exc:  # noqa: BLE001
@@ -45345,6 +45490,7 @@ def planning_month_view(brand_id):
             lane = r.get("lane") or _pillar0 or ""
             # A video that is already in Postiz reads as scheduled (or a Postiz draft), not just approved.
             _item_status = {"schedule": "SCHEDULED", "draft": "DRAFT", "posted": "POSTED"}.get(r.get("postiz_mode"), "APPROVED")
+            _post_type = r.get("post_type") or ""
             item = {
                 "id": ek or start_iso,
                 "title": r.get("title") or r.get("name") or "(operator-approved)",
@@ -45357,10 +45503,19 @@ def planning_month_view(brand_id):
                 "is_paid_supported": bool(r.get("is_paid_supported")),
                 "scheduled_date": start_iso,
                 "is_demo": False,
-                "execution_type": "operator_approved",
+                "execution_type": (
+                    "outside_campaign_os"
+                    if _post_type == "posted-outside-campaign-os"
+                    else "operator_approved"
+                ),
                 "source": r.get("source_origin") or "operator-store",
                 "tier": r.get("tier"),
                 "event_key": ek,
+                "post_type": _post_type or None,
+                "permalink": r.get("permalink"),
+                "thumbnail_url": r.get("thumbnail_url"),
+                "outside_label": r.get("outside_label")
+                or ("Posted outside Campaign OS" if _post_type == "posted-outside-campaign-os" else None),
                 # A step a plan put on the calendar carries the type of its event.
                 "kind": r.get("event_kind") or _month_kind(r),
             }
@@ -45375,10 +45530,14 @@ def planning_month_view(brand_id):
                 "subtitle": item["subtitle"],
                 "status": _item_status,
                 "is_demo": False,
-                "execution_type": "operator_approved",
+                "execution_type": item["execution_type"],
                 "source": "operator-store",
-                "channel": "main-calendar",
+                "channel": r.get("channel") or "main-calendar",
                 "kind": item["kind"],
+                "post_type": item.get("post_type"),
+                "permalink": item.get("permalink"),
+                "thumbnail_url": item.get("thumbnail_url"),
+                "outside_label": item.get("outside_label"),
                 "event_key": ek,
             })
             # Also surface in days_extended for the three-layer panel.
@@ -47342,6 +47501,33 @@ def morning_message_route():
                     "due_today": sum(1 for s in sections.values() for x in s["steps"] if x["bucket"] == "today")}), 200
 
 
+@app.route("/api/jobs/evening-message", methods=["GET"])
+def evening_message_route():
+    """GET ?brand=...|all — foreman end-of-day report as plain text for Telegram.
+    Session or job bearer. Sends nothing itself."""
+    brands = _todo_brands((request.args.get("brand") or "all").strip())
+    if brands is None:
+        return jsonify({"ok": False, "error": "unknown brand"}), 400
+    from _lib import foreman_eod as feod
+
+    today = _jhb_today()
+    base = feod.public_base_url()
+    sections = {b: feod.brand_section(b, today, base_url=base) for b in brands}
+    text = feod.eod_text(sections, today)
+    totals = {
+        k: sum(int((s.get("counts") or {}).get(k) or 0) for s in sections.values())
+        for k in ("created", "approved", "released", "on_social")
+    }
+    pending = sum(len(s.get("pending") or []) for s in sections.values())
+    return jsonify({
+        "ok": True,
+        "date": today.isoformat(),
+        "text": text,
+        "counts": totals,
+        "pending_approval": pending,
+    }), 200
+
+
 # ── Mail from Herman, filed as Do now or Idea on the Today page ──
 @app.route("/api/mail-intake", methods=["GET"])
 def mail_intake_list():
@@ -47353,6 +47539,10 @@ def mail_intake_list():
     brand = (request.args.get("brand") or "all").strip()
     if brand != "all" and brand not in mi.BRANDS:
         return jsonify({"ok": False, "error": f"brand '{brand}' invalid"}), 400
+    try:
+        mi.resplit_existing(_jhb_today())
+    except Exception:
+        _app_log.exception("mail intake resplit failed")
     items = mi.list_items(None if brand == "all" else brand)
     return jsonify({"ok": True, "watching": mi.configured(), "count": len(items),
                     "do_now": [i for i in items if i["kind"] == "do_now"],
@@ -47361,8 +47551,9 @@ def mail_intake_list():
 
 @app.route("/api/mail-intake/<item_id>/<action>", methods=["POST"])
 def mail_intake_act(item_id, action):
-    """POST status {status} | kind {kind} | to-calendar {brand, date}. to-calendar puts an idea
-    on the calendar as a faded suggestion; approving it is still a person's call."""
+    """POST status {status} | kind {kind} | plan {brand?, date?, force?} | to-calendar {brand, date}.
+    plan makes the idea's proposed plan (a draft; nothing goes on the calendar). to-calendar puts
+    an idea on the calendar as a faded suggestion; approving it is still a person's call."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     from _lib import calendar_suggestions as cs
@@ -47373,6 +47564,26 @@ def mail_intake_act(item_id, action):
             item = mi.set_status(item_id, str(body.get("status") or ""))
         elif action == "kind":
             item = mi.set_kind(item_id, str(body.get("kind") or ""))
+        elif action == "flesh":
+            from _lib import idea_builder as ib
+            if body.get("brand") is not None or body.get("date") is not None:
+                mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
+
+            def _idea_chat(messages):
+                text, err = _openrouter_chat_completion(
+                    messages, model=os.environ.get("IDEA_MODEL") or "anthropic/claude-sonnet-5.5",
+                    temperature=0.7, max_tokens=4000, timeout=90)
+                if err:
+                    raise RuntimeError(err)
+                return text
+
+            r = ib.flesh_out(item_id, _idea_chat, _jhb_today())
+            return jsonify(r), (200 if r.get("ok") else 400)
+        elif action == "plan":
+            if body.get("brand") is not None or body.get("date") is not None:
+                mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
+            r = mi.idea_plan(item_id, _jhb_today(), force=bool(body.get("force")))
+            return jsonify(r), (200 if r.get("ok") else 400)
         elif action == "to-calendar":
             cur = mi.get_item(item_id)
             if not cur:

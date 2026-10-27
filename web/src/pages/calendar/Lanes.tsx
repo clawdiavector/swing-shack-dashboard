@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import '../../fun.css'
 import { FunTile } from '../../components/fun'
 import { useSearchParams } from 'react-router-dom'
+import { mondayOfIso, WEEK_QUERY } from '../../lib/backNav'
 import { useBrand } from '../../components/BrandSwitch'
 import { PageIntro } from '../../components/chrome'
 import {
@@ -72,8 +73,11 @@ export function Lanes() {
   const rawTab = params.get('tab') || 'list'
   const tab: LanesTab = VALID_TABS.has(rawTab) ? (rawTab as LanesTab) : 'list'
 
+  const weekParam = params.get(WEEK_QUERY) || ''
+  const monthFromWeek = /^\d{4}-\d{2}-\d{2}$/.test(weekParam) ? weekParam.slice(0, 7) : ''
   const monthParam =
     params.get('month') ||
+    monthFromWeek ||
     `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
 
   const [bigIdea, setBigIdea] = useState<PlanningBigIdeaResponse | null>(null)
@@ -135,10 +139,25 @@ export function Lanes() {
       const p = new URLSearchParams(params)
       p.set('month', next)
       p.set('tab', 'month')
+      const week = mondayOfIso(`${next}-01`)
+      if (week) p.set(WEEK_QUERY, week)
       setParams(p, { replace: true })
     },
     [params, setParams],
   )
+
+  useEffect(() => {
+    if (params.get('month') && params.get(WEEK_QUERY)) return
+    const week = params.get(WEEK_QUERY) || mondayOfIso(`${monthParam}-01`)
+    if (!week) return
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (!next.get('month')) next.set('month', monthParam)
+      if (!next.get(WEEK_QUERY)) next.set(WEEK_QUERY, week)
+      if (next.toString() === prev.toString()) return prev
+      return next
+    }, { replace: true })
+  }, [monthParam, params, setParams])
 
   useEffect(() => {
     if (!scopeBrand) return

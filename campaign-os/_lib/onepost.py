@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-COMING_SOON_CHANNELS = frozenset({"youtube", "tiktok"})
+COMING_SOON_CHANNELS = frozenset({"youtube"})
 MAX_SEND_ATTEMPTS = 3
 CHANNELS_LOCKED_STATES = frozenset({"released", "partly_posted", "send_failed", "posted"})
 _FEED_IMAGE_PLATFORMS = frozenset({"facebook", "gbp", "youtube", "tiktok"})
