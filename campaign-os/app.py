@@ -47452,6 +47452,33 @@ def morning_message_route():
                     "due_today": sum(1 for s in sections.values() for x in s["steps"] if x["bucket"] == "today")}), 200
 
 
+@app.route("/api/jobs/evening-message", methods=["GET"])
+def evening_message_route():
+    """GET ?brand=...|all — foreman end-of-day report as plain text for Telegram.
+    Session or job bearer. Sends nothing itself."""
+    brands = _todo_brands((request.args.get("brand") or "all").strip())
+    if brands is None:
+        return jsonify({"ok": False, "error": "unknown brand"}), 400
+    from _lib import foreman_eod as feod
+
+    today = _jhb_today()
+    base = feod.public_base_url()
+    sections = {b: feod.brand_section(b, today, base_url=base) for b in brands}
+    text = feod.eod_text(sections, today)
+    totals = {
+        k: sum(int((s.get("counts") or {}).get(k) or 0) for s in sections.values())
+        for k in ("created", "approved", "released", "on_social")
+    }
+    pending = sum(len(s.get("pending") or []) for s in sections.values())
+    return jsonify({
+        "ok": True,
+        "date": today.isoformat(),
+        "text": text,
+        "counts": totals,
+        "pending_approval": pending,
+    }), 200
+
+
 # ── Mail from Herman, filed as Do now or Idea on the Today page ──
 @app.route("/api/mail-intake", methods=["GET"])
 def mail_intake_list():
