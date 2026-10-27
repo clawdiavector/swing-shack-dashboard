@@ -42,8 +42,32 @@ def composed_key_for_platform(platform: str) -> str:
     return _PLATFORM_COMPOSED_ALIASES.get(plat, plat)
 
 
+def _blur_fill(im: Any, target: float) -> Any:
+    """Whole image centred on a blurred, darkened cover copy of itself (nothing cut off)."""
+    from PIL import Image, ImageEnhance, ImageFilter  # noqa: PLC0415
+
+    w, h = im.size
+    if w / h > target:
+        cw, ch = w, round(w / target)
+    else:
+        cw, ch = round(h * target), h
+    scale = max(cw / w, ch / h)
+    bg = im.resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.Resampling.LANCZOS)
+    left = (bg.size[0] - cw) // 2
+    top = (bg.size[1] - ch) // 2
+    bg = bg.crop((left, top, left + cw, top + ch))
+    bg = bg.filter(ImageFilter.GaussianBlur(radius=max(cw, ch) / 40))
+    bg = ImageEnhance.Brightness(bg).enhance(0.6)
+    bg.paste(im, ((cw - w) // 2, (ch - h) // 2))
+    return bg
+
+
 def fit_for_channel_png(src: Any, channel: str) -> tuple[bytes, str | None]:
-    """Size a finished image for one channel. Returns (PNG bytes, note or None)."""
+    """Size a finished image for one channel. Returns (PNG bytes, note or None).
+
+    Vertical channels (story, TikTok, Shorts) never crop: the whole feed post sits
+    on a blurred fill so template text and badges near the edges stay visible.
+    """
     from PIL import Image  # noqa: PLC0415
 
     if hasattr(src, "convert"):
@@ -53,23 +77,24 @@ def fit_for_channel_png(src: Any, channel: str) -> tuple[bytes, str | None]:
             im = opened.convert("RGB")
     w, h = im.size
     aspect = w / h
+    note = None
     if is_vertical_channel(channel):
-        target = _STORY_ASPECT
+        if abs(_STORY_ASPECT - aspect) > 0.005:
+            im = _blur_fill(im, _STORY_ASPECT)
     else:
         target = min(max(aspect, _FEED_ASPECT[0]), _FEED_ASPECT[1])
-    note = None
-    if abs(target - aspect) > 0.005:
-        if aspect > target:
-            nw = round(h * target)
-            left = (w - nw) // 2
-            im = im.crop((left, 0, left + nw, h))
-        else:
-            nh = round(w / target)
-            top = (h - nh) // 2
-            im = im.crop((0, top, w, top + nh))
-        note = (
-            f"{channel}: cropped {w}x{h} to {target:.3f}:1 — check no type was cut off"
-        )
+        if abs(target - aspect) > 0.005:
+            if aspect > target:
+                nw = round(h * target)
+                left = (w - nw) // 2
+                im = im.crop((left, 0, left + nw, h))
+            else:
+                nh = round(w / target)
+                top = (h - nh) // 2
+                im = im.crop((0, top, w, top + nh))
+            note = (
+                f"{channel}: cropped {w}x{h} to {target:.3f}:1 — check no type was cut off"
+            )
     out_h = round(_OUT_WIDTH * im.size[1] / im.size[0])
     im = im.resize((_OUT_WIDTH, out_h), Image.Resampling.LANCZOS)
     buf = io.BytesIO()

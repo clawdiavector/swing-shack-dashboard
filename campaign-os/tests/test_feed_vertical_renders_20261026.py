@@ -75,6 +75,27 @@ class FeedVerticalRendersTests(unittest.TestCase):
             with Image.open(io.BytesIO(png)) as im:
                 self.assertEqual(im.size, (1080, 1920), channel)
 
+    def test_vertical_keeps_whole_feed_image(self):
+        """4:5 post on 9:16: blurred fill, no crop, so edge pixels survive."""
+        from _lib.feed_vertical_renders import fit_for_channel_png
+        from PIL import Image
+
+        src = Image.new("RGB", (1080, 1350), (240, 240, 240))
+        for y in range(1350):
+            src.putpixel((0, y), (255, 0, 0))
+            src.putpixel((1079, y), (0, 0, 255))
+        buf = io.BytesIO()
+        src.save(buf, format="PNG")
+        png, note = fit_for_channel_png(buf.getvalue(), "tiktok")
+        self.assertIsNone(note)
+        with Image.open(io.BytesIO(png)) as im:
+            self.assertEqual(im.size, (1080, 1920))
+            mid = 1920 // 2
+            self.assertEqual(im.getpixel((0, mid))[0] > 200 and im.getpixel((0, mid))[2] < 60, True)
+            self.assertEqual(im.getpixel((1079, mid))[2] > 200 and im.getpixel((1079, mid))[0] < 60, True)
+            # the band above the post is the darkened fill, not the post itself
+            self.assertLess(sum(im.getpixel((540, 40))), 3 * 200)
+
     def test_lodge_pass_through_adds_vertical_composed_urls(self):
         import app as app_module
 
