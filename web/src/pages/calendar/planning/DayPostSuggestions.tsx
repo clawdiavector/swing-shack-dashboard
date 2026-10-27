@@ -22,6 +22,7 @@ export function DayPostSuggestions({
   pillars,
   onApprove,
   onReject,
+  onArchive,
   onSwap,
   hidePrimaryChips = false,
 }: {
@@ -32,6 +33,7 @@ export function DayPostSuggestions({
   pillars: PillarOption[]
   onApprove: (s: Suggestion, pillar: string) => void
   onReject: (s: Suggestion) => void
+  onArchive?: (s: Suggestion) => void
   onSwap?: (s: Suggestion) => void
   /** Week board already rendered full post cards for this day. */
   hidePrimaryChips?: boolean
@@ -58,6 +60,7 @@ export function DayPostSuggestions({
           compact={primary.length > 0}
           onApprove={(pillar) => onApprove(g, pillar)}
           onReject={() => onReject(g)}
+          onArchive={onArchive ? () => onArchive(g) : undefined}
           onSwap={g.source === 'stock' && onSwap ? () => onSwap(g) : undefined}
         />
       ))}

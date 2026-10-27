@@ -10,7 +10,14 @@ from typing import Any, Optional
 from _lib import post_links
 from _lib import publish_sandbox as sandbox
 from _lib.brand_validate import validate_brand_id
-from _lib.postiz_client import create_post, list_integrations, postiz_status, scheduled_at_least, upload_media
+from _lib.postiz_client import (
+    create_post,
+    list_integrations,
+    postiz_status,
+    scheduled_at_least,
+    settings_for_provider,
+    upload_media,
+)
 from _lib.publish_image import resolve_queue_upload_path
 
 _log = logging.getLogger(__name__)
@@ -48,6 +55,13 @@ def _integration_for_platform(integrations: list[dict[str, Any]], platform: str)
             if iid:
                 return iid
     return None
+
+
+def _provider_of(integrations: list[dict[str, Any]], integration_id: str) -> str:
+    for it in integrations:
+        if isinstance(it, dict) and str(it.get("id") or it.get("_id") or "") == integration_id:
+            return str(it.get("providerIdentifier") or it.get("provider") or it.get("identifier") or it.get("type") or "")
+    return ""
 
 
 def _normalize_integrations(raw: Any) -> list[dict[str, Any]]:
@@ -138,7 +152,7 @@ def _dispatch_row_live(
     if publish_date and not str(publish_date).endswith("Z"):
         publish_date = str(publish_date)
     # Never hand Postiz "now": it has failed on posts whose media had not finished loading.
-    publish_date, _moved = scheduled_at_least(str(publish_date) if publish_date else None)
+    publish_date, moved = scheduled_at_least(str(publish_date) if publish_date else None)
 
     result, err = create_post(
         integration_id=integration_id,
@@ -146,7 +160,7 @@ def _dispatch_row_live(
         media=media,
         brand_id=brand_id,
         publish_date=str(publish_date) if publish_date else None,
-        platform_settings={"post_type": "post"},
+        platform_settings=settings_for_provider(_provider_of(integrations, integration_id), caption),
     )
     if err:
         return {}, f"postiz create_post: {err[0]} {err[1][:200] if err[1] else ''}"
@@ -177,6 +191,9 @@ def _dispatch_row_live(
         "postiz_post_id": str(postiz_id),
         "caption_preview": caption[:120],
         "would_publish_at": row.get("would_publish_at"),
+        # The time Postiz was given: scheduled_at_least's ISO, and whether that call moved it.
+        "publish_at": publish_date,
+        "moved": moved,
     }
     sandbox._append_jsonl(sandbox._receipts_path(), receipt)
     # Record asset -> template -> post at publish time. Never fail the publish
@@ -263,6 +280,8 @@ def dispatch_pending(
     refused = 0
     skipped = 0
     errors: list[str] = []
+    effective_publish_at: str | None = None
+    effective_moved: bool | None = None
 
     updated_rows: list[dict[str, Any]] = []
     target_keys = {str(t.get("idempotency_key") or "") for t in targets}
@@ -329,11 +348,15 @@ def dispatch_pending(
         row["external_id"] = receipt.get("postiz_post_id")
         sandbox._stamp_queue_row_dispatched(row, receipt)
         dispatched += 1
+        if effective_publish_at is None and receipt.get("publish_at"):
+            effective_publish_at = str(receipt.get("publish_at"))
+            moved_flag = receipt.get("moved")
+            effective_moved = moved_flag if isinstance(moved_flag, bool) else None
         updated_rows.append(row)
 
     sandbox._rewrite_jsonl(sandbox._queue_path(), updated_rows)
     errors.extend(f"{k}: not an approved pending row" for k in missing)
-    return {
+    result: dict[str, Any] = {
         "ok": dispatched > 0 and not errors,
         "mode": "live",
         "dispatched": dispatched,
@@ -344,6 +367,10 @@ def dispatch_pending(
         "brand": brand_filter,
         "writes": ["publish-sandbox/queue.jsonl", "publish-sandbox/receipts.jsonl"],
     }
+    if effective_publish_at:
+        result["publish_at"] = effective_publish_at
+        result["moved"] = effective_moved
+    return result
 
 
 def dispatch_now(idempotency_keys: list[str]) -> dict[str, Any]:

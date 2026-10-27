@@ -35,6 +35,9 @@ campaign-os/tests/test_trends_v2.py
 campaign-os/tests/test_truth_collector.py
 campaign-os/tests/test_ubersuggest_keyword_overview_route.py
 campaign-os/tests/test_v2026_10_07_ubersuggest_token_persistence.py
+campaign-os/tests/test_v2026_10_26_content_archive_purge.py
+campaign-os/tests/test_v2026_10_26_content_archive_purge_postiz_guard.py
+campaign-os/tests/test_v2026_10_26_content_archive_purge_dry_run_counts.py
 campaign-os/tests/test_universal_search_preview.py
 campaign-os/tests/test_v2026_08_07_insights_v2.py
 campaign-os/tests/test_v2026_08_07_socials_meme_visuals.py
@@ -149,7 +152,10 @@ campaign-os/tests/test_caption_hook_pool.py
 campaign-os/tests/test_v2026_10_19_worked_median_window.py
 campaign-os/tests/test_post_routes.py
 campaign-os/tests/test_stick_retail_templates_20261023.py
+campaign-os/tests/test_retail_campaign_caption_hooks_20261026.py
 campaign-os/tests/test_cos_mail_push_gate_20261023.py
+campaign-os/tests/test_foreman_eod_20261026.py
+campaign-os/tests/test_foreman_eod_on_social_20261026.py
 campaign-os/tests/test_cos_mail_cc_owners.py
 campaign-os/tests/test_post_studio.py
 campaign-os/tests/test_post_qa.py
@@ -162,3 +168,13 @@ campaign-os/tests/test_feed_vertical_renders_20261026.py
 campaign-os/tests/test_mail_intake.py
 campaign-os/tests/test_plan_idea_to_posts.py
 campaign-os/tests/test_mail_intake_routes.py
+campaign-os/tests/test_outside_posts_on_calendar_20261026.py
+campaign-os/tests/test_month_posts_skip_outside_20261027.py
+campaign-os/tests/test_outside_posts_sync_schedule_20261026.py
+campaign-os/tests/test_mail_idea_cards.py
+campaign-os/tests/test_mail_intake_sender_name.py
+campaign-os/tests/test_mail_idea_routes.py
+campaign-os/tests/test_idea_builder.py
+campaign-os/tests/test_idea_builder_route.py
+campaign-os/tests/test_shadow_text_post_20261026.py
+campaign-os/tests/test_yoast_title_roundtrip_20261026.py

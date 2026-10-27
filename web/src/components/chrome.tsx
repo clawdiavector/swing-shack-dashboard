@@ -1,11 +1,13 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { sectionFor, sectionPageFor } from '../lib/nav'
+import { withPersistedQuery } from '../lib/queryState'
 import { Badge, Button, PressIcon, Tip } from './ui'
 
 /** The pages inside the current section. Nothing shows for a one-page section. */
 export function SectionTabs({ here }: { here: string }) {
+  const loc = useLocation()
   const section = sectionFor(here)
   if (!section || section.pages.length < 2) return null
   const current = sectionPageFor(section, here)
@@ -20,7 +22,7 @@ export function SectionTabs({ here }: { here: string }) {
         return (
           <Link
             key={page.to}
-            to={page.to}
+            to={withPersistedQuery(page.to, loc.search)}
             aria-current={on ? 'page' : undefined}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
               on ? 'bg-yel/15 text-yel' : 'text-tx3 hover:text-tx'

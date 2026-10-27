@@ -22,6 +22,11 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
         "cron_sast": ["06:30", "18:30"],
         "cadence": "every 12h",
     },
+    "outside_posts_sync": {
+        "scheduler": "GitHub Actions (outside-posts-sync-4h.yml)",
+        "cron_sast": ["06:00", "10:00", "14:00", "18:00", "22:00"],
+        "cadence": "every 4h",
+    },
     "social_ingest": {
         "scheduler": "GitHub Actions (social_ingest.yml)",
         "cron_sast": ["05:00"],
@@ -36,6 +41,11 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
         "scheduler": "GitHub Actions (gbp-publish-cron.yml)",
         "cron_sast": ["09:00"],
         "cadence": "daily",
+    },
+    "geo_observe": {
+        "scheduler": "GitHub Actions (geo-observe-daily.yml)",
+        "cron_sast": ["08:00"],
+        "cadence": "daily, a few questions per brand; whole watchlist about weekly",
     },
     "freshness_scan": _LAYER1_DAILY,
     "golf_news": _LAYER1_DAILY,

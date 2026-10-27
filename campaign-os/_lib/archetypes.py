@@ -30,7 +30,13 @@ def load_archetypes_doc(brand_id: str) -> dict[str, Any]:
         doc = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
-    return doc if isinstance(doc, dict) else {}
+    if not isinstance(doc, dict):
+        return {}
+    extras = doc.get("product_post_archetypes")
+    if isinstance(extras, list) and extras:
+        merged = list(doc.get("archetypes") or []) + [a for a in extras if isinstance(a, dict)]
+        return {**doc, "archetypes": merged}
+    return doc
 
 
 def archetype_by_id(brand_id: str, archetype_id: str) -> dict[str, Any] | None:
