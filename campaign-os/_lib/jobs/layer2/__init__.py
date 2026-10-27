@@ -11,6 +11,7 @@ from . import (
     data_archive,
     foreman_morning_summary,
     holiday_inject,
+    retail_campaign,
     review_sla,
     slot_planner,
 )
@@ -23,6 +24,7 @@ LAYER2_JOB_NAMES: tuple[str, ...] = (
     "data_archive",
     "clublab_pull",
     "foreman_morning_summary",
+    "retail_campaign",
 )
 
 LAYER2_DAILY = 86400
@@ -119,6 +121,18 @@ def layer2_specs() -> list[JobSpec]:
             credentials=("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"),
             writes=(),
             brand_mode="global",
+        ),
+        JobSpec(
+            name="retail_campaign",
+            fn=retail_campaign.run,
+            every_seconds=604800,
+            timeout_seconds=300,
+            best_effort=False,
+            criticality="MEDIUM",
+            credentials=(),
+            writes=(retail_campaign.OUTPUT,),
+            brand_mode="per_brand",
+            brands=("swing-shack", "stick"),
         ),
     ]
 

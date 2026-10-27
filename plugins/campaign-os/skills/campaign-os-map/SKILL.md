@@ -54,10 +54,15 @@ res = compose_post_for_channels(brand_id="swing-shack", archetype=arc,
 `data/brand-directory/<brand>/visual-spec/archetypes.json`; packs with references,
 photos and golden renders under `templates/<name>/`.
 
-**No template exists** for Stick's `@ stick` partner panel (a navy block holding the
-partner's logo, `@`, then the wordmark — it moves position per post), nor for the
-flat-navy offer card. Both recur across the feed. `campaign-os-template` measures
-new ones from reference images.
+**Stick retail templates (PR #201):** `stick-product-post` (maker stack: maker logo,
+product name, AVAILABLE @ stick, cut-out on the navy fade; needs
+`logos/vendors/<maker>.png`) and `stick-venue-post` (partner plate: full photo, navy
+plate with the partner's logo @ stick). `stick-photo-band-post` shows the stick logo
+twice when there's no partner logo; avoid it until fixed. The flat-navy offer card is
+still not templated. `campaign-os-template` measures new ones from reference images.
+
+**Campaigns, spotlights, carousels, heroes, badge posts, posts for later:** see the
+`campaign-os-spotlight` skill.
 
 ## Brand imagery — canonical Drive roots
 
@@ -186,7 +191,10 @@ shows it as Completed. `ads_brain._is_running()` checks the dates.
 ## Image generation — Krea
 
 See the `krea-lab` skill for model ids, schemas and the resolution allowlist.
-Campaign OS calls it through `_lib/image_gen_router.py` → `_lib/krea_mcp.py`.
+Campaign OS calls it through `_lib/image_gen_router.py` → `_lib/krea_mcp.py` (API
+credit, separate from the workspace). From a Claude session, the Krea MCP connector
+spends workspace credits and accepts reference images directly; that is how the
+Black Friday heroes were made (`campaign-os-spotlight`).
 
 ## The Mac — `fives-mac-mini`, M4 / 16 GB
 
