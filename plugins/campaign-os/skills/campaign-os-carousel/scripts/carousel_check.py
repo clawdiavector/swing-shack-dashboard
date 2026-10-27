@@ -6,18 +6,23 @@
 Slides are taken in the order given. Problems (exit 1):
   - fewer than 2 or more than 10 slides (2 to 10 is what the lodge will take, wiki T18);
   - any slide not 1080x1350. Instagram crops every slide to slide 1's shape, so one
-    square slide in a 4:5 set loses its top and bottom.
+    square slide in a 4:5 set loses its top and bottom;
+  - a file name that doesn't start with its slide number (01_hero.png, 02_detail.png),
+    so the order never depends on how names happen to sort.
 
 Writes, problems or not:
   - contact-sheet.jpg: every slide in one numbered row, to look at the set as a whole;
-  - gbp-slide-1.jpg: slide 1 at 1200x900 on a blurred copy of itself, because Google
-    Business takes one image and a 4:5 slide can't be cropped to 4:3 without losing text.
+  - gbp-slide-1.jpg: slide 1 at 1200x900 on a blurred copy of itself. A stopgap only:
+    Google Business takes one image, and a recomposed 4:3 hero is better;
+  - manifest.json: the slides in order, the contact sheet and the cover.
 
 Pillow only. No model touches the pixels.
 """
 from __future__ import annotations
 
 import argparse
+import json
+import re
 import sys
 from pathlib import Path
 
@@ -35,6 +40,9 @@ def problems(paths: list[Path]) -> list[str]:
     if not MIN_SLIDES <= len(paths) <= MAX_SLIDES:
         out.append(f"{len(paths)} slide(s): a carousel takes 2 to 10")
     for n, p in enumerate(paths, 1):
+        num = re.match(r"\d+", Path(p).name)
+        if not num or int(num.group()) != n:
+            out.append(f"slide {n} is named {Path(p).name}: name it {n:02d}_<role>.png so the order is in the name")
         with Image.open(p) as im:
             if im.size != SLIDE:
                 out.append(f"slide {n} ({Path(p).name}) is {im.width}x{im.height}, not 1080x1350")
@@ -75,10 +83,17 @@ def main(argv: list[str] | None = None) -> int:
     images = [Image.open(p) for p in args.slides]
     contact_sheet(images).save(args.out / "contact-sheet.jpg", quality=90)
     gbp_cover(images[0]).save(args.out / "gbp-slide-1.jpg", quality=92)
+    manifest = {
+        "slides": [{"slide": n, "file": str(p.resolve())} for n, p in enumerate(args.slides, 1)],
+        "contact_sheet": str((args.out / "contact-sheet.jpg").resolve()),
+        "gbp_cover": str((args.out / "gbp-slide-1.jpg").resolve()),
+        "problems": found,
+    }
+    (args.out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     for p in found:
         print(f"PROBLEM: {p}")
-    print(f"{len(args.slides)} slides; wrote {args.out / 'contact-sheet.jpg'} and {args.out / 'gbp-slide-1.jpg'}")
+    print(f"{len(args.slides)} slides; wrote contact-sheet.jpg, gbp-slide-1.jpg and manifest.json in {args.out}")
     return 1 if found else 0
 
 
