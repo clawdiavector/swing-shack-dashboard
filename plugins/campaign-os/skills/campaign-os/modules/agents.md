@@ -87,6 +87,19 @@ overdue, and plan steps due today. It says "Nothing needs you today." when there
 the agent that sends the Telegram brief (cos-triage, or the 07:00 Mac digest) reads it and adds `text` to its message.
 Not wired into a cron yet; that is a Mac change for Kyle. Built from `_lib/plan_todo.py` and `_lib/calendar_alerts.py`.
 
+## Morning summary (scheduled posts + approval + job failures)
+
+`GET /api/jobs/morning-summary?brand=all` with the job bearer returns plain text plus counts:
+
+```json
+{"ok": true, "date": "2026-10-26", "text": "Morning summary, Sun 26 Oct.\\nFailing jobs: none.\\n…",
+ "scheduled_today": 2, "pending_approval": 1, "failing_jobs": 0}
+```
+
+Per brand: titles **scheduled for today**, **awaiting approval**, and a one-tap Approve drafts link. Global **failing jobs** line at the top. Built from `_lib/foreman_morning_summary.py`.
+
+**Job:** `foreman_morning_summary` runs at **07:00 SAST** via `layer1-daily-cron.yml`. Telegram send is **off by default**; set `FOREMAN_MORNING_SUMMARY_TELEGRAM=on` plus `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` on Railway to post `text`. Setup: [`docs/dev/foreman-morning-summary.md`](../../../../docs/dev/foreman-morning-summary.md).
+
 ## Calendar evening message (foreman end-of-day)
 
 `GET /api/jobs/evening-message?brand=all` (or per brand) with the job bearer returns plain

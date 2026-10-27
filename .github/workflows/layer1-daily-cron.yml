@@ -188,6 +188,17 @@ jobs:
             -o /tmp/content_ideas_refresh.json
           python3 scripts/cos_job_summary.py print /tmp/content_ideas_refresh.json
 
+      - name: Foreman — foreman_morning_summary (07:00 SAST)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/foreman_morning_summary ==="
+          curl -sf -X POST "$BASE/api/jobs/run/foreman_morning_summary" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/foreman_morning_summary.json
+          python3 scripts/cos_job_summary.py print /tmp/foreman_morning_summary.json
+
       - name: Summary — GET /api/jobs/digest
         run: |
           set -euo pipefail

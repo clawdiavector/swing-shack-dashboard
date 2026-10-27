@@ -54,6 +54,11 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "agent_queue_writer": _LAYER2_7_DAILY,
     "review_sla": _LAYER2_7_DAILY,
     "holiday_inject": _LAYER2_7_DAILY,
+    "foreman_morning_summary": {
+        "scheduler": "GitHub Actions (layer1-daily-cron.yml)",
+        "cron_sast": ["07:00"],
+        "cadence": "daily",
+    },
     "data_archive": _LAYER2_7_DAILY,
     "retry_failed_images": _LAYER2_7_DAILY,
     "draft_assets": _LAYER2_7_DAILY,
