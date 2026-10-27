@@ -64,6 +64,43 @@ joining the team (Swing Shack coach, 15). **Didn't:** generic fitting claims spr
 slides (2), unsourced statistics (1), two near-identical launch carousels the same day
 (3 and 2). The audit has no slide counts, so nothing is known yet about length.
 
+## Where the images come from
+
+The look is decided by the source photos before any design. In order:
+
+1. **The brand's official photography** in the brand's Drive: Stick's root has
+   `Store Captures/<Partner>` (Psycho Bunny: Polos, Crew Shirts, caps, packshots, model shots,
+   fabric macros, 1200px). The Drive search often shows these folders empty; list and fetch
+   them with `_lib/google_drive.py` `list_public_folder()` / `download_public_file()`.
+2. Approved image-scout packshots (`data/brand-directory/<brand>/products/image-candidates.json`).
+3. Posts already approved or in Review on live, e.g. a Krea restyle of a real photo
+   (`GET /brand-images/<brand>/composed-<slug>-instagram.png` with `COS_JOB_TOKEN`).
+4. Our own shoot photos, last. Phone shots of shirts on hangers (creased, unironed,
+   uneven) read as amateur next to the brand's own work; Christelle rejected them on
+   27 Oct 2026.
+
+**Sharp at full size or it doesn't go in.** A crop may be upscaled 1.15x at most. A badge
+that is 130px in the source can't become a full-slide hero; that is how the first hero
+came out blurred. Small sources (the 679px Kingston photos) are only used small.
+
+**No celebrity or athlete campaign images.** Partner folders hold campaign shots of known
+players; in our post they read as an endorsement we can't claim.
+
+## The hero: study the partner, then offer three
+
+Before designing slide 1, look at the partner brand's own Instagram carousels in the
+browser (view only, never scrape). Psycho Bunny, checked 27 Oct 2026: their heroes put
+the brand into the real world in a surprising way (the slogan set in a tiled floor, the
+bunny as a road marking, the bunny stencilled on concrete, an extreme embroidery macro).
+The product comes in the later slides, often as a clean packshot floating in a scene. No
+text on their images.
+
+Make **three hero directions** on the same slides 2 to N and let the person pick one,
+for example a giant word behind the product, type as the hero, or a real-world brand
+moment (Stick's neon bunny sign won on 27 Oct 2026). Never fake the real-world moment by
+generating the partner's logo onto a wall or a road: that is redrawing a logo and showing
+something that doesn't exist.
+
 ## 1. Plan the sequence, get a yes
 
 Write the plan before making anything and show it:
@@ -90,6 +127,9 @@ Caption: (from brand-voice-truth)
 - The close is a simple next step. Pressure goes on time, stock or the gear, never on
   the golfer or their game. Any number on a slide or in the caption needs a source link,
   or it comes off.
+- **Every word has to be true.** "NEW IN" went on a Psycho Bunny hero that has been at
+  Stick since 1 May; the brand's own feed says when a line arrived. Same for "now",
+  "just landed", "last few".
 
 ## 2. Make each slide
 
@@ -109,9 +149,22 @@ change per slide. The product stays real: crop, scale, layer and shadow it, neve
 recolour, distort or add to it. Check every Krea slide against the real photo (colour,
 badge, trims).
 
-**Google Business** takes one 4:3 image. Recompose slide 1 at 1200x900 so the idea
-survives; don't crop the 4:5. The checker's `gbp-slide-1.jpg` (slide 1 on a blurred copy
-of itself) is a stopgap when there's no time to recompose.
+Product pieces, learned the hard way on 27 Oct 2026:
+
+- **Whole product, whole word.** The hem stays above the thread and the canvas edge; a
+  giant word is sized to the 5% safe zone, not clipped by accident.
+- **A row of products:** same scale (match body width, not image height), shoulders on
+  one line, and overlap right to left so each chest badge stays uncovered.
+- **Clean cut-outs:** keep only the largest piece of the mask; loose tag strings and
+  dust come with the cut otherwise.
+- **Take colours from the product** (sample the badge's pink, don't pick one).
+- rembg (`~/rembg-venv`, `birefnet-general-lite`) runs out of memory on a batch of big
+  images while `./check` runs: one image per process, or wait.
+
+**Google Business** takes one 4:3 image. Recompose slide 1 at 1200x900 from its source so
+the idea survives; don't crop the 4:5. Keep the part people recognise (the first 4:3 of
+the neon sign lost the pink ears). The checker's `gbp-slide-1.jpg` (slide 1 on a blurred
+copy of itself) is a stopgap when there's no time to recompose.
 
 ## 3. Check the set together
 
@@ -127,7 +180,8 @@ slide numbered in one row), `gbp-slide-1.jpg` and `manifest.json` (the order).
 
 Then look at the contact sheet yourself, hyper-critically, against the guide's three
 QA lists (sections 20 to 22): reject it, redesign the hero, cut filler. Also check each
-product against its source photo (whole, unaltered, letters not hidden). Fix and re-run
+product against its source photo (whole, unaltered, letters not hidden), and open every
+slide at full size: blur doesn't show on a contact sheet. Fix and re-run
 until you'd defend every slide. Show the person the contact sheet, not separate files.
 
 ## 4. Caption and alt text
@@ -158,6 +212,12 @@ Once a carousel has been live a week or two, add a row to the wiki page
 colour, type mode, slide count, thread, CTA, and its reach and interactions next to that
 brand's median. Record the principle, not the layout: winners don't become fixed
 templates.
+
+## Worked example
+
+Stick × Psycho Bunny, 27 Oct 2026 (two rounds with Christelle, hero C chosen): wiki
+`research/carousel-performance-2026-10-27.md`, "Worked example". It has the contact
+sheets, what was rejected and why, and the build script.
 
 ## Related
 
