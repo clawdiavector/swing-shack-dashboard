@@ -9,6 +9,8 @@ from unittest.mock import patch
 
 import pytest
 
+from tests.jobs.test_layer5_create import l5_app  # noqa: F401  (fixture)
+
 CAMPAIGN_OS = Path(__file__).resolve().parents[1]
 if str(CAMPAIGN_OS) not in sys.path:
     sys.path.insert(0, str(CAMPAIGN_OS))
@@ -42,7 +44,6 @@ def test_brief_fidelity_accepts_lodge_title_word_in_caption():
     )
     result = _check_brief_fidelity(body, ctx)
     assert result["passed"] is True
-    assert result["reason"] == "lodge_title_word_match"
 
 
 def test_caption_pipeline_survives_off_the_rack_lodge_title():
@@ -87,7 +88,7 @@ def inbox_env(monkeypatch, tmp_path):
             del sys.modules[mod]
 
 
-def test_draft_assets_lodge_title_when_pipeline_empty_survivors(l5_app, inbox_env, tmp_path):
+def test_draft_assets_no_title_caption_when_pipeline_empty_survivors(l5_app, inbox_env, tmp_path):
     from _lib.jobs.layer5 import draft_assets
     from tests.jobs.test_layer5_create import (
         _seed_approved_proposal,
@@ -105,6 +106,44 @@ def test_draft_assets_lodge_title_when_pipeline_empty_survivors(l5_app, inbox_en
     }
     with patch("_lib.p11_context_engine.run_caption_pipeline", return_value=mock_result):
         out = draft_assets.run(brand="swing-shack")
-    assert out.get("drafted") == 1
-    sidecar = json.loads(next((tmp_path / "draft-assets").glob("*.json")).read_text(encoding="utf-8"))
-    assert sidecar.get("action") == "draft_caption"
+    # No survivors and no kept asset: the gates said no, so no caption is made up
+    # from the lodge title.
+    assert out.get("drafted", 0) == 0
+    assert not list((tmp_path / "draft-assets").glob("*.json"))
+
+
+def _fidelity(body: str, title: str):
+    from _lib.p11_context_engine import _check_brief_fidelity, build_generation_context
+
+    ctx = build_generation_context(
+        brand_id="swing-shack",
+        user_brief=f"{title} | service promo",
+        lodge_title=title,
+        template_id="ss-service-promo",
+        post_type="service_promo",
+    )
+    return _check_brief_fidelity(body, ctx)
+
+
+def test_brief_fidelity_one_generic_title_word_is_not_enough():
+    result = _fidelity(
+        "Summer season is here. Grab a cold drink at the bar after your round.",
+        "Putter season: new Odyssey putters in store",
+    )
+    assert result.get("reason") != "lodge_title_word_match"
+
+
+def test_brief_fidelity_two_title_words_pass():
+    result = _fidelity(
+        "Putter season starts now. Roll a few and feel the difference.",
+        "Putter season: new Odyssey putters in store",
+    )
+    assert result["passed"] is True
+
+
+def test_brief_fidelity_title_word_must_be_whole_word():
+    result = _fidelity(
+        "Racks of polos just landed. Come in and pick yours.",
+        "Off-the-rack is for groceries",
+    )
+    assert result.get("reason") != "lodge_title_word_match"

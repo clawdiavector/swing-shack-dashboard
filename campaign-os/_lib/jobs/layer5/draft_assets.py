@@ -552,7 +552,9 @@ def _process_caption_row(
     caption = _pick_caption(result)
     if not caption:
         lodge = str(pipeline_in.get("lodge_title") or "").strip()
-        if lodge:
+        # Title as caption only for a kept asset (a finished post being re-captioned).
+        # Anywhere else an empty pipeline means the caption gates said no; keep that.
+        if keep_id and lodge:
             caption = lodge
         else:
             return None, "caption pipeline returned no survivors"

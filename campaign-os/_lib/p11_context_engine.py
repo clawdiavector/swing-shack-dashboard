@@ -2246,13 +2246,17 @@ def _check_brief_fidelity(candidate: str, ctx: dict) -> dict:
     contract = ctx.get("copy_contract") if isinstance(ctx.get("copy_contract"), dict) else {}
     lodge_title = str(contract.get("lodge_title") or "").strip()
     if lodge_title:
-        lodge_words = _title_subject_words(lodge_title, _BRIEF_SUBJECT_STOP)
-        if any(w in cl for w in lodge_words):
+        lodge_words = list(dict.fromkeys(_title_subject_words(lodge_title, _BRIEF_SUBJECT_STOP)))
+        hits = [w for w in lodge_words if _keyword_in_brief(w, cl)]
+        # Whole words only; a title with 3+ distinctive words needs 2 of them echoed,
+        # so one generic word ("season", "offers") cannot carry an off-topic caption.
+        needed = 1 if len(lodge_words) <= 2 else 2
+        if lodge_words and len(hits) >= needed:
             return {
                 "passed": True,
                 "reason": "lodge_title_word_match",
                 "brief_subject": brief_subject,
-                "detected_subject": ", ".join([w for w in lodge_words if w in cl][:3]),
+                "detected_subject": ", ".join(hits[:3]),
                 "subject_match": True,
                 "specificity": "high",
             }
