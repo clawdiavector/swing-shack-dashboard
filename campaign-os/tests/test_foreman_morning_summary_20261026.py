@@ -77,6 +77,14 @@ def summary_app(tmp_path_factory):
     app_module._GIT_SYNC_DONE = True
     yield app_module
     mp.undo()
+    # Importing app above cached the temp calendar dir; later tests must not inherit it.
+    import _lib
+
+    sys.modules.pop("app", None)
+    for name in ("intelligence", "marketing_calendar"):
+        sys.modules.pop(f"_lib.{name}", None)
+        if hasattr(_lib, name):
+            delattr(_lib, name)
 
 
 def test_morning_summary_route_requires_job_bearer(summary_app):
