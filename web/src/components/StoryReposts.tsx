@@ -7,6 +7,7 @@ import { Mascot, type FunTone } from './fun'
 import { useBrand } from './BrandSwitch'
 import {
   fetchStoryCandidates,
+  fetchStoriesWeek,
   fetchStoryMarks,
   fetchStoryReposts,
   fetchStorySuggestions,
@@ -41,7 +42,9 @@ export function StoryReposts({
   const [open, setOpen] = useState<StoryRepost[]>([])
   const [done, setDone] = useState<StoryRepost[]>([])
   const [ideas, setIdeas] = useState<StorySuggestion[]>([])
+  const [weekCount, setWeekCount] = useState<number | null>(null)
   const [found, setFound] = useState<Record<string, StoryCandidate[]>>({})
+  const [byPage, setByPage] = useState<Record<string, StoryCandidate>>({})
   const [marks, setMarks] = useState<Record<string, string>>({})
   const [failed, setFailed] = useState(false)
   const [leaving, setLeaving] = useState<string | null>(null)
@@ -75,7 +78,15 @@ export function StoryReposts({
   }, [])
 
   /** Shared / Not for us on an idea card or a scouted post; "clear" is Undo. */
-  async function markKey(key: string, state: 'shared' | 'skipped' | 'clear') {
+  const weekKey = brandIds?.join(',') ?? ''
+  const loadWeek = useCallback(() => {
+    fetchStoriesWeek(weekKey ? weekKey.split(',') : undefined)
+      .then((r) => setWeekCount(r.shared_this_week))
+      .catch(() => setWeekCount(null))
+  }, [weekKey])
+  useEffect(loadWeek, [loadWeek, refreshKey])
+
+  async function markKey(key: string, state: 'shared' | 'skipped' | 'clear', brand?: string) {
     setMarks((m) => {
       const next = { ...m }
       if (state === 'clear') delete next[key]
@@ -83,8 +94,9 @@ export function StoryReposts({
       return next
     })
     try {
-      const r = await setStoryMark(key, state)
+      const r = await setStoryMark(key, state, brand)
       setMarks(r.marks)
+      loadWeek()
     } catch {
       fetchStoryMarks().then((r) => setMarks(r.marks)).catch(() => {})
     }
@@ -96,7 +108,10 @@ export function StoryReposts({
   useEffect(() => {
     for (const b of scoutKey.split(',')) {
       fetchStoryCandidates(b)
-        .then((r) => setFound((f) => ({ ...f, [b]: r.posts })))
+        .then((r) => {
+          setFound((f) => ({ ...f, [b]: r.posts }))
+          setByPage((m) => ({ ...m, ...Object.fromEntries(Object.entries(r.by_page || {}).map(([id, c]) => [`${b}|${id}`, c])) }))
+        })
         .catch(() => setFound((f) => ({ ...f, [b]: [] })))
     }
   }, [scoutKey])
@@ -115,8 +130,8 @@ export function StoryReposts({
   }, [undo])
 
   /** Done or Skip on a scouted post: it leaves the list, with a few seconds to Undo. */
-  function finishPost(url: string, state: 'shared' | 'skipped') {
-    void markKey(postKey(url), state)
+  function finishPost(url: string, state: 'shared' | 'skipped', brand: string) {
+    void markKey(postKey(url), state, brand)
     setUndo({ label: state === 'shared' ? 'Marked done.' : 'Skipped.', run: () => void markKey(postKey(url), 'clear') })
   }
 
@@ -136,6 +151,7 @@ export function StoryReposts({
     } finally {
       setLeaving(null)
       load()
+      loadWeek()
     }
   }
 
@@ -160,6 +176,11 @@ export function StoryReposts({
               ))}
             </span>
             {openRows.length} to go
+          </span>
+        ) : null}
+        {weekCount !== null ? (
+          <span className="fun-stories__count" data-testid="stories-week-count">
+            {weekCount} shared this week
           </span>
         ) : null}
       </div>
@@ -225,8 +246,14 @@ export function StoryReposts({
                   ) : (
                     <>
                       {i.repost_from?.instagram ? (
-                        <a href={i.repost_from.instagram} target="_blank" rel="noopener noreferrer" className={OPEN_DARK}>
-                          Open Instagram <ExternalLink className="h-3.5 w-3.5" />
+                        <a
+                          href={byPage[`${i.brand}|${i.repost_from.id}`]?.url || i.repost_from.instagram}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={OPEN_DARK}
+                        >
+                          {byPage[`${i.brand}|${i.repost_from.id}`] ? 'Open post on Instagram' : 'Open Instagram'}{' '}
+                          <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       ) : null}
                       {i.repost_from?.facebook ? (
@@ -285,10 +312,10 @@ export function StoryReposts({
                     <a href={c.url} target="_blank" rel="noopener noreferrer" className={OPEN_BTN}>
                       Open <ExternalLink className="h-3.5 w-3.5" />
                     </a>
-                    <button type="button" onClick={() => finishPost(c.url, 'shared')} className={DONE_BTN}>
+                    <button type="button" onClick={() => finishPost(c.url, 'shared', c.brand)} className={DONE_BTN}>
                       <CheckCircle2 className="h-4 w-4" /> Done
                     </button>
-                    <button type="button" onClick={() => finishPost(c.url, 'skipped')} className={SKIP_BTN}>
+                    <button type="button" onClick={() => finishPost(c.url, 'skipped', c.brand)} className={SKIP_BTN}>
                       <X className="h-4 w-4" /> Skip
                     </button>
                   </div>
@@ -326,7 +353,7 @@ export function StoryReposts({
               type="button"
               onClick={() => {
                 void mark(r.id, 'removed')
-                void markKey(postKey(r.url), 'skipped')
+                void markKey(postKey(r.url), 'skipped', r.brand)
                 setUndo({
                   label: 'Skipped.',
                   run: () => {

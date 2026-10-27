@@ -533,6 +533,10 @@ export function publishDispatchNow(idempotencyKeyOrKeys: string | string[]) {
     dispatched?: number
     errors?: string[]
     mode?: string
+    /** ISO from scheduled_at_least on the Publish now path. */
+    publish_at?: string
+    /** True when that call moved the time to now + 5 minutes. */
+    moved?: boolean
   }>('/api/publish/dispatch-now', body)
 }
 
@@ -2650,12 +2654,17 @@ export function fetchStoryMarks() {
   return getJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks')
 }
 
-export function setStoryMark(key: string, state: 'shared' | 'skipped' | 'clear') {
-  return postJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks', { key, state })
+export function setStoryMark(key: string, state: 'shared' | 'skipped' | 'clear', brand?: string) {
+  return postJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks', { key, state, brand })
+}
+
+export function fetchStoriesWeek(brands?: string[]) {
+  const q = brands?.length ? `?brands=${encodeURIComponent(brands.join(','))}` : ''
+  return getJson<{ ok: boolean; shared_this_week: number }>(`/api/stories/week${q}`)
 }
 
 export function fetchStoryCandidates(brand: string) {
-  return getJson<{ ok: boolean; posts: StoryCandidate[]; errors: string[] }>(
+  return getJson<{ ok: boolean; posts: StoryCandidate[]; by_page?: Record<string, StoryCandidate>; errors: string[] }>(
     `/api/stories/candidates?brand=${encodeURIComponent(brand)}`,
   )
 }
