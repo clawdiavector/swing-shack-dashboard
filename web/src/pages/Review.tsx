@@ -55,13 +55,16 @@ function ReviewInbox({
   isAll: boolean
   brandIds: string[]
 }) {
+  const [params, setParams] = useSearchParams()
   const [items, setItems] = useState<InboxItem[]>([])
   const [pending, setPending] = useState<number | null>(null)
   const [stale, setStale] = useState<number | null>(null)
   const [approved, setApproved] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
-  const [filter, setFilter] = useState('all')
+  const filterParam = params.get('filter')
+  const validFilter = filterParam === 'no-brief' ? 'no-brief' : 'all'
+  const [filter, setFilter] = useState(validFilter)
   const [failures, setFailures] = useState<FanOutFailure[]>([])
   const [imageCap, setImageCap] = useState<{ at_cap: boolean; cap: number } | null>(null)
   const [draftBusy, setDraftBusy] = useState(false)
@@ -69,9 +72,20 @@ function ReviewInbox({
   const hadItems = useRef(false)
   const celebrated = useRef(false)
   const { trackLoad, waitForLoad } = useLoadGate()
-  const [params] = useSearchParams()
   const wantMoment = params.get('moment') || ''
   const wantCal = params.get('calendar') || ''
+
+  useEffect(() => {
+    setFilter(validFilter)
+  }, [validFilter])
+
+  function setFilterWithQuery(next: string) {
+    setFilter(next)
+    const p = new URLSearchParams(params)
+    if (next === 'all') p.delete('filter')
+    else p.set('filter', next)
+    setParams(p, { replace: true })
+  }
 
   function load() {
     const run = async (): Promise<void> => {
@@ -239,7 +253,7 @@ function ReviewInbox({
 
       <FilterChips
         value={filter}
-        onChange={setFilter}
+        onChange={setFilterWithQuery}
         options={types.map((id) => ({
           id,
           label:
