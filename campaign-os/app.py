@@ -47606,6 +47606,56 @@ def mail_intake_act(item_id, action):
     return jsonify({"ok": True, "item": item}), 200
 
 
+_FACILITIES = ["swing-shack", "stick"]
+
+
+def _facility_brands(brand):
+    """Foreman's weekly messages are per facility; Bag Drop only when asked for by name."""
+    brand = (brand or "all").strip()
+    if brand in ("", "all"):
+        return list(_FACILITIES)
+    return [brand] if brand in ("swing-shack", "stick", "bag-drop") else None
+
+
+@app.route("/api/jobs/weekly-selling-message", methods=["GET"])
+def weekly_selling_message_route():
+    """GET ?brand=...|all — Monday 9am message: what is on each facility's calendar this
+    week, as plain text for Foreman to send. It sends nothing itself. Job bearer or session."""
+    brands = _facility_brands(request.args.get("brand"))
+    if brands is None:
+        return jsonify({"ok": False, "error": "unknown brand"}), 400
+    from _lib import marketing_calendar as mc
+    from _lib import plan_todo as pt
+    today = _jhb_today()
+    sections = {}
+    for b in brands:
+        try:
+            rows = mc.latest_revisions(mc.list_records(b))
+        except Exception:
+            _app_log.exception("weekly selling message calendar failed for %s", b)
+            rows = []
+        sections[b] = {"items": [{"date": r.get("event_date"), "title": r.get("title")}
+                                 for r in rows if r.get("status") == "approved"]}
+    return jsonify({"ok": True, "date": today.isoformat(),
+                    "text": pt.weekly_selling_text(sections, today)}), 200
+
+
+@app.route("/api/jobs/weekly-report-message", methods=["GET"])
+def weekly_report_message_route():
+    """GET ?brand=...|all — Tuesday message: a no-login weekly report link per facility
+    (signed share token, 24 hours), as plain text for Foreman to send. Sends nothing itself."""
+    brands = _facility_brands(request.args.get("brand"))
+    if brands is None:
+        return jsonify({"ok": False, "error": "unknown brand"}), 400
+    from _lib import plan_todo as pt
+    today = _jhb_today()
+    host = request.host_url.rstrip("/")
+    token = _serializer.dumps({"scope": "weekly_report_export", "v": 1})
+    links = {b: f"{host}/api/intel/weekly_report/export?brand={b}&format=html&share={token}" for b in brands}
+    return jsonify({"ok": True, "date": today.isoformat(), "links": links,
+                    "text": pt.weekly_report_text(links, today)}), 200
+
+
 # ── Suggestions on the month calendar: faded until approved or rejected ──
 def _cs_guard(brand_id):
     if not _is_authed():

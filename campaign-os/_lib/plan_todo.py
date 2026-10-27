@@ -163,3 +163,45 @@ def morning_text(
     if not anything:
         lines += ["", "Nothing needs you today."]
     return "\n".join(lines)
+
+
+def week_bounds(today: _dt.date) -> tuple:
+    """Monday and Sunday of the week `today` falls in."""
+    monday = today - _dt.timedelta(days=today.weekday())
+    return monday, monday + _dt.timedelta(days=6)
+
+
+def _day(d: _dt.date) -> str:
+    return f"{d.strftime('%a')} {d.day} {d.strftime('%b')}"
+
+
+def weekly_selling_text(sections: Dict[str, Dict[str, Any]], today: _dt.date) -> str:
+    """Monday's message: what is on each facility's calendar this week.
+
+    `sections` is {brand_id: {"items": [{"date": iso, "title": str}]}}. Items outside
+    Monday to Sunday are left out; a facility with nothing says so.
+    """
+    monday, sunday = week_bounds(today)
+    lines = [f"Good morning. What we are selling this week, {_day(monday)} to {_day(sunday)}."]
+    for brand_id, sec in sections.items():
+        week = sorted(
+            ((d, i) for i in sec.get("items") or [] if (d := _parse(i.get("date"))) and monday <= d <= sunday),
+            key=lambda p: (p[0], str(p[1].get("title"))),
+        )
+        lines += ["", f"— {BRAND_LABEL.get(brand_id, brand_id)} —"]
+        if not week:
+            lines.append("Nothing on the calendar yet.")
+            continue
+        shown = [f"• {_day(d)}: {i.get('title') or '(untitled)'}" for d, i in week]
+        lines += shown[:MAX_LINES * 2]
+        if len(shown) > MAX_LINES * 2:
+            lines.append(f"…and {len(shown) - MAX_LINES * 2} more")
+    return "\n".join(lines)
+
+
+def weekly_report_text(links: Dict[str, str], today: _dt.date) -> str:
+    """Tuesday's message: one weekly report link per facility."""
+    lines = [f"Good morning. The weekly report, {_day(today)}.", ""]
+    lines += [f"{BRAND_LABEL.get(b, b)}: {url}" for b, url in links.items()]
+    lines += ["", "Each link opens without a login and works for 24 hours."]
+    return "\n".join(lines)
