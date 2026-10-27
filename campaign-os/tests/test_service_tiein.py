@@ -14,7 +14,7 @@ def test_ball_post_points_to_ball_fitting_at_both_brands():
 
 
 def test_not_every_product_gets_a_service_line():
-    assert st.service_tiein_line("Titleist T250 Iron Set", "stick") is None
+    assert st.service_tiein_line("Ping Golf Bag", "stick") is None
     assert st.service_tiein_line("Footjoy Weathersof Glove", "swing-shack") is None
 
 

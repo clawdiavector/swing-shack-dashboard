@@ -6,6 +6,11 @@ wedge gapping and re-gripping are confirmed for both Swing Shack and Stick (Chri
 
 from __future__ import annotations
 
+import re
+
+# stock_pulse has no iron category.
+_IRON = re.compile(r"\birons?\b", re.I)
+
 SHOPS: dict[str, str] = {"swing-shack": "Swing Shack", "stick": "Stick"}
 
 CLUB_FITTING = "Fit before you buy. Book a club fitting at {shop}."
@@ -16,6 +21,7 @@ TIE_INS: dict[str, str] = {
     "putter": "Putter feel is personal. Book a putter fitting at {shop}.",
     "wedge": "Know your gaps. Book a wedge gapping session at {shop}.",
     "grip": "Tired grips? Ask about a re-grip at {shop}.",
+    "iron": CLUB_FITTING,
     "driver-wood": CLUB_FITTING,
     "shaft": CLUB_FITTING,
 }
@@ -26,7 +32,9 @@ def service_tiein_line(product_name: str | None, brand: str) -> str | None:
     shop = SHOPS.get(brand)
     if not product_name or not shop:
         return None
-    template = TIE_INS.get(categorise(product_name))
+    # Checked first: the ball rule would otherwise claim "Srixon ZX5 Iron".
+    category = "iron" if _IRON.search(product_name) else categorise(product_name)
+    template = TIE_INS.get(category)
     return template.format(shop=shop) if template else None
 
 
