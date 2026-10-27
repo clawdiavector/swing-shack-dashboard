@@ -5,6 +5,7 @@ import { HeroPanel, PageIntro } from '../components/chrome'
 import { Tip } from '../components/ui'
 import {
   fetchBrandArchive,
+  purgeExpiredBrandArchive,
   restoreBrandArchiveItem,
   type ArchivedItem,
 } from '../lib/api'
@@ -42,6 +43,35 @@ export function Archive() {
     load()
   }, [load])
 
+  const now = Date.now()
+  const expired = items.filter((item) => {
+    const t = new Date((item.purge_at || '').replace('Z', '+00:00')).getTime()
+    return Number.isFinite(t) && t <= now
+  })
+
+  async function deleteExpired() {
+    const name = actorName()
+    if (!name) {
+      setMsg('Your name is needed so the audit log knows who deleted these.')
+      return
+    }
+    const ask = `Delete ${expired.length} archived item(s) older than 60 days for good? This cannot be undone.`
+    if (!window.confirm(ask)) return
+    setBusyId('purge')
+    const r = await purgeExpiredBrandArchive(scope, name)
+    setBusyId('')
+    if (!r.ok) {
+      setMsg(r.error || 'Delete failed.')
+      return
+    }
+    setMsg(
+      r.dry_run
+        ? `Dry run: ${r.total ?? 0} item(s) would be deleted. Deleting is off until ARCHIVE_PURGE_LIVE is set.`
+        : `Deleted ${r.total ?? 0} item(s).`,
+    )
+    load()
+  }
+
   async function restore(item: ArchivedItem) {
     const name = actorName()
     if (!name) {
@@ -70,8 +100,9 @@ export function Archive() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-4 pb-16">
       <PageIntro icon={ArchiveRestore} here="/archive" title="Archive">
-        Archived drafts, plans, and suggestions for this brand. Each row shows when it will be
-        purged for good (30 days after archive). Restore brings it back to the live lists.
+        Archived drafts, plans, and suggestions for this brand. Nothing is archived or deleted
+        automatically: items stay here for 60 days, then you can delete them with the button below.
+        Restore brings one back to the live lists.
       </PageIntro>
 
       {!scope ? (
@@ -79,6 +110,17 @@ export function Archive() {
       ) : (
         <>
           {msg ? <p className="text-sm text-red">{msg}</p> : null}
+          {expired.length ? (
+            <button
+              type="button"
+              disabled={busyId === 'purge'}
+              onClick={() => void deleteExpired()}
+              data-testid="archive-delete-expired"
+              className="rounded-full border border-red/40 bg-red/10 px-4 py-2 text-xs font-semibold text-red hover:bg-red/20 disabled:opacity-60"
+            >
+              {busyId === 'purge' ? 'Deleting…' : `Delete ${expired.length} expired (older than 60 days)`}
+            </button>
+          ) : null}
           {loading ? (
             <p className="inline-flex items-center gap-2 text-sm text-tx2">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading…
@@ -104,8 +146,8 @@ export function Archive() {
                       Archived {formatStamp(item.archived_at)} by {item.archived_by || 'operator'}
                     </p>
                     <p className="text-xs text-tx2">
-                      <Tip text="After this date the daily purge job deletes it permanently.">
-                        Purge after {formatStamp(item.purge_at)}
+                      <Tip text="Kept until this date. After it, Delete expired removes it for good. Nothing deletes on its own.">
+                        Can be deleted after {formatStamp(item.purge_at)}
                       </Tip>
                     </p>
                   </div>

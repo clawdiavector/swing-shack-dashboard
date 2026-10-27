@@ -88,7 +88,6 @@ def test_legacy_archived_draft_without_archived_at_is_not_purged(_scratch):
 
 def test_purge_job_dry_run_until_live_armed(monkeypatch, _scratch):
     from _lib import content_archive as ca
-    from _lib.jobs.layer2 import archive_purge
 
     monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
     monkeypatch.delenv("ARCHIVE_PURGE_LIVE", raising=False)
@@ -120,8 +119,10 @@ def test_purge_job_dry_run_until_live_armed(monkeypatch, _scratch):
     (_scratch / "campaign-data.json").write_text(json.dumps(camp), encoding="utf-8")
     ca.archive_item(brand, kind="draft", item_id=aid, actor="kyle")
 
-    result = archive_purge.run()
+    later = datetime.now(timezone.utc) + timedelta(days=8)
+    result = ca.purge_brand(brand, actor="kyle", now=later)
     assert result.get("dry_run") is True
+    assert result.get("total") == 1
     assert result.get("live") is False
     assert (_scratch / "draft-assets" / f"{aid}.json").is_file()
     audit = ca.read_audit(brand_id=brand)

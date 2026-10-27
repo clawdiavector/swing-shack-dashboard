@@ -1,11 +1,11 @@
-"""Shared archive retention clock (30 days by default, overridable in tests)."""
+"""Shared archive retention clock (60 days by default, overridable in tests)."""
 
 from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta, timezone
 
-DEFAULT_RETENTION_DAYS = 30
+DEFAULT_RETENTION_DAYS = 60
 MIN_RETENTION_DAYS = 7
 
 
@@ -38,7 +38,7 @@ def retention_days() -> int:
 
 
 def validate_production_purge_config() -> None:
-    """Called by the daily job before any destructive purge."""
+    """Called before any destructive purge (the Archive page button)."""
     if _pytest_active():
         return
     raw = os.environ.get("ARCHIVE_PURGE_DAYS", "").strip()

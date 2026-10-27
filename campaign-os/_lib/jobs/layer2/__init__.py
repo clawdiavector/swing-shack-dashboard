@@ -7,7 +7,6 @@ from typing import Callable
 from ..spec import JobSpec
 from . import (
     agent_queue_writer,
-    archive_purge,
     clublab_pull,
     data_archive,
     holiday_inject,
@@ -22,7 +21,6 @@ LAYER2_JOB_NAMES: tuple[str, ...] = (
     "review_sla",
     "holiday_inject",
     "data_archive",
-    "archive_purge",
     "clublab_pull",
     "retail_campaign",
 )
@@ -98,17 +96,6 @@ def layer2_specs() -> list[JobSpec]:
             criticality="MEDIUM",
             credentials=(),
             writes=("archive/manifest.json",),
-            brand_mode="fanout_internal",
-        ),
-        JobSpec(
-            name="archive_purge",
-            fn=archive_purge.run,
-            every_seconds=LAYER2_DAILY,
-            timeout_seconds=120,
-            best_effort=True,
-            criticality="LOW",
-            credentials=(),
-            writes=("archive/content-audit.jsonl",),
             brand_mode="fanout_internal",
         ),
         JobSpec(

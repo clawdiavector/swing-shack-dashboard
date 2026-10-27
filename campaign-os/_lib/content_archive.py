@@ -1,7 +1,8 @@
 """Archive drafts, plans, and calendar suggestions; restore; purge after retention.
 
 Archived items stay in DATA_DIR until a daily job purges them past retention
-(default 30 days). Every archive, restore, and purge is appended to an audit log.
+(default 60 days). Nothing is archived or deleted automatically: archive, restore and
+purge are each a button click. Every one is appended to an audit log.
 """
 
 from __future__ import annotations
@@ -241,7 +242,10 @@ def preview_archive(
     msg = f'Archive "{title}"?'
     if touches:
         msg += " " + " ".join(touches)
-    msg += f" Permanently removed after {purge[:10]} unless restored."
+    msg += (
+        f" Kept in the Archive for {retention_days()} days; after {purge[:10]} it can be"
+        " deleted from the Archive page. Nothing is deleted automatically."
+    )
     return {"ok": True, "kind": kind_norm, "id": iid, "title": title, "message": msg, "touches": touches, "purge_at": purge}
 
 
@@ -628,8 +632,9 @@ def _explicit_archived_at(brand_id: str, item: dict[str, Any]) -> str | None:
 def purge_expired(
     *,
     now: datetime | None = None,
-    actor: str = "job:archive_purge",
+    actor: str = "operator",
     dry_run: bool | None = None,
+    brands: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     """Delete items archived past retention. Returns counts per kind."""
     now = now or datetime.now(timezone.utc)
@@ -643,8 +648,7 @@ def purge_expired(
         "skipped_legacy": 0,
         "dry_run": 0,
     }
-    brands = ("swing-shack", "stick", "bag-drop")
-    for bid in brands:
+    for bid in brands or ("swing-shack", "stick", "bag-drop"):
         for item in list_archived(bid):
             archived_at = _explicit_archived_at(bid, item)
             if not archived_at:
@@ -756,3 +760,19 @@ def _purge_suggestion(
     else:
         cid = iid
         mc.transition_status(brand_id, cid, "purged", reason=f"purged by {actor}")
+
+
+def purge_brand(brand_id: str, *, actor: str, now: datetime | None = None) -> dict[str, Any]:
+    """Archive page "Delete expired" button: purge this brand's items past retention.
+
+    Dry run (audit only, nothing deleted) unless ARCHIVE_PURGE_LIVE is on.
+    """
+    from _lib.archive_retention import validate_production_purge_config  # noqa: PLC0415
+
+    bid = validate_brand_id(brand_id, allow_sentinel=False)
+    validate_production_purge_config()
+    live = purge_live_enabled()
+    out = purge_expired(now=now, actor=actor, dry_run=not live, brands=(bid,))
+    out["live"] = live
+    out["retention_days"] = retention_days()
+    return out

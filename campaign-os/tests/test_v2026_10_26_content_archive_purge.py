@@ -164,13 +164,29 @@ def test_suggestion_archive_restore_and_purge(_scratch):
     assert row["status"] == "purged"
 
 
-def test_archive_purge_job(_scratch):
-    from _lib.jobs.layer2 import archive_purge
-
+def test_archive_purge_button(_scratch):
     _seed_draft(_scratch)
     from _lib import content_archive as ca
 
     ca.archive_item("swing-shack", kind="draft", item_id="arch-draft-1", actor="job-test")
-    result = archive_purge.run()
+    result = ca.purge_brand("swing-shack", actor="job-test")
     assert result.get("ok") is True
     assert result.get("total", 0) >= 1
+
+
+def test_retention_defaults_to_60_days(monkeypatch):
+    from _lib import archive_retention as ar
+
+    monkeypatch.delenv("ARCHIVE_PURGE_DAYS", raising=False)
+    assert ar.retention_days() == 60
+    assert ar.purge_at_iso("2026-10-27T00:00:00Z").startswith("2026-12-26")
+
+
+def test_no_scheduled_purge_job():
+    """Nothing deletes archived content on a schedule; purge is the Archive page button."""
+    from _lib.jobs.layer2 import LAYER2_JOB_NAMES, layer2_specs
+    from _lib.jobs.schedules import JOB_SCHEDULES
+
+    assert "archive_purge" not in LAYER2_JOB_NAMES
+    assert all(spec.name != "archive_purge" for spec in layer2_specs())
+    assert "archive_purge" not in JOB_SCHEDULES

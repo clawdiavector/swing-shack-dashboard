@@ -2493,6 +2493,29 @@ export async function restoreBrandArchiveItem(
   return (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
 }
 
+export type BrandArchivePurgeResult = {
+  ok?: boolean
+  error?: string
+  total?: number
+  dry_run?: boolean
+  live?: boolean
+  retention_days?: number
+  purged?: Record<string, number>
+}
+
+/** Archive page "Delete expired": items past retention. Dry run unless ARCHIVE_PURGE_LIVE is on. */
+export async function purgeExpiredBrandArchive(brandId: string, actorName?: string) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (actorName) headers['X-Actor-Display-Name'] = actorName
+  const res = await fetch(`/api/brands/${encodeURIComponent(brandId)}/archive/purge`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers,
+    body: '{}',
+  })
+  return (await res.json().catch(() => ({}))) as BrandArchivePurgeResult
+}
+
 export function fetchTemplateGallery(brandId: string) {
   return getJson<TemplateGalleryPayload>(
     `/api/brands/${encodeURIComponent(brandId)}/template-gallery`,

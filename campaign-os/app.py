@@ -7851,6 +7851,23 @@ def brand_archive_restore(brand_id):
         return jsonify({"ok": False, "error": "restore failed"}), 500
 
 
+@app.route("/api/brands/<brand_id>/archive/purge", methods=["POST"])
+def brand_archive_purge(brand_id):
+    """Archive page "Delete expired": items past retention. Dry run unless ARCHIVE_PURGE_LIVE."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib.archive_retention import ArchivePurgeConfigError
+
+    try:
+        payload = _content_archive.purge_brand(brand_id, actor=_archive_actor())
+        return jsonify(payload), 200
+    except (ValueError, ArchivePurgeConfigError) as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception:
+        _app_log.exception("brand_archive_purge failed")
+        return jsonify({"ok": False, "error": "purge failed"}), 500
+
+
 @app.route('/brand-directory-media/<brand_id>/<path:relpath>', methods=['GET'])
 def brand_directory_media(brand_id, relpath):
     """Serve brand-directory assets (template refs, goldens) with traversal guard."""

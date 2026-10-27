@@ -291,16 +291,6 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Updates archive/manifest.json. Does not touch stale-only files."
         ),
     },
-    "archive_purge": {
-        "title": "Content archive purge",
-        "summary": "Permanently removes drafts, plans, and suggestions archived past retention.",
-        "detail": (
-            "Scans archived drafts, plans, and calendar suggestions per brand. Only items with "
-            "an explicit archived_at from T16 archive are eligible; legacy archives are skipped. "
-            "Until ARCHIVE_PURGE_LIVE=1 the job dry-runs (audit purge_dry_run only). Retention "
-            "defaults to 30 days; ARCHIVE_PURGE_DAYS must be at least 7."
-        ),
-    },
     "auto_release": {
         "title": "Auto release scheduled posts",
         "summary": "On go-live day (SAST), mark today's scheduled posts human-approved before dispatch.",

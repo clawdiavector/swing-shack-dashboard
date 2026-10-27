@@ -55,7 +55,6 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "review_sla": _LAYER2_7_DAILY,
     "holiday_inject": _LAYER2_7_DAILY,
     "data_archive": _LAYER2_7_DAILY,
-    "archive_purge": _LAYER2_7_DAILY,
     "retry_failed_images": _LAYER2_7_DAILY,
     "draft_assets": _LAYER2_7_DAILY,
     "krea_poll_draft_images": _LAYER2_7_DAILY,
