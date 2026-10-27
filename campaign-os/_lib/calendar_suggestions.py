@@ -261,6 +261,9 @@ def posts_by_day_for_month(brand_id: str, month: str) -> Dict[str, List[Dict[str
         for post in day.get("posts") or []:
             if not is_primary_post(str(post.get("state") or "")):
                 continue
+            # T9 outside posts already draw their own grey chip; not our scheduled posts.
+            if str(post.get("post_type") or "") == "posted-outside-campaign-os":
+                continue
             row: Dict[str, Any] = {
                 "calendar_id": post.get("calendar_id"),
                 "title": str(post.get("title") or "").strip(),

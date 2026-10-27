@@ -64,12 +64,13 @@ export function Archive() {
       setMsg(r.error || 'Delete failed.')
       return
     }
+    // load() clears the message, so reload first and say what happened after.
+    load()
     setMsg(
       r.dry_run
         ? `Dry run: ${r.total ?? 0} item(s) would be deleted. Deleting is off until ARCHIVE_PURGE_LIVE is set.`
         : `Deleted ${r.total ?? 0} item(s).`,
     )
-    load()
   }
 
   async function restore(item: ArchivedItem) {
