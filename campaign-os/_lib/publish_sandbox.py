@@ -24,7 +24,8 @@ INTENDED_CHANNELS_FALLBACK: dict[str, list[str]] = {
 }
 
 # Match L5 compose_post_for_channels — social feed channels only (GBP is separate).
-COMPOSE_PUBLISH_CHANNEL_EXCLUDE = frozenset({"gbp"})
+# Not composed per channel and not on by default: GBP has its own queue, TikTok is picked per post.
+COMPOSE_PUBLISH_CHANNEL_EXCLUDE = frozenset({"gbp", "tiktok"})
 MAX_SEND_ATTEMPTS = 3
 
 

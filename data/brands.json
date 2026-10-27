@@ -62,7 +62,7 @@
         "winter-golf",
         "use-the-right-equipment-mq5l90bk"
       ],
-      "publish_channels": ["instagram", "facebook", "gbp"],
+      "publish_channels": ["instagram", "facebook", "gbp", "tiktok"],
       "active": true,
       "order": 1,
       "icon": "\u26f3",
@@ -109,7 +109,7 @@
       "tone_options": ["sarcastic", "provocative", "meme-aware", "insider", "funny"],
       "pillar_defaults": ["Golf myths debunked", "Off-rack club callouts", "Range truths", "Meme drops"],
       "campaign_ids": [],
-      "publish_channels": ["instagram", "facebook"],
+      "publish_channels": ["instagram", "facebook", "tiktok"],
       "active": true,
       "order": 2,
       "icon": "\ud83e\udeb5",
