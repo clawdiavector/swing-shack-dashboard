@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   fetchMailIntake,
   ideaHeading,
-  mailIdeaFlesh,
+  mailIdeaAsk,
   mailIdeaPlan,
   markMail,
   moveMail,
@@ -37,6 +37,14 @@ export function MailToday({ brandId }: { brandId?: string }) {
   }, [brandId])
 
   useEffect(load, [load])
+
+  // While Claude has been asked to write an idea, look again every half minute so it appears on its own.
+  const waiting = Boolean(data?.ideas.some((i) => i.flesh_requested_at && !i.fleshed))
+  useEffect(() => {
+    if (!waiting) return
+    const t = window.setInterval(load, 30_000)
+    return () => window.clearInterval(t)
+  }, [waiting, load])
 
   if (!data) return null
   const total = data.do_now.length + data.ideas.length
@@ -144,6 +152,7 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
   const [error, setError] = useState<string | null>(null)
 
   const ready = Boolean(brand && date)
+  const asked = Boolean(m.flesh_requested_at && !m.fleshed)
   const changed = Boolean(m.plan_id) && (brand !== (m.brand || '') || date !== (m.date || ''))
 
   async function showPlan() {
@@ -164,13 +173,13 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
     void run(Promise.resolve({ ok: true }))
   }
 
-  async function fleshOut() {
+  async function askClaude() {
     setWriting(true)
     setError(null)
-    const r = await mailIdeaFlesh(m.id, brand, date)
+    const r = await mailIdeaAsk(m.id, brand, date)
     setWriting(false)
     if (!r.ok) {
-      setError(r.error || 'Could not write the idea.')
+      setError(r.error || 'Could not ask.')
       return
     }
     setShowIdea(true)
@@ -199,12 +208,12 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
         <button
           type="button"
           className={btn}
-          disabled={!brand || writing}
+          disabled={!brand || writing || asked}
           title={brand ? 'Claude builds the idea out: concept, content, shots and next steps.' : 'Pick the brand first'}
-          onClick={() => void fleshOut()}
+          onClick={() => void askClaude()}
           data-testid="mail-idea-flesh"
         >
-          {writing ? 'Writing…' : m.fleshed ? 'Write it again' : 'Flesh out this idea'}
+          {writing ? 'Asking…' : asked ? 'Asked Claude' : m.fleshed ? 'Ask Claude to write it again' : 'Ask Claude to flesh this out'}
         </button>
         <button
           type="button"
@@ -224,6 +233,12 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
         </button>
       </div>
       {error ? <p className="mt-1 text-xs text-red">{error}</p> : null}
+      {asked ? (
+        <p className="mt-1 text-xs text-tx3" data-testid="mail-idea-asked">
+          Asked. Claude writes it when a Claude session is open: tell Claude &ldquo;any ideas to write?&rdquo; to get it now.
+          It appears here on its own.
+        </p>
+      ) : null}
       {m.fleshed ? (
         <div className="mt-3">
           <button type="button" className={quiet} onClick={() => setShowIdea((v) => !v)}>

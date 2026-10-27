@@ -201,6 +201,61 @@ def flesh_out(item_id: str, chat: Callable[[List[Dict[str, str]]], str], today: 
     return {"ok": True, "item": mi.get_item(item_id)}
 
 
+# ── asked on the card, written by Claude ──────────────────────────────
+#
+# No model key lives on the server. The card asks; a Claude session reads what is waiting
+# (pending_requests), writes each idea out from the prompt given, and posts it back
+# (save_written). What comes back goes through the same clean-up as a model's answer.
+
+def _eligible(item: Optional[Dict[str, Any]]) -> Optional[str]:
+    """Why this card cannot be written yet, or None."""
+    if not item or item.get("kind") != "idea":
+        return "idea not found"
+    brand = item.get("brand") or ""
+    if not brand:
+        return "pick the brand first"
+    if brand not in BRAND_LABEL:
+        return "Bag Drop's facts are not confirmed yet, so nothing is guessed for it. Pick Stick or Swing Shack."
+    return None
+
+
+def request_flesh(item_id: str) -> Dict[str, Any]:
+    """The card asks for the idea to be written out. Asking twice changes nothing."""
+    it = mi.get_item(item_id)
+    why = _eligible(it)
+    if why:
+        return {"ok": False, "error": why}
+    if not it.get("flesh_requested_at"):
+        it = mi._update(item_id, flesh_requested_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    return {"ok": True, "item": it}
+
+
+def pending_requests(today: date) -> List[Dict[str, Any]]:
+    """Cards asked for and not yet written, oldest first, each with the prompt to write from."""
+    out = [i for i in mi.list_items(kind="idea") if i.get("flesh_requested_at") and not i.get("fleshed")
+           and not _eligible(i)]
+    out.sort(key=lambda i: i["flesh_requested_at"])
+    return [{"id": i["id"], "brand": i["brand"], "title": mi.idea_title(i), "date": i.get("date"),
+             "requested_at": i["flesh_requested_at"], "messages": build_messages(i, today)} for i in out]
+
+
+def save_written(item_id: str, answer: Any, today: date) -> Dict[str, Any]:
+    """Store an idea Claude wrote. `answer` is the JSON the prompt asked for, as text or already parsed."""
+    it = mi.get_item(item_id)
+    why = _eligible(it)
+    if why:
+        return {"ok": False, "error": why}
+    raw = answer if isinstance(answer, str) else json.dumps(answer, ensure_ascii=False)
+    try:
+        result = clean(raw, f"{it.get('summary') or ''} {it.get('subject') or ''}", it["brand"])
+    except IdeaError as e:
+        return {"ok": False, "error": f"The idea could not be used: {e}."}
+    result["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    result["written_by"] = "Claude"
+    mi._update(item_id, fleshed=result, flesh_requested_at=None)
+    return {"ok": True, "item": mi.get_item(item_id)}
+
+
 # ── the plan uses it ──────────────────────────────────────────────────
 
 def apply_to_plan(plan: Dict[str, Any], fleshed: Dict[str, Any]) -> None:

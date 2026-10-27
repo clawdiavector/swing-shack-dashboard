@@ -47547,6 +47547,26 @@ def mail_intake_list():
                     "ideas": [i for i in items if i["kind"] == "idea"]}), 200
 
 
+@app.route("/api/jobs/mail-intake/pending", methods=["GET"])
+def mail_intake_pending():
+    """Ideas the Today page has asked to have written out, each with the prompt to write from.
+    For a Claude session: read this, write each idea, post it to /written. Session or job bearer."""
+    from _lib import idea_builder as ib
+    return jsonify({"ok": True, "pending": ib.pending_requests(_jhb_today())}), 200
+
+
+@app.route("/api/jobs/mail-intake/<item_id>/written", methods=["POST"])
+def mail_intake_written(item_id):
+    """POST the idea as the JSON the prompt asked for. It is cleaned (no unsourced amounts, no
+    other brand, no generated imagery) and shown on the idea's card. Session or job bearer."""
+    from _lib import idea_builder as ib
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({"ok": False, "error": "send the idea as JSON"}), 400
+    r = ib.save_written(item_id, body, _jhb_today())
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
 @app.route("/api/mail-intake/<item_id>/<action>", methods=["POST"])
 def mail_intake_act(item_id, action):
     """POST status {status} | kind {kind} | plan {brand?, date?, force?} | to-calendar {brand, date}.
@@ -47562,6 +47582,12 @@ def mail_intake_act(item_id, action):
             item = mi.set_status(item_id, str(body.get("status") or ""))
         elif action == "kind":
             item = mi.set_kind(item_id, str(body.get("kind") or ""))
+        elif action == "ask":
+            from _lib import idea_builder as ib
+            if body.get("brand") is not None or body.get("date") is not None:
+                mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
+            r = ib.request_flesh(item_id)
+            return jsonify(r), (200 if r.get("ok") else 400)
         elif action == "flesh":
             from _lib import idea_builder as ib
             if body.get("brand") is not None or body.get("date") is not None:

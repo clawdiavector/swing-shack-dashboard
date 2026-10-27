@@ -39,6 +39,8 @@ export type MailItem = {
   brief_id?: string
   /** The idea built out into a concept, content, shots and next steps. */
   fleshed?: Fleshed
+  /** Set when the card has asked Claude to write the idea out; cleared once it is written. */
+  flesh_requested_at?: string
   received_at: string
 }
 
@@ -81,8 +83,8 @@ export const moveMail = (id: string, kind: MailKind) => act(id, 'kind', { kind }
 export const mailIdeaPlan = (id: string, brand: string, date: string, force = false) =>
   act(id, 'plan', { brand, date, force })
 
-/** Build the idea out into a whole concept. Takes a while: a model writes it. */
-export const mailIdeaFlesh = (id: string, brand: string, date: string) => act(id, 'flesh', { brand, date })
+/** Ask Claude to build the idea out into a whole concept. Claude writes it in a session; it then shows on the card. */
+export const mailIdeaAsk = (id: string, brand: string, date: string) => act(id, 'ask', { brand, date })
 
 /** The card's heading: its own title, else the mail's subject. */
 export const ideaHeading = (m: MailItem) => m.title || m.subject || '(no subject)'
