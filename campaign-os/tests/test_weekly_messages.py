@@ -64,7 +64,7 @@ def loaded_app(tmp_path_factory):
     mp.undo()
 
 
-def test_the_routes_need_the_job_token_and_the_report_link_needs_a_login(loaded_app, monkeypatch, tmp_path):
+def test_the_routes_need_the_job_token_and_the_report_link_is_signed(loaded_app, monkeypatch, tmp_path):
     from _lib import marketing_calendar as mc
 
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
@@ -84,8 +84,11 @@ def test_the_routes_need_the_job_token_and_the_report_link_needs_a_login(loaded_
     r = anon.get("/api/jobs/weekly-report-message", headers=auth).get_json()
     assert r["ok"] and "Stick:" in r["text"] and "Swing Shack:" in r["text"]
     link = r["links"]["stick"]
-    assert link.endswith("/weekly-report?brand=stick")
-    # the page needs a login: anonymous goes to sign-in
+    assert "/weekly-report?brand=stick&share=" in link
+    # the signed link opens for anonymous readers; the bare page and other brands still ask for login
     path = "/" + link.split("//", 1)[1].split("/", 1)[1]
-    r2 = anon.get(path)
-    assert r2.status_code == 302 and "login" in r2.headers["Location"]
+    assert anon.get(path).status_code in (200, 503)
+    bare = anon.get("/weekly-report?brand=stick")
+    assert bare.status_code == 302 and "login" in bare.headers["Location"]
+    other = anon.get(path.replace("brand=stick", "brand=swing-shack"))
+    assert other.status_code == 302 and "login" in other.headers["Location"]

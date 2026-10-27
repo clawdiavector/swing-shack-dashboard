@@ -27305,6 +27305,22 @@ def weekly_report_snapshots():
         return jsonify({'brand_id': bid, 'snapshots': [], 'error': str(e)}), 200
 
 
+REPORT_PAGE_TOKEN_MAX_AGE = 60 * 60 * 24 * 7
+
+
+def _verify_report_page_token(token: str, brand: str) -> bool:
+    """A signed ?share= token that opens /weekly-report for ONE brand, for 7 days.
+    Foreman's Tuesday message carries these so readers need no login."""
+    if not token or not brand:
+        return False
+    try:
+        payload = _serializer.loads(token, max_age=REPORT_PAGE_TOKEN_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return False
+    return (isinstance(payload, dict) and payload.get("scope") == "weekly_report_page"
+            and payload.get("brand") == brand)
+
+
 @app.route('/weekly-report', methods=['GET'])
 def weekly_report_page():
     """GET /weekly-report?brand=swing-shack
@@ -27313,11 +27329,11 @@ def weekly_report_page():
     The legacy `_weekly_render_html` (which was the contaminated
     renderer) is no longer called from this route.
     """
-    if not _is_authed():
+    bid = request.args.get('brand') or get_brand_id()
+    if not _is_authed() and not _verify_report_page_token(request.args.get("share", ""), bid):
         return redirect(url_for("login_page", next=request.path))
     if _wr3 is None:
         return "weekly_report_v3 unavailable", 503
-    bid = request.args.get('brand') or get_brand_id()
     if bid not in ("stick", "swing-shack", "bag-drop"):
         return "invalid brand", 400
     as_of = request.args.get('as_of') or None
@@ -47643,14 +47659,15 @@ def weekly_selling_message_route():
 @app.route("/api/jobs/weekly-report-message", methods=["GET"])
 def weekly_report_message_route():
     """GET ?brand=...|all — Tuesday message: the link to each facility's weekly report page
-    (/weekly-report, needs a login), as plain text for Foreman to send. Sends nothing itself."""
+    (/weekly-report with a signed 7-day link, no login), as plain text for Foreman to send. Sends nothing itself."""
     brands = _facility_brands(request.args.get("brand"))
     if brands is None:
         return jsonify({"ok": False, "error": "unknown brand"}), 400
     from _lib import plan_todo as pt
     today = _jhb_today()
     host = request.host_url.rstrip("/")
-    links = {b: f"{host}/weekly-report?brand={b}" for b in brands}
+    links = {b: f"{host}/weekly-report?brand={b}&share="
+                + _serializer.dumps({"scope": "weekly_report_page", "brand": b}) for b in brands}
     return jsonify({"ok": True, "date": today.isoformat(), "links": links,
                     "text": pt.weekly_report_text(links, today)}), 200
 
