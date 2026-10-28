@@ -172,6 +172,7 @@ campaign-os/tests/test_plan_idea_to_posts.py
 campaign-os/tests/test_mail_intake_routes.py
 campaign-os/tests/test_swing_shack_caption_survivors_20261026.py
 campaign-os/tests/test_outside_posts_on_calendar_20261026.py
+campaign-os/tests/test_outside_posts_followups_20261028.py
 campaign-os/tests/test_month_posts_skip_outside_20261027.py
 campaign-os/tests/test_outside_posts_sync_schedule_20261026.py
 campaign-os/tests/test_mail_idea_cards.py
