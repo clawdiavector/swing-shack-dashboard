@@ -7762,6 +7762,7 @@ def brand_library_bulk(brand_id):
             action=str(body.get("action") or ""),
             ids=list(body.get("ids") or []),
             include_approved=bool(body.get("include_approved")),
+            actor=_archive_actor(),
         )
         return jsonify({"ok": True, **payload}), 200
     except ValueError as e:
