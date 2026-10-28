@@ -74,11 +74,6 @@ _CAMPAIGN_BATCH = "calendar"
 # Instagram's feed accepts 4:5 (portrait) to 1.91:1 (landscape). An image
 # inside that range keeps its own shape; outside it is centre-cropped to the
 # nearest edge, and the crop is reported because it can clip baked-in type.
-_FEED_ASPECT = (4 / 5, 1.91)
-_STORY_ASPECT = 9 / 16
-_OUT_WIDTH = 1080
-
-
 def _spec_fingerprint(spec: dict[str, Any]) -> str:
     """Stable hash of a render_spec — sorted keys so field order cannot matter."""
     return hashlib.sha256(
@@ -151,32 +146,9 @@ def default_channels(brand: str) -> list[str]:
 
 def fit_for_channel(src, channel: str):
     """Size a finished image for one channel. Returns (PNG bytes, note or None)."""
-    from PIL import Image  # noqa: PLC0415
+    from _lib.feed_vertical_renders import fit_for_channel_png  # noqa: PLC0415
 
-    im = src.convert("RGB")
-    w, h = im.size
-    aspect = w / h
-    if "story" in channel or "reel" in channel:
-        target = _STORY_ASPECT
-    else:
-        target = min(max(aspect, _FEED_ASPECT[0]), _FEED_ASPECT[1])
-    note = None
-    if abs(target - aspect) > 0.005:
-        if aspect > target:  # too wide — trim the sides
-            nw = round(h * target)
-            left = (w - nw) // 2
-            im = im.crop((left, 0, left + nw, h))
-        else:  # too tall — trim top and bottom
-            nh = round(w / target)
-            top = (h - nh) // 2
-            im = im.crop((0, top, w, top + nh))
-        note = (f"{channel}: cropped {w}x{h} to {target:.3f}:1 — check no "
-                f"type was cut off")
-    out_h = round(_OUT_WIDTH * im.size[1] / im.size[0])
-    im = im.resize((_OUT_WIDTH, out_h), Image.Resampling.LANCZOS)
-    buf = io.BytesIO()
-    im.save(buf, format="PNG", compress_level=6)
-    return buf.getvalue(), note
+    return fit_for_channel_png(src, channel)
 
 
 def _passthrough_one(brand: str, spec: dict[str, Any]) -> tuple[dict[str, str], list[str]]:
@@ -237,10 +209,18 @@ def _render_one(brand: str, spec: dict[str, Any]) -> tuple[dict[str, str], list[
         )
 
     placed: dict[str, str] = {}
+    feed_png: bytes | None = None
     for channel, png in composed.items():
         out = render_post.publish_into_campaign_os(brand, spec["slug"], channel, png)
         placed[channel] = out["url"]
-    return placed, []
+        if channel == "instagram":
+            feed_png = png
+    from _lib.feed_vertical_renders import add_vertical_renders  # noqa: PLC0415
+
+    placed, extra_notes = add_vertical_renders(
+        brand, spec["slug"], placed, feed_png=feed_png
+    )
+    return placed, extra_notes
 
 
 def _sidecar_path(asset_id: str) -> Path:
