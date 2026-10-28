@@ -41,18 +41,18 @@ def test_internal_links_count_on_the_pages_own_site_not_swing_shack_only():
         '<a href="/coaching-at-stick/">c</a>'
         '<a href="https://instagram.com/stick">i</a>'
     )
-    findings, _ = sa._audit_geo_page(html, "https://stickgolf.co.za/")
+    findings = sa._audit_seo_page(html, "https://stickgolf.co.za/")
     assert "weak_internal_linking" not in _types(findings)
 
 
 def test_few_internal_links_are_still_flagged():
-    findings, _ = sa._audit_geo_page('<a href="https://instagram.com/x">i</a>', "https://stickgolf.co.za/")
+    findings = sa._audit_seo_page('<a href="https://instagram.com/x">i</a>', "https://stickgolf.co.za/")
     assert "weak_internal_linking" in _types(findings)
 
 
 def test_swing_shack_links_still_count_for_swing_shack():
     html = "".join(f'<a href="https://swingshack.co.za/p{i}/">x</a>' for i in range(3))
-    findings, _ = sa._audit_geo_page(html, "https://swingshack.co.za/membership")
+    findings = sa._audit_seo_page(html, "https://swingshack.co.za/membership")
     assert "weak_internal_linking" not in _types(findings)
 
 
