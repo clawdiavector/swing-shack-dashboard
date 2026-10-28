@@ -162,6 +162,7 @@ campaign-os/tests/test_post_studio.py
 campaign-os/tests/test_post_qa.py
 campaign-os/tests/test_scheduled_over_suggestions_20261026.py
 campaign-os/tests/test_scheduled_over_suggestions_layout_real_20261026.py
+campaign-os/tests/test_layout_skip_real_records_20261028.py
 campaign-os/tests/test_postiz_schedule_on_approve_20261026.py
 campaign-os/tests/test_postiz_schedule_on_approve_review_20261026.py
 campaign-os/tests/test_postiz_clear_guard_20261026.py
@@ -182,4 +183,5 @@ campaign-os/tests/test_shadow_text_post_20261026.py
 campaign-os/tests/test_yoast_title_roundtrip_20261026.py
 campaign-os/tests/test_carousel_check_20261027.py
 campaign-os/tests/test_carousel_manifest_20261027.py
+campaign-os/tests/test_caption_sentence_length_20261028.py
 campaign-os/tests/test_archive_stops_sends_20261028.py
