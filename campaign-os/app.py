@@ -6997,7 +6997,7 @@ def photos_inbox_set():
 
 _VIDEO_LIST_CACHE = {}
 # Where a Ready video can be sent in Postiz: provider prefix -> name shown to people.
-_VIDEO_CHANNELS = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube"}
+_VIDEO_CHANNELS = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube", "tiktok": "TikTok"}
 
 
 def _drive_listing(brand_id, ttl=60):
@@ -7154,6 +7154,8 @@ def photos_video_draft():
     elif channel_name == "youtube":
         # Private until someone changes it in YouTube; Postiz needs a title.
         settings = {"title": topic.capitalize()[:100], "type": "private", "tags": []}
+    elif channel_name == "tiktok":
+        settings = _postiz_lib.settings_for_provider(_postiz_provider(channel), caption)
     else:
         settings = {}
     # Never "now": the time is the one chosen, or at least 5 minutes ahead.
@@ -7760,6 +7762,7 @@ def brand_library_bulk(brand_id):
             action=str(body.get("action") or ""),
             ids=list(body.get("ids") or []),
             include_approved=bool(body.get("include_approved")),
+            actor=_archive_actor(),
         )
         return jsonify({"ok": True, **payload}), 200
     except ValueError as e:
