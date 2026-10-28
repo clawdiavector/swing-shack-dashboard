@@ -59,6 +59,7 @@ const LABELS: Record<string, string> = {
   missing_meta_description: 'No search description',
   meta_description_short: 'Search description too short',
   meta_description_long: 'Search description too long',
+  meta_description_duplicate: 'Same search description as another page',
   missing_h1: 'No main heading',
   multiple_h1: 'More than one main heading',
   images_missing_alt: 'Images without descriptions',

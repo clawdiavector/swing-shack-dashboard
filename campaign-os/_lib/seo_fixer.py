@@ -31,10 +31,24 @@ QUEUE_FILE = "seo-fix-queue.json"
 # a person's click may change the homepage.
 BUTTON_SLUGS = {**smp.PAGE_SLUGS, "Homepage": "home"}
 
-BRAND_NAMES = {"swing-shack": "Swing Shack"}
 
-# Names of the other companies. Never allowed in Swing Shack text.
+def button_slugs(brand: str | None) -> dict[str, str]:
+    """Page name -> WordPress slug for one brand, homepage included (both sites use 'home')."""
+    return {**smp.page_slugs(brand), "Homepage": "home"}
+
+
+BRAND_NAMES = {"swing-shack": "Swing Shack", "stick": "Stick"}
+
+# Names of the other companies. A brand's text never names another one.
 _OTHER_BRANDS = re.compile(r"\b(stick|bag\s?drop)\b", re.I)
+_OTHER_BRANDS_BY_BRAND = {
+    "swing-shack": _OTHER_BRANDS,
+    "stick": re.compile(r"\b(swing\s?shack|bag\s?drop)\b", re.I),
+}
+
+
+def _other_brands(brand: str | None) -> "re.Pattern[str]":
+    return _OTHER_BRANDS_BY_BRAND.get(brand or "swing-shack", _OTHER_BRANDS)
 # Claims and details that nobody has signed off: allowed only after an explicit confirm.
 _CLAIMS = re.compile(
     r"(\bR\s?\d)|%|\bfree\b|\bguarantee|\bbest\b|\bcheapest\b|\b(no\.?|number)\s?1\b|#1|\bfirst\b",
@@ -67,7 +81,7 @@ def _first_sentence(text: str) -> str:
 
 
 def draft_description(raw_html: str, brand: str, page_name: str, current: str) -> str | None:
-    return smp.propose(raw_html, prefer=(BRAND_NAMES.get(brand, ""), page_name), avoid=current)
+    return smp.propose(raw_html, prefer=(BRAND_NAMES.get(brand, ""), page_name), avoid=current, brand=brand)
 
 
 def draft_title(raw_html: str, brand: str, page_name: str, current: str) -> str | None:
@@ -79,7 +93,7 @@ def draft_title(raw_html: str, brand: str, page_name: str, current: str) -> str 
         phrase = _first_sentence(heading)
         if len(phrase.split()) < 2 or len(phrase.split()) > 8:
             continue
-        if smp._REJECT.search(phrase) or _OTHER_BRANDS.search(phrase):
+        if smp._reject_for(brand).search(phrase) or _other_brands(brand).search(phrase):
             continue
         if page_name == seo_fix_queue.HOMEPAGE:
             title = f"{brand_name} | {phrase}"
@@ -134,8 +148,9 @@ def check_text(field: str, text: str, brand: str) -> dict[str, list[str]]:
         errors.append("Plain text only, no HTML.")
     if "�" in text:
         errors.append("The text has a broken character.")
-    if _OTHER_BRANDS.search(text):
-        errors.append("It names another company. Swing Shack text must only name Swing Shack.")
+    if _other_brands(brand).search(text):
+        name = BRAND_NAMES.get(brand, "This brand's")
+        errors.append(f"It names another company. {name} text must only name {name}.")
     if _CONTACT.search(text):
         errors.append("No links, emails or phone numbers in a search result.")
     if _CLAIMS.search(text):
@@ -161,7 +176,7 @@ def _resolve(io: Any, brand: str, item_id: str) -> tuple[dict | None, dict | Non
     if not item:
         return None, None, "that fix is not in the list any more, reload the page"
     button = seo_fix_queue.FIX_BUTTONS.get(item.get("type"))
-    if not button or item.get("page") not in BUTTON_SLUGS:
+    if not button or item.get("page") not in button_slugs(brand):
         return item, None, "this kind of fix has no button yet"
     return item, button, None
 
@@ -175,7 +190,7 @@ def build_draft(io: Any, brand: str, item_id: str, wp: smp.WpClient) -> dict:
         return {"ok": False, "error": err}
     page_name = item["page"]
     field = button["field"]
-    page = smp.fetch_page(wp, BUTTON_SLUGS[page_name])
+    page = smp.fetch_page(wp, button_slugs(brand)[page_name])
     if not page:
         return {"ok": False, "error": "could not find that page on the website"}
     current = smp.current_value(page, field)
@@ -233,7 +248,7 @@ def apply_fix(
     if checks["errors"]:
         return {"ok": False, "status": 422, "error": checks["errors"][0], "errors": checks["errors"]}
 
-    page = smp.fetch_page(wp, BUTTON_SLUGS[page_name])
+    page = smp.fetch_page(wp, button_slugs(brand)[page_name])
     if not page:
         return {"ok": False, "status": 404, "error": "could not find that page on the website"}
     before = smp.current_value(page, field)

@@ -27,6 +27,51 @@ PAGES = (
     {"url_suffix": "/club-fitting", "name": "Club Fitting"},
 )
 
+# Each brand's own pages. Stick's site has no /membership and its service pages
+# end in -at-stick (checked live 2026-10-28).
+PAGES_BY_BRAND = {
+    "swing-shack": PAGES,
+    "stick": (
+        {"url_suffix": "", "name": "Homepage"},
+        {"url_suffix": "/club-fitting-at-stick", "name": "Club Fitting"},
+        {"url_suffix": "/coaching-at-stick", "name": "Coaching"},
+    ),
+}
+
+_DESC = re.compile(r'<meta[^>]*name="description"[^>]*content="([^"]+)"', re.I)
+
+
+def pages_for(brand: str | None) -> tuple[dict[str, str], ...]:
+    return PAGES_BY_BRAND.get(brand or "swing-shack", PAGES)
+
+
+def _meta_description(html: str) -> str:
+    m = _DESC.search(html or "")
+    return m.group(1).strip() if m else ""
+
+
+def _duplicate_description_findings(descs: dict[str, str | None]) -> list[dict[str, Any]]:
+    """One finding per page whose search description is the same as another page's."""
+    by_text: dict[str, list[str]] = {}
+    for page, text in descs.items():
+        if text:
+            by_text.setdefault(text.strip(), []).append(page)
+    out: list[dict[str, Any]] = []
+    for pages in by_text.values():
+        if len(pages) < 2:
+            continue
+        for page in pages:
+            others = ", ".join(p for p in pages if p != page)
+            out.append(
+                {
+                    "type": "meta_description_duplicate",
+                    "severity": "medium",
+                    "message": f"Same search description as {others}",
+                    "page": page,
+                }
+            )
+    return out
+
 
 def _site_base(brand: str | None = None) -> tuple[str | None, str | None]:
     domain, err = resolve_brand_domain(brand)
@@ -287,7 +332,9 @@ def run(*, brand: str | None = None) -> dict:
     fetch_failures = 0
     network_errors: list[str] = []
 
-    for page in PAGES:
+    pages = pages_for(brand)
+    descs: dict[str, str] = {}
+    for page in pages:
         url = f"{site}{page['url_suffix']}"
         try:
             html = _fetch_page(url)
@@ -299,6 +346,7 @@ def run(*, brand: str | None = None) -> dict:
             continue
 
         seo_findings = _audit_seo_page(html)
+        descs[page["name"]] = _meta_description(html)
         geo_findings, geo_positive = _audit_geo_page(html, url)
         seo_reports.append({"name": page["name"], "url": url, "status": "OK", "findings": seo_findings})
         geo_reports.append(
@@ -308,7 +356,13 @@ def run(*, brand: str | None = None) -> dict:
         all_geo_findings.extend({**f, "page": page["name"]} for f in geo_findings)
         all_positive.extend({"text": p, "page": page["name"]} for p in geo_positive)
 
-    if fetch_failures == len(PAGES):
+    for dup in _duplicate_description_findings(descs):
+        all_seo_findings.append(dup)
+        for report in seo_reports:
+            if report["name"] == dup["page"]:
+                report["findings"].append({k: v for k, v in dup.items() if k != "page"})
+
+    if fetch_failures == len(pages):
         return {"ok": False, "error": "site audit fetch failed: " + "; ".join(network_errors[:3])}
 
     high = [f for f in all_seo_findings if f["severity"] == "high"]
