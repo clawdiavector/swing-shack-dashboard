@@ -110,6 +110,8 @@ DUAL_AUTH_PATHS = frozenset({
     # Lands it on the shelf; Release stays a session click.
     '/api/posts/lodge',
     '/api/posts/channels',
+    '/api/posts/studio/fields',
+    '/api/posts/studio/preview',
     # Story reposts: Foreman adds links from Telegram with bearer only.
     '/api/stories',
     # Suggest Date: Telegram Foreman loads a candidate (Waiting for you).
@@ -15429,6 +15431,56 @@ def stories_status_route(item_id, status):
     except KeyError:
         return jsonify({"ok": False, "error": "no such story"}), 404
     return jsonify({"ok": True, "item": item})
+
+
+@app.route('/api/posts/studio/fields', methods=['GET'])
+def posts_studio_fields_route():
+    """GET /api/posts/studio/fields?brand=&archetype= — text zones for the post studio."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib.post_studio_page import StudioPageError, text_field_specs
+
+    brand = str(request.args.get("brand") or request.args.get("brand_id") or "").strip()
+    archetype = str(request.args.get("archetype") or request.args.get("archetype_id") or "").strip()
+    try:
+        specs = text_field_specs(brand, archetype)
+    except StudioPageError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), exc.status
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    return jsonify({"ok": True, "brand_id": brand, "archetype_id": archetype, "fields": specs}), 200
+
+
+@app.route('/api/posts/studio/preview', methods=['POST'])
+def posts_studio_preview_route():
+    """POST /api/posts/studio/preview — synchronous compose preview (no calendar write)."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib.post_studio_page import StudioPageError, preview_compose
+
+    body = request.get_json(silent=True) or {}
+    channels = body.get("channels")
+    if channels is not None and not isinstance(channels, list):
+        return jsonify({"ok": False, "error": "channels must be a list"}), 400
+    fields = body.get("fields")
+    if fields is not None and not isinstance(fields, dict):
+        return jsonify({"ok": False, "error": "fields must be a JSON object"}), 400
+    try:
+        result = preview_compose(
+            brand_id=str(body.get("brand") or body.get("brand_id") or "").strip(),
+            archetype_id=str(body.get("archetype") or body.get("archetype_id") or "").strip(),
+            fields=fields,
+            photo=(str(body.get("photo") or "").strip() or None),
+            channels=channels,
+        )
+    except StudioPageError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), exc.status
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception as exc:
+        _app_log.exception("posts studio preview failed")
+        return jsonify({"ok": False, "error": f"{type(exc).__name__}: {exc}"}), 500
+    return jsonify(result), 200
 
 
 @app.route('/api/posts/lodge', methods=['POST'])

@@ -159,6 +159,7 @@ campaign-os/tests/test_foreman_eod_20261026.py
 campaign-os/tests/test_foreman_eod_on_social_20261026.py
 campaign-os/tests/test_cos_mail_cc_owners.py
 campaign-os/tests/test_post_studio.py
+campaign-os/tests/test_post_studio_page_20261026.py
 campaign-os/tests/test_post_qa.py
 campaign-os/tests/test_scheduled_over_suggestions_20261026.py
 campaign-os/tests/test_scheduled_over_suggestions_layout_real_20261026.py
