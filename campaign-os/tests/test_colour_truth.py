@@ -75,6 +75,21 @@ class TestMeasure(unittest.TestCase):
         self.assertEqual(r["delta_e"], 0.0)
         self.assertEqual(r["verdict"], "PASS")
 
+    def test_compare_judges_colour_apart_from_light(self):
+        # Hard window light lifts a black shirt to dark grey: same fabric, lighter.
+        ct = _ct()
+        r = ct.compare("#1d1d1e", "#3a3a3b")
+        self.assertLessEqual(r["delta_e_colour"], 1.0)
+        self.assertGreater(r["delta_e"], 5.0)
+        self.assertEqual(r["verdict"], "PASS")
+        # A purple cast at the same lightness is a colour change.
+        self.assertNotEqual(ct.compare("#1d1d1e", "#2a1d33")["verdict"], "PASS")
+
+    def test_big_lightness_gap_is_flagged_for_a_look(self):
+        # White drawn as mid grey: hue unchanged, but too far off to pass unseen.
+        ct = _ct()
+        self.assertEqual(ct.compare("#f2f5fc", "#9a9da3")["verdict"], "CHECK")
+
     def test_compare_far_colours_fail(self):
         ct = _ct()
         self.assertEqual(ct.compare("#1f2a44", "#000000")["verdict"], "FAIL")  # navy drawn as black
