@@ -181,4 +181,5 @@ campaign-os/tests/test_idea_builder.py
 campaign-os/tests/test_idea_builder_route.py
 campaign-os/tests/test_shadow_text_post_20261026.py
 campaign-os/tests/test_yoast_title_roundtrip_20261026.py
+campaign-os/tests/test_caption_sentence_length_20261028.py
 campaign-os/tests/test_archive_stops_sends_20261028.py
