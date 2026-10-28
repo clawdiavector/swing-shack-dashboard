@@ -65,7 +65,7 @@ def _layout_from_record(rec: dict[str, Any]) -> str:
     if arch in pt.LAYOUTS:
         return arch
     fields = rs.get("fields") if isinstance(rs.get("fields"), dict) else {}
-    layout = str(fields.get("product_layout") or "").strip()
+    layout = str(rs.get("product_layout") or fields.get("product_layout") or "").strip()
     return layout if layout in pt.LAYOUTS else ""
 
 
@@ -338,6 +338,7 @@ def lodge_plan(brand_id: str, plan: dict[str, Any], *, approve: bool = False) ->
                     image_bytes=image_bytes,
                     created_by=CREATED_BY,
                     approve=approve,
+                    product_layout=layout,
                 )
             else:
                 fields = {
