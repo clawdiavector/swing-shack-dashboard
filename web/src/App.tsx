@@ -16,6 +16,7 @@ import { Shelf } from './pages/Shelf'
 import { Ops } from './pages/Ops'
 import { Tool } from './pages/Tool'
 import { BuildPost } from './pages/studio/BuildPost'
+import { PostStudio } from './pages/studio/PostStudio'
 import { Captions } from './pages/studio/Captions'
 import { Copy } from './pages/studio/Copy'
 import { Images } from './pages/studio/Images'
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="shelf" element={<Shelf />} />
         <Route path="create" element={<Create />} />
         <Route path="create/post" element={<BuildPost />} />
+        <Route path="create/post-studio" element={<PostStudio />} />
         <Route path="create/captions" element={<Captions />} />
         <Route path="create/copy" element={<Copy />} />
         <Route path="create/images" element={<Images />} />

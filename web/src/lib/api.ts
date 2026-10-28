@@ -2522,6 +2522,98 @@ export function fetchTemplateGallery(brandId: string) {
   )
 }
 
+export type PostStudioFieldSpec = {
+  key: string
+  label: string
+  hint?: string
+  required?: boolean
+}
+
+export function fetchPostStudioFields(brandId: string, archetypeId: string) {
+  const q = new URLSearchParams({
+    brand: brandId,
+    archetype: archetypeId,
+  })
+  return getJson<{
+    ok?: boolean
+    fields?: PostStudioFieldSpec[]
+    error?: string
+  }>(`/api/posts/studio/fields?${q}`)
+}
+
+export type PostStudioPreviewResult = {
+  ok?: boolean
+  brand_id?: string
+  archetype_id?: string
+  channels?: string[]
+  images?: Record<string, string>
+  needs_photo?: boolean
+  field_specs?: PostStudioFieldSpec[]
+  error?: string
+}
+
+export async function previewPostStudio(body: {
+  brand: string
+  archetype: string
+  fields?: Record<string, string>
+  photo?: string
+  channels?: string[]
+}) {
+  const res = await fetch('/api/posts/studio/preview', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json()) as PostStudioPreviewResult
+  return { status: res.status, data }
+}
+
+export type LodgePostResult = {
+  ok?: boolean
+  error?: string
+  state?: string
+  next_action?: string
+  calendar_id?: string
+  asset_id?: string
+  links?: { review?: string; shelf?: string; week?: string }
+  images?: Record<string, string>
+}
+
+export async function lodgePostDraft(
+  body: {
+    brand: string
+    slug: string
+    date: string
+    caption: string
+    archetype: string
+    fields?: Record<string, string>
+    photo?: string
+    channels?: string[]
+  },
+  actorName: string,
+) {
+  const res = await fetch('/api/posts/lodge', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Actor-Display-Name': actorName,
+    },
+    body: JSON.stringify({ ...body, approve: false }),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json()) as LodgePostResult
+  return { status: res.status, data }
+}
+
 export type BrandReferenceBody = {
   source: 'social' | 'drive'
   id: string
