@@ -180,14 +180,16 @@ def _composed_url_for_platform(
         block = src.get("composed")
         if isinstance(block, dict):
             composed.update(block)
+    from _lib.feed_vertical_renders import composed_key_for_platform  # noqa: PLC0415
     from _lib.onepost import _FEED_IMAGE_PLATFORMS  # noqa: PLC0415
 
-    if plat in _FEED_IMAGE_PLATFORMS or plat not in composed:
+    compose_key = composed_key_for_platform(plat)
+    if plat in _FEED_IMAGE_PLATFORMS or compose_key not in composed:
         for key in ("instagram",):
             raw = composed.get(key)
             if raw:
                 return str(raw).strip() or None
-    for key in (plat, platform):
+    for key in (compose_key, plat, platform):
         raw = composed.get(key)
         if raw:
             return str(raw).strip() or None
