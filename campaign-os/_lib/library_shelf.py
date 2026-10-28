@@ -675,8 +675,13 @@ def apply_library_bulk(
     action: str,
     ids: list[str],
     include_approved: bool = False,
+    actor: str = "library",
 ) -> dict[str, Any]:
-    """Bulk archive or delete library drafts / sandbox queue rows (not receipt-only)."""
+    """Bulk archive or delete library drafts / sandbox queue rows (not receipt-only).
+
+    Draft archive goes through ``content_archive.archive_item`` so bulk archives get the
+    same audit row, purge date, published guard and send-queue / Postiz stop.
+    """
     bid = validate_brand_id(brand_id, allow_sentinel=False)
     lane_norm = str(lane or "").strip().lower()
     action_norm = str(action or "").strip().lower()
@@ -707,11 +712,17 @@ def apply_library_bulk(
                 )
                 continue
             campaign_id = str(row.get("campaign_id") or "")
-            ok = (
-                _archive_draft(asset_id, campaign_id)
-                if action_norm == "archive"
-                else _delete_draft(asset_id, campaign_id)
-            )
+            if action_norm == "archive":
+                from _lib.content_archive import archive_item  # noqa: PLC0415
+
+                try:
+                    archive_item(bid, kind="draft", item_id=asset_id, actor=actor)
+                    ok = True
+                except ValueError as e:
+                    skipped.append({"id": asset_id, "reason": str(e), "title": row.get("title")})
+                    continue
+            else:
+                ok = _delete_draft(asset_id, campaign_id)
             if ok:
                 applied.append({"id": asset_id, "title": row.get("title")})
             else:
