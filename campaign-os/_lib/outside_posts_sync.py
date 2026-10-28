@@ -9,7 +9,7 @@ import datetime as dt
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Optional
 from zoneinfo import ZoneInfo
@@ -39,6 +39,7 @@ class MatchIndex:
     postiz_ids: set[str]
     media_ids: set[str]
     timed_captions: list[tuple[dt.datetime, str]]
+    permalinks: set[str] = field(default_factory=set)
 
 
 def normalize_caption(text: str) -> str:
@@ -136,10 +137,37 @@ def build_match_index(brand_id: str) -> MatchIndex:
     return MatchIndex(postiz_ids=postiz_ids, media_ids=media_ids, timed_captions=timed_captions)
 
 
+def _norm_link(url: str) -> str:
+    return (url or "").strip().split("?", 1)[0].rstrip("/").lower()
+
+
+def add_postiz_observations(index: MatchIndex, observed: Iterable[ObservedPost]) -> None:
+    """Fold live Postiz read-back into the match index (verify C1).
+
+    Before, Postiz observations were fetched and dropped, so a Meta post whose
+    Postiz id never reached the local index matched only by caption and time.
+    Now its id, release link and caption+time all count.
+    """
+    for obs in observed:
+        if obs.platform != "postiz":
+            continue
+        if obs.postiz_post_id:
+            index.postiz_ids.add(str(obs.postiz_post_id))
+        link = _norm_link(obs.permalink)
+        if link:
+            index.permalinks.add(link)
+        when = _parse_ts(obs.published_at)
+        cap = normalize_caption(obs.caption)
+        if when and cap:
+            index.timed_captions.append((when, cap))
+
+
 def matches_campaign_os(obs: ObservedPost, index: MatchIndex) -> bool:
     if obs.postiz_post_id and str(obs.postiz_post_id) in index.postiz_ids:
         return True
     if obs.external_id and str(obs.external_id) in index.media_ids:
+        return True
+    if obs.permalink and _norm_link(obs.permalink) in index.permalinks:
         return True
     when = _parse_ts(obs.published_at)
     cap = normalize_caption(obs.caption)
@@ -175,7 +203,7 @@ def upsert_outside_calendar_item(brand_id: str, obs: ObservedPost) -> dict[str, 
             obs.kind, "Outside post"
         )
     if obs.platform == "facebook":
-        title = title or "Facebook post"
+        title = "Facebook story" if obs.kind == "story" and not obs.caption else (title or "Facebook post")
     record = {
         "event_key": _event_key(brand_id, obs),
         "brand_id": brand_id,
@@ -221,29 +249,47 @@ def _ig_story_rows(brand_id: str) -> list[dict[str, Any]]:
     return list(resp.get("data") or [])
 
 
-def _fb_post_rows(brand_id: str) -> list[dict[str, Any]]:
+def _fb_page_and_token(brand_id: str) -> tuple[str, str]:
     from _lib.meta_api import load_brand_integration, resolve_credentials_for_brand
 
     cfg = load_brand_integration(brand_id)
-    page_id = cfg.get("facebook_page_id") or cfg.get("page_id")
+    page_id = str(cfg.get("facebook_page_id") or cfg.get("page_id") or "")
     creds = resolve_credentials_for_brand(brand_id, cfg)
-    token = creds.get("token")
-    if not page_id or not token:
-        return []
+    return page_id, str(creds.get("token") or "")
+
+
+def _fb_get(page_id: str, edge: str, fields: str, token: str) -> list[dict[str, Any]]:
+    """GET /{page_id}/{edge}. The token goes in the Authorization header, never the
+    URL, so an exception or proxy log can't carry it (verify C5)."""
     import urllib.parse
     import urllib.request
 
-    fields = "id,message,created_time,permalink_url,full_picture"
     url = (
-        f"https://graph.facebook.com/v19.0/{page_id}/posts?"
-        f"fields={urllib.parse.quote(fields)}&limit=30&access_token={urllib.parse.quote(token)}"
+        f"https://graph.facebook.com/v19.0/{page_id}/{edge}?"
+        f"fields={urllib.parse.quote(fields)}&limit=30"
     )
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     try:
-        with urllib.request.urlopen(url, timeout=20) as resp:
+        with urllib.request.urlopen(req, timeout=20) as resp:
             body = json.loads(resp.read().decode())
     except Exception:
         return []
     return list(body.get("data") or [])
+
+
+def _fb_post_rows(brand_id: str) -> list[dict[str, Any]]:
+    page_id, token = _fb_page_and_token(brand_id)
+    if not page_id or not token:
+        return []
+    return _fb_get(page_id, "posts", "id,message,created_time,permalink_url,full_picture", token)
+
+
+def _fb_story_rows(brand_id: str) -> list[dict[str, Any]]:
+    """Facebook Page stories (verify C4). Pages without the edge return []."""
+    page_id, token = _fb_page_and_token(brand_id)
+    if not page_id or not token:
+        return []
+    return _fb_get(page_id, "stories", "post_id,status,creation_time,media_type,media_id,url", token)
 
 
 def _postiz_rows(brand_id: str, since: dt.date, until: dt.date) -> list[dict[str, Any]]:
@@ -323,6 +369,22 @@ def _observed_from_fb(row: dict[str, Any]) -> ObservedPost:
     )
 
 
+def _observed_from_fb_story(row: dict[str, Any]) -> ObservedPost:
+    created = row.get("creation_time") or row.get("created_time") or ""
+    if isinstance(created, (int, float)):
+        created = dt.datetime.fromtimestamp(created, dt.timezone.utc).isoformat()
+    return ObservedPost(
+        platform="facebook",
+        kind="story",
+        external_id=str(row.get("post_id") or row.get("media_id") or row.get("id") or ""),
+        published_at=str(created),
+        caption="",
+        permalink=str(row.get("url") or ""),
+        thumbnail_url="",
+        postiz_post_id=None,
+    )
+
+
 def _observed_from_postiz(row: dict[str, Any]) -> ObservedPost | None:
     pid = str(row.get("postId") or row.get("id") or "")
     if not pid:
@@ -369,6 +431,10 @@ def fetch_observed_posts(brand_id: str, *, now: dt.datetime | None = None) -> li
         add(_observed_from_ig_story(row))
     for row in _fb_post_rows(brand_id):
         add(_observed_from_fb(row))
+    for row in _fb_story_rows(brand_id):
+        if str(row.get("status") or "PUBLISHED").upper() != "PUBLISHED":
+            continue
+        add(_observed_from_fb_story(row))
     until = now.astimezone(SAST).date()
     since = (now - dt.timedelta(days=LOOKBACK_DAYS)).astimezone(SAST).date()
     for row in _postiz_rows(brand_id, since, until):
@@ -384,6 +450,7 @@ def sync_brand(brand_id: str, *, fetch_live: bool = True) -> dict[str, Any]:
     except Exception as exc:
         return {"ok": False, "brand_id": brand_id, "error": str(exc)[:300]}
     index = build_match_index(brand_id)
+    add_postiz_observations(index, observed)
     matched = 0
     outside_written = 0
     actions: list[str] = []
