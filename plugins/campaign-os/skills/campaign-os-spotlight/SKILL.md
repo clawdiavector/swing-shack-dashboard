@@ -37,13 +37,41 @@ week.
   that week shows the same brand. Captions name only that brand and the shop.
 - **Approving is releasing.** Lodge with `--no-approve`. Never approve unasked.
 - **Teasers don't state a discount.** Offer wording only from the sale's first day.
-- **Real products only.** Krea may restyle a real photo given as a reference; it never
-  draws a product or a logo from nothing. Check every Krea result against the real
-  photo (colour, badge, trims); expect drift and redo when it's wrong.
+- **Real products only.** An image that sells a product shows that exact product:
+  Krea may restyle or fix a real photo given as a reference, never invent a new
+  product or logo. Check every such result against the real photo (colour, badge,
+  trims); expect drift and redo when it's wrong. Standalone art that sells no product
+  may be generated freely. Never an invented bay or shop shown as ours.
 - **Channels:** Instagram + Facebook through the lodge; Google Business takes one 4:3
   image through the Google Business queue (Publish > Google Business Profile).
 - **Black Friday captions with "% off"** fail Stick's caption lint. Herman's wording
   needs a standing exception or a reword; ask Kyle.
+
+## Every format, every platform (Christelle, 28 Oct 2026)
+
+A campaign uses every format. Each moment (teaser, reveal, offers live, sale days, last
+day, thank-you) gets one idea, made as a **content pack**: one piece per format, not one
+image resized. Wiki: `CampaignOS/decisions/campaign-formats-and-platforms-2026-10-28.md`.
+
+| Moment | Still | Carousel | Reel / video | Stories | Google Business |
+|---|---|---|---|---|---|
+| Teaser | yes | | yes | countdown story | optional, no offer |
+| Reveal | | offer, then products | yes | yes | Offer post |
+| Each sale day | feed post rotates still, carousel, reel | | | 2-3 a day | |
+| Last day | | | yes | yes | yes |
+| Thank-you | yes or carousel | | | yes | |
+
+| Platform | Size | What changes |
+|---|---|---|
+| Instagram feed, carousel | 4:5, 1080x1350 | The designed version; keep the idea in the middle 3:4 (profile grid crop) |
+| Reels, TikTok, Shorts | 9:16, 1080x1920 | Movement in the first second, text on screen, licensed music; text out of the top ~250px and bottom ~350px |
+| IG and FB Stories | 9:16, 1080x1920 | A new layout, headline in the middle band, one action; stickers are added by hand (Postiz can't) |
+| Facebook feed | 4:5, same file | A link works in the caption |
+| Google Business | 4:3, 1200x900 | Offer post with start and end dates; plain text, no hashtags |
+
+Reels: real video when we have it; otherwise `scripts/retail_reel.py` animates real
+product photos (organic only; ads are real human video only). The product rests on its
+contact shadow, never hovers. Stories go to Postiz with `scripts/send_story.py`.
 
 ## Make the pieces
 
