@@ -790,6 +790,29 @@ def _publish_request_items(*, brand: str | None, status: str, now: datetime) -> 
     return out
 
 
+def _add_channel_options(items: list[dict[str, Any]]) -> None:
+    """Give draft and publish cards the brand's real channel list; without it the page falls back to an old built-in one."""
+    from _lib import onepost, publish_sandbox  # noqa: PLC0415
+
+    coming = sorted(onepost.COMING_SOON_CHANNELS)
+    by_brand: dict[str, list[str] | None] = {}
+    for item in items:
+        if item.get("type") not in ("draft_asset", "publish_request"):
+            continue
+        brand_id = str(item.get("brand_id") or "")
+        if brand_id not in by_brand:
+            try:
+                by_brand[brand_id] = publish_sandbox.brand_channels(brand_id)
+            except ValueError:
+                by_brand[brand_id] = None
+        available = by_brand[brand_id]
+        if available is None:
+            continue
+        meta = item.setdefault("meta", {})
+        meta.setdefault("channels_available", available)
+        meta.setdefault("channels_coming", coming)
+
+
 def _publish_request_meta(
     row: dict[str, Any],
     key: str,
@@ -848,6 +871,7 @@ def list_items(
         return datetime.min.replace(tzinfo=timezone.utc)
 
     items.sort(key=_created_desc_key, reverse=True)
+    _add_channel_options(items)
 
     def _pending_stale(item: dict[str, Any]) -> bool:
         if item.get("status") != "pending":
