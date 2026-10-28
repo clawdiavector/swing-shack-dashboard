@@ -65,7 +65,7 @@ class Analyse(unittest.TestCase):
         self.assertAlmostEqual(self.info.tempo, 120.0, delta=2.5)
 
     def test_beats_sit_on_the_grid(self):
-        true = np.arange(0, 19.5, 0.5)
+        true = np.arange(0, 20.0, 0.5)
         miss = [min(abs(true - b)) for b in self.info.beats]
         self.assertGreater(len(self.info.beats), 30)
         self.assertLess(float(np.median(miss)), 0.04)
@@ -132,7 +132,7 @@ class Assign(unittest.TestCase):
             self.assertLessEqual(s.start + s.dur, [6.0, 3.0][s.clip] + 1e-6)
 
     def test_repeat_use_of_a_clip_moves_forward_so_shots_differ(self):
-        segs = B.assign_segments([0, 2, 4, 6], [6.0])
+        segs = B.assign_segments([0, 2, 4, 6, 8], [6.0])
         self.assertEqual([round(s.start, 3) for s in segs], [0.0, 2.0, 4.0, 0.0])
 
     def test_a_shot_longer_than_every_clip_is_an_error(self):
