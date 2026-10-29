@@ -131,10 +131,15 @@ export function BrandProvider({ children }: { children: ReactNode }) {
 
   const brandIds = useMemo(() => scopeBrandIds(scope, operatingBrandIds), [scope, operatingBrandIds])
   const scopeFromUrl = useRef(false)
+  const seenQueryScope = useRef<string | null>(null)
 
   useEffect(() => {
     if (!operatingBrandIds.length || routeOwnsBrandQuery(pathname)) return
     const queryScopeRaw = (searchParams.get('brand') || '').trim()
+    // Follow ?brand= only when the address changes. A header pick changes
+    // scope first, and the stale address must not undo it before it syncs.
+    if (queryScopeRaw === seenQueryScope.current) return
+    seenQueryScope.current = queryScopeRaw
     if (!queryScopeRaw) return
     const queryScope = resolveInitialScope(queryScopeRaw, operatingBrandIds)
     if (queryScope === scope) return
