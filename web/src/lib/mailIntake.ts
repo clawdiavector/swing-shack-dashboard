@@ -81,6 +81,9 @@ export const moveMail = (id: string, kind: MailKind) => act(id, 'kind', { kind }
 export const mailIdeaPlan = (id: string, brand: string, date: string, force = false) =>
   act(id, 'plan', { brand, date, force })
 
+/** One idea for both brands: the card becomes a Stick card and a Swing Shack card. */
+export const mailIdeaBoth = (id: string, date: string) => act(id, 'both', { date })
+
 /** Build the idea out into a whole concept. Takes a while: a model writes it. */
 export const mailIdeaFlesh = (id: string, brand: string, date: string) => act(id, 'flesh', { brand, date })
 

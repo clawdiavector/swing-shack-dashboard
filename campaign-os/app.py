@@ -47638,7 +47638,8 @@ def mail_intake_list():
 
 @app.route("/api/mail-intake/<item_id>/<action>", methods=["POST"])
 def mail_intake_act(item_id, action):
-    """POST status {status} | kind {kind} | plan {brand?, date?, force?} | to-calendar {brand, date}.
+    """POST status {status} | kind {kind} | plan {brand?, date?, force?} | to-calendar {brand, date}
+    | both {date?}: the idea becomes one card per brand (Stick and Swing Shack).
     plan makes the idea's proposed plan (a draft; nothing goes on the calendar). to-calendar puts
     an idea on the calendar as a faded suggestion; approving it is still a person's call."""
     if not _is_authed():
@@ -47671,6 +47672,13 @@ def mail_intake_act(item_id, action):
                 mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
             r = mi.idea_plan(item_id, _jhb_today(), force=bool(body.get("force")))
             return jsonify(r), (200 if r.get("ok") else 400)
+        elif action == "both":
+            if body.get("date") is not None:
+                mi.set_brand_date(item_id, None, body.get("date") or None)
+            items = mi.split_for_both_brands(item_id)
+            if not items:
+                return jsonify({"ok": False, "error": "not found"}), 404
+            return jsonify({"ok": True, "items": items}), 200
         elif action == "to-calendar":
             cur = mi.get_item(item_id)
             if not cur:
