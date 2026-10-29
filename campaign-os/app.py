@@ -48171,6 +48171,35 @@ def _clean_cal_image(brand_id, key):
     return send_from_directory(os.path.dirname(where), os.path.basename(where), max_age=300)
 
 
+def _clean_cal_edit_caption(brand_id, key, kind, text, who):
+    """Christelle edits a post's caption on the calendar. -> (dict, status)
+
+    Only a signed-in session (not Herman's link), only a post, and only while it waits for
+    a yes; the inbox edit path saves it and keeps the send queue in step."""
+    from _lib import clean_calendar as cc
+    from _lib import unified_inbox as ui
+    if getattr(g, "calendar_share_authed", False):
+        return {"ok": False, "error": "Captions are edited by Christelle. Leave a comment instead."}, 403
+    if kind != "post" or not key:
+        return {"ok": False, "error": "Only a post's caption can be edited here."}, 400
+    if not text:
+        return {"ok": False, "error": "The caption cannot be empty."}, 400
+    found = cc.find_post(brand_id, key)
+    if not found:
+        return {"ok": False, "error": "That post is not on this calendar."}, 404
+    row, draft = found
+    if not cc.post_entry(row, brand_id, today=cc.sast_today()).get("editable"):
+        return {"ok": False, "error": "Only a post waiting for a yes can be edited here."}, 409
+    item_id = str((draft or {}).get("inbox_item_id") or "")
+    if not item_id:
+        return {"ok": False, "error": "This post has no draft to edit yet."}, 409
+    res = ui.edit_item(item_id, editor=who, fields={"caption": text})
+    if not res.get("ok"):
+        return {"ok": False, "error": res.get("error") or "Could not save the caption."}, 400
+    cc.add_comment(brand_id, key, who, "Caption edited", action="edit")
+    return {"ok": True, "message": "Caption saved."}, 200
+
+
 def _clean_cal_act(brand_id, body, who):
     """Approve, comment or reject one entry. -> (dict, status)"""
     from _lib import clean_calendar as cc
@@ -48179,6 +48208,8 @@ def _clean_cal_act(brand_id, body, who):
     kind = str(body.get("kind") or "").strip()
     action = str(body.get("action") or "").strip()
     text = str(body.get("text") or "").strip()
+    if action == "edit":
+        return _clean_cal_edit_caption(brand_id, key, kind, text, who)
     if action not in ("approve", "comment", "reject") or kind not in ("post", "idea", "postiz", "gbp", "task") or not key:
         return {"ok": False, "error": "send key, kind (post, idea, postiz, gbp or task) and action (approve, comment or reject)"}, 400
     if action in ("comment", "reject") and not text:

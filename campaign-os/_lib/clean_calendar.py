@@ -226,6 +226,9 @@ def post_entry(row: dict[str, Any], brand_id: str, *, caption: str = "",
         "missed": missed,
         "rejected": rejected,
         "movable": state not in _SENT and row.get("post_type") != OUTSIDE_POST_TYPE,
+        # Caption edits only while it waits for a yes: once approved it may already sit in Postiz.
+        "editable": kind == "post" and state == "draft_ready" and postiz_mode != "draft"
+                    and row.get("post_type") != OUTSIDE_POST_TYPE,
         "state": state,
         "date": str(row.get("go_live_date") or "")[:10],
         "when": _when(row.get("go_live_date")),
