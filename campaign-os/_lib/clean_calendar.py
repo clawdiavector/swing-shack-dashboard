@@ -228,6 +228,27 @@ def post_rows(brand_id: str, month: str) -> list[tuple[dict[str, Any], dict[str,
         if "holiday" in (row.get("flags") or []) or bucket_for_state(str(row.get("state") or "")) is None:
             continue
         out.append((row, index.drafts.get(str(row.get("calendar_id") or ""))))
+    return dedupe_rows(out)
+
+
+# How far along a post is; the higher one wins when a post is on the calendar twice.
+_PROGRESS = {"booked": 1, "drafting": 2, "gap": 2, "needs_fix": 3, "draft_ready": 4, "scheduled": 5,
+             "released": 6, "partly_posted": 6, "send_failed": 6, "posted": 7}
+
+
+def dedupe_rows(rows: list[tuple[dict[str, Any], Any]]) -> list[tuple[dict[str, Any], Any]]:
+    """One entry per post. Approving a suggestion leaves its own record and a
+    booked event beside it, same title and day; keep the one furthest along."""
+    best: dict[tuple[str, str], int] = {}
+    out: list[tuple[dict[str, Any], Any]] = []
+    for pair in rows:
+        row = pair[0]
+        key = (" ".join(str(row.get("title") or "").lower().split()), str(row.get("go_live_date") or ""))
+        if key not in best:
+            best[key] = len(out)
+            out.append(pair)
+        elif _PROGRESS.get(str(row.get("state")), 0) > _PROGRESS.get(str(out[best[key]][0].get("state")), 0):
+            out[best[key]] = pair
     return out
 
 
