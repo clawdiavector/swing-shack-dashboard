@@ -10,7 +10,7 @@ import { useTheme } from '../lib/theme'
 import { backTarget } from '../lib/backNav'
 import { persistedQuerySearch, withPersistedQuery } from '../lib/queryState'
 
-const PLAN_PATH = '/calendar/lanes'
+const PLAN_PATH = '/calendar/posts'
 
 const RAIL_ON =
   'bg-yel/12 text-yel shadow-[inset_0_0_0_1.5px_rgba(251,191,36,.85)]'

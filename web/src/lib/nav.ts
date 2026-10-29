@@ -49,13 +49,15 @@ export const RAIL: RailItem[] = [
     ],
   },
   {
-    to: '/calendar/lanes',
+    to: '/calendar/posts',
     label: 'Plan',
     hint: 'Calendar',
     icon: CalendarDays,
     match: ['/calendar', '/week', '/todo'],
     pages: [
-      { to: '/calendar/lanes', label: 'Plan' },
+      // The clean calendar first (Christelle, 2026-10-29); the all-lanes grid one tab away.
+      { to: '/calendar/posts', label: 'Calendar' },
+      { to: '/calendar/lanes', label: 'Everything' },
       { to: '/todo', label: 'To do' },
       { to: '/week', label: 'This week' },
     ],

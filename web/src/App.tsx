@@ -23,6 +23,7 @@ import { Images } from './pages/studio/Images'
 import { Memes } from './pages/studio/Memes'
 import { Ideas } from './pages/calendar/Ideas'
 import { Lanes } from './pages/calendar/Lanes'
+import { CleanCalendar } from './pages/calendar/CleanCalendar'
 import { Gbp } from './pages/publish/Gbp'
 import { PostizPage } from './pages/publish/PostizPage'
 import { Queue } from './pages/publish/Queue'
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="create/memes" element={<Memes />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="calendar/ideas" element={<Ideas />} />
+        <Route path="calendar/posts" element={<CleanCalendar />} />
         <Route path="calendar/lanes" element={<Lanes />} />
         <Route path="publish" element={<Publish />} />
         <Route path="publish/queue" element={<Queue />} />
