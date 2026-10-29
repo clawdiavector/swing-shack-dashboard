@@ -34,6 +34,75 @@ TARGET_BRANDS = ("stick", "swing-shack")
 _BRANDS_FILE = Path(__file__).resolve().parents[2] / "data" / "brands.json"
 
 
+# ── the day's lead category ─────────────────────────────────────────────────
+# Each day one group leads (40% of the day), the next takes 30%, the other two 15% each.
+# In every four days each group leads once, so none leads two days running; the group with the
+# most stuck or heavy stock (stock_pulse candidates) leads first in each four.
+
+GROUP_LABELS = {"services": "Services", "off_the_rack": "Off the rack", "accessories": "Accessories",
+                "apparel": "Apparel"}
+SHARES = (0.40, 0.30, 0.15, 0.15)
+_OFF_THE_RACK = {"putter", "wedge", "driver-wood", "iron", "shaft"}
+# Services both brands offer (service_tiein, free assessments on both booking widgets, coaching).
+SERVICES = ["Free club and swing assessment", "Club fitting", "Ball fitting", "Putter fitting",
+            "Wedge gapping", "Re-grip", "Coaching"]
+_PUSH_MAX = 5
+
+
+def group_of(stock_category: str) -> str:
+    if stock_category == "apparel":
+        return "apparel"
+    return "off_the_rack" if stock_category in _OFF_THE_RACK else "accessories"
+
+
+def split_counts(total: int) -> list[int]:
+    """Placements for lead, second, third and fourth, adding up to total."""
+    raw = [total * s for s in SHARES]
+    counts = [int(r) for r in raw]
+    for i in sorted(range(len(raw)), key=lambda i: raw[i] - counts[i], reverse=True)[: total - sum(counts)]:
+        counts[i] += 1
+    return counts
+
+
+def day_order(day: date, boost: dict[str, int]) -> list[str]:
+    """The four groups for a day, lead first. Depends only on the date and the stock, not the month viewed."""
+    ranked = sorted(GROUP_LABELS, key=lambda g: (-boost.get(g, 0), list(GROUP_LABELS).index(g)))
+    lead = ranked[day.toordinal() % 4]
+    return [lead] + [g for g in ranked if g != lead]
+
+
+def _stock_candidates(brand_id: str) -> list[dict[str, Any]]:
+    from _lib import stock_pulse  # noqa: PLC0415
+
+    try:
+        return stock_pulse.candidates_for(brand_id)
+    except Exception:
+        return []
+
+
+def day_leads(brand_id: str, first: date, last: date, total: int) -> dict[str, Any]:
+    """Per day: the four groups with their share of the target, and what to push for the lead."""
+    stock = _stock_candidates(brand_id)
+    push: dict[str, list[str]] = {g: [] for g in GROUP_LABELS}
+    for c in stock:
+        names = push[group_of(str(c.get("category") or ""))]
+        if c.get("name") and c["name"] not in names and len(names) < _PUSH_MAX:
+            names.append(c["name"])
+    push["services"] = list(SERVICES)
+    boost = {g: sum(1 for c in stock if group_of(str(c.get("category") or "")) == g) for g in GROUP_LABELS}
+    counts = split_counts(total)
+    out: dict[str, Any] = {}
+    d = first
+    while d <= last:
+        order = day_order(d, boost)
+        out[d.isoformat()] = {
+            "order": [{"group": g, "label": GROUP_LABELS[g], "count": n} for g, n in zip(order, counts)],
+            "push": push[order[0]],
+        }
+        d += timedelta(days=1)
+    return out
+
+
 def target_for(brand_id: str) -> dict[str, int] | None:
     if brand_id not in TARGET_BRANDS:
         return None

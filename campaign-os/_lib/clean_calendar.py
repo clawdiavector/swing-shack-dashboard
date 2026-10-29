@@ -395,6 +395,10 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
 
     split = daily_target.target_for(brand_id)
     targets = daily_target.day_progress(entries, split, first, month_bounds(month)[1]) if split else {}
+    if targets:
+        leads = daily_target.day_leads(brand_id, first, month_bounds(month)[1], sum(split.values()))
+        for day, t in targets.items():
+            t["lead"] = leads[day]
     return {
         "ok": True,
         "brand": brand_id,
