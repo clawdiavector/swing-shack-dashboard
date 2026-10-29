@@ -195,3 +195,4 @@ campaign-os/tests/test_colour_truth.py
 campaign-os/tests/test_clean_calendar_20261029.py
 campaign-os/tests/test_clean_calendar_dedupe_20261029.py
 campaign-os/tests/test_clean_calendar_everything_20261029.py
+campaign-os/tests/test_reality_check_20261029.py
