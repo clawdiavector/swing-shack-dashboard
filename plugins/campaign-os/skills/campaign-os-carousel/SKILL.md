@@ -184,6 +184,13 @@ product against its source photo (whole, unaltered, letters not hidden), and ope
 slide at full size: blur doesn't show on a contact sheet. Fix and re-run
 until you'd defend every slide. Show the person the contact sheet, not separate files.
 
+### Reality check (every generated or layered slide)
+
+Every real-looking slide passes the `reality-check` skill before anyone sees it: sizes with
+`scripts/reality_check.py` and `real-sizes.json` (both live here), then depth, physics, light,
+shape, stock, people, ends in frame and load. It's a standing rule for all real-looking content,
+not just carousels.
+
 ## 4. Caption and alt text
 
 Load `brand-voice-truth` first. One caption for the whole set, in the feed's real shape

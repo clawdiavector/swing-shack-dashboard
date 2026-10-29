@@ -231,6 +231,7 @@ Score each out of 5:
 2. Build it — `compose_post_for_channels()` for a known layout, real photos for product and venue.
 3. Look at the render yourself. Run `campaign-os/_lib/post_qa.py`, then the human half in
    `docs/product-post-visual-rubric.md`, then §17 and §18 here, then the wiki's diagnose-a-post
-   sales check.
+   sales check. Anything real-looking (photo, generated scene, layered build) also passes the
+   `reality-check` skill: real-world scale, depth, physics, light, ends in frame and load.
 4. Show Christelle only what passes, with its score and the one memorable decision named in plain
    words. Prefer refusing a weak post to shipping it.
