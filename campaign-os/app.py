@@ -81,9 +81,7 @@ _serializer = URLSafeTimedSerializer(SESSION_SECRET)
 # Routes that never require auth (login + the static asset paths needed to render login)
 PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/api/live', '/api/ready', '/livez', '/readyz', '/favicon.ico'}
 # Public route prefixes — anyone can hit these
-PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/', '/_next/', '/visualizer', '/meme-lab', '/image-lab', '/image-portal', '/meta-portal', '/secrets-sync', '/connected-accounts', '/cockpit-operational', '/cockpit', '/home.html', '/meta-app-review', '/weekly-report',
-                         # Herman's calendar link: each /share/calendar/ route checks its own signed token.
-                         '/share/calendar/')
+PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/', '/_next/', '/visualizer', '/meme-lab', '/image-lab', '/image-portal', '/meta-portal', '/secrets-sync', '/connected-accounts', '/cockpit-operational', '/cockpit', '/home.html', '/meta-app-review', '/weekly-report')
 
 # Dual-auth (bearer COS_JOB_TOKEN OR session). Exact paths only — widening this
 # to a prefix would silently open sibling /api/ops/* routes to bearer callers.
@@ -379,6 +377,13 @@ def _gate():
     # Public prefixes (no auth required)
     if any(path.startswith(prefix) for prefix in PUBLIC_ROUTE_PREFIXES):
         return None
+    # Herman's calendar link (_lib/clean_calendar.py): not a public prefix. It
+    # passes only with a valid signed token for one brand's calendar.
+    if path.startswith('/share/calendar/'):
+        from _lib import clean_calendar as _cc
+        if _cc.read_share_token(_serializer, path[len('/share/calendar/'):].split('/', 1)[0]):
+            return None
+        return _cc.render_bad_link_page(), 404, {'Content-Type': 'text/html; charset=utf-8'}
     # Allow static asset extensions (CSS, JS, images, fonts) needed to render login page.
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
