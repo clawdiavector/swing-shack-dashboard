@@ -196,3 +196,4 @@ campaign-os/tests/test_clean_calendar_20261029.py
 campaign-os/tests/test_clean_calendar_dedupe_20261029.py
 campaign-os/tests/test_clean_calendar_everything_20261029.py
 campaign-os/tests/test_clean_calendar_missed_20261029.py
+campaign-os/tests/test_mockup_kit_20261029.py
