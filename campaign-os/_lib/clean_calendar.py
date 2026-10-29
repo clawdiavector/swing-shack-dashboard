@@ -166,9 +166,16 @@ _PHASE = {"research": "Planning", "decide": "Planning", "shoot": "Shoot", "edit"
           "review": "Edit and review", "post": "Posts", "story": "Posts", "boost": "Boost"}
 
 
+def sast_today() -> date:
+    return datetime.now(ZoneInfo("Africa/Johannesburg")).date()
+
+
 def post_entry(row: dict[str, Any], brand_id: str, *, caption: str = "",
-               comments: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    """One calendar post (or plan step) in words Herman can read cold."""
+               comments: list[dict[str, Any]] | None = None, today: date | None = None) -> dict[str, Any]:
+    """One calendar post (or plan step) in words Herman can read cold. With
+    `today`, a past day that is still unmade reads as missed (or overdue)."""
+    day = str(row.get("go_live_date") or "")[:10]
+    past = today is not None and bool(day) and day < today.isoformat()
     state = str(row.get("state") or "")
     bucket = bucket_for_state(state)
     making = bucket == "making"
@@ -196,13 +203,21 @@ def post_entry(row: dict[str, Any], brand_id: str, *, caption: str = "",
     elif step in _TASK_WHAT:
         kind, view, making, actions = "task", "todo", False, ["comment"]
         what = _TASK_WHAT[step]
-        status = "Done" if state in _SCHEDULED else f"Due {_when(row.get('go_live_date'))}"
+        if state in _SCHEDULED:
+            status = "Done"
+        else:
+            status = f"{'Overdue since' if past else 'Due'} {_when(row.get('go_live_date'))}"
+    # Its day has gone and nothing was made: missed, not still in progress.
+    missed = making and past
+    if missed:
+        making, status = False, "Missed. It was never made."
     channels = row.get("channels_picked") or ([row["primary_channel"]] if row.get("primary_channel") else [])
     return {
         "key": str(row.get("calendar_id") or ""),
         "kind": kind,
         "view": view,
         "making": making,
+        "missed": missed,
         "state": state,
         "date": str(row.get("go_live_date") or "")[:10],
         "when": _when(row.get("go_live_date")),
@@ -345,6 +360,16 @@ def find_posts(brand_id: str, keys: set[str]) -> dict[str, tuple[dict[str, Any],
     return out
 
 
+def count_views(entries: list[dict[str, Any]]) -> dict[str, int]:
+    """The numbers on the four boxes: things to look at, not ones still being
+    made or already missed."""
+    counts = {"scheduled": 0, "approval": 0, "ideas": 0, "todo": 0}
+    for e in entries:
+        if not e["making"] and not e.get("missed"):
+            counts[e["view"]] += 1
+    return counts
+
+
 def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
                extras: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """The month for the three views plus To do. `extras` are entries built
@@ -352,8 +377,9 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
     _brand(brand_id)
     first, _ = month_bounds(month)
     notes = comments_by_key(brand_id)
+    today = sast_today()
     entries = [
-        post_entry(row, brand_id, caption=str((draft or {}).get("caption") or ""),
+        post_entry(row, brand_id, caption=str((draft or {}).get("caption") or ""), today=today,
                    comments=notes.get(str(row.get("calendar_id") or "")))
         for row, draft in post_rows(brand_id, month)
     ]
@@ -364,10 +390,7 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
         e["comments"] = notes.get(e["key"], [])
         entries.append(e)
     entries.sort(key=lambda e: (e["date"], e["view"], e["title"]))
-    counts = {"scheduled": 0, "approval": 0, "ideas": 0, "todo": 0}
-    for e in entries:
-        if not e["making"]:
-            counts[e["view"]] += 1
+    counts = count_views(entries)
     from _lib import daily_target  # noqa: PLC0415
 
     split = daily_target.target_for(brand_id)
