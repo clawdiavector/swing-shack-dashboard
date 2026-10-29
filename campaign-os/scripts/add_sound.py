@@ -103,7 +103,8 @@ def build_command(video, music, out, duration, *, sfx=None, speech=False,
 
 def add_sound(video, music, out=None, *, sfx=None, speech=False,
               music_volume=DEFAULT_VOLUME, fade=DEFAULT_FADE) -> Path:
-    video, music = Path(video), Path(music)
+    from sound_library import resolve_music  # a folder of tracks rotates; a file is used as given
+    video, music = Path(video), resolve_music(music)
     out = Path(out) if out else video.with_name(video.stem + "-sound.mp4")
     for p in [video, music] + [Path(s) for s, _ in (sfx or [])]:
         if not p.exists():

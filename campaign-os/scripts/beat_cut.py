@@ -238,7 +238,8 @@ def build_command(clips, segments, music, out, music_start, length, size=(1080, 
 
 def beat_cut(music, clips, out, *, length=15.0, start=0.0, every="bar", min_shot=1.0,
              size=(1080, 1920), fps=30, bpm=None) -> Path:
-    music, clips, out = Path(music), [Path(c) for c in clips], Path(out)
+    from sound_library import resolve_music  # a folder of tracks rotates; a file is used as given
+    music, clips, out = resolve_music(music, min_length=start + length), [Path(c) for c in clips], Path(out)
     for p in [music] + clips:
         if not p.exists():
             raise FileNotFoundError(p)
@@ -282,6 +283,8 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     try:
         if a.info or not a.clips:
+            if Path(a.music).is_dir():
+                raise ValueError("--info needs one track. For a folder, run sound_library.py list FOLDER")
             info = analyse(load_audio(a.music), SR, bpm=a.bpm)
             print(f"track {info.duration:.1f}s  tempo {info.tempo:.1f} BPM  beats {len(info.beats)}  bars {len(info.downbeats)}")
             print("drops at: " + (", ".join(f"{d:.1f}s" for d in sorted(info.drops)) or "none found"))
