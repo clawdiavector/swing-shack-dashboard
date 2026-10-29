@@ -47995,10 +47995,153 @@ def _clean_cal_ideas(brand_id, month):
         return []
 
 
+_CLEAN_CAL_POSTIZ_CACHE = {}
+_CLEAN_CAL_POSTIZ_TTL = 300  # seconds; Postiz is read live, at most every 5 minutes per brand and month
+
+
+def _clean_cal_postiz_rows(brand_id, month, fresh=False):
+    """Every Postiz post for the brand around the month, all states. [] when
+    Postiz is not set up for the brand or does not answer."""
+    import time
+    from _lib import clean_calendar as cc
+    from _lib import postiz_client as pz
+    key = (brand_id, month)
+    hit = _CLEAN_CAL_POSTIZ_CACHE.get(key)
+    if hit and not fresh and time.time() - hit[0] < _CLEAN_CAL_POSTIZ_TTL:
+        return hit[1]
+    rows = []
+    try:
+        if pz.postiz_status(brand_id).get("api_key_present"):
+            first, last = cc.month_bounds(month)
+            start = (first - _td(days=1)).isoformat() + "T00:00:00.000Z"
+            end = (last + _td(days=1)).isoformat() + "T23:59:59.000Z"
+            raw, err = pz.list_integrations(brand_id=brand_id)
+            items = raw if isinstance(raw, list) else ((raw or {}).get("integrations") or (raw or {}).get("identities") or [])
+            for ig in items if not err else []:
+                if not isinstance(ig, dict) or ig.get("disabled") or not ig.get("id"):
+                    continue
+                posts, perr = pz.list_posts(str(ig["id"]), start_date=start, end_date=end, brand_id=brand_id)
+                if perr:
+                    continue
+                got = posts if isinstance(posts, list) else ((posts or {}).get("posts") or (posts or {}).get("data") or [])
+                rows += [p for p in got if isinstance(p, dict)]
+    except Exception:
+        _app_log.exception("clean calendar: Postiz read failed for %s", brand_id)
+    _CLEAN_CAL_POSTIZ_CACHE[key] = (time.time(), rows)
+    return rows
+
+
+def _clean_cal_linked_postiz_ids(brand_id):
+    """Postiz ids Campaign OS already has a calendar record or a send receipt for."""
+    from _lib import unified_inbox as ui
+    from _lib.marketing_calendar import canonical_records
+    ids = {str(r.get("postiz_post_id")) for r in canonical_records(brand_id) if r.get("postiz_post_id")}
+    try:
+        for rows in ui.build_post_index(brand_id=brand_id).receipts.values():
+            ids |= {str(r.get("postiz_post_id")) for r in rows if r.get("postiz_post_id")}
+    except Exception:
+        _app_log.exception("clean calendar: receipts read failed for %s", brand_id)
+    return ids
+
+
+def _clean_cal_gbp_first_slot():
+    """The next 09:00 Google send: today before nine, else tomorrow."""
+    from zoneinfo import ZoneInfo
+    now = _dt_cls.now(ZoneInfo("Africa/Johannesburg"))
+    return now.date() if now.hour < 9 else now.date() + _td(days=1)
+
+
+def _clean_cal_extras(brand_id, month):
+    """Postiz-only posts, Google posts and draft plan steps for the month."""
+    from _lib import clean_calendar as cc
+    first, last = cc.month_bounds(month)
+    out = []
+    try:
+        out += cc.postiz_entries(_clean_cal_postiz_rows(brand_id, month), brand_id,
+                                 linked_ids=_clean_cal_linked_postiz_ids(brand_id), month=month)
+    except Exception:
+        _app_log.exception("clean calendar: Postiz entries failed for %s", brand_id)
+    if _GBP_DAILY_AVAILABLE and _gdp is not None:
+        try:
+            gbp = cc.gbp_entries(_gdp.load_drafts(brand_id, Path(GMB_DRAFTS_DIR)), brand_id,
+                                 first_slot=_clean_cal_gbp_first_slot())
+            out += [e for e in gbp if first.isoformat() <= e["date"] <= last.isoformat()]
+        except Exception:
+            _app_log.exception("clean calendar: Google entries failed for %s", brand_id)
+    try:
+        out += cc.plan_step_entries(_plan_import().month_steps(brand_id, first, last), brand_id)
+    except Exception:
+        _app_log.exception("clean calendar: plan steps failed for %s", brand_id)
+    return out
+
+
+def _clean_cal_timeline(brand_id, plan_id):
+    """(timeline, None) or (None, error) for one campaign plan."""
+    from _lib import clean_calendar as cc
+    try:
+        plan = _plan_import().get_plan(brand_id, plan_id)
+    except ValueError:
+        plan = None
+    if not plan:
+        return None, "That campaign is not there."
+    entries = {}
+    for it in plan.get("items") or []:
+        cid = str(it.get("calendar_id") or "")
+        found = cc.find_post(brand_id, cid) if cid else None
+        if found:
+            row, draft = found
+            e = cc.post_entry(row, brand_id, caption=str((draft or {}).get("caption") or ""))
+            e["image"] = f"/api/clean-calendar/{brand_id}/image/{cid}" if e["has_image"] else None
+            entries[cid] = e
+    return cc.campaign_timeline(plan, entries, brand_id), None
+
+
+def _clean_cal_postiz_find(brand_id, pid, month):
+    for m in [month] if month else []:
+        for row in _clean_cal_postiz_rows(brand_id, m, fresh=True):
+            if str(row.get("id") or row.get("postId") or "") == pid:
+                return row
+    return None
+
+
+def _clean_cal_postiz_approve(brand_id, pid, month):
+    """Schedule one Postiz draft. -> (dict, status)"""
+    from _lib import clean_calendar as cc
+    from _lib import postiz_client as pz
+    row = _clean_cal_postiz_find(brand_id, pid, month)
+    if not row:
+        return {"ok": False, "error": "That Postiz post is not there any more. Refresh the page."}, 404
+    if str(row.get("state") or "").upper() != "DRAFT":
+        return {"ok": False, "error": "This one is not a draft any more. Refresh the page."}, 409
+    ok, msg = cc.schedule_postiz_draft(pz, brand_id, row)
+    _CLEAN_CAL_POSTIZ_CACHE.pop((brand_id, month), None)
+    return ({"ok": True, "message": msg}, 200) if ok else ({"ok": False, "error": msg}, 502)
+
+
+def _clean_cal_gbp_approve(draft_id):
+    """The Google approve. Seeing the photo on the card is the photo check. -> (dict, status)"""
+    if not (_GBP_DAILY_AVAILABLE and _gdp is not None):
+        return {"ok": False, "error": "Google posts are not available on this server."}, 503
+    path = _gmb_draft_path(draft_id)
+    draft = _gdp._read_draft(Path(path)) if path and os.path.isfile(path) else None
+    if not draft:
+        return {"ok": False, "error": "That Google post is not there any more."}, 404
+    problems = _gdp.review_problems({**draft, "id": draft_id})
+    if problems:
+        return {"ok": False, "error": "Not ready yet: " + ", ".join(problems).replace("_", " ") + "."}, 409
+    _gdp.set_draft_status(draft_id, "approved", drafts_dir=GMB_DRAFTS_DIR, photoMatchAt=_now_iso())
+    try:
+        _gdp.save_plan(_gdp.rebuild_plan(brand_id_of(draft), previous=_gdp.latest_plan(brand_id_of(draft)),
+                                         drafts_dir=GMB_DRAFTS_DIR))
+    except Exception as exc:
+        _app_log.warning("clean calendar gbp approve: plan rebuild failed: %s", exc)
+    return {"ok": True, "message": "Approved. It joins the Google queue, one post a day."}, 200
+
+
 def _clean_cal_month(brand_id, month):
     from _lib import clean_calendar as cc
     month = (month or "").strip() or _jhb_today().strftime("%Y-%m")
-    return cc.month_view(brand_id, month, _clean_cal_ideas(brand_id, month))
+    return cc.month_view(brand_id, month, _clean_cal_ideas(brand_id, month), _clean_cal_extras(brand_id, month))
 
 
 def _clean_cal_image(brand_id, key):
@@ -48031,10 +48174,27 @@ def _clean_cal_act(brand_id, body, who):
     kind = str(body.get("kind") or "").strip()
     action = str(body.get("action") or "").strip()
     text = str(body.get("text") or "").strip()
-    if action not in ("approve", "comment", "reject") or kind not in ("post", "idea") or not key:
-        return {"ok": False, "error": "send key, kind (post or idea) and action (approve, comment or reject)"}, 400
+    if action not in ("approve", "comment", "reject") or kind not in ("post", "idea", "postiz", "gbp", "task") or not key:
+        return {"ok": False, "error": "send key, kind (post, idea, postiz, gbp or task) and action (approve, comment or reject)"}, 400
     if action in ("comment", "reject") and not text:
         return {"ok": False, "error": "Say what should change first." if action == "reject" else "Write a comment first."}, 400
+    month = str(body.get("month") or "").strip()
+
+    if kind in ("postiz", "gbp", "task"):
+        # Not Campaign OS posts: a reject is a note for Christelle, the thing itself stays.
+        if action == "approve" and kind == "postiz" and key.startswith("postiz:"):
+            out, code = _clean_cal_postiz_approve(brand_id, key.split(":", 1)[1], month)
+        elif action == "approve" and kind == "gbp" and key.startswith("gbp:"):
+            out, code = _clean_cal_gbp_approve(key.split(":", 1)[1])
+        elif action == "approve":
+            return {"ok": False, "error": "This one cannot be approved here."}, 400
+        else:
+            cc.add_comment(brand_id, key, who, text, action=action)
+            msg = "Sent back to Christelle with your note." if action == "reject" else "Comment saved. Christelle will see it."
+            return {"ok": True, "message": msg}, 200
+        if out.get("ok"):
+            cc.add_comment(brand_id, key, who, "Approved", action="approve")
+        return out, code
 
     if kind == "post":
         found = cc.find_post(brand_id, key)
@@ -48047,6 +48207,18 @@ def _clean_cal_act(brand_id, body, who):
         if action == "comment":
             cc.add_comment(brand_id, key, who, text)
             return {"ok": True, "message": "Comment saved. Christelle will see it."}, 200
+        if row.get("postiz_mode") == "draft":
+            # A video already sent to Postiz as a draft: approving schedules it there.
+            if action == "reject":
+                cc.add_comment(brand_id, key, who, text, action="reject")
+                return {"ok": True, "message": "Sent back to Christelle with your note."}, 200
+            out, code = _clean_cal_postiz_approve(brand_id, str(row.get("postiz_post_id") or ""),
+                                                  entry["date"][:7])
+            if out.get("ok"):
+                from _lib import marketing_calendar as mc
+                mc.set_fields(brand_id, key, {"postiz_mode": "schedule"}, reason=f"scheduled in Postiz by {who}")
+                cc.add_comment(brand_id, key, who, "Approved", action="approve")
+            return out, code
         item_id = str((draft or {}).get("inbox_item_id") or "")
         if action == "approve":
             res = ui.approve_item(item_id, editor=who, reason=f"approved on the calendar by {who}")
@@ -48060,7 +48232,6 @@ def _clean_cal_act(brand_id, body, who):
         cc.add_comment(brand_id, key, who, text, action="reject")
         return {"ok": True, "message": "Sent back to Christelle with your note."}, 200
 
-    month = str(body.get("month") or "").strip()
     try:
         ideas = _cs_items(brand_id, month)
     except ValueError:
@@ -48127,12 +48298,50 @@ def clean_calendar_share(brand_id):
     if bad:
         return bad
     from _lib import clean_calendar as cc
-    who = str((request.get_json(silent=True) or {}).get("who") or "Herman")
-    token = cc.mint_share_token(_serializer, brand_id, who=who)
+    body = request.get_json(silent=True) or {}
+    who = str(body.get("who") or "Herman")
+    plan_id = str(body.get("plan_id") or "").strip() or None
+    if plan_id and _clean_cal_timeline(brand_id, plan_id)[0] is None:
+        return jsonify({"ok": False, "error": "That campaign is not there."}), 404
+    token = cc.mint_share_token(_serializer, brand_id, who=who, plan_id=plan_id)
     scheme = (request.headers.get('X-Forwarded-Proto') or request.scheme).split(',')[0].strip()
     expires = _dt_cls.now(_tz.utc) + _td(seconds=cc.SHARE_MAX_AGE)
     return jsonify({"ok": True, "share_url": f"{scheme}://{request.host}/share/calendar/{token}",
                     "expires_at": expires.isoformat(), "who": who}), 200
+
+
+@app.route("/api/clean-calendar/<brand_id>/campaigns", methods=["GET"])
+def clean_calendar_campaigns(brand_id):
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import clean_calendar as cc
+    return jsonify({"ok": True, "campaigns": cc.campaign_list(_plan_import().list_plans(brand_id))}), 200
+
+
+@app.route("/api/clean-calendar/<brand_id>/campaign/<plan_id>", methods=["GET"])
+def clean_calendar_campaign(brand_id, plan_id):
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    timeline, err = _clean_cal_timeline(brand_id, plan_id)
+    if timeline is None:
+        return jsonify({"ok": False, "error": err}), 404
+    return jsonify(timeline), 200
+
+
+@app.route("/api/clean-calendar/<brand_id>/campaign/<plan_id>/print", methods=["GET"])
+def clean_calendar_campaign_print(brand_id, plan_id):
+    """The campaign timeline as a page to save as a PDF (the browser's print)."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import clean_calendar as cc
+    timeline, err = _clean_cal_timeline(brand_id, plan_id)
+    if timeline is None:
+        return err, 404
+    return cc.render_campaign_page(timeline, token="", who="", printable=True), 200, {
+        "Content-Type": "text/html; charset=utf-8"}
 
 
 def _clean_cal_share_or_none(token):
@@ -48148,6 +48357,11 @@ def clean_calendar_share_page(token):
                "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer"}
     if not share:
         return cc.render_bad_link_page(), 404, headers
+    if share.get("plan"):
+        timeline, _ = _clean_cal_timeline(share["brand"], share["plan"])
+        if timeline is None:
+            return cc.render_bad_link_page(), 404, headers
+        return cc.render_campaign_page(timeline, token=token, who=share["who"], printable=False), 200, headers
     try:
         view = _clean_cal_month(share["brand"], request.args.get("month"))
     except ValueError:
