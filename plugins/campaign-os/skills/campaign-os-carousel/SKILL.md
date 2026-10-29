@@ -212,6 +212,16 @@ against the flagstick. Before showing anything, check:
 6. **It exists.** The product, in that colour, is on Stick's or Swing Shack's current stock
    list. A colour seen in an old shoot or a maker's catalogue is not proof it's on the shelf.
 7. **People.** Hands, fingers, teeth and eyes at 100%; feet on the ground with a shadow.
+8. **Ends in frame.** A long object the eye uses for scale (a flagstick, a club, a pole)
+   shows its end, or the viewer reads it as endless. A flagstick that runs off the top of
+   the frame looked far taller than the man beside it even though it measured a true
+   2.13 m (29 Oct 2026). Numbers passing is not the same as looking right.
+9. **Load.** Can the thing carry what the picture puts on it? A flagstick is a 13 mm rod
+   loose in a cup: nobody can lean their weight on it. Golfers hold, pull or attend the pin;
+   they don't lean on it. When in doubt, picture it happening on a real course.
+
+Then look at the slide as a stranger would, at phone size: if anything feels off, it is
+off, whatever the numbers say.
 
 ## 4. Caption and alt text
 
