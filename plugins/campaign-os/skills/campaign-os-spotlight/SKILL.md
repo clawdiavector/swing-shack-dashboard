@@ -97,7 +97,8 @@ wiki post bank with their lodge command. Mark a banked post "Used on" when it's 
 ## Carousels
 
 `lodge_post.py` and approve-to-Postiz carry one image today (wiki task T18). Lodge the
-hero as slide 1 only and say so in the title.
+hero as slide 1 only and say so in the title. Planning, checking and lodging any
+carousel: `campaign-os-carousel`.
 
 ## Known traps
 
