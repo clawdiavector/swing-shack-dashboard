@@ -184,6 +184,35 @@ product against its source photo (whole, unaltered, letters not hidden), and ope
 slide at full size: blur doesn't show on a contact sheet. Fix and re-run
 until you'd defend every slide. Show the person the contact sheet, not separate files.
 
+### Reality check (every generated or layered slide)
+
+A generated scene can be sharp and on-brand and still look wrong ("this looks wack",
+29 Oct 2026). On the first "Fresh off the pin" plates the caps measured 2.4x their real size
+against the flagstick. Before showing anything, check:
+
+1. **Sizes.** Measure the objects in pixels, mark one you trust as the reference (a person,
+   the flagstick, the hole) and run:
+
+   ```bash
+   python3 plugins/campaign-os/skills/campaign-os-carousel/scripts/reality_check.py plate.json
+   ```
+
+   Real sizes and their sources are in `real-sizes.json` (ball 42.67 mm, hole 108 mm,
+   flagstick 2.13 m, cap about 19.5 cm across, person about 1.72 m). Any FAIL gets fixed
+   before anyone sees it. Add a missing object to the table with a source.
+2. **Depth.** Only compare objects at the same distance. Things further away are smaller,
+   sit higher in the frame and are softer; a "far" object that is sharp and large is wrong.
+3. **Physics.** Everything hangs from, rests on or is held by something: a contact point, a
+   shadow where it touches, gravity in the fabric. Nothing floats unless the idea is that it
+   floats.
+4. **Light.** One sun, one direction: highlights and cast shadows on the product agree with
+   the scene. A pasted product lit by a studio softbox in golden hour looks pasted.
+5. **Shape.** The product's proportions match its official photo (crown height to brim,
+   bag height to width). Badges and logos are checked up close against the packshot.
+6. **It exists.** The product, in that colour, is on Stick's or Swing Shack's current stock
+   list. A colour seen in an old shoot or a maker's catalogue is not proof it's on the shelf.
+7. **People.** Hands, fingers, teeth and eyes at 100%; feet on the ground with a shadow.
+
 ## 4. Caption and alt text
 
 Load `brand-voice-truth` first. One caption for the whole set, in the feed's real shape
