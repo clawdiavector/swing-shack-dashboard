@@ -144,6 +144,11 @@ Model and payload only get a render to happen. Whether it's *good* is a separate
 `swing-shack-dashboard-main/docs/plans/oneshot-prompt-composer/benchmark.md` — gold set,
 ten-dimension rubric, and the hard constraints that fail rather than score.
 
+Every photoreal render then passes the `reality-check` skill before anyone sees it. Krea gets
+scale wrong easily (caps came out 2.4x their real size on a flagstick) and ignores framing asks
+like "zoom out" on edits: pad the canvas and have it fill the border instead. Write real sizes
+into the prompt ("an adult cap about 19 to 20 cm wide"; "he is 1.75 m, the flagstick 2.13 m").
+
 ## Related
 
 - `campaign-os` — ops hub, jobs, prod health

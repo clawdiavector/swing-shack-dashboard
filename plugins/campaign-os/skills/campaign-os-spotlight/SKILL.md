@@ -42,6 +42,8 @@ week.
   product or logo. Check every such result against the real photo (colour, badge,
   trims); expect drift and redo when it's wrong. Standalone art that sells no product
   may be generated freely. Never an invented bay or shop shown as ours.
+- **Real-looking means real scale.** Heroes and singles pass the `reality-check` skill
+  (sizes, depth, physics, light, ends in frame, load) before anyone sees them.
 - **Channels:** Instagram + Facebook through the lodge; Google Business takes one 4:3
   image through the Google Business queue (Publish > Google Business Profile).
 - **Black Friday captions with "% off"** fail Stick's caption lint. Herman's wording
