@@ -48085,14 +48085,12 @@ def _clean_cal_timeline(brand_id, plan_id):
     if not plan:
         return None, "That campaign is not there."
     entries = {}
-    for it in plan.get("items") or []:
-        cid = str(it.get("calendar_id") or "")
-        found = cc.find_post(brand_id, cid) if cid else None
-        if found:
-            row, draft = found
-            e = cc.post_entry(row, brand_id, caption=str((draft or {}).get("caption") or ""))
-            e["image"] = f"/api/clean-calendar/{brand_id}/image/{cid}" if e["has_image"] else None
-            entries[cid] = e
+    notes = cc.comments_by_key(brand_id)
+    found = cc.find_posts(brand_id, {str(it.get("calendar_id") or "") for it in plan.get("items") or []})
+    for cid, (row, draft) in found.items():
+        e = cc.post_entry(row, brand_id, caption=str((draft or {}).get("caption") or ""), comments=notes.get(cid))
+        e["image"] = f"/api/clean-calendar/{brand_id}/image/{cid}" if e["has_image"] else None
+        entries[cid] = e
     return cc.campaign_timeline(plan, entries, brand_id), None
 
 

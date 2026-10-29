@@ -311,17 +311,26 @@ def dedupe_rows(rows: list[tuple[dict[str, Any], Any]]) -> list[tuple[dict[str, 
 
 def find_post(brand_id: str, key: str) -> tuple[dict[str, Any], dict[str, Any] | None] | None:
     """The row and draft for one calendar id, whatever its month."""
+    return find_posts(brand_id, {key}).get(key) if key else None
+
+
+def find_posts(brand_id: str, keys: set[str]) -> dict[str, tuple[dict[str, Any], dict[str, Any] | None]]:
+    """Rows and drafts for several calendar ids, reading the post index once."""
     from _lib import unified_inbox as ui  # noqa: PLC0415
     from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
 
-    if not key:
-        return None
+    keys = {k for k in keys if k}
+    if not keys:
+        return {}
     index = ui.build_post_index(brand_id=brand_id)
+    now = datetime.now(timezone.utc)
+    out = {}
     for record in canonical_records(brand_id):
-        if str(record.get("calendar_id") or record.get("event_key") or "") == key:
-            row = ui._post_row_from_record(record, index=index, now=datetime.now(timezone.utc))
-            return _with_record_fields(row, record), index.drafts.get(key)
-    return None
+        key = str(record.get("calendar_id") or record.get("event_key") or "")
+        if key in keys and key not in out:
+            row = ui._post_row_from_record(record, index=index, now=now)
+            out[key] = (_with_record_fields(row, record), index.drafts.get(key))
+    return out
 
 
 def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
