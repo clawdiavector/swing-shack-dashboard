@@ -187,3 +187,4 @@ campaign-os/tests/test_caption_sentence_length_20261028.py
 campaign-os/tests/test_archive_stops_sends_20261028.py
 campaign-os/tests/test_colour_truth.py
 campaign-os/tests/test_clean_calendar_20261029.py
+campaign-os/tests/test_clean_calendar_dedupe_20261029.py
