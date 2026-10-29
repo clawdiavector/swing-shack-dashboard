@@ -81,7 +81,9 @@ _serializer = URLSafeTimedSerializer(SESSION_SECRET)
 # Routes that never require auth (login + the static asset paths needed to render login)
 PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/api/live', '/api/ready', '/livez', '/readyz', '/favicon.ico'}
 # Public route prefixes — anyone can hit these
-PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/', '/_next/', '/visualizer', '/meme-lab', '/image-lab', '/image-portal', '/meta-portal', '/secrets-sync', '/connected-accounts', '/cockpit-operational', '/cockpit', '/home.html', '/meta-app-review', '/weekly-report')
+PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/', '/_next/', '/visualizer', '/meme-lab', '/image-lab', '/image-portal', '/meta-portal', '/secrets-sync', '/connected-accounts', '/cockpit-operational', '/cockpit', '/home.html', '/meta-app-review', '/weekly-report',
+                         # Herman's calendar link: each /share/calendar/ route checks its own signed token.
+                         '/share/calendar/')
 
 # Dual-auth (bearer COS_JOB_TOKEN OR session). Exact paths only — widening this
 # to a prefix would silently open sibling /api/ops/* routes to bearer callers.
@@ -225,6 +227,10 @@ def admin_client_log():
 
 def _is_authed():
     """Check request cookie for a valid signed session token."""
+    # Set only by the /share/calendar/<token>/act route, after it has checked the
+    # token, for the one approve it hands to the session-only approval path.
+    if getattr(g, "calendar_share_authed", False):
+        return True
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
         return False
@@ -47870,19 +47876,24 @@ def calendar_suggestions_approve(brand_id):
     bad = _cs_guard(brand_id)
     if bad:
         return bad
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    out, code = _cs_approve_core(brand_id, request.get_json(silent=True) or {}, actor)
+    return jsonify(out), code
+
+
+def _cs_approve_core(brand_id, body, actor):
+    """The approve itself, for the route above and the clean calendar. -> (dict, status)"""
     from _lib import calendar_suggestions as cs
     from _lib import marketing_calendar as mc
-    body = request.get_json(silent=True) or {}
     try:
         item = _cs_find(brand_id, body)
     except ValueError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return {"ok": False, "error": str(e)}, 400
     if not item:
-        return jsonify({"ok": False, "error": "that suggestion is no longer there"}), 404
-    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+        return {"ok": False, "error": "that suggestion is no longer there"}, 404
     date_check = cs.approval_date_check(item.get("date"), _jhb_today())
     if not date_check["ok"]:
-        return jsonify({"ok": False, "error": date_check["error"]}), 400
+        return {"ok": False, "error": date_check["error"]}, 400
     cid, made = item.get("calendar_id"), False
     pillars = [p for p in (body.get("pillars") or []) if isinstance(p, str) and p]
     if item["source"] not in cs.DECIDED_SOURCES and pillars and not item.get("pillars"):
@@ -47890,7 +47901,7 @@ def calendar_suggestions_approve(brand_id):
         try:
             mc.set_pillars(brand_id, cid, pillars, reason=f"pillar chosen when approved by {actor}")
         except ValueError as e:
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return {"ok": False, "error": str(e)}, 400
     if item["source"] in cs.DECIDED_SOURCES:
         why = item.get("why") or ""
         try:
@@ -47904,7 +47915,7 @@ def calendar_suggestions_approve(brand_id):
                 "pillars": pillars,
             }, initial_status="candidate")
         except (ValueError, PermissionError) as e:
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return {"ok": False, "error": str(e)}, 400
         cid, made = rec.get("calendar_id"), True
     try:
         resp = planning_approve_candidate(brand_id, cid)
@@ -47912,7 +47923,7 @@ def calendar_suggestions_approve(brand_id):
         _app_log.exception("calendar suggestion approve failed for %s", cid)
         if made:
             mc.transition_status(brand_id, cid, "ignored", reason="approval failed; not kept")
-        return jsonify({"ok": False, "error": "could not approve it; nothing was changed"}), 500
+        return {"ok": False, "error": "could not approve it; nothing was changed"}, 500
     code = 200
     if isinstance(resp, tuple):
         resp, code = resp[0], resp[1]
@@ -47920,14 +47931,14 @@ def calendar_suggestions_approve(brand_id):
     if code >= 400 or not data.get("ok"):
         if made:
             mc.transition_status(brand_id, cid, "ignored", reason="approval failed; not kept")
-        return jsonify({"ok": False, "error": data.get("error") or "could not approve it"}), (code if code >= 400 else 400)
+        return {"ok": False, "error": data.get("error") or "could not approve it"}, (code if code >= 400 else 400)
     if item["source"] in cs.DECIDED_SOURCES:
         cs.record_decision(brand_id, item["key"], "approved", actor, calendar_id=cid,
                            event_key=data.get("event_key"))
     undo = {"kind": "approve", "key": item["key"], "source": item["source"],
             "calendar_id": cid, "event_key": data.get("event_key"), "month": body.get("month")}
     undo["token"] = cs.issue_undo(brand_id, undo)
-    return jsonify({"ok": True, "undo": undo, "warning": date_check["warning"]}), 200
+    return {"ok": True, "undo": undo, "warning": date_check["warning"]}, 200
 
 
 @app.route("/api/calendar-suggestions/<brand_id>/reject", methods=["POST"])
@@ -47936,16 +47947,21 @@ def calendar_suggestions_reject(brand_id):
     bad = _cs_guard(brand_id)
     if bad:
         return bad
+    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    out, code = _cs_reject_core(brand_id, request.get_json(silent=True) or {}, actor)
+    return jsonify(out), code
+
+
+def _cs_reject_core(brand_id, body, actor):
+    """The reject itself, for the route above and the clean calendar. -> (dict, status)"""
     from _lib import calendar_suggestions as cs
     from _lib import marketing_calendar as mc
-    body = request.get_json(silent=True) or {}
     try:
         item = _cs_find(brand_id, body)
     except ValueError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return {"ok": False, "error": str(e)}, 400
     if not item:
-        return jsonify({"ok": False, "error": "that suggestion is no longer there"}), 404
-    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+        return {"ok": False, "error": "that suggestion is no longer there"}, 404
     if item["source"] in cs.DECIDED_SOURCES:
         cs.record_decision(brand_id, item["key"], "rejected", actor)
     else:
@@ -47954,7 +47970,205 @@ def calendar_suggestions_reject(brand_id):
     undo = {"kind": "reject", "key": item["key"], "source": item["source"],
             "calendar_id": item.get("calendar_id"), "month": body.get("month")}
     undo["token"] = cs.issue_undo(brand_id, undo)
-    return jsonify({"ok": True, "undo": undo}), 200
+    return {"ok": True, "undo": undo}, 200
+
+
+# ─── CLEAN CALENDAR (2026-10-29) ────────────────────────────────────────
+# Three views (Scheduled, Needs your OK, Ideas) for Christelle, and the same
+# entries behind a signed no-login link for Herman. Her calls, 2026-10-29:
+# his Approve sends the post like hers does, the link lasts 14 days, and the
+# clean view is what Plan opens to. Wording and the page: _lib/clean_calendar.py.
+
+
+def _clean_cal_ideas(brand_id, month):
+    try:
+        return _cs_items(brand_id, month)
+    except ValueError:
+        raise
+    except Exception:
+        _app_log.exception("clean calendar ideas failed for %s %s", brand_id, month)
+        return []
+
+
+def _clean_cal_month(brand_id, month):
+    from _lib import clean_calendar as cc
+    month = (month or "").strip() or _jhb_today().strftime("%Y-%m")
+    return cc.month_view(brand_id, month, _clean_cal_ideas(brand_id, month))
+
+
+def _clean_cal_image(brand_id, key):
+    from _lib import clean_calendar as cc
+    found = cc.find_post(brand_id, key)
+    target = cc.image_target(*found) if found else None
+    if not target:
+        abort(404)
+    kind, where = target
+    if kind == "url":
+        return redirect(where)
+    if kind == "app":
+        # Only the image routes, so a stored path can never reach anything else.
+        from werkzeug.exceptions import HTTPException
+        try:
+            endpoint, args = app.url_map.bind("").match(where, method="GET")
+        except HTTPException:
+            abort(404)
+        if endpoint not in ("brand_image_serve", "brand_directory_serve", "asset_serve"):
+            abort(404)
+        return app.view_functions[endpoint](**args)
+    return send_from_directory(os.path.dirname(where), os.path.basename(where), max_age=300)
+
+
+def _clean_cal_act(brand_id, body, who):
+    """Approve, comment or reject one entry. -> (dict, status)"""
+    from _lib import clean_calendar as cc
+    from _lib import unified_inbox as ui
+    key = str(body.get("key") or "").strip()
+    kind = str(body.get("kind") or "").strip()
+    action = str(body.get("action") or "").strip()
+    text = str(body.get("text") or "").strip()
+    if action not in ("approve", "comment", "reject") or kind not in ("post", "idea") or not key:
+        return {"ok": False, "error": "send key, kind (post or idea) and action (approve, comment or reject)"}, 400
+    if action in ("comment", "reject") and not text:
+        return {"ok": False, "error": "Say what should change first." if action == "reject" else "Write a comment first."}, 400
+
+    if kind == "post":
+        found = cc.find_post(brand_id, key)
+        if not found:
+            return {"ok": False, "error": "That post is not on this calendar."}, 404
+        row, draft = found
+        entry = cc.post_entry(row, brand_id)
+        if action not in entry["actions"]:
+            return {"ok": False, "error": "This one is not waiting for a yes any more. Refresh the page."}, 409
+        if action == "comment":
+            cc.add_comment(brand_id, key, who, text)
+            return {"ok": True, "message": "Comment saved. Christelle will see it."}, 200
+        item_id = str((draft or {}).get("inbox_item_id") or "")
+        if action == "approve":
+            res = ui.approve_item(item_id, editor=who, reason=f"approved on the calendar by {who}")
+            if not res.get("ok"):
+                return {"ok": False, "error": res.get("error") or "Could not approve it."}, 400
+            cc.add_comment(brand_id, key, who, "Approved", action="approve")
+            return {"ok": True, "message": f"Approved. It goes out {entry['when']}."}, 200
+        res = ui.reject_item(item_id, editor=who, reason=text)
+        if not res.get("ok"):
+            return {"ok": False, "error": res.get("error") or "Could not send it back."}, 400
+        cc.add_comment(brand_id, key, who, text, action="reject")
+        return {"ok": True, "message": "Sent back to Christelle with your note."}, 200
+
+    month = str(body.get("month") or "").strip()
+    try:
+        ideas = _cs_items(brand_id, month)
+    except ValueError:
+        return {"ok": False, "error": "send the month the idea is in, like 2026-11"}, 400
+    idea = next((i for i in ideas if i.get("key") == key), None)
+    if not idea:
+        return {"ok": False, "error": "That idea is no longer on this calendar."}, 404
+    if action == "comment":
+        cc.add_comment(brand_id, key, who, text)
+        return {"ok": True, "message": "Comment saved. Christelle will see it."}, 200
+    if action == "reject":
+        out, code = _cs_reject_core(brand_id, {"month": month, "key": key}, who)
+        if out.get("ok"):
+            cc.add_comment(brand_id, key, who, text, action="reject")
+            out["message"] = "Turned down. Christelle will see your note."
+        return out, code
+    out, code = _cs_approve_core(brand_id, {"month": month, "key": key}, who)
+    if not out.get("ok"):
+        return out, code
+    cal_id = (out.get("undo") or {}).get("calendar_id")
+    if cal_id:
+        # Approved idea -> make the post (caption first, then the image), the
+        # same jobs an approve in the inbox starts. It returns as a draft.
+        out["enqueued"] = ui._maybe_enqueue_l5_create(
+            f"calendar_candidate:{brand_id}:{cal_id}", brand_id, "calendar_candidate")
+    cc.add_comment(brand_id, key, who, "Approved", action="approve")
+    out["message"] = "Approved. The post is being made and comes back under Needs your OK."
+    return out, code
+
+
+@app.route("/api/clean-calendar/<brand_id>", methods=["GET"])
+def clean_calendar_month(brand_id):
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    try:
+        return jsonify(_clean_cal_month(brand_id, request.args.get("month"))), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/clean-calendar/<brand_id>/image/<path:key>", methods=["GET"])
+def clean_calendar_image(brand_id, key):
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    return _clean_cal_image(brand_id, key)
+
+
+@app.route("/api/clean-calendar/<brand_id>/act", methods=["POST"])
+def clean_calendar_act(brand_id):
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    who = (request.headers.get('X-Actor-Display-Name') or '').strip() or "Christelle"
+    out, code = _clean_cal_act(brand_id, request.get_json(silent=True) or {}, who)
+    return jsonify(out), code
+
+
+@app.route("/api/clean-calendar/<brand_id>/share", methods=["POST"])
+def clean_calendar_share(brand_id):
+    """Mint Herman's link: one brand, 14 days, no login."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import clean_calendar as cc
+    who = str((request.get_json(silent=True) or {}).get("who") or "Herman")
+    token = cc.mint_share_token(_serializer, brand_id, who=who)
+    scheme = (request.headers.get('X-Forwarded-Proto') or request.scheme).split(',')[0].strip()
+    expires = _dt_cls.now(_tz.utc) + _td(seconds=cc.SHARE_MAX_AGE)
+    return jsonify({"ok": True, "share_url": f"{scheme}://{request.host}/share/calendar/{token}",
+                    "expires_at": expires.isoformat(), "who": who}), 200
+
+
+def _clean_cal_share_or_none(token):
+    from _lib import clean_calendar as cc
+    return cc.read_share_token(_serializer, token)
+
+
+@app.route("/share/calendar/<token>", methods=["GET"])
+def clean_calendar_share_page(token):
+    from _lib import clean_calendar as cc
+    share = _clean_cal_share_or_none(token)
+    headers = {"Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store",
+               "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer"}
+    if not share:
+        return cc.render_bad_link_page(), 404, headers
+    try:
+        view = _clean_cal_month(share["brand"], request.args.get("month"))
+    except ValueError:
+        view = _clean_cal_month(share["brand"], None)
+    return cc.render_share_page(view, token=token, who=share["who"]), 200, headers
+
+
+@app.route("/share/calendar/<token>/image/<path:key>", methods=["GET"])
+def clean_calendar_share_image(token, key):
+    share = _clean_cal_share_or_none(token)
+    if not share:
+        abort(404)
+    return _clean_cal_image(share["brand"], key)
+
+
+@app.route("/share/calendar/<token>/act", methods=["POST"])
+def clean_calendar_share_act(token):
+    share = _clean_cal_share_or_none(token)
+    if not share:
+        return jsonify({"ok": False, "error": "This link has expired. Ask Christelle for a new one."}), 404
+    g.calendar_share_authed = True
+    try:
+        out, code = _clean_cal_act(share["brand"], request.get_json(silent=True) or {}, share["who"])
+    finally:
+        g.calendar_share_authed = False
+    return jsonify(out), code
 
 
 @app.route("/api/calendar-suggestions/<brand_id>/swap", methods=["POST"])
