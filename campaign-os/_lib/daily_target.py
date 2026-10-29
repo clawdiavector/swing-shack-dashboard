@@ -67,8 +67,9 @@ def split_counts(total: int) -> list[int]:
 def day_order(day: date, boost: dict[str, int]) -> list[str]:
     """The four groups for a day, lead first. Depends only on the date and the stock, not the month viewed."""
     ranked = sorted(GROUP_LABELS, key=lambda g: (-boost.get(g, 0), list(GROUP_LABELS).index(g)))
-    lead = ranked[day.toordinal() % 4]
-    return [lead] + [g for g in ranked if g != lead]
+    pos = day.toordinal() % 4
+    # The second, third and fourth follow on from the lead, so the second changes daily too.
+    return ranked[pos:] + ranked[:pos]
 
 
 def _stock_candidates(brand_id: str) -> list[dict[str, Any]]:
