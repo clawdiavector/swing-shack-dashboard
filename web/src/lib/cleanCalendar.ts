@@ -2,7 +2,8 @@
 // Data and wording come from /api/clean-calendar (campaign-os/_lib/clean_calendar.py).
 
 export type CleanView = 'scheduled' | 'approval' | 'ideas' | 'todo'
-export type CleanAction = 'approve' | 'comment' | 'reject'
+// 'edit' (a new caption) is offered only when an entry is editable, never as a button in `actions`.
+export type CleanAction = 'approve' | 'comment' | 'reject' | 'edit'
 
 export type CleanComment = {
   who: string
@@ -18,6 +19,7 @@ export type CleanEntry = {
   making: boolean
   missed?: boolean
   movable?: boolean
+  editable?: boolean
   state: string
   date: string
   when: string

@@ -228,12 +228,27 @@ function Detail({
   const [text, setText] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const [draft, setDraft] = useState<string | null>(null)
 
   useEffect(() => {
     setWriting(null)
     setText('')
     setNote('')
+    setDraft(null)
   }, [entry.key])
+
+  async function saveCaption() {
+    if (draft === null) return
+    if (!draft.trim()) {
+      setNote('The caption cannot be empty.')
+      return
+    }
+    setBusy(true)
+    const err = await onAct('edit', draft.trim())
+    setBusy(false)
+    if (err) setNote(err)
+    else setDraft(null)
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -323,8 +338,52 @@ function Detail({
                 <b>If you approve:</b> {entry.next}
               </p>
             ) : null}
-            {entry.caption ? (
-              <div className="rounded-lg bg-bg3 p-3 text-sm whitespace-pre-wrap">{entry.caption}</div>
+            {draft !== null ? (
+              <div className="space-y-2">
+                <textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  rows={Math.min(14, Math.max(5, draft.split('\n').length + 1))}
+                  aria-label="Caption"
+                  className="w-full rounded-lg border border-bd bg-bg p-3 text-sm"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={saveCaption}
+                    className="rounded-full bg-ac px-4 py-1.5 text-sm font-semibold text-bg disabled:opacity-50"
+                  >
+                    Save caption
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setDraft(null)
+                      setNote('')
+                    }}
+                    className="rounded-full border border-bd px-4 py-1.5 text-sm font-semibold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : entry.caption || entry.editable ? (
+              <div className="space-y-1.5">
+                {entry.caption ? (
+                  <div className="rounded-lg bg-bg3 p-3 text-sm whitespace-pre-wrap">{entry.caption}</div>
+                ) : null}
+                {entry.editable ? (
+                  <button
+                    type="button"
+                    onClick={() => setDraft(entry.caption || '')}
+                    className="text-sm font-semibold text-ac hover:underline"
+                  >
+                    Edit caption
+                  </button>
+                ) : null}
+              </div>
             ) : null}
             {entry.movable ? (
               <label className="flex flex-wrap items-center gap-2 text-sm text-tx2">
@@ -660,7 +719,8 @@ export function CleanCalendar() {
     if (!res.ok) return res.error || 'That did not save. Try again.'
     setCheer(res.message || 'Saved.')
     setTimeout(() => setCheer(''), 4000)
-    if (action !== 'comment') {
+    // A comment or a caption edit keeps the same post open; approve and reject move on.
+    if (action !== 'comment' && action !== 'edit') {
       const next = inView[openIdx + 1] || inView[openIdx - 1]
       setOpenKey(next && next.key !== entry.key ? next.key : null)
     }
