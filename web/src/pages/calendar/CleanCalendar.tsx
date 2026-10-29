@@ -23,6 +23,7 @@ import {
   type CleanEntry,
   type CleanMonth,
   type CleanView,
+  type DayTarget,
 } from '../../lib/cleanCalendar'
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -80,6 +81,97 @@ function Tile({ entry, onOpen }: { entry: CleanEntry; onOpen: () => void }) {
         <MessageSquare className="h-3.5 w-3.5 shrink-0 text-blu" aria-label={`${entry.comments.length} comment(s)`} />
       ) : null}
     </button>
+  )
+}
+
+// The day's count against the daily target, with a bar: solid is scheduled,
+// light is made but waiting for a yes.
+function TargetBadge({ t, onOpen }: { t: DayTarget; onOpen: () => void }) {
+  const pct = (n: number) => `${Math.min(100, (n / t.target) * 100)}%`
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      title={`${t.done} scheduled and ${t.waiting} waiting, of ${t.target} a day`}
+      className="block w-full rounded px-0.5 text-left hover:bg-bg3"
+    >
+      <span className="block text-[11px] font-semibold text-tx2">
+        {t.done + t.waiting}/{t.target}
+      </span>
+      <span className="mt-0.5 flex h-1 w-full overflow-hidden rounded-full bg-bg3">
+        <span className="h-full bg-ac" style={{ width: pct(t.done) }} />
+        <span className="h-full bg-ac/35" style={{ width: pct(t.waiting) }} />
+      </span>
+    </button>
+  )
+}
+
+function TargetPanel({ day, t, onClose }: { day: string; t: DayTarget; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  const missing = t.target - t.done - t.waiting
+  const label = new Date(`${day}T12:00:00`).toLocaleDateString('en-ZA', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 md:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Daily target for ${label}`}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md space-y-4 rounded-2xl border border-bd bg-bg2 p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl font-semibold">{label}</h2>
+            <p className="text-sm text-tx2">
+              {t.done} scheduled, {t.waiting} waiting for a yes,{' '}
+              {missing > 0 ? `${missing} still to make` : 'target met'}. The target is {t.target} a day.
+            </p>
+          </div>
+          <button type="button" aria-label="Close" className="rounded-full p-1.5 hover:bg-bg3" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-tx3">
+              <th className="pb-1 font-semibold">Where</th>
+              <th className="pb-1 text-right font-semibold">Scheduled</th>
+              <th className="pb-1 text-right font-semibold">Waiting</th>
+              <th className="pb-1 text-right font-semibold">Target</th>
+            </tr>
+          </thead>
+          <tbody>
+            {t.slots.map((s) => {
+              const gap = s.target - s.done - s.waiting
+              return (
+                <tr key={s.slot} className="border-t border-bd">
+                  <td className="py-1.5">
+                    {s.label}
+                    {gap > 0 ? <span className="ml-1.5 text-xs text-yel">{gap} to make</span> : null}
+                  </td>
+                  <td className="py-1.5 text-right">{s.done}</td>
+                  <td className="py-1.5 text-right">{s.waiting}</td>
+                  <td className="py-1.5 text-right text-tx2">{s.target}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }
 
@@ -458,6 +550,7 @@ export function CleanCalendar() {
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([])
   const [campaignEntries, setCampaignEntries] = useState<CleanEntry[] | null>(null)
   const [version, setVersion] = useState(0)
+  const [targetDay, setTargetDay] = useState<string | null>(null)
   const planId = params.get('campaign') || ''
   const plan = campaigns.find((c) => c.plan_id === planId)
 
@@ -651,6 +744,9 @@ export function CleanCalendar() {
             return (
               <div key={cell.iso} className="min-h-[104px] space-y-1 rounded-xl border border-bd bg-bg2 p-1.5">
                 <p className="px-0.5 text-xs font-semibold text-tx3">{cell.day}</p>
+                {data?.targets?.[cell.iso] ? (
+                  <TargetBadge t={data.targets[cell.iso]} onOpen={() => setTargetDay(cell.iso)} />
+                ) : null}
                 {items.slice(0, MAX_PER_DAY).map((e) => (
                   <Tile key={e.key} entry={e} onOpen={() => setOpenKey(e.key)} />
                 ))}
@@ -685,6 +781,10 @@ export function CleanCalendar() {
           </p>
         ) : null}
       </div>
+
+      {targetDay && data?.targets?.[targetDay] ? (
+        <TargetPanel day={targetDay} t={data.targets[targetDay]} onClose={() => setTargetDay(null)} />
+      ) : null}
 
       {open ? (
         <Detail

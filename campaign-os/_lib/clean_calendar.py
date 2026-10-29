@@ -128,6 +128,16 @@ def _when(iso: str | None) -> str:
     return f"{d:%a} {d.day} {d:%b}"
 
 
+def _format(post_type: Any) -> str:
+    """story, reel or feed, from a post type or template name (for the daily target)."""
+    t = str(post_type or "").lower()
+    if "story" in t:
+        return "story"
+    if "reel" in t or "video" in t:
+        return "reel"
+    return "feed"
+
+
 def _where(channels: list[str] | None) -> str:
     names = [_CHANNEL_NAMES.get(c, c.title()) for c in (channels or []) if c]
     if not names:
@@ -212,6 +222,8 @@ def post_entry(row: dict[str, Any], brand_id: str, *, caption: str = "",
         "date": str(row.get("go_live_date") or "")[:10],
         "when": _when(row.get("go_live_date")),
         "where": _where(channels),
+        "channels": [str(c).lower() for c in channels if c] or ["instagram"],
+        "format": _format(row.get("post_type") or row.get("template_id")),
         "brand_name": BRAND_NAMES.get(brand_id, brand_id),
         "title": str(row.get("title") or "Untitled post"),
         "what": what,
@@ -379,6 +391,10 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
         entries.append(e)
     entries.sort(key=lambda e: (e["date"], e["view"], e["title"]))
     counts = count_views(entries)
+    from _lib import daily_target  # noqa: PLC0415
+
+    split = daily_target.target_for(brand_id)
+    targets = daily_target.day_progress(entries, split, first, month_bounds(month)[1]) if split else {}
     return {
         "ok": True,
         "brand": brand_id,
@@ -387,6 +403,7 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
         "month_label": f"{first:%B %Y}",
         "counts": counts,
         "entries": entries,
+        "targets": targets,
     }
 
 
@@ -467,7 +484,9 @@ def postiz_entries(rows: list[dict[str, Any]], brand_id: str, *, linked_ids: set
             continue
         caption = _plain(row.get("content"))
         media = postiz_media(row)
-        story = str((row.get("settings") or {}).get("post_type") or "").lower() == "story"
+        post_type = str((row.get("settings") or {}).get("post_type") or "").lower()
+        story = post_type == "story"
+        channel = {"Google": "gbp"}.get(_provider(row), _provider(row).lower())
         if state == "DRAFT":
             view, status, actions = "approval", "Draft in Postiz. Approve to schedule it.", ["approve", "comment", "reject"]
         elif state == "ERROR":
@@ -477,6 +496,7 @@ def postiz_entries(rows: list[dict[str, Any]], brand_id: str, *, linked_ids: set
         out.append({
             "key": f"postiz:{pid}", "kind": "postiz", "view": view, "making": False, "state": state.lower(),
             "date": day.isoformat(), "when": _when(day.isoformat()), "where": _provider(row),
+            "channels": [channel], "format": _format(post_type),
             "brand_name": BRAND_NAMES.get(brand_id, brand_id),
             "title": (caption.splitlines()[0][:60] if caption else "") or ("Story" if story else "Postiz post"),
             "what": "An Instagram story" if story else "A post made in Postiz",
@@ -535,6 +555,7 @@ def gbp_entries(drafts: list[dict[str, Any]], brand_id: str, *, first_slot: date
             "status": (f"In the Google queue, about {_when(day.isoformat())}" if ok
                        else "Waiting for a yes. Approve to add it to the Google queue."),
             "has_image": bool(image), "image": image or None, "link": "", "plan_id": "",
+            "channels": ["gbp"], "format": "feed",
             "actions": ["comment"] if ok else ["approve", "comment", "reject"], "comments": [],
         })
     return out
