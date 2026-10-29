@@ -7,7 +7,7 @@ Import it from a build script (see the recipes in SKILL.md), or make a review bo
         --sub "What it is in one sentence." --screen story.png="Monday story" --screen feed.png="Feed post" \\
         --out boards/1-wedge-ladder.jpg
 
-Pillow and numpy only. No model touches the pixels.
+Pillow only (no numpy, so it runs wherever the tests run). No model touches the pixels.
 """
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ import argparse
 import sys
 from pathlib import Path
 
-import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[5]
@@ -32,11 +31,16 @@ def font(weight: str, size: int) -> ImageFont.FreeTypeFont:
 def grade(im, warmth=0.04, contrast=1.12, sat=1.08, recover=0.92):
     """A real grade, never a raw photo: compress highlights so lamps don't blow out, then contrast,
     a touch of warmth and a light sharpen."""
-    a = np.asarray(im.convert("RGB")).astype(float) / 255
-    a = np.where(a > 0.75, 0.75 + (a - 0.75) * recover, a)
-    a[..., 0] *= 1 + warmth
-    a[..., 2] *= 1 - warmth
-    out = Image.fromarray((a.clip(0, 1) * 255).astype("uint8"))
+    knee = 0.75 * 255
+
+    def lut(gain):
+        out = []
+        for v in range(256):
+            x = knee + (v - knee) * recover if v > knee else v
+            out.append(max(0, min(255, round(x * gain))))
+        return out
+
+    out = im.convert("RGB").point(lut(1 + warmth) + lut(1.0) + lut(1 - warmth))
     out = ImageEnhance.Contrast(out).enhance(contrast)
     out = ImageEnhance.Color(out).enhance(sat)
     return out.filter(ImageFilter.UnsharpMask(radius=1.4, percent=60, threshold=3))
@@ -54,11 +58,12 @@ def perspective_paste(base, src, quad):
     """Put art onto a real screen in a photo (a venue TV, a phone): quad is TL, TR, BR, BL in base pixels.
     Nothing outside the quad changes."""
     w, h = src.size
-    srcpts = np.array([(0, 0), (w, 0), (w, h), (0, h)], float)
-    rows = []
-    for (x, y), (u, v) in zip(np.array(quad, float), srcpts):
+    srcpts = [(0, 0), (w, 0), (w, h), (0, h)]
+    rows, rhs = [], []
+    for (x, y), (u, v) in zip(quad, srcpts):
         rows += [[x, y, 1, 0, 0, 0, -u * x, -u * y], [0, 0, 0, x, y, 1, -v * x, -v * y]]
-    coeffs = np.linalg.solve(np.array(rows), srcpts.reshape(8))
+        rhs += [u, v]
+    coeffs = _solve(rows, rhs)
     warped = src.convert(base.mode).transform(base.size, Image.PERSPECTIVE, tuple(coeffs), Image.BICUBIC)
     mask = Image.new("L", base.size, 0)
     ImageDraw.Draw(mask).polygon([tuple(p) for p in quad], fill=255)
@@ -76,24 +81,30 @@ def glow(base, layer, radius=18, strength=1.0):
 
 
 def scanlines(im, every=6, dark=0.28):
-    a = np.asarray(im).astype(float)
-    a[::every] *= 1 - dark
-    a[1::every] *= 1 - dark * 0.5
-    return Image.fromarray(a.clip(0, 255).astype("uint8"))
+    """Darken every `every`-th row (and half as much on the row after), like a CRT."""
+    mask = Image.new("L", im.size, 255)
+    d = ImageDraw.Draw(mask)
+    for y in range(0, im.height, every):
+        d.line((0, y, im.width, y), fill=round(255 * (1 - dark)))
+        d.line((0, y + 1, im.width, y + 1), fill=round(255 * (1 - dark / 2)))
+    return ImageChops.multiply(im.convert("RGB"), Image.merge("RGB", (mask, mask, mask)))
 
 
 def vignette(im, amount=0.55):
-    w, h = im.size
-    y, x = np.ogrid[:h, :w]
-    d = np.sqrt(((x - w / 2) / (w / 2)) ** 2 + ((y - h / 2) / (h / 2)) ** 2)
-    m = (1 - amount * np.clip(d - 0.35, 0, 1)).clip(0, 1)
-    return Image.fromarray((np.asarray(im).astype(float) * m[..., None]).astype("uint8"))
+    """Darken towards the corners."""
+    g = Image.radial_gradient("L")                     # 0 at the centre, 255 at the middle of each edge
+    m = g.point(lambda v: round(255 * (1 - amount * max(0.0, v / 255 - 0.35)))).resize(im.size, Image.BILINEAR)
+    return ImageChops.multiply(im.convert("RGB"), Image.merge("RGB", (m, m, m)))
 
 
 def grain(im, amount=8, seed=3):
-    rng = np.random.default_rng(seed)
-    a = np.asarray(im.convert("RGB")).astype(float) + rng.normal(0, amount, (im.height, im.width, 1))
-    return Image.fromarray(a.clip(0, 255).astype("uint8"))
+    """Film grain: a fixed noise field (Pillow's effect_noise) added and subtracted around mid-grey."""
+    noise = Image.effect_noise(im.size, amount)        # mid-grey 128 with Gaussian noise
+    up = noise.point(lambda v: max(0, v - 128))
+    down = noise.point(lambda v: max(0, 128 - v))
+    rgb = im.convert("RGB")
+    rgb = ImageChops.add(rgb, Image.merge("RGB", (up, up, up)))
+    return ImageChops.subtract(rgb, Image.merge("RGB", (down, down, down)))
 
 
 def pixel_text(text, cell, colour, font_px=11, weight="ExtraBold"):
@@ -108,6 +119,23 @@ def pixel_text(text, cell, colour, font_px=11, weight="ExtraBold"):
     out = Image.new("RGBA", big.size, tuple(colour) + (0,))
     out.putalpha(big)
     return out
+
+
+def _solve(a, b):
+    """Solve a small linear system (Gaussian elimination with partial pivoting)."""
+    n = len(b)
+    m = [list(map(float, row)) + [float(v)] for row, v in zip(a, b)]
+    for c in range(n):
+        p = max(range(c, n), key=lambda r: abs(m[r][c]))
+        m[c], m[p] = m[p], m[c]
+        for r in range(c + 1, n):
+            f = m[r][c] / m[c][c]
+            for k in range(c, n + 1):
+                m[r][k] -= f * m[c][k]
+    x = [0.0] * n
+    for r in range(n - 1, -1, -1):
+        x[r] = (m[r][n] - sum(m[r][k] * x[k] for k in range(r + 1, n))) / m[r][r]
+    return x
 
 
 # ── cut-outs ────────────────────────────────────────────────────────────
