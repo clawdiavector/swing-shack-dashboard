@@ -17,6 +17,7 @@ export type CleanEntry = {
   view: CleanView
   making: boolean
   missed?: boolean
+  rejected?: boolean
   movable?: boolean
   state: string
   date: string

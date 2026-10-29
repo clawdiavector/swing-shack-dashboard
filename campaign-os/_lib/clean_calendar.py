@@ -213,6 +213,10 @@ def post_entry(row: dict[str, Any], brand_id: str, *, caption: str = "",
     missed = making and past
     if missed:
         making, status = False, "Missed. It was never made."
+    # Rejected: off the waiting list, still on its day with the reason, until it is redone.
+    rejected = state == "draft_ready" and bool(row.get("rejected_reason"))
+    if rejected:
+        status, actions = f"Sent back: {row['rejected_reason']}", ["comment"]
     channels = row.get("channels_picked") or ([row["primary_channel"]] if row.get("primary_channel") else [])
     return {
         "key": str(row.get("calendar_id") or ""),
@@ -220,6 +224,7 @@ def post_entry(row: dict[str, Any], brand_id: str, *, caption: str = "",
         "view": view,
         "making": making,
         "missed": missed,
+        "rejected": rejected,
         "movable": state not in _SENT and row.get("post_type") != OUTSIDE_POST_TYPE,
         "state": state,
         "date": str(row.get("go_live_date") or "")[:10],
@@ -304,12 +309,28 @@ def post_rows(brand_id: str, month: str) -> list[tuple[dict[str, Any], dict[str,
         if "holiday" in (row.get("flags") or []) or bucket_for_state(str(row.get("state") or "")) is None:
             continue
         out.append((row, index.drafts.get(str(row.get("calendar_id") or ""))))
-    return dedupe_rows(out)
+    return dedupe_rows(_with_rejections(out))
 
 
 # Record fields the row builder drops but the wording needs (outside posts,
 # Postiz videos, plan steps).
 _RECORD_FIELDS = ("postiz_mode", "postiz_post_id", "plan_item_kind", "plan_id", "thumbnail_url", "permalink")
+
+
+def _with_rejections(pairs: list[tuple[dict[str, Any], Any]]) -> list[tuple[dict[str, Any], Any]]:
+    """Mark rows whose draft was rejected, with the reason given."""
+    from _lib import unified_inbox as ui  # noqa: PLC0415
+
+    if not any(d and d.get("asset_id") for _, d in pairs):
+        return pairs
+    data = ui._load_campaign_data()
+    for row, draft in pairs:
+        if not draft or not draft.get("asset_id"):
+            continue
+        _, asset = ui._campaign_asset_for_id(data, str(draft["asset_id"]))
+        if str((asset or {}).get("approvalStatus") or "").lower() == "rejected":
+            row["rejected_reason"] = str(asset.get("rejectionReason") or "no reason given").strip()
+    return pairs
 
 
 def _with_record_fields(row: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
@@ -361,7 +382,7 @@ def find_posts(brand_id: str, keys: set[str]) -> dict[str, tuple[dict[str, Any],
         if key in keys and key not in out:
             row = ui._post_row_from_record(record, index=index, now=now)
             out[key] = (_with_record_fields(row, record), index.drafts.get(key))
-    return out
+    return dict(zip(out, _with_rejections(list(out.values()))))
 
 
 def count_views(entries: list[dict[str, Any]]) -> dict[str, int]:
@@ -369,7 +390,7 @@ def count_views(entries: list[dict[str, Any]]) -> dict[str, int]:
     made or already missed."""
     counts = {"scheduled": 0, "approval": 0, "ideas": 0, "todo": 0}
     for e in entries:
-        if not e["making"] and not e.get("missed"):
+        if not e["making"] and not e.get("missed") and not e.get("rejected"):
             counts[e["view"]] += 1
     return counts
 
@@ -723,7 +744,7 @@ def render_campaign_page(t: dict[str, Any], *, token: str, who: str, printable: 
                 extra += '<div class="btns">' + "".join(
                     f'<button class="act" type="button" data-key="{_esc(e["key"])}" data-kind="{_esc(e["kind"])}" '
                     f'data-action="{a}">{_LABELS[a]}</button>' for a in e["actions"]) + "</div>"
-                extra += '<textarea rows="3" aria-label="Your note"></textarea><p class="note" role="status"></p>'
+                extra += '<div class="write"><textarea rows="3" aria-label="Your note"></textarea><div class="btns"><button class="send" type="button" data-send>Send</button><button class="cancel" type="button">Cancel</button></div></div><p class="note" role="status"></p>'
         rows.append(
             f'<article class="card step"><div class="when">{_esc(s["when"])}</div>'
             f'<div class="body"><p class="meta"><i class="dot" style="background:{_PHASE_COLOUR.get(s["phase"], "#888")}"></i>'
@@ -754,7 +775,7 @@ _CAMPAIGN_CSS = """
 .step{flex-direction:row}.step .when{width:92px;flex-shrink:0;font-weight:600;font-size:14px}
 .step img{width:160px;border-radius:8px;display:block;margin-top:8px}.step ul{margin:6px 0;padding-left:18px;font-size:14px}
 @media (max-width:600px){.step{flex-direction:column}}
-@media print{.noprint,.btns,textarea,.note{display:none!important}body{background:#fff;color:#000}
+@media print{.noprint,.btns,.write,.note{display:none!important}body{background:#fff;color:#000}
 .card{break-inside:avoid;border-color:#ccc}main{max-width:none;padding:0}}
 """
 
@@ -832,7 +853,9 @@ h1{font-size:24px;margin:0 0 4px}p.sub{color:var(--tx2);margin:0 0 20px}
 button.act{font:inherit;font-size:15px;border-radius:8px;padding:8px 16px;border:1px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer}
 button.act[data-action=approve]{background:var(--ok);border-color:var(--ok);color:#fff}
 button.act[data-action=reject]{color:var(--no)}
-textarea{width:100%;font:inherit;font-size:15px;border:1px solid var(--bd);border-radius:8px;padding:8px;background:var(--card);color:var(--tx);margin-top:10px;display:none}
+.write{display:none}textarea{width:100%;font:inherit;font-size:15px;border:1px solid var(--bd);border-radius:8px;padding:8px;background:var(--card);color:var(--tx);margin-top:10px}
+button.send,button.cancel{font:inherit;font-size:15px;border-radius:8px;padding:8px 16px;border:1px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer}
+button.send{background:var(--tx);color:var(--card);border-color:var(--tx)}
 .note{font-size:14px;margin-top:8px}.err{color:var(--no)}.done{color:var(--ok);font-weight:600}
 .said{font-size:14px;color:var(--tx2);border-left:3px solid var(--bd);padding-left:8px;margin:6px 0}
 .empty{color:var(--tx2);text-align:center;padding:32px 0}
@@ -845,21 +868,29 @@ const tabs=[...document.querySelectorAll('.tab')];
 function show(v){tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.view===v));
 document.querySelectorAll('section[data-view]').forEach(s=>s.hidden=s.dataset.view!==v);}
 tabs.forEach(t=>t.onclick=()=>show(t.dataset.view));
-document.querySelectorAll('button.act').forEach(b=>b.onclick=async()=>{
- const card=b.closest('.card'),box=card.querySelector('textarea'),note=card.querySelector('.note');
- const action=b.dataset.action,need=action!=='approve';
- if(need&&box.style.display!=='block'){box.style.display='block';box.placeholder=action==='reject'?'What should change? (needed)':'Your comment';box.dataset.for=action;box.focus();return;}
+async function send(card,b,action){
+ const box=card.querySelector('textarea'),note=card.querySelector('.note'),write=card.querySelector('.write');
  const text=box.value.trim();
- if(need&&!text){note.className='note err';note.textContent=action==='reject'?'Say what should change first.':'Write a comment first.';return;}
+ if(action!=='approve'&&!text){note.className='note err';note.textContent=action==='reject'?'Say what should change first.':'Write a comment first.';box.focus();return;}
  card.querySelectorAll('button').forEach(x=>x.disabled=true);note.className='note';note.textContent='Saving…';
  try{const r=await fetch(location.pathname.replace(/\\/$/,'')+'/act',{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify({key:b.dataset.key,kind:b.dataset.kind,action,text,month:document.body.dataset.month})});
   const j=await r.json().catch(()=>({}));
   if(!r.ok||!j.ok){throw new Error(j.error||'That did not save.');}
-  note.className='note done';note.textContent=j.message||'Saved.';box.style.display='none';
+  note.className='note done';note.textContent=j.message||'Saved.';write.style.display='none';
   if(action==='comment'){card.querySelectorAll('button').forEach(x=>x.disabled=false);box.value='';}
  }catch(e){note.className='note err';note.textContent=e.message+' Try again.';card.querySelectorAll('button').forEach(x=>x.disabled=false);}
+}
+document.querySelectorAll('button.act').forEach(b=>b.onclick=()=>{
+ const card=b.closest('.card'),action=b.dataset.action;
+ if(action==='approve'){send(card,b,action);return;}
+ const write=card.querySelector('.write'),box=card.querySelector('textarea'),go=card.querySelector('button.send');
+ write.style.display='block';card.querySelector('.note').textContent='';
+ box.placeholder=action==='reject'?'What should change? (needed)':'Your comment';
+ go.textContent=action==='reject'?'Send rejection':'Send comment';
+ go.onclick=()=>send(card,b,action);box.focus();
 });
+document.querySelectorAll('.write button.cancel').forEach(c=>c.onclick=()=>{c.closest('.write').style.display='none';});
 show(document.body.dataset.start);
 """
 
@@ -898,7 +929,7 @@ def _card(e: dict[str, Any], token: str) -> str:
         f'<p class="meta">{_esc(e["brand_name"])} · {_esc(e["where"])} · {_esc(e["when"])}</p>'
         f'<h2>{_esc(e["title"])}</h2><p><span class="{pill}">{_esc(e["status"])}</span></p>'
         f'{"".join(rows)}{cap}{said}<div class="btns">{btns}</div>'
-        f'<textarea rows="3" aria-label="Your note"></textarea><p class="note" role="status"></p>'
+        f'<div class="write"><textarea rows="3" aria-label="Your note"></textarea><div class="btns"><button class="send" type="button" data-send>Send</button><button class="cancel" type="button">Cancel</button></div></div><p class="note" role="status"></p>'
         f"</div></article>"
     )
 
