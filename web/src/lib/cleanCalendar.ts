@@ -35,6 +35,23 @@ export type CleanEntry = {
   comments: CleanComment[];
 };
 
+// The daily posting target (campaign-os/_lib/daily_target.py): placements per
+// platform slot, how many are scheduled (done) and how many wait for a yes.
+export type TargetSlot = {
+  slot: string;
+  label: string;
+  target: number;
+  done: number;
+  waiting: number;
+};
+
+export type DayTarget = {
+  target: number;
+  done: number;
+  waiting: number;
+  slots: TargetSlot[];
+};
+
 export type CleanMonth = {
   ok: boolean;
   brand: string;
@@ -43,6 +60,7 @@ export type CleanMonth = {
   month_label: string;
   counts: Record<CleanView, number>;
   entries: CleanEntry[];
+  targets?: Record<string, DayTarget>;
   error?: string;
 };
 
