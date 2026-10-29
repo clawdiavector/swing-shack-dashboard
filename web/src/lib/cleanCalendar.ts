@@ -47,11 +47,18 @@ export type TargetSlot = {
   waiting: number
 }
 
+// The day's lead category, first in `order`, and what to push for it.
+export type DayLead = {
+  order: { group: string; label: string; count: number }[]
+  push: string[]
+}
+
 export type DayTarget = {
   target: number
   done: number
   waiting: number
   slots: TargetSlot[]
+  lead?: DayLead
 }
 
 export type CleanMonth = {

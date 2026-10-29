@@ -102,8 +102,11 @@ function TargetBadge({ t, onOpen }: { t: DayTarget; onOpen: () => void }) {
       title={`${t.done} scheduled and ${t.waiting} waiting, of ${t.target} a day`}
       className="block w-full rounded px-0.5 text-left hover:bg-bg3"
     >
-      <span className="block text-[11px] font-semibold text-tx2">
-        {t.done + t.waiting}/{t.target}
+      <span className="flex items-baseline justify-between gap-1 text-[11px] font-semibold text-tx2">
+        <span>
+          {t.done + t.waiting}/{t.target}
+        </span>
+        {t.lead ? <span className="truncate font-normal text-tx3">{t.lead.order[0].label}</span> : null}
       </span>
       <span className="mt-0.5 flex h-1 w-full overflow-hidden rounded-full bg-bg3">
         <span className="h-full bg-ac" style={{ width: pct(t.done) }} />
@@ -151,6 +154,30 @@ function TargetPanel({ day, t, onClose }: { day: string; t: DayTarget; onClose: 
             <X className="h-5 w-5" />
           </button>
         </div>
+        {t.lead ? (
+          <div className="space-y-2 rounded-xl border border-bd p-3">
+            <p className="text-sm">
+              <span className="font-semibold">{t.lead.order[0].label} leads today</span>{' '}
+              <span className="text-tx2">({t.lead.order.map((g) => `${g.label} ${g.count}`).join(', ')})</span>
+            </p>
+            {t.lead.push.length ? (
+              <div>
+                <p className="text-xs font-semibold text-tx3">
+                  {t.lead.order[0].group === 'services' ? 'Services to show' : 'In stock to push'}
+                </p>
+                <ul className="mt-1 flex flex-wrap gap-1.5">
+                  {t.lead.push.map((p) => (
+                    <li key={p} className="rounded-full bg-bg3 px-2 py-0.5 text-xs">
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-xs text-tx3">No stock in this group is flagged to push right now.</p>
+            )}
+          </div>
+        ) : null}
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-tx3">
