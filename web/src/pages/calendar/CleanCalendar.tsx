@@ -11,6 +11,7 @@ import {
   fetchCampaigns,
   fetchCleanMonth,
   makeShareLink,
+  moveEntry,
   monthCells,
   pickStartView,
   shiftMonth,
@@ -64,13 +65,19 @@ function Thumb({ entry, size }: { entry: CleanEntry; size: 'sm' | 'lg' }) {
   )
 }
 
-function Tile({ entry, onOpen }: { entry: CleanEntry; onOpen: () => void }) {
+function Tile({ entry, onOpen, draggable }: { entry: CleanEntry; onOpen: () => void; draggable?: boolean }) {
+  const canDrag = Boolean(draggable && entry.movable)
   return (
     <button
       type="button"
       onClick={onOpen}
-      title={entry.title}
-      className={`flex w-full items-center gap-1.5 rounded-lg border p-1 text-left text-[11.5px] leading-tight font-semibold text-tx hover:border-tx2 ${TILE[entry.view]} ${entry.making || entry.missed ? 'opacity-55' : ''}`}
+      title={canDrag ? `${entry.title} (drag to another day)` : entry.title}
+      draggable={canDrag}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', JSON.stringify({ key: entry.key, kind: entry.kind, date: entry.date }))
+        e.dataTransfer.effectAllowed = 'move'
+      }}
+      className={`flex w-full items-center gap-1.5 rounded-lg border p-1 text-left text-[11.5px] leading-tight font-semibold text-tx hover:border-tx2 ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''} ${TILE[entry.view]} ${entry.making || entry.missed ? 'opacity-55' : ''}`}
     >
       <Thumb entry={entry} size="sm" />
       <span className="line-clamp-2 min-w-0 flex-1">
@@ -89,12 +96,14 @@ function Detail({
   onClose,
   onStep,
   onAct,
+  onMove,
 }: {
   entry: CleanEntry
   position: string
   onClose: () => void
   onStep: (step: number) => void
   onAct: (action: CleanAction, text: string) => Promise<string | null>
+  onMove: (day: string) => Promise<string | null>
 }) {
   const [writing, setWriting] = useState<CleanAction | null>(null)
   const [text, setText] = useState('')
@@ -197,6 +206,26 @@ function Detail({
             ) : null}
             {entry.caption ? (
               <div className="rounded-lg bg-bg3 p-3 text-sm whitespace-pre-wrap">{entry.caption}</div>
+            ) : null}
+            {entry.movable ? (
+              <label className="flex flex-wrap items-center gap-2 text-sm text-tx2">
+                Move to another day
+                <input
+                  type="date"
+                  min={new Date().toLocaleDateString('en-CA')}
+                  defaultValue={entry.date}
+                  disabled={busy}
+                  onChange={async (e) => {
+                    const day = e.target.value
+                    if (!day || day === entry.date) return
+                    setBusy(true)
+                    const err = await onMove(day)
+                    setBusy(false)
+                    if (err) setNote(err)
+                  }}
+                  className="rounded-lg border border-bd bg-bg px-2 py-1 text-sm text-tx"
+                />
+              </label>
             ) : null}
             {entry.link ? (
               <a
@@ -458,6 +487,8 @@ export function CleanCalendar() {
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([])
   const [campaignEntries, setCampaignEntries] = useState<CleanEntry[] | null>(null)
   const [version, setVersion] = useState(0)
+  const [dropDay, setDropDay] = useState('')
+  const todayIso = new Date().toLocaleDateString('en-CA')
   const planId = params.get('campaign') || ''
   const plan = campaigns.find((c) => c.plan_id === planId)
 
@@ -513,6 +544,23 @@ export function CleanCalendar() {
       const next = inView[openIdx + 1] || inView[openIdx - 1]
       setOpenKey(next && next.key !== entry.key ? next.key : null)
     }
+    await load()
+    setVersion((v) => v + 1)
+    return null
+  }
+
+  async function move(entry: { key: string; kind: string; date: string }, day: string): Promise<string | null> {
+    if (!brandId) return 'Pick a brand first.'
+    if (day === entry.date) return null
+    const res = await moveEntry(brandId, { key: entry.key, kind: entry.kind, date: day, month })
+    if (!res.ok) {
+      setCheer('')
+      setError(res.error || 'Could not move it. Nothing was changed.')
+      setTimeout(() => setError(''), 6000)
+      return res.error || 'Could not move it. Nothing was changed.'
+    }
+    setCheer(res.message || 'Moved.')
+    setTimeout(() => setCheer(''), 4000)
     await load()
     setVersion((v) => v + 1)
     return null
@@ -648,11 +696,32 @@ export function CleanCalendar() {
             if (!cell) return <div key={`pad-${i}`} />
             const items = dayEntries(data?.entries || [], cell.iso, view)
             const extra = items.length - MAX_PER_DAY
+            const past = cell.iso < todayIso
             return (
-              <div key={cell.iso} className="min-h-[104px] space-y-1 rounded-xl border border-bd bg-bg2 p-1.5">
+              <div
+                key={cell.iso}
+                onDragOver={(e) => {
+                  if (past) return
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                  if (dropDay !== cell.iso) setDropDay(cell.iso)
+                }}
+                onDragLeave={() => setDropDay((d) => (d === cell.iso ? '' : d))}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setDropDay('')
+                  try {
+                    const dragged = JSON.parse(e.dataTransfer.getData('text/plain'))
+                    if (dragged?.key) void move(dragged, cell.iso)
+                  } catch {
+                    /* not one of our tiles */
+                  }
+                }}
+                className={`min-h-[104px] space-y-1 rounded-xl border p-1.5 ${dropDay === cell.iso ? 'border-2 border-ac bg-ac/10' : 'border-bd bg-bg2'} ${past ? 'opacity-80' : ''}`}
+              >
                 <p className="px-0.5 text-xs font-semibold text-tx3">{cell.day}</p>
                 {items.slice(0, MAX_PER_DAY).map((e) => (
-                  <Tile key={e.key} entry={e} onOpen={() => setOpenKey(e.key)} />
+                  <Tile key={e.key} entry={e} onOpen={() => setOpenKey(e.key)} draggable />
                 ))}
                 {extra > 0 ? (
                   <button
@@ -699,6 +768,7 @@ export function CleanCalendar() {
             if (next) setOpenKey(next.key)
           }}
           onAct={(action, text) => act(open, action, text)}
+          onMove={(day) => move(open, day)}
         />
       ) : null}
     </div>

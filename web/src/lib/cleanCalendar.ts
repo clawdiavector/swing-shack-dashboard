@@ -17,6 +17,7 @@ export type CleanEntry = {
   view: CleanView
   making: boolean
   missed?: boolean
+  movable?: boolean
   state: string
   date: string
   when: string
@@ -143,6 +144,9 @@ export const actOnEntry = (
     month: string
   },
 ) => call<{ ok: boolean; message?: string; error?: string }>('POST', `${base(brand)}/act`, body)
+
+export const moveEntry = (brand: string, body: { key: string; kind: string; date: string; month: string }) =>
+  call<{ ok: boolean; message?: string; error?: string }>('POST', `${base(brand)}/move`, body)
 
 export const makeShareLink = (brand: string, who = 'Herman', planId?: string) =>
   call<{

@@ -27,6 +27,8 @@ SHARE_MAX_AGE = 14 * 24 * 60 * 60
 BRAND_NAMES = {"swing-shack": "Swing Shack", "stick": "Stick", "bag-drop": "Bag Drop"}
 
 _SCHEDULED = frozenset({"scheduled", "released", "posted", "partly_posted", "send_failed"})
+# Gone out, or going: the day is history and cannot be dragged.
+_SENT = frozenset({"released", "posted", "partly_posted", "send_failed"})
 _MAKING = frozenset({"booked", "drafting", "needs_fix", "gap"})
 
 _CHANNEL_NAMES = {
@@ -208,6 +210,7 @@ def post_entry(row: dict[str, Any], brand_id: str, *, caption: str = "",
         "view": view,
         "making": making,
         "missed": missed,
+        "movable": state not in _SENT and row.get("post_type") != OUTSIDE_POST_TYPE,
         "state": state,
         "date": str(row.get("go_live_date") or "")[:10],
         "when": _when(row.get("go_live_date")),
@@ -245,6 +248,7 @@ def idea_entry(item: dict[str, Any], brand_id: str, *,
         "caption": "",
         "status": "Idea. Not made yet.",
         "next": IDEA_NEXT,
+        "movable": False,
         "has_image": False,
         "image": None,
         "actions": ["approve", "comment", "reject"],
@@ -483,6 +487,7 @@ def postiz_entries(rows: list[dict[str, Any]], brand_id: str, *, linked_ids: set
             "why": "", "caption": caption, "status": status,
             "has_image": bool(media), "image": media[0]["path"] if media else None,
             "link": str(row.get("releaseURL") or ""), "plan_id": "", "actions": actions, "comments": [],
+            "movable": state in ("QUEUE", "DRAFT"),
         })
     return out
 
@@ -506,6 +511,46 @@ def schedule_postiz_draft(pz: Any, brand_id: str, row: dict[str, Any]) -> tuple[
     if derr:
         return True, f"Scheduled in Postiz for {when}. The old draft is still in Postiz; delete it there."
     return True, f"Scheduled in Postiz for {when}."
+
+
+# ── moving to another day ───────────────────────────────────────────────────
+
+
+def move_refusal(entry: dict[str, Any], new_day: date, today: date) -> str | None:
+    """Why this entry cannot go to `new_day`, in words for Christelle; None when it can."""
+    if not entry.get("movable"):
+        if entry.get("kind") == "gbp":
+            return "Google posts go out one a day in order, so their day cannot be dragged."
+        if entry.get("kind") == "idea":
+            return "Approve the idea first. Then it has a day you can move."
+        if entry.get("state") in _SENT or entry.get("state") == "posted":
+            return "This one has already gone out, so its day stays."
+        if entry.get("kind") == "task":
+            return "Steps in a draft plan move in the plan itself."
+        return "This one cannot be moved from here."
+    if new_day < today:
+        return "That day has passed. Pick today or a day still to come."
+    return None
+
+
+def move_postiz_post(pz: Any, brand_id: str, row: dict[str, Any], new_day: date) -> tuple[bool, str]:
+    """Move a Postiz post to `new_day` at the same time of day (SAST), never
+    sooner than five minutes from now. If Postiz refuses, nothing changed."""
+    old = _postiz_day(row.get("publishDate"))
+    try:
+        ts = datetime.fromisoformat(str(row.get("publishDate") or "").replace("Z", "+00:00"))
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        clock = ts.astimezone(_SAST).timetz().replace(tzinfo=None)
+    except ValueError:
+        clock = datetime(2000, 1, 1, 9, 0).time()
+    target = datetime.combine(new_day, clock, tzinfo=_SAST).astimezone(timezone.utc)
+    when, _ = pz.scheduled_at_least(target.isoformat().replace("+00:00", "Z"))
+    _, err = pz.reschedule_post(str(row.get("id") or ""), when, brand_id=brand_id)
+    if err:
+        still = _when(old.isoformat()) if old else "its old day"
+        return False, f"Postiz did not take the move ({err[0]}). It is still on {still}."
+    return True, f"Moved to {_when(new_day.isoformat())}."
 
 
 # ── Google Business posts ───────────────────────────────────────────────────
@@ -534,7 +579,7 @@ def gbp_entries(drafts: list[dict[str, Any]], brand_id: str, *, first_slot: date
             "caption": str(d.get("body") or "").strip(),
             "status": (f"In the Google queue, about {_when(day.isoformat())}" if ok
                        else "Waiting for a yes. Approve to add it to the Google queue."),
-            "has_image": bool(image), "image": image or None, "link": "", "plan_id": "",
+            "has_image": bool(image), "image": image or None, "link": "", "plan_id": "", "movable": False,
             "actions": ["comment"] if ok else ["approve", "comment", "reject"], "comments": [],
         })
     return out
@@ -556,7 +601,7 @@ def plan_step_entries(steps: list[dict[str, Any]], brand_id: str) -> list[dict[s
             "what": _TASK_WHAT.get(kind, f"A planned {kind}" if kind else "A planned step"),
             "why": "", "caption": "",
             "status": "In a draft plan" if s.get("plan_status") == "proposed" else "Plan approved, not on the calendar yet",
-            "has_image": False, "image": None, "link": "", "plan_id": str(s.get("plan_id") or ""),
+            "has_image": False, "image": None, "link": "", "plan_id": str(s.get("plan_id") or ""), "movable": False,
             "actions": ["comment"], "comments": [],
         })
     return out

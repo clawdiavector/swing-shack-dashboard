@@ -48296,6 +48296,82 @@ def clean_calendar_act(brand_id):
     return jsonify(out), code
 
 
+def _clean_cal_move(brand_id, body, who):
+    """Move one entry to another day: the calendar record, any pending send in
+    the queue, and Postiz for a post that lives there. -> (dict, status)"""
+    from _lib import clean_calendar as cc
+    from _lib import postiz_client as pz
+    from _lib import unified_inbox as ui
+    key = str(body.get("key") or "").strip()
+    kind = str(body.get("kind") or "").strip()
+    month = str(body.get("month") or "").strip()
+    try:
+        new_day = _date_cls.fromisoformat(str(body.get("date") or "")[:10])
+    except ValueError:
+        return {"ok": False, "error": "send the new day, like 2026-11-05"}, 400
+    today = cc.sast_today()
+
+    if kind == "postiz" and key.startswith("postiz:"):
+        row = _clean_cal_postiz_find(brand_id, key.split(":", 1)[1], month)
+        entries = cc.postiz_entries([row], brand_id, linked_ids=set(), month=month) if row else []
+        if not entries:
+            return {"ok": False, "error": "That Postiz post is not there any more. Refresh the page."}, 404
+        why = cc.move_refusal(entries[0], new_day, today)
+        if why:
+            return {"ok": False, "error": why}, 400
+        ok, msg = cc.move_postiz_post(pz, brand_id, row, new_day)
+        _CLEAN_CAL_POSTIZ_CACHE.pop((brand_id, month), None)
+        if not ok:
+            return {"ok": False, "error": msg}, 502
+        cc.add_comment(brand_id, key, who, f"Moved from {entries[0]['when']} to {cc._when(new_day.isoformat())}",
+                       action="move")
+        return {"ok": True, "message": msg}, 200
+
+    if kind not in ("post", "task"):
+        return {"ok": False, "error": "This one cannot be moved from here."}, 400
+    found = cc.find_post(brand_id, key)
+    if not found:
+        return {"ok": False, "error": "That post is not on this calendar."}, 404
+    row, _draft = found
+    entry = cc.post_entry(row, brand_id, today=today)
+    why = cc.move_refusal(entry, new_day, today)
+    if why:
+        return {"ok": False, "error": why}, 400
+    if entry["date"] == new_day.isoformat():
+        return {"ok": True, "message": "It is already on that day."}, 200
+    # A video already in Postiz moves there first; if Postiz says no, nothing changes here.
+    if row.get("postiz_post_id") and row.get("postiz_mode") in ("schedule", "draft"):
+        prow = _clean_cal_postiz_find(brand_id, str(row["postiz_post_id"]), entry["date"][:7])
+        if prow:
+            ok, msg = cc.move_postiz_post(pz, brand_id, prow, new_day)
+            if not ok:
+                return {"ok": False, "error": msg}, 502
+    from _lib import marketing_calendar as mc
+    from _lib import publish_sandbox as ps
+    if not mc.set_fields(brand_id, key, {"event_date": new_day.isoformat()},
+                         reason=f"moved on the calendar by {who}"):
+        return {"ok": False, "error": "Could not move it. Nothing was changed."}, 500
+    for qrow in ui.build_post_index(brand_id=brand_id).queue.get(key, []):
+        if qrow.get("status") == "pending" and qrow.get("idempotency_key"):
+            ps.reschedule_item(qrow["idempotency_key"],
+                               would_publish_at=ps._would_publish_at_from_event_date(new_day.isoformat()),
+                               event_date=new_day.isoformat())
+    cc.add_comment(brand_id, key, who, f"Moved from {entry['when']} to {cc._when(new_day.isoformat())}",
+                   action="move")
+    return {"ok": True, "message": f"Moved to {cc._when(new_day.isoformat())}."}, 200
+
+
+@app.route("/api/clean-calendar/<brand_id>/move", methods=["POST"])
+def clean_calendar_move(brand_id):
+    """Drag and drop on Christelle's calendar. Herman's link has no move."""
+    bad = _cs_guard(brand_id)
+    if bad:
+        return bad
+    who = (request.headers.get('X-Actor-Display-Name') or '').strip() or "Christelle"
+    out, code = _clean_cal_move(brand_id, request.get_json(silent=True) or {}, who)
+    return jsonify(out), code
+
+
 @app.route("/api/clean-calendar/<brand_id>/share", methods=["POST"])
 def clean_calendar_share(brand_id):
     """Mint Herman's link: one brand, 14 days, no login."""

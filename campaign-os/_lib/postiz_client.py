@@ -556,6 +556,17 @@ def list_posts(
     return _request("GET", "/posts", params=params, brand_id=brand_id)
 
 
+def reschedule_post(
+    post_id: str,
+    publish_date: str,
+    *,
+    brand_id: str | None = None,
+) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
+    """Move a queued or draft post to another time, with the brand's own key.
+    Callers pass a time from scheduled_at_least(), never "now"."""
+    return _request("PUT", f"/posts/{post_id}", json_body={"date": publish_date}, brand_id=brand_id)
+
+
 def get_post(post_id: str) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
     return _request("GET", f"/posts/{post_id}")
 
