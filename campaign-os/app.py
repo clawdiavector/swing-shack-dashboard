@@ -48094,7 +48094,8 @@ def _clean_cal_timeline(brand_id, plan_id):
     notes = cc.comments_by_key(brand_id)
     found = cc.find_posts(brand_id, {str(it.get("calendar_id") or "") for it in plan.get("items") or []})
     for cid, (row, draft) in found.items():
-        e = cc.post_entry(row, brand_id, caption=str((draft or {}).get("caption") or ""), comments=notes.get(cid))
+        e = cc.post_entry(row, brand_id, caption=str((draft or {}).get("caption") or ""), comments=notes.get(cid),
+                          today=cc.sast_today())
         e["image"] = f"/api/clean-calendar/{brand_id}/image/{cid}" if e["has_image"] else None
         entries[cid] = e
     return cc.campaign_timeline(plan, entries, brand_id), None
@@ -48205,7 +48206,7 @@ def _clean_cal_act(brand_id, body, who):
         if not found:
             return {"ok": False, "error": "That post is not on this calendar."}, 404
         row, draft = found
-        entry = cc.post_entry(row, brand_id)
+        entry = cc.post_entry(row, brand_id, today=cc.sast_today())
         if action not in entry["actions"]:
             return {"ok": False, "error": "This one is not waiting for a yes any more. Refresh the page."}, 409
         if action == "comment":
