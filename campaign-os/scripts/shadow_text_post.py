@@ -31,7 +31,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 REPO = Path(__file__).resolve().parents[2]
-MINT = (36, 255, 175)
+GREY = (210, 210, 210)  # Stick brand grey #D2D2D2 (designer palette), not the feed's mint
 WHITE = (255, 255, 255)
 
 
@@ -139,13 +139,13 @@ def main() -> int:
     if a.top_sub:
         y = y + b + int(18 * k)
         x, f, _ = place(d, rows, a.top_sub, "ExtraBold", int(26 * k), int(18 * k), int(6 * k), y, a.top_corner, m, a.brand, w)
-        draw_tracked(d, x, y, a.top_sub, f, MINT, int(6 * k))
+        draw_tracked(d, x, y, a.top_sub, f, GREY, int(6 * k))
 
     # bottom block: short lines first, long line last (laid out bottom-up)
     f_last = font(a.brand, "Light", int(30 * k))
     y_last = h - int(34 * k) - f_last.getbbox(a.bottom)[3]
     x, f, _ = place(d, rows, a.bottom, "Light", int(30 * k), int(18 * k), int(5 * k), y_last, a.bottom_corner, m, a.brand, w)
-    draw_tracked(d, x, y_last, a.bottom, f, MINT, int(5 * k))
+    draw_tracked(d, x, y_last, a.bottom, f, GREY, int(5 * k))
     logo = Image.open(brand_dir(a.brand) / "logos" / f"{a.brand}-logo-white.png").convert("RGBA")
     lw = int(160 * k)
     logo = logo.resize((lw, round(logo.height * lw / logo.width)), Image.LANCZOS)

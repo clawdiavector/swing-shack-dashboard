@@ -27396,7 +27396,8 @@ def weekly_report_page():
     renderer) is no longer called from this route.
     """
     bid = request.args.get('brand') or get_brand_id()
-    if not _is_authed() and not _verify_report_page_token(request.args.get("share", ""), bid):
+    authed = _is_authed()
+    if not authed and not _verify_report_page_token(request.args.get("share", ""), bid):
         return redirect(url_for("login_page", next=request.path))
     if _wr3 is None:
         return "weekly_report_v3 unavailable", 503
@@ -27404,6 +27405,10 @@ def weekly_report_page():
         return "invalid brand", 400
     as_of = request.args.get('as_of') or None
     cookie=request.headers.get('Cookie')
+    if not authed:
+        # Share-link reader has no session; the report reads GA4/Meta through our own
+        # session-gated /api routes, so give those server-side calls a session. Never sent to the reader.
+        cookie = f"{SESSION_COOKIE}={_serializer.dumps({'authed': True})}"
     out = _wr3.build_v31(bid, fmt='html', as_of=as_of, cookie=cookie)
     if out.get("report_status") == "BLOCKED_BRAND_CONTAMINATION":
         return (f"<h1>{bid} — Weekly Report BLOCKED</h1>"
@@ -44373,10 +44378,9 @@ def _generate_caption_for_product(product, store_brand, pricing_text, idea_text,
     elif pricing_text:
         lines.append(pricing_text)
     lines.append(f"Available at {store_brand.replace('-', ' ').title()}.")
-    from _lib.service_tiein import add_service_tiein
-    from _lib.store_notice import add_store_notice
-    caption = add_service_tiein("\n".join(lines), name, store_brand)
-    return add_store_notice(caption, store_brand)
+    # One angle per post (product only / matched service / store line), rotated so posts don't repeat.
+    from _lib.product_angle import caption_with_rotation
+    return caption_with_rotation("\n".join(lines), name, store_brand)[0]
 
 
 def _run_draft_quality_check(package, product, store_brand):
@@ -47735,6 +47739,8 @@ def weekly_report_message_route():
     from _lib import plan_todo as pt
     today = _jhb_today()
     host = request.host_url.rstrip("/")
+    if host.startswith("http://") and request.host.split(":")[0] not in ("localhost", "127.0.0.1"):
+        host = "https://" + host[len("http://"):]  # behind Railway's proxy the request looks like http
     links = {b: f"{host}/weekly-report?brand={b}&share="
                 + _serializer.dumps({"scope": "weekly_report_page", "brand": b}) for b in brands}
     return jsonify({"ok": True, "date": today.isoformat(), "links": links,

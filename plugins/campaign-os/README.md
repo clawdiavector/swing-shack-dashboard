@@ -29,10 +29,12 @@ is why this exists: **the plugin is now the canonical home** for these skills.
 | `campaign-os-campaign` | **Set up / create a campaign, TEST n, Suggest Date, Brief.** Run `suggest_campaign.py` only. Not a lodge. |
 | `campaign-os-template` | Turning a batch of real brand posts into a pixel-accurate compose template. |
 | `krea-lab` | Any Krea/Ideogram/Recraft/Flux work — look up model ids, schemas and resolutions *before* generating. |
+| `visual-design` | **Before designing or reviewing any post, story, carousel or ad still.** Christelle's art-direction rules: one idea, one move, type as design, eight recipes rotated, three real directions, hard fails, and the 40/50 publish score. |
 | `brand-voice-truth` | **Before writing any caption or headline.** What the feed actually says, measured over all 261 Stick posts — the bibles drift and prompts read the bibles. |
 | `the-algorithm` | **Before building, adding or automating anything.** Question the requirement → delete → simplify → accelerate → automate. `/the-algorithm` switches on two light hooks for that session only — a one-line reminder per prompt and a one-time challenge on new files in `_lib/`, `scripts/` or the plugin. `/the-algorithm off` mutes them. Or `/the-algorithm <job or script>` to run it on something that already exists. |
 | `campaign-os-wiki` | **Before research, and after it.** The shared Campaign OS wiki (private repo `clawdiavector/campaign-os-wiki`): what is already known, and where findings get filed so Kyle's and Christelle's Claude both see them. |
 | `campaign-os-mail` | **When you tell or ask a teammate something.** Your own AgentMail inbox + a shared contact list (who is who, when to send). First-time setup in `SETUP.md`; hand `PROMPT-FOR-CHRISTELLE.md` to a teammate's Claude. |
+| `campaign-os-carousel` | **A carousel / swipe post.** Christelle's design guide (hero that stops people, one colour story, slides that unfold, simple close), when a carousel beats a single or a video, `carousel_check.py` for the set, and lodging (slide 1 only until wiki task T18 lands). |
 | `schedule-from-anywhere` | Putting a finished post (an image made in Claude, or a template render) on the live calendar, This week and the Shelf, ready for Release now, from any machine with a bearer token alone. One command: `lodge_post.py`. |
 
 ## The wiki (research that survives the session)

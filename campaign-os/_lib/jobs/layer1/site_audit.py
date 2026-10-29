@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+from urllib.parse import urlparse
 from typing import Any
 
 import requests
@@ -18,14 +19,13 @@ GEO_OUTPUT = "geo-audit.json"
 FIX_QUEUE_OUTPUT = "seo-fix-queue.json"
 USER_AGENT = "SwingShackCampaignOS/1.0 (site audit; contact ops)"
 FETCH_TIMEOUT = 15
-MAX_BYTES = 80_000
+MAX_BYTES = 400_000  # live pages are 130 to 220 KB; 80 KB cut off headings and links
 
 PAGES = (
     {"url_suffix": "", "name": "Homepage"},
     {"url_suffix": "/membership", "name": "Membership"},
-    {"url_suffix": "/coaching", "name": "Coaching"},
     {"url_suffix": "/club-fitting", "name": "Club Fitting"},
-)
+)  # swingshack.co.za has no /coaching page (404, checked 2026-10-28)
 
 # Each brand's own pages. Stick's site has no /membership and its service pages
 # end in -at-stick (checked live 2026-10-28).
@@ -103,7 +103,7 @@ def _fetch_page(url: str) -> str:
     return b"".join(chunks).decode("utf-8", errors="replace")
 
 
-def _audit_seo_page(html: str) -> list[dict[str, Any]]:
+def _audit_seo_page(html: str, url: str = "") -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
 
     title_match = re.search(r"<title[^>]*>([^<]+)</title>", html, re.I)
@@ -145,7 +145,10 @@ def _audit_seo_page(html: str) -> list[dict[str, Any]]:
             }
         )
 
-    h1_matches = re.findall(r"<h1[^>]*>([^<]+)</h1>", html, re.I)
+    # Elementor wraps heading text in spans, so take everything inside the tag and keep the ones with words.
+    h1_matches = [
+        t for t in (re.sub(r"<[^>]+>", " ", m).strip() for m in re.findall(r"<h1(?:\s[^>]*)?>(.*?)</h1\s*>", html, re.I | re.S)) if t
+    ]
     if not h1_matches:
         findings.append({"type": "missing_h1", "severity": "high", "message": "No H1 found"})
     elif len(h1_matches) > 1:
@@ -186,7 +189,13 @@ def _audit_seo_page(html: str) -> list[dict[str, Any]]:
             }
         )
 
-    internal_links = len(re.findall(r'href="(https?://[^"]*swingshack[^"]+)"', html, re.I))
+    host = urlparse(url).netloc.lower().removeprefix("www.")
+    absolute = [
+        h for h in re.findall(r'href="(https?://[^"]+)"', html, re.I)
+        if urlparse(h).netloc.lower().removeprefix("www.") == host
+    ]
+    relative = re.findall(r'href="/(?!/)[^"]*"', html, re.I)
+    internal_links = len(absolute) + len(relative)
     if internal_links < 3:
         findings.append(
             {
@@ -345,7 +354,7 @@ def run(*, brand: str | None = None) -> dict:
             geo_reports.append({"name": page["name"], "status": "FETCH_FAILED", "findings": [], "positive": []})
             continue
 
-        seo_findings = _audit_seo_page(html)
+        seo_findings = _audit_seo_page(html, url)
         descs[page["name"]] = _meta_description(html)
         geo_findings, geo_positive = _audit_geo_page(html, url)
         seo_reports.append({"name": page["name"], "url": url, "status": "OK", "findings": seo_findings})

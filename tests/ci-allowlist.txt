@@ -130,6 +130,8 @@ campaign-os/tests/test_v2026_08_20_insights_seo_audit_subs.py
 campaign-os/tests/test_v2026_08_20_review_gmb_publish_socials_cta_postiz_camp_subs.py
 campaign-os/tests/test_visual_library_image_missing.py
 campaign-os/tests/test_weekly_report_v2026_08_04.py
+campaign-os/tests/test_weekly_messages.py
+campaign-os/tests/test_weekly_report_share_link_data.py
 scripts/tests/test_refit_format_model_v2026_08_14.py
 scripts/tests/test_v2026_08_13_validate_railway_deploy_wiring.py
 tests/test_caption_studio_v2.py
@@ -161,6 +163,7 @@ campaign-os/tests/test_cos_mail_cc_owners.py
 campaign-os/tests/test_post_studio.py
 campaign-os/tests/test_post_studio_page_20261026.py
 campaign-os/tests/test_post_qa.py
+campaign-os/tests/test_visual_design_skill.py
 campaign-os/tests/test_scheduled_over_suggestions_20261026.py
 campaign-os/tests/test_scheduled_over_suggestions_layout_real_20261026.py
 campaign-os/tests/test_layout_skip_real_records_20261028.py
@@ -183,8 +186,11 @@ campaign-os/tests/test_idea_builder.py
 campaign-os/tests/test_idea_builder_route.py
 campaign-os/tests/test_shadow_text_post_20261026.py
 campaign-os/tests/test_yoast_title_roundtrip_20261026.py
+campaign-os/tests/test_carousel_check_20261027.py
+campaign-os/tests/test_carousel_manifest_20261027.py
 campaign-os/tests/test_caption_sentence_length_20261028.py
 campaign-os/tests/test_archive_stops_sends_20261028.py
+campaign-os/tests/test_swing_shack_logo_closed_box_20261028.py
 campaign-os/tests/test_colour_truth.py
 campaign-os/tests/test_clean_calendar_20261029.py
 campaign-os/tests/test_clean_calendar_dedupe_20261029.py
