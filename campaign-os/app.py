@@ -44367,10 +44367,9 @@ def _generate_caption_for_product(product, store_brand, pricing_text, idea_text,
     elif pricing_text:
         lines.append(pricing_text)
     lines.append(f"Available at {store_brand.replace('-', ' ').title()}.")
-    from _lib.service_tiein import add_service_tiein
-    from _lib.store_notice import add_store_notice
-    caption = add_service_tiein("\n".join(lines), name, store_brand)
-    return add_store_notice(caption, store_brand)
+    # One angle per post (product only / matched service / store line), rotated so posts don't repeat.
+    from _lib.product_angle import caption_with_rotation
+    return caption_with_rotation("\n".join(lines), name, store_brand)[0]
 
 
 def _run_draft_quality_check(package, product, store_brand):
