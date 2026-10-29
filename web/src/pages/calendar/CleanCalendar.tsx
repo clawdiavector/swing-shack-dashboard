@@ -78,11 +78,17 @@ function Tile({ entry, onOpen, draggable }: { entry: CleanEntry; onOpen: () => v
         e.dataTransfer.setData('text/plain', JSON.stringify({ key: entry.key, kind: entry.kind, date: entry.date }))
         e.dataTransfer.effectAllowed = 'move'
       }}
-      className={`flex w-full items-center gap-1.5 rounded-lg border p-1 text-left text-[11.5px] leading-tight font-semibold text-tx hover:border-tx2 ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''} ${TILE[entry.view]} ${entry.making || entry.missed ? 'opacity-55' : ''}`}
+      className={`flex w-full items-center gap-1.5 rounded-lg border p-1 text-left text-[11.5px] leading-tight font-semibold text-tx hover:border-tx2 ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''} ${TILE[entry.view]} ${entry.making || entry.missed || entry.rejected ? 'opacity-55' : ''}`}
     >
       <Thumb entry={entry} size="sm" />
       <span className="line-clamp-2 min-w-0 flex-1">
-        {entry.missed ? `Missed: ${entry.title}` : entry.making ? `Being made: ${entry.title}` : entry.title}
+        {entry.rejected
+          ? `Sent back: ${entry.title}`
+          : entry.missed
+            ? `Missed: ${entry.title}`
+            : entry.making
+              ? `Being made: ${entry.title}`
+              : entry.title}
       </span>
       {entry.comments.length ? (
         <MessageSquare className="h-3.5 w-3.5 shrink-0 text-blu" aria-label={`${entry.comments.length} comment(s)`} />
@@ -259,6 +265,7 @@ function Detail({
   }, [onClose])
 
   async function press(action: CleanAction) {
+    // Comment and Reject open the note box; its own Send button sends it.
     if (action !== 'approve' && writing !== action) {
       setWriting(action)
       setNote('')
@@ -450,9 +457,40 @@ function Detail({
                   setText(e.target.value)
                   setNote('')
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) void press(writing)
+                }}
                 placeholder={writing === 'reject' ? 'What should change? (needed)' : 'Your comment'}
                 className="w-full rounded-lg border border-bd bg-bg p-2 text-sm"
               />
+            ) : null}
+            {writing ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void press(writing)}
+                  className="rounded-full bg-tx px-4 py-2 text-sm font-semibold text-bg disabled:opacity-50"
+                >
+                  {writing === 'reject' ? 'Send rejection' : 'Send comment'}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setWriting(null)
+                    setNote('')
+                  }}
+                  className="rounded-full px-3 py-2 text-sm font-semibold text-tx2 hover:text-tx"
+                >
+                  Cancel
+                </button>
+                <span className="text-xs text-tx3">
+                  {writing === 'reject'
+                    ? 'It stays on its day marked Sent back, with your note, and leaves the Needs your OK count.'
+                    : 'The note shows on the post.'}
+                </span>
+              </div>
             ) : null}
             {note ? (
               <p className="text-sm text-red" role="status">
