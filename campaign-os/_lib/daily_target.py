@@ -139,8 +139,13 @@ def slots_of(entry: dict[str, Any]) -> list[str]:
     return out
 
 
-def day_progress(entries: list[dict[str, Any]], split: dict[str, int], first: date, last: date) -> dict[str, Any]:
-    """Per day from first to last: target, made, waiting, and each slot."""
+def day_progress(entries: list[dict[str, Any]], split: dict[str, int], first: date, last: date,
+                 shares: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Per day from first to last: target, made, waiting, and each slot.
+
+    `shares` are story reshares (story_queue.shares): each is one made placement in its story slot, shown
+    separately as "reshared" so the count can be told apart from what was scheduled.
+    """
     days: dict[str, dict[str, dict[str, int]]] = {}
     for e in entries:
         day = str(e.get("date") or "")[:10]
@@ -150,17 +155,24 @@ def day_progress(entries: list[dict[str, Any]], split: dict[str, int], first: da
                 c["done"] += 1
             else:
                 c["waiting"] += 1
+    for sh in shares or []:
+        c = days.setdefault(str(sh.get("date") or "")[:10], {}).setdefault(str(sh.get("slot")), {"done": 0, "waiting": 0})
+        c["done"] += 1
+        c["reshared"] = c.get("reshared", 0) + 1
     out: dict[str, Any] = {}
     d = first
     while d <= last:
         counts = days.get(d.isoformat(), {})
-        slots, done, ready = [], 0, 0
+        slots, done, ready, reshared = [], 0, 0, 0
         for slot, target in split.items():
             c = counts.get(slot, {"done": 0, "waiting": 0})
+            c = {"reshared": 0, **c}
+            reshared += c["reshared"]
             slots.append({"slot": slot, "label": SLOT_LABELS[slot], "target": target, **c})
             # A slot's extra posts never count towards another slot's gap.
             done += min(c["done"], target)
             ready += min(c["done"] + c["waiting"], target)
-        out[d.isoformat()] = {"target": sum(split.values()), "done": done, "waiting": ready - done, "slots": slots}
+        out[d.isoformat()] = {"target": sum(split.values()), "done": done, "waiting": ready - done,
+                              "reshared": reshared, "slots": slots}
         d += timedelta(days=1)
     return out
