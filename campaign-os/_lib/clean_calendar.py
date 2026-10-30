@@ -342,6 +342,24 @@ def _with_rejections(pairs: list[tuple[dict[str, Any], Any]]) -> list[tuple[dict
     return pairs
 
 
+def reopen_draft(asset_id: str) -> bool:
+    """A sent-back draft goes back to waiting for a yes: approval reset to
+    draft and the rejection reason cleared. False when the asset is not found."""
+    from _lib import unified_inbox as ui  # noqa: PLC0415
+
+    data = ui._load_campaign_data()
+    cid, asset = ui._campaign_asset_for_id(data, asset_id)
+    if not cid or not asset:
+        return False
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    asset["approvalStatus"] = "draft"
+    asset.pop("rejectionReason", None)
+    asset["updatedAt"] = now
+    data["campaigns"][cid]["updatedAt"] = now
+    ui._write_campaign_data(data)
+    return True
+
+
 def _with_record_fields(row: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
     for k in _RECORD_FIELDS:
         if record.get(k) and not row.get(k):
