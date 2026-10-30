@@ -12,7 +12,10 @@
     "jobe_perry_pink_1989": "Jobe, Perry and Pink 1989, shoulder EMG in the golf swing: latissimus dorsi active in the downswing, pectoralis major and subscapularis at impact (as cited in the 2012 review).",
     "emg_review_2012": "EMG variables during the golf swing, literature review of 19 studies, J Electromyogr Kinesiol 2012: pectoralis major, subscapularis and latissimus dorsi on both sides peak in the acceleration phase; the trail erector spinae is highly active in acceleration; the obliques are moderate to low. https://sponet.de/sponet/Record/4026714?lng=en",
     "muscle_volume": "Skeletal muscle keeps its volume as it changes length, so a shortening muscle gets thicker (a belly radius goes as 1/sqrt(length)).",
-    "forearm_rom": "Forearm pronation 80 deg and supination 80 deg, from a table of normal joint ranges (also the figure usually quoted as AAOS). https://www.sncc.ca/resources/Documents/Dragon%20Boat/2024%20CCWCs/range%20of%20motion%20normal%20values.pdf"
+    "forearm_rom": "Forearm pronation 80 deg and supination 80 deg, from a table of normal joint ranges (also the figure usually quoted as AAOS). https://www.sncc.ca/resources/Documents/Dragon%20Boat/2024%20CCWCs/range%20of%20motion%20normal%20values.pdf",
+    "lesiuta_slides": "Lesiuta E., 'A Biomechanical Analysis of the Golf Swing' (course presentation EE3BA3, from Christelle 2026-10-30). Secondary: set-up trunk flexed 45 deg at the hips and trail shoulder tilted down 16 deg (citing Hosea & Gatt 1996); X-factor about 50 deg (citing Meister); lead elbow extended and trail arm abducted 75-90 deg at the top; trail arm adducts in the downswing; late uncocking adds up to 9% club-head speed; follow-through decelerates with eccentric muscle work; L4-L5 load about 6x body weight in the downswing.",
+    "cole_grimshaw_2016": "Cole MH, Grimshaw PN. The biomechanics of the modern golf swing: implications for lower back injuries. Sports Med 2016;46(3):339-51. Thorax turns more than the pelvis to pre-stretch the trunk muscles (stored elastic energy); skilled golfers slide the pelvis towards the target in the downswing. https://pubmed.ncbi.nlm.nih.gov/26604102/",
+    "drvn_blog": "DRVN Golf, 'Golf swing fundamentals' (coaching article, cites no research): the lead hip clears first, then torso, arms and club; hands slightly ahead at impact. Used only where a study agrees. https://drvngolf.com/blog/golf-swing-fundamentals"
   },
   "segments_de_leva_m": {
     "stature": 1.741,
@@ -76,7 +79,16 @@
       43,
       64
     ],
-    "hip_joint_centre_separation_m_estimate": 0.175
+    "hip_joint_centre_separation_m_estimate": 0.175,
+    "address_trunk_flexion_deg_range": [
+      41.5,
+      45
+    ],
+    "address_shoulder_tilt_deg": 16,
+    "top_trail_arm_abduction_deg": [
+      75,
+      90
+    ]
   },
   "muscle_activity": {
     "_scale": "2 = high, 1 = moderate. Only what the sources say; a phase with no source shows no firing muscles.",
