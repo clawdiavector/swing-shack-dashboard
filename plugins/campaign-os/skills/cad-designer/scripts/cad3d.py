@@ -71,64 +71,117 @@ class Scene:
 # ── golfer: a poseable mannequin with adult proportions ──────────────────
 
 SEG = {  # metres, for a 1.75 m adult (anthropometric proportions)
-    "hip_w": 0.30, "shoulder_w": 0.40, "pelvis_z": 0.95, "torso": 0.52, "neck": 0.08, "head_r": 0.11,
-    "upper_arm": 0.31, "forearm": 0.27, "thigh": 0.45, "shin": 0.45, "club": 0.96,
+    "upper_arm": 0.31, "forearm": 0.27, "head_r": 0.11,
+}
+CLUB_FROM_HANDS = 0.84     # a 7-iron is 37 in (0.94 m); the hands hold it about 10 cm below the butt
+
+# Seven positions of a two-lever swing. theta: how far the hands have travelled round the chest
+# (+ back, away from the target; - through); hinge: extra wrist angle of the club; tilt: spine
+# angle from vertical.
+POSES = {
+    "address":   dict(theta=0,    hinge=0,    tilt=30),
+    "takeaway":  dict(theta=45,   hinge=15,   tilt=30),
+    "top":       dict(theta=130,  hinge=135,  tilt=30),
+    "downswing": dict(theta=90,   hinge=40,   tilt=30),
+    "impact":    dict(theta=-5,   hinge=-5,   tilt=29),
+    "follow":    dict(theta=-90,  hinge=-40,  tilt=20),
+    "finish":    dict(theta=-160, hinge=-110, tilt=8),
 }
 
-POSES = {  # degrees: spine tilt forward, shoulder turn, lead/trail arm angles, knee flex, club angle
-    "address": dict(tilt=35, turn=0, arm_drop=72, arm_swing=0, knee=18, club=-20),
-    "top": dict(tilt=35, turn=90, arm_drop=-10, arm_swing=95, knee=15, club=200),
-    "impact": dict(tilt=33, turn=20, arm_drop=75, arm_swing=-5, knee=20, club=-15),
-    "finish": dict(tilt=5, turn=-100, arm_drop=-40, arm_swing=-120, knee=5, club=160),
-}
 
-
-def rot_z(v, deg):
+def rotate(v, axis, deg):
+    """Rodrigues rotation of vector v about a unit axis."""
+    k = axis / np.linalg.norm(axis)
     t = math.radians(deg)
-    c, s = math.cos(t), math.sin(t)
-    return V([c * v[0] - s * v[1], s * v[0] + c * v[1], v[2]])
+    return v * math.cos(t) + np.cross(k, v) * math.sin(t) + k * np.dot(k, v) * (1 - math.cos(t))
 
 
-def golfer(ball_xy, pose="address", facing=1.0, fill=(240, 240, 240)):
-    """Returns capsules for a right-handed golfer addressing a ball at ball_xy (target is +y, the screen).
-    The golfer stands on the -x side of the ball, facing +x."""
+def _reach(shoulder, hands, length):
+    d = hands - shoulder
+    n = np.linalg.norm(d)
+    return hands if n <= length else shoulder + d * (length / n)
+
+
+def _elbow(shoulder, hands):
+    u, f = SEG["upper_arm"], SEG["forearm"]
+    d = hands - shoulder
+    n = np.linalg.norm(d)
+    a = (u * u - f * f + n * n) / (2 * n)
+    h = math.sqrt(max(u * u - a * a, 0.0))
+    axis = d / n
+    down = V([0.0, 0.0, -1.0]) - axis * axis[2]          # bend the elbow downwards, the way arms hang
+    down = down / (np.linalg.norm(down) or 1.0)
+    return shoulder + axis * a + down * h
+
+
+def swing_rig(ball_xy, pose="address"):
+    """Joint positions (metres) for a right-handed golfer at ball_xy; target is +y, the golfer faces +x.
+    Hands travel round the chest on the swing plane, the club follows them with a wrist hinge, the
+    shoulders and hips turn with the swing, and the arms can never stretch past their length."""
     P = POSES[pose]
     bx, by = ball_xy
-    feet_x = bx - 0.55                       # stance about 55 cm inside the ball
-    sw = SEG["hip_w"] / 2
+    t_dir = V([0.0, 1.0, 0.0])
+    head_addr = V([bx, by - 0.035, 0.02])                # club head resting just behind the ball
+    dx, dy = 0.45, 0.085
+    hands_addr = V([bx - dx, by + 0.05, 0.02 + math.sqrt(CLUB_FROM_HANDS ** 2 - dx ** 2 - dy ** 2)])
+    pelvis = V([bx - 0.70, by, 0.92])
+    tilt = math.radians(P["tilt"])
+    chest = pelvis + 0.394 * V([math.sin(tilt), 0.0, math.cos(tilt)])
+    chest_addr = pelvis + 0.394 * V([math.sin(math.radians(30)), 0.0, math.cos(math.radians(30))])
+    spine = (chest - pelvis) / np.linalg.norm(chest - pelvis)
+
+    v = hands_addr - chest_addr
+    n = np.cross(v, -t_dir)                              # swing-plane axis: +theta moves the hands back
+    hands = chest + rotate(v, n, P["theta"])
+    club_dir = rotate((head_addr - hands_addr) / CLUB_FROM_HANDS, n, P["theta"] + P["hinge"])
+
+    turn = float(np.clip(0.7 * P["theta"], -100, 92))
+    lead_sh = chest + rotate(V([0.0, 0.20, 0.03]), spine, -turn)
+    trail_sh = chest + rotate(V([0.0, -0.20, -0.03]), spine, -turn)
+    reach = SEG["upper_arm"] + SEG["forearm"]
+    for _ in range(12):                                  # keep both hands on the grip within reach
+        hands = _reach(lead_sh, hands, reach)
+        hands = _reach(trail_sh, hands, reach)
+
+    club_head = hands + club_dir * CLUB_FROM_HANDS
+    hip_turn = turn * 0.5
+    hips = [pelvis + rotate(V([0.0, s * 0.15, 0.0]), V([0, 0, 1.0]), -hip_turn) for s in (1, -1)]
+    ankles = [V([bx - 0.68, by + s * 0.24, 0.08]) for s in (1, -1)]
+    knees = [(h + a) / 2 + V([0.08, 0.0, 0.0]) for h, a in zip(hips, ankles)]
+    return {
+        "hands": hands, "club_head": club_head, "chest": chest, "pelvis": pelvis,
+        "head": chest + spine * 0.30,
+        "lead_shoulder": lead_sh, "trail_shoulder": trail_sh,
+        "lead_elbow": _elbow(lead_sh, hands), "trail_elbow": _elbow(trail_sh, hands),
+        "lead_hip": hips[0], "trail_hip": hips[1], "lead_knee": knees[0], "trail_knee": knees[1],
+        "lead_ankle": ankles[0], "trail_ankle": ankles[1],
+    }
+
+
+def golfer(ball_xy, pose="address", facing=1.0, fill=(240, 240, 240), ghost=False):
+    """Capsules for a right-handed golfer at ball_xy (target +y). ghost=True draws only the arms and the
+    club as thin lines: the strobe look, where the club repeats and the body stays one figure."""
+    r = swing_rig(ball_xy, pose)
+    if ghost:
+        caps = [Capsule(r["lead_shoulder"], r["lead_elbow"], 0.012, fill),
+                Capsule(r["lead_elbow"], r["hands"], 0.012, fill),
+                Capsule(r["hands"], r["club_head"], 0.006, fill),
+                Capsule(r["club_head"], r["club_head"] + V([0, 0, 0.001]), 0.02, fill)]
+        return caps
+    k = 1.0
     caps = []
-    k = math.radians(P["knee"])
-    for side in (-1, 1):
-        ankle = V([feet_x, by + side * 0.22, 0.08])
-        knee = ankle + V([math.sin(k) * SEG["shin"], side * 0.03, math.cos(k) * SEG["shin"]])
-        hip = V([feet_x - 0.06, by + side * sw, SEG["pelvis_z"]])
-        caps += [Capsule(ankle, knee, 0.055, fill), Capsule(knee, hip, 0.075, fill)]
-        caps.append(Capsule(ankle, ankle + V([0.20, 0, -0.04]), 0.045, fill))   # foot
-    pelvis = V([feet_x - 0.06, by, SEG["pelvis_z"]])
-    t = math.radians(P["tilt"])
-    spine = V([math.sin(t) * SEG["torso"], 0, math.cos(t) * SEG["torso"]])
-    chest = pelvis + spine
-    caps.append(Capsule(pelvis, chest, 0.15, fill))
-    neck = chest + V([math.sin(t) * SEG["neck"], 0, math.cos(t) * SEG["neck"]])
-    caps.append(Capsule(neck, neck + V([math.sin(t) * 0.12, 0, math.cos(t) * 0.12]), SEG["head_r"], fill))
-    hands = None
-    for side in (-1, 1):
-        sh = chest + rot_z(V([0, side * SEG["shoulder_w"] / 2, 0]), P["turn"])
-        d = math.radians(P["arm_drop"])
-        sw_ = math.radians(P["arm_swing"])
-        arm = V([math.cos(d) * 0.25, -math.sin(sw_) * 0.9, -math.sin(d)])
-        arm = arm / np.linalg.norm(arm)
-        elbow = sh + arm * SEG["upper_arm"]
-        h = V([bx - 0.18, by - 0.05, 0.78]) if P["arm_drop"] > 60 else elbow + arm * SEG["forearm"]
-        caps += [Capsule(sh, elbow, 0.045, fill), Capsule(elbow, h, 0.04, fill)]
-        hands = h if hands is None else (hands + h) / 2
-    c = math.radians(P["club"])
-    head = hands + V([math.cos(c) * 0.35, math.sin(c) * 0.25, -abs(math.sin(c)) * 0.2 - 0.6]) if P["club"] < 0 \
-        else hands + V([-0.2, -math.sin(c) * 0.6, abs(math.cos(c)) * 0.7])
-    head = hands + (head - hands) / np.linalg.norm(head - hands) * SEG["club"]
-    if pose in ("address", "impact"):
-        head = V([bx - 0.03, by, 0.02])      # the club head rests on the ground just behind the ball
-    caps.append(Capsule(hands, head, 0.008, (40, 40, 40)))
+    for side in ("lead", "trail"):
+        ankle, knee, hip = r[f"{side}_ankle"], r[f"{side}_knee"], r[f"{side}_hip"]
+        caps += [Capsule(ankle, knee, 0.055 * k, fill), Capsule(knee, hip, 0.075 * k, fill),
+                 Capsule(V([ankle[0] - 0.04, ankle[1], 0.04]), V([ankle[0] + 0.16, ankle[1], 0.04]), 0.04 * k, fill)]
+        sh, el = r[f"{side}_shoulder"], r[f"{side}_elbow"]
+        caps += [Capsule(sh, el, 0.045 * k, fill), Capsule(el, r["hands"], 0.04 * k, fill)]
+    caps += [Capsule(r["pelvis"], r["chest"], 0.14 * k, fill),
+             Capsule(r["lead_shoulder"], r["trail_shoulder"], 0.06 * k, fill),
+             Capsule(r["head"], r["head"] + V([0, 0, 0.001]), SEG["head_r"] * (0.7 if ghost else 1.0), fill),
+             Capsule(r["hands"], r["club_head"], 0.008, (40, 40, 40) if not ghost else fill),
+             Capsule(r["club_head"], r["club_head"] + V([0, 0, 0.001]), 0.022 * (0.8 if ghost else 1.0),
+                     (40, 40, 40) if not ghost else fill)]
     return caps
 
 
@@ -151,6 +204,8 @@ class Camera:
             return V([p[0], p[2], p[1]])
         if self.kind == "side":
             return V([p[1], p[2], p[0]])
+        if self.kind == "faceon":            # facing the golfer (who faces +x): the target is on screen right
+            return V([p[1], p[2], -p[0]])
         if self.kind == "iso":
             y, pt = math.radians(self.yaw), math.radians(self.pitch)
             x1 = p[0] * math.cos(y) - p[1] * math.sin(y)

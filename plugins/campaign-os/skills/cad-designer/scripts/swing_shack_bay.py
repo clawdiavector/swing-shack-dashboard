@@ -36,7 +36,7 @@ def bay(W, D, H, ball, pose="address"):
     logo = Image.open(SS / "logos" / "swing-shack-logo-white.png")
     lw = min(2.4, W - 1.2)
     lh = lw * logo.height / logo.width
-    cx, cz = W / 2, H / 2 + 0.1
+    cx, cz = W / 2, H - 0.25 - lh / 2 - 0.12          # upper part of the screen, clear of the golfer's head
     y = D - 0.03
     s.decals.append(c.Decal(logo, [V([cx - lw / 2, y, cz - lh / 2]), V([cx + lw / 2, y, cz - lh / 2]),
                                    V([cx + lw / 2, y, cz + lh / 2]), V([cx - lw / 2, y, cz + lh / 2])]))
@@ -84,7 +84,7 @@ def main(argv=None):
     im.save(a.out / "bay_plan.png")
 
     s = bay(W, D, H, ball, "top")
-    cam = c.Camera("persp", eye=(W * 0.78, -2.2, 1.75), target=(W * 0.48, D, 1.3), fov=46)
+    cam = c.Camera("persp", eye=(W * 0.22, -2.4, 1.7), target=(W * 0.6, D, 1.35), fov=46)
     c.render(s, cam, style="clay", font_path=FONT_L, margin=30).save(a.out / "bay_clay_persp.png")
     print(f"wrote 3 renders to {a.out}")
     return 0

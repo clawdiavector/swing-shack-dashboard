@@ -78,15 +78,33 @@ c.render(s, c.Camera("iso", yaw=-35, pitch=32), style="blueprint").save("bay.png
    photographic or illustrated; add the generated golfer there. The 3D render fixes where things
    are and how big; Krea only paints. Then run `reality-check` and put the real logo and products
    on top (layering).
-3. **Explainers:** posed golfers side by side (address, top, impact, finish) with dimension lines
-   or arcs show a movement; keep any number on screen to a sourced fact.
+3. **Movement:** `swing_sequence.py` draws a whole swing as one picture: the seven positions as
+   ghost arms and club around one solid golfer, with the hand path and the club-head path as arcs
+   in the brand accent.
+
+   ```bash
+   python3 plugins/campaign-os/skills/cad-designer/scripts/swing_sequence.py --out out/ \
+       --view faceon|dtl [--style blueprint|plan] [--brand swing-shack|stick]
+   ```
+
+   Keep any number on screen to a sourced fact; the picture says it's an illustration.
+
+## The swing model
+
+`swing_rig(ball, pose)` returns joint positions in metres; `golfer(ball, pose)` draws them. It is a
+two-lever swing: the hands travel round the chest on the swing plane, the club follows with a wrist
+hinge, shoulders turn (hips half as much), both arms reach the grip with bent elbows, and the arms
+can never stretch past their length. Positions: `address`, `takeaway`, `top`, `downswing`,
+`impact`, `follow`, `finish`; add one by adding a row to `POSES` (theta, hinge, tilt). The club is a
+7-iron held 84 cm above its head; at address and impact the head rests on the ground behind the ball.
+Tests pin all of that (`campaign-os/tests/test_cad_designer_swing_20261030.py`).
 
 ## Limits (be honest about them)
 
-- **The golfer is a mannequin of capsules.** Adult proportions are right and the feet are on the
-  floor, but the top and finish poses read as a blob from some angles. For finished posts the
-  golfer comes from Krea, placed where the render puts him. A better mannequin (proper joints,
-  hands on the grip) is the next step for swing illustrations.
+- **The golfer is a mannequin of capsules.** Proportions, joints and the swing are right, but it
+  reads as a figure, not a person, and from behind it looks like stacked shapes. For finished
+  posts the golfer comes from Krea, placed where the render puts him. It is a right-handed golfer
+  only, and the swing is an illustration, not a measured swing.
 - **No curves, textures or club heads yet:** boxes, flat quads, capsules and image decals only.
   3D club illustrations need a parametric club (head, loft, lie, length from real specs) first.
 - **Painter's-algorithm drawing:** big faces that cut through each other can draw in the wrong
