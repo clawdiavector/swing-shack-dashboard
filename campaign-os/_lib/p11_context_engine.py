@@ -1038,9 +1038,43 @@ def _keyword_in_brief(kw: str, text: str) -> bool:
     return bool(re.search(rf"\b{re.escape(needle)}\b", hay))
 
 
-def _detect_brief_subject(brief: str, service: str = None, product_id: str = None) -> str:
+def _title_subject_words(text: str, stop: frozenset[str]) -> list[str]:
+    """Distinctive words from a lodge title or brief (hyphens treated as spaces)."""
+    normalized = re.sub(r"-", " ", (text or "").lower())
+    return [w for w in re.findall(r"\b[a-z]{4,}\b", normalized) if w not in stop]
+
+
+_BRIEF_SUBJECT_STOP = frozenset({
+    "free", "your", "this", "that", "with", "from", "stick", "shack",
+    "golf", "today", "book", "just", "when", "have", "been",
+})
+
+
+def _related_service_keywords(brief_subject: str) -> list[str]:
+    """Keywords for a detected subject — exact service keys only (no substring traps)."""
+    bs = (brief_subject or "").strip().lower()
+    if not bs:
+        return []
+    if bs in SERVICE_KEYWORDS:
+        return list(SERVICE_KEYWORDS[bs])
+    for svc, kws in SERVICE_KEYWORDS.items():
+        if bs == svc:
+            return list(kws)
+        if _keyword_in_brief(bs, svc):
+            return list(kws)
+    return []
+
+
+def _detect_brief_subject(
+    brief: str,
+    service: str = None,
+    product_id: str = None,
+    lodge_title: str | None = None,
+) -> str:
     """Return the dominant subject of the brief (e.g. 'putter fitting')."""
     text = (brief or "").lower()
+    title_text = (lodge_title or "").strip().lower()
+    search_text = f"{title_text} {text}".strip()
     # Named service wins only when it is a known subject, not a photo-job leftover.
     if service:
         svc = service.lower().strip()
@@ -1049,22 +1083,19 @@ def _detect_brief_subject(brief: str, service: str = None, product_id: str = Non
         for key, kws in SERVICE_KEYWORDS.items():
             if svc == key or any(_keyword_in_brief(kw, svc) for kw in kws):
                 return key
-    # First try to detect a service keyword from the brief text
+    # Service keyword from lodge title + brief (calendar posts often only title the moment).
     for svc, kws in SERVICE_KEYWORDS.items():
-        if any(_keyword_in_brief(kw, text) for kw in kws):
+        if any(_keyword_in_brief(kw, search_text) for kw in kws):
             return svc
     # If a product_id is supplied AND the brief mentions that product,
     # combine them. Otherwise return the product_id as the subject.
     if product_id:
         return product_id.lower()
-    # Fallback: distinctive noun from the lodge title, not "free" / "this".
-    stop = {
-        "free", "your", "this", "that", "with", "from", "stick", "shack",
-        "golf", "today", "book", "just", "when", "have", "been",
-    }
-    words = [w for w in re.findall(r"\b[a-z]{4,}\b", text) if w not in stop]
-    if words:
-        return words[0]
+    # Fallback: up to three distinctive title/brief words (any may satisfy fidelity).
+    for blob in (title_text, text):
+        words = _title_subject_words(blob, _BRIEF_SUBJECT_STOP)
+        if words:
+            return " ".join(words[:3])
     return ""
 
 
@@ -1113,7 +1144,9 @@ def build_generation_context(
                 "cross_brand_attack": True,
             }
 
-    brief_subject = _detect_brief_subject(user_brief, service, product_id)
+    brief_subject = _detect_brief_subject(
+        user_brief, service, product_id, lodge_title=lodge_title
+    )
     from _lib.caption_copy_contract import build_copy_contract  # noqa: PLC0415
 
     copy_contract = build_copy_contract(
@@ -1644,6 +1677,7 @@ def _en_za_locale_block(*, hook_cap: int, cta_cap: int) -> str:
         "alert, Let's be real, Here's the thing, Game-changer, Level up, "
         "Unlock, Elevate your game, Pro tip.\n"
         f"LENGTH: caption_body at most 2 sentences and 220 characters. "
+        f"Every sentence 7 words or fewer. "
         f"Do not write a booking/CTA line; the pipeline appends the brand CTA.\n"
         f"poster_hook at most {hook_cap} characters, at most 6 words, and must "
         f"read correctly in ALL CAPS. cta_line at most {cta_cap} characters.\n"
@@ -1814,7 +1848,7 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
         f"{bible_block}"
         f"\n"
         f"BANNED phrases (never use): {' | '.join(b.get('banned_terms', [])[:10])}\n"
-        f"EM DASH BANNED. Use pipes | / commas / full stops / colons.\n"
+        f"EM DASH BANNED. Use pipes | / commas / full stops / colons.\n"        f"SENTENCES: 7 words or fewer each (the CTA and sign-off don't count).\n"
         f"DO NOT name internal agents: {', '.join(rs.get('internal_agents_banned', []))}.\n"
         f"DO NOT invent prices, offers, specs, dates, distances, percentages, "
         f"or causal claims not backed by verified source.\n"
@@ -2209,13 +2243,27 @@ def _check_brief_fidelity(candidate: str, ctx: dict) -> dict:
             "subject_match": True,
             "specificity": "high",
         }
-    # Try related keywords
-    related = []
-    for svc, kws in SERVICE_KEYWORDS.items():
-        if svc == brief_subject or brief_subject in svc or svc in brief_subject:
-            related = kws
-            break
-    related_hit = any(kw in cl for kw in related)
+    # Lodge title words (calendar headline) — caption should echo the moment when possible.
+    contract = ctx.get("copy_contract") if isinstance(ctx.get("copy_contract"), dict) else {}
+    lodge_title = str(contract.get("lodge_title") or "").strip()
+    if lodge_title:
+        lodge_words = list(dict.fromkeys(_title_subject_words(lodge_title, _BRIEF_SUBJECT_STOP)))
+        hits = [w for w in lodge_words if _keyword_in_brief(w, cl)]
+        # Whole words only; a title with 3+ distinctive words needs 2 of them echoed,
+        # so one generic word ("season", "offers") cannot carry an off-topic caption.
+        needed = 1 if len(lodge_words) <= 2 else 2
+        if lodge_words and len(hits) >= needed:
+            return {
+                "passed": True,
+                "reason": "lodge_title_word_match",
+                "brief_subject": brief_subject,
+                "detected_subject": ", ".join(hits[:3]),
+                "subject_match": True,
+                "specificity": "high",
+            }
+
+    related = _related_service_keywords(brief_subject)
+    related_hit = any(_keyword_in_brief(kw, cl) for kw in related)
     # Product-code path: if brief_subject is alphanumeric like "101t", accept
     # the product_brand as a hit (e.g. "takomo")
     pb = ps.get("product_brand") or ""

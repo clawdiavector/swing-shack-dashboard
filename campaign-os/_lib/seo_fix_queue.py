@@ -16,9 +16,9 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-# The audit's pages, wording and local terms are Swing Shack's. Do not queue
-# fixes for another brand until it has its own page list.
-QUEUE_BRANDS = ("swing-shack",)
+# Each brand here has its own page list in site_audit.PAGES_BY_BRAND. Do not add
+# a brand until it has one.
+QUEUE_BRANDS = ("swing-shack", "stick")
 
 HOMEPAGE = "Homepage"
 MAX_RESOLVED_KEPT = 100
@@ -55,6 +55,7 @@ FIX_BUTTONS = {
     "missing_meta_description": {"field": "meta_description", "label": "Fix"},
     "meta_description_short": {"field": "meta_description", "label": "Improve"},
     "meta_description_long": {"field": "meta_description", "label": "Improve"},
+    "meta_description_duplicate": {"field": "meta_description", "label": "Improve"},
     "title_too_short": {"field": "title", "label": "Improve"},
     "title_too_long": {"field": "title", "label": "Improve"},
 }

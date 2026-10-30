@@ -449,6 +449,35 @@ def upload_media(
     return _request_multipart_upload(file_path, timeout=300, brand_id=brand_id)
 
 
+TIKTOK_POSTING_METHODS = ("UPLOAD", "DIRECT_POST")
+TIKTOK_PRIVACY_LEVELS = ("PUBLIC_TO_EVERYONE", "MUTUAL_FOLLOW_FRIENDS", "FOLLOWER_OF_CREATOR", "SELF_ONLY")
+
+
+def settings_for_provider(provider: str, caption: str = "") -> dict:
+    """Postiz post settings for one channel. TikTok has its own required fields; the rest post as a feed post.
+
+    TikTok defaults to UPLOAD: the post waits in the TikTok app inbox for someone to add a sound and
+    publish it. TIKTOK_POSTING_METHOD=DIRECT_POST publishes straight away at TIKTOK_PRIVACY_LEVEL."""
+    p = (provider or "").strip().lower()
+    if not p.startswith("tiktok"):
+        return {"post_type": "post"}
+    method = os.environ.get("TIKTOK_POSTING_METHOD", "").strip().upper()
+    privacy = os.environ.get("TIKTOK_PRIVACY_LEVEL", "").strip().upper()
+    first_line = next((ln.strip() for ln in (caption or "").splitlines() if ln.strip()), "")
+    return {
+        "__type": p,
+        "title": first_line[:90],
+        "privacy_level": privacy if privacy in TIKTOK_PRIVACY_LEVELS else "PUBLIC_TO_EVERYONE",
+        "duet": False,
+        "stitch": False,
+        "comment": True,
+        "autoAddMusic": "no",
+        "brand_content_toggle": False,
+        "brand_organic_toggle": False,
+        "content_posting_method": method if method in TIKTOK_POSTING_METHODS else "UPLOAD",
+    }
+
+
 def create_post(
     integration_id: str,
     content: str,
@@ -587,6 +616,17 @@ def list_posts(
         "limit": limit,
     }
     return _request("GET", "/posts", params=params, brand_id=brand_id)
+
+
+def reschedule_post(
+    post_id: str,
+    publish_date: str,
+    *,
+    brand_id: str | None = None,
+) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
+    """Move a queued or draft post to another time, with the brand's own key.
+    Callers pass a time from scheduled_at_least(), never "now"."""
+    return _request("PUT", f"/posts/{post_id}", json_body={"date": publish_date}, brand_id=brand_id)
 
 
 def get_post(post_id: str) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:

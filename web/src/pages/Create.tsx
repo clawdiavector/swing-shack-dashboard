@@ -2,6 +2,7 @@ import {
   Hash,
   Image,
   Laugh,
+  Layers,
   Library,
   Megaphone,
   Sparkles,
@@ -26,6 +27,14 @@ const TOOLS: {
   mode: string
 }[] = [
   { id: 'post', to: '/create/post', label: 'Build a post', hint: 'Full draft in one pass', icon: Sparkles, mode: 'copy' },
+  {
+    id: 'post-studio',
+    to: '/create/post-studio',
+    label: 'Post studio',
+    hint: 'Template, photo, preview, lodge draft',
+    icon: Layers,
+    mode: 'copy',
+  },
   { id: 'captions', to: '/create/captions', label: 'Captions', hint: 'IG / FB / LinkedIn lengths', icon: Type, mode: 'copy' },
   { id: 'headlines', to: '/create/copy?tab=headlines', label: 'Headlines', hint: 'Punchy titles', icon: Megaphone, mode: 'copy' },
   { id: 'hooks', to: '/create/copy?tab=hooks', label: 'Hook bank', hint: 'Openers that stop scroll', icon: Hash, mode: 'copy' },

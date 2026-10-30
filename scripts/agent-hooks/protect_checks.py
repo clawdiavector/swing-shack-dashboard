@@ -9,6 +9,12 @@ into it, or sed -i / tee / mv / cp / rm / git checkout / Set-Content ... naming
 it). Reading a locked file is never blocked. Shell detection is a heuristic; the
 CI guard is the backstop.
 
+One exception: putting a locked file back byte-for-byte as it is on the base
+branch (origin/main) is allowed, via a file tool whose result equals main's
+version, or exactly `git checkout origin/main -- <path>` or
+`git restore --source origin/main -- <path>`. A file that is not on main stays
+locked.
+
 CHECK_LOCK_MODE=ask (default: deny) turns a block into a permission prompt, so
 a person can let one edit through without touching a file by hand. Where nobody
 can answer the prompt it is still a block.
@@ -21,6 +27,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -54,6 +61,83 @@ COMMAND_VERB = re.compile(
     """,
     re.X,
 )
+
+
+# --- restoring a locked file to the base branch --------------------------------------
+# Putting a locked file back exactly as it is on main is never weakening a check,
+# so it is let through. Only these exact shell forms count; anything else is
+# judged by the normal rules.
+RESTORE_CMD = re.compile(
+    r"^\s*git\s+(?:checkout\s+(?P<ref1>\S+)|restore\s+--source[ =](?P<ref2>\S+))"
+    r"\s+--\s+(?P<path>[^\s;&|<>()`$]+)\s*$"
+)
+
+
+def restore_refs(root: Path) -> set[str]:
+    return {r for r in ("origin/main", c.base_ref(root)) if r}
+
+
+def main_content(root: Path, rel: str, ref: str = "") -> bytes | None:
+    """The file's bytes on the base branch, or None when it is not there."""
+    for r in ([ref] if ref else sorted(restore_refs(root))):
+        try:
+            out = subprocess.run(["git", "show", f"{r}:{rel}"], cwd=root, capture_output=True)
+        except OSError:
+            return None
+        if out.returncode == 0:
+            return out.stdout
+    return None
+
+
+def is_main_restore_cmd(root: Path, cmd: str) -> bool:
+    """True only for `git checkout <main> -- <path>` / `git restore --source <main> -- <path>`."""
+    m = RESTORE_CMD.match(cmd.strip())
+    if not m:
+        return False
+    ref = m.group("ref1") or m.group("ref2")
+    if ref not in restore_refs(root):
+        return False
+    path = m.group("path").strip("\"'")
+    p = Path(path)
+    try:
+        rel = (p if p.is_absolute() else root / p).resolve().relative_to(root.resolve()).as_posix()
+    except (OSError, ValueError):
+        return False
+    return main_content(root, rel, ref) is not None
+
+
+def resulting_text(tool_input: dict, current: str) -> str | None:
+    """What a file-edit tool would leave in the file, or None if unknown."""
+    for key in ("content", "contents"):
+        if isinstance(tool_input.get(key), str):
+            return tool_input[key]
+    edits = tool_input.get("edits")
+    if not isinstance(edits, list):
+        if isinstance(tool_input.get("old_string"), str) and isinstance(tool_input.get("new_string"), str):
+            edits = [tool_input]
+        else:
+            return None
+    text = current
+    for e in edits:
+        if not isinstance(e, dict):
+            return None
+        old, new = e.get("old_string"), e.get("new_string")
+        if not isinstance(old, str) or not isinstance(new, str) or not old or old not in text:
+            return None
+        text = text.replace(old, new) if e.get("replace_all") else text.replace(old, new, 1)
+    return text
+
+
+def edit_restores_main(root: Path, rel: str, tool_input: dict) -> bool:
+    want = main_content(root, rel)
+    if want is None:
+        return False
+    try:
+        current = (root / rel).read_text(encoding="utf-8")
+    except OSError:
+        current = ""
+    got = resulting_text(tool_input, current)
+    return got is not None and got.encode("utf-8") == want
 
 
 def respond(tool: str, decision: str, msg: str = "") -> None:
@@ -154,6 +238,8 @@ def main() -> None:
         if not (">" in scan or WRITE_VERB.search(scan)):
             respond(tool, "allow")
         why = shell_hit(cmd, c.locked_files(root))
+        if why and is_main_restore_cmd(root, cmd):
+            respond(tool, "allow")
         if why:
             block(tool, data, f"this shell command would modify a locked check: {why}")
         respond(tool, "allow")
@@ -173,6 +259,8 @@ def main() -> None:
     except (OSError, ValueError):
         respond(tool, "allow")  # outside this repo
     why = c.lock_reason(root, rel)
+    if why and edit_restores_main(root, rel, tool_input):
+        respond(tool, "allow")
     if why:
         block(tool, data, why)
     respond(tool, "allow")
