@@ -1,0 +1,140 @@
+{
+  "_about": "Real human anatomy for the cad-designer golfer (Christelle, 2026-10-30: 'take real human anatomy into account and how muscles really move'). Lengths in metres for the source's own mean stature; cad3d scales them to the golfer's height. Every number names its source; 'estimate' marks the few that have none.",
+  "sources": {
+    "de_leva_1996": "de Leva P. Adjustments to Zatsiorsky-Seluyanov's segment inertia parameters. J Biomech 1996;29(9):1223-30, Table 4, males (stature 1.741 m). https://doi.org/10.1016/0021-9290(95)00178-6",
+    "ansur_2012": "ANSUR II anthropometric survey of US Army personnel, 2010-2012, 4,082 men, mean stature 1.756 m (public working database). https://ph.health.mil/topics/workplacehealth/ergo/Pages/Anthropometric-Database.aspx",
+    "aaos_rom": "AAOS normal joint range of motion, as tabulated in Hendriks et al., Plast Reconstr Surg Glob Open 2020 (supplement). https://cdn-links.lww.com/permalink/prsgo/b/prsgo_8_6_2020_04_17_hendriks_gox-d-20-00155r2_sdc1.pdf",
+    "jssm_2018": "Golf address posture vs ball position, 11 male KPGA pros, five-iron: trunk flexion 41.5 deg at the reference ball position. J Sports Sci Med 2018;17(4):589. https://jssm.org/jssm-17-589.xml-Fulltext",
+    "psu_rotation": "Penn State golf biomechanics: at the top of the backswing the pelvis is usually turned about 35-55 deg and the torso about 85-110 deg. https://golf.psu.edu/interactives/rotation",
+    "xfactor_studies": "X-factor (torso minus pelvis) at the top: 53.4 +/- 10.0 deg (women, driver); Zheng et al. about 58-60 deg. https://pmc.ncbi.nlm.nih.gov/articles/PMC3362989",
+    "kinematic_sequence": "Proximal-to-distal kinematic sequence in the downswing: pelvis, then thorax, then lead arm, then club. https://pmc.ncbi.nlm.nih.gov/articles/PMC3362989",
+    "bechler_1995": "Bechler, Jobe, Pink, Perry et al. 1995, EMG of the hip and knee in 16 golfers: in the forward swing the trail hip extensors and abductors and the lead adductor magnus start the pelvic rotation; the lead hamstrings hold a flexed knee as a stable base. https://www.bisp-surf.de/Record/PU199606108067",
+    "jobe_perry_pink_1989": "Jobe, Perry and Pink 1989, shoulder EMG in the golf swing: latissimus dorsi active in the downswing, pectoralis major and subscapularis at impact (as cited in the 2012 review).",
+    "emg_review_2012": "EMG variables during the golf swing, literature review of 19 studies, J Electromyogr Kinesiol 2012: pectoralis major, subscapularis and latissimus dorsi on both sides peak in the acceleration phase; the trail erector spinae is highly active in acceleration; the obliques are moderate to low. https://sponet.de/sponet/Record/4026714?lng=en",
+    "muscle_volume": "Skeletal muscle keeps its volume as it changes length, so a shortening muscle gets thicker (a belly radius goes as 1/sqrt(length)).",
+    "forearm_rom": "Forearm pronation 80 deg and supination 80 deg, from a table of normal joint ranges (also the figure usually quoted as AAOS). https://www.sncc.ca/resources/Documents/Dragon%20Boat/2024%20CCWCs/range%20of%20motion%20normal%20values.pdf",
+    "lesiuta_slides": "Lesiuta E., 'A Biomechanical Analysis of the Golf Swing' (course presentation EE3BA3, from Christelle 2026-10-30). Secondary: set-up trunk flexed 45 deg at the hips and trail shoulder tilted down 16 deg (citing Hosea & Gatt 1996); X-factor about 50 deg (citing Meister); lead elbow extended and trail arm abducted 75-90 deg at the top; trail arm adducts in the downswing; late uncocking adds up to 9% club-head speed; follow-through decelerates with eccentric muscle work; L4-L5 load about 6x body weight in the downswing.",
+    "cole_grimshaw_2016": "Cole MH, Grimshaw PN. The biomechanics of the modern golf swing: implications for lower back injuries. Sports Med 2016;46(3):339-51. Thorax turns more than the pelvis to pre-stretch the trunk muscles (stored elastic energy); skilled golfers slide the pelvis towards the target in the downswing. https://pubmed.ncbi.nlm.nih.gov/26604102/",
+    "drvn_blog": "DRVN Golf, 'Golf swing fundamentals' (coaching article, cites no research): the lead hip clears first, then torso, arms and club; hands slightly ahead at impact. Used only where a study agrees. https://drvngolf.com/blog/golf-swing-fundamentals"
+  },
+  "segments_de_leva_m": {
+    "stature": 1.741,
+    "upper_arm": 0.2817,
+    "forearm": 0.2689,
+    "hand": 0.0862,
+    "thigh": 0.4222,
+    "shank": 0.434,
+    "foot": 0.2581,
+    "trunk": 0.5319,
+    "head": 0.2033
+  },
+  "ansur_men_mm": {
+    "stature": 1756.2,
+    "biacromial_breadth": 415.7,
+    "bideltoid_breadth": 510.4,
+    "hip_breadth": 345.7,
+    "bicristal_breadth": 275.4,
+    "chest_breadth": 289.4,
+    "chest_depth": 253.8,
+    "waist_breadth": 326.4,
+    "waist_depth": 237.8,
+    "head_breadth": 154.3,
+    "head_length": 199.5,
+    "tragion_to_top_of_head": 131.1,
+    "suprasternale_height": 1438.6,
+    "cervicale_height": 1517.3,
+    "lateral_malleolus_height": 72.9,
+    "thigh_circumference": 625.1,
+    "lower_thigh_circumference": 409.3,
+    "calf_circumference": 392.3,
+    "ankle_circumference": 229.3,
+    "biceps_circumference_flexed": 358.1,
+    "forearm_circumference_flexed": 310.1,
+    "wrist_circumference": 175.9,
+    "neck_circumference": 397.6,
+    "foot_length": 271.2,
+    "hand_breadth_mm_estimate": 90
+  },
+  "rom_deg": {
+    "elbow_flexion": 150,
+    "knee_flexion": 135,
+    "wrist_radial_deviation": 20,
+    "wrist_ulnar_deviation": 30,
+    "wrist_flexion": 80,
+    "wrist_extension": 70,
+    "forearm_pronation": 80,
+    "forearm_supination": 80
+  },
+  "golf": {
+    "address_trunk_flexion_deg": 41.5,
+    "top_pelvis_turn_deg": [
+      35,
+      55
+    ],
+    "top_thorax_turn_deg": [
+      85,
+      110
+    ],
+    "top_x_factor_deg": [
+      43,
+      64
+    ],
+    "hip_joint_centre_separation_m_estimate": 0.175,
+    "address_trunk_flexion_deg_range": [
+      41.5,
+      45
+    ],
+    "address_shoulder_tilt_deg": 16,
+    "top_trail_arm_abduction_deg": [
+      75,
+      90
+    ]
+  },
+  "muscle_activity": {
+    "_scale": "2 = high, 1 = moderate. Only what the sources say; a phase with no source shows no firing muscles.",
+    "downswing": {
+      "trail gluteus maximus": [
+        2,
+        "bechler_1995"
+      ],
+      "lead adductor magnus": [
+        2,
+        "bechler_1995"
+      ],
+      "lead hamstrings": [
+        1,
+        "bechler_1995"
+      ],
+      "lead latissimus dorsi": [
+        2,
+        "jobe_perry_pink_1989"
+      ]
+    },
+    "impact": {
+      "lead pectoralis major": [
+        2,
+        "emg_review_2012"
+      ],
+      "trail pectoralis major": [
+        2,
+        "emg_review_2012"
+      ],
+      "lead latissimus dorsi": [
+        2,
+        "emg_review_2012"
+      ],
+      "trail latissimus dorsi": [
+        2,
+        "emg_review_2012"
+      ],
+      "trail erector spinae": [
+        2,
+        "emg_review_2012"
+      ],
+      "obliques": [
+        1,
+        "emg_review_2012"
+      ]
+    }
+  }
+}

@@ -48218,7 +48218,7 @@ def _clean_cal_act(brand_id, body, who):
     text = str(body.get("text") or "").strip()
     if action == "edit":
         return _clean_cal_edit_caption(brand_id, key, kind, text, who)
-    if action not in ("approve", "comment", "reject") or kind not in ("post", "idea", "postiz", "gbp", "task") or not key:
+    if action not in ("approve", "comment", "reject", "reopen") or kind not in ("post", "idea", "postiz", "gbp", "task") or not key:
         return {"ok": False, "error": "send key, kind (post, idea, postiz, gbp or task) and action (approve, comment or reject)"}, 400
     if action in ("comment", "reject") and not text:
         return {"ok": False, "error": "Say what should change first." if action == "reject" else "Write a comment first."}, 400
@@ -48246,6 +48246,13 @@ def _clean_cal_act(brand_id, body, who):
             return {"ok": False, "error": "That post is not on this calendar."}, 404
         row, draft = found
         entry = cc.post_entry(row, brand_id, today=cc.sast_today())
+        if action == "reopen":
+            if not entry.get("rejected") or not (draft or {}).get("asset_id"):
+                return {"ok": False, "error": "Only a post that was sent back can be reopened."}, 409
+            if not cc.reopen_draft(str(draft["asset_id"])):
+                return {"ok": False, "error": "Could not reopen it. Nothing was changed."}, 500
+            cc.add_comment(brand_id, key, who, "Reopened", action="reopen")
+            return {"ok": True, "message": "Reopened. It is waiting for a yes again."}, 200
         if action not in entry["actions"]:
             return {"ok": False, "error": "This one is not waiting for a yes any more. Refresh the page."}, 409
         if action == "comment":
