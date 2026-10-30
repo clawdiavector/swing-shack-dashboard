@@ -9,6 +9,7 @@ Pure: the routes in app.py read the plans and the alerts and pass them in.
 from __future__ import annotations
 
 import datetime as _dt
+import re as _re
 from typing import Any, Dict, Iterable, List, Optional
 
 BUCKETS = ("overdue", "today", "this_week", "later")
@@ -175,33 +176,57 @@ def _day(d: _dt.date) -> str:
     return f"{d.strftime('%a')} {d.day} {d.strftime('%b')}"
 
 
+_GENERIC_ROW = _re.compile(r"^(instagram|facebook|tiktok)\s+(story|stories|reel|post|video)s?$", _re.I)
+_TRAILING_TAG = _re.compile(r"\s*\([^)]*\)\s*$")
+WEEKLY_SHOWN = 6
+
+
+def _plain_title(title: Any) -> Optional[str]:
+    """A calendar row's name as a person would say it, or None when it is not a name.
+
+    Left out: the generic "Instagram story" rows, caption sentences, and anything long
+    enough to be a caption. A trailing "(resend)" or "(retail B)" tag is dropped.
+    """
+    t = _TRAILING_TAG.sub("", str(title or "").strip())
+    if not t or _GENERIC_ROW.match(t) or t.endswith((".", "!", "?")) or len(t) > 60:
+        return None
+    return t
+
+
 def weekly_selling_text(sections: Dict[str, Dict[str, Any]], today: _dt.date) -> str:
-    """Monday's message: what is on each facility's calendar this week.
+    """Monday's message: what is on each facility's calendar this week, in plain words.
 
     `sections` is {brand_id: {"items": [{"date": iso, "title": str}]}}. Items outside
-    Monday to Sunday are left out; a facility with nothing says so.
+    Monday to Sunday, generic story rows, caption lines and repeats are left out, six
+    are shown per facility, and a facility with nothing says so.
     """
     monday, sunday = week_bounds(today)
-    lines = [f"Good morning. What we are selling this week, {_day(monday)} to {_day(sunday)}."]
+    lines = [f"Good morning. What we are selling this week, {_day(monday)} to {_day(sunday)}.",
+             "", "Here's what is lined up at each place."]
     for brand_id, sec in sections.items():
         week = sorted(
             ((d, i) for i in sec.get("items") or [] if (d := _parse(i.get("date"))) and monday <= d <= sunday),
             key=lambda p: (p[0], str(p[1].get("title"))),
         )
+        seen, shown = set(), []
+        for d, i in week:
+            name = _plain_title(i.get("title"))
+            if name and name.lower() not in seen:
+                seen.add(name.lower())
+                shown.append(f"• {_day(d)}: {name}")
         lines += ["", f"— {BRAND_LABEL.get(brand_id, brand_id)} —"]
-        if not week:
+        if not shown:
             lines.append("Nothing on the calendar yet.")
             continue
-        shown = [f"• {_day(d)}: {i.get('title') or '(untitled)'}" for d, i in week]
-        lines += shown[:MAX_LINES * 2]
-        if len(shown) > MAX_LINES * 2:
-            lines.append(f"…and {len(shown) - MAX_LINES * 2} more")
-    return "\n".join(lines)
+        lines += shown[:WEEKLY_SHOWN]
+        if len(shown) > WEEKLY_SHOWN:
+            lines.append(f"Plus {len(shown) - WEEKLY_SHOWN} more lined up.")
+    return "\n".join(lines + ["", "Have a good week."])
 
 
 def weekly_report_text(links: Dict[str, str], today: _dt.date) -> str:
     """Tuesday's message: one weekly report link per facility."""
-    lines = [f"Good morning. The weekly report, {_day(today)}.", ""]
+    lines = [f"Good morning. The weekly report, {_day(today)}.", "", "Here's how last week went at each place:", ""]
     lines += [f"{BRAND_LABEL.get(b, b)}: {url}" for b, url in links.items()]
     lines += ["", "Each link opens without a login and works for 7 days."]
     return "\n".join(lines)
