@@ -233,5 +233,8 @@ Score each out of 5:
    `docs/product-post-visual-rubric.md`, then §17 and §18 here, then the wiki's diagnose-a-post
    sales check. Anything real-looking (photo, generated scene, layered build) also passes the
    `reality-check` skill: real-world scale, depth, physics, light, ends in frame and load.
-4. Show Christelle only what passes, with its score and the one memorable decision named in plain
+4. Score it with the two formulas in [`formulas.md`](formulas.md): the poster formula on every frame
+   (8/10 or more, no zeros), then the post formula as the sign-off (Gates × Idea × Craft × Sell). Reels,
+   stories and video ads use the `reel-formula` skill instead.
+5. Show Christelle only what passes, with its scores and the one memorable decision named in plain
    words. Prefer refusing a weak post to shipping it.
