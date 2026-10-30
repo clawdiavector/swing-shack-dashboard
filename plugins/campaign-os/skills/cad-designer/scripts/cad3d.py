@@ -102,16 +102,17 @@ CLUB_FROM_HANDS = 0.92     # a 7-iron is 37 in (0.94 m); the lead wrist sits abo
 # Seven positions. pelvis/thorax: turn away from the target in degrees (thorax about the spine); arm: the
 # lead arm swinging across the chest; lift: the lead arm raised in front of the chest; hinge: wrist cock
 # from address (radial deviation +); roll: forearm rotation (pronation/supination); elbow: lead elbow flexion (it folds in the finish); tilt: spine forward from vertical; side: spine bent away from the
-# target; shift: pelvis slide towards the target (m); squat: pelvis lowered by bending the knees (m); heel: trail heel lift (m); pro: how far each
+# target; tray: how far the trail elbow lifts away from the body (0 tucked; at the top it carries like a
+# waiter's tray); shift: pelvis slide towards the target (m); squat: pelvis lowered by bending the knees (m); heel: trail heel lift (m); pro: how far each
 # shoulder blade slides forward round the ribs (lead, trail; m), which is how an arm reaches across.
 POSES = {
-    "address":   dict(pelvis=0,   thorax=0,    arm=0,   lift=0,  hinge=0,   roll=0,   elbow=8,   tilt=41.5, side=6,  shift=0.0,   squat=0.0, heel=0.0,  pro=(0.0, 0.06)),
-    "takeaway":  dict(pelvis=12,  thorax=35,   arm=10,  lift=14, hinge=-46, roll=-26, elbow=8,   tilt=41,   side=6,  shift=-0.01, squat=0.0, heel=0.0,  pro=(0.03, 0.03)),
-    "top":       dict(pelvis=45,  thorax=97,   arm=90,  lift=105, hinge=48, roll=80,  elbow=5,  tilt=39,   side=4,  shift=-0.02, squat=0.0, heel=0.0,  pro=(0.06, -0.02)),
-    "downswing": dict(pelvis=8,   thorax=55,   arm=85,  lift=85, hinge=47.5, roll=7,  elbow=10,  tilt=39,   side=12, shift=0.06,  squat=0.0, heel=0.0,  pro=(0.04, 0.02)),
-    "impact":    dict(pelvis=-35, thorax=-3,   arm=1,   lift=2,  hinge=-7,  roll=-14, elbow=9,   tilt=44,   side=4,  shift=0.08,  squat=0.0, heel=0.03, pro=(0.0, 0.06)),
-    "follow":    dict(pelvis=-60, thorax=-85,  arm=-3,  lift=-9, hinge=1,   roll=6,   elbow=45,  tilt=28,   side=18, shift=0.11,  squat=0.0, heel=0.07, pro=(-0.02, 0.06)),
-    "finish":    dict(pelvis=-88, thorax=-118, arm=-15, lift=80, hinge=-48, roll=-80, elbow=137, tilt=6,    side=14, shift=0.12,  squat=0.0, heel=0.10, pro=(-0.02, 0.06)),
+    "address":   dict(pelvis=0,   thorax=0,    arm=0,   lift=0,  hinge=0,   roll=0,   elbow=8,   tilt=41.5, side=6,  shift=0.0,   squat=0.0, heel=0.0,  tray=0, pro=(0.0, 0.06)),
+    "takeaway":  dict(pelvis=12,  thorax=35,   arm=10,  lift=14, hinge=-46, roll=-26, elbow=8,   tilt=41,   side=6,  shift=-0.01, squat=0.0, heel=0.0,  tray=0.5, pro=(0.03, 0.03)),
+    "top":       dict(pelvis=45,  thorax=97,   arm=90,  lift=105, hinge=48, roll=80,  elbow=5,  tilt=39,   side=4,  shift=-0.02, squat=0.0, heel=0.0,  tray=6, pro=(0.06, -0.02)),
+    "downswing": dict(pelvis=8,   thorax=55,   arm=85,  lift=85, hinge=47.5, roll=7,  elbow=10,  tilt=39,   side=12, shift=0.06,  squat=0.0, heel=0.0,  tray=1.5, pro=(0.04, 0.02)),
+    "impact":    dict(pelvis=-35, thorax=-3,   arm=1,   lift=2,  hinge=-7,  roll=-14, elbow=9,   tilt=44,   side=4,  shift=0.08,  squat=0.0, heel=0.03, tray=0, pro=(0.0, 0.06)),
+    "follow":    dict(pelvis=-60, thorax=-85,  arm=-3,  lift=-9, hinge=1,   roll=6,   elbow=45,  tilt=28,   side=18, shift=0.11,  squat=0.0, heel=0.07, tray=0, pro=(-0.02, 0.06)),
+    "finish":    dict(pelvis=-88, thorax=-118, arm=-15, lift=80, hinge=-48, roll=-80, elbow=137, tilt=6,    side=14, shift=0.12,  squat=0.0, heel=0.10, tray=0, pro=(-0.02, 0.06)),
 }
 
 
@@ -271,7 +272,7 @@ def swing_rig(ball_xy, pose="address"):
         "pelvis": pelvis, "neck": sup, "chest": sup - u * 0.17, "head": sup + u * SEG["neck_to_head"],
         "lead_shoulder": lead_sh, "trail_shoulder": trail_sh,
         "lead_elbow": lead_el,
-        "trail_elbow": _two_bone(trail_sh, trail_wrist, SEG["upper_arm"], SEG["forearm"], V([0, 0, -1.0])),
+        "trail_elbow": _two_bone(trail_sh, trail_wrist, SEG["upper_arm"], SEG["forearm"], V([0, 0, -1.0]) - l * P["tray"]),
         "lead_hip": hips[0], "trail_hip": hips[1], "lead_knee": knees[0], "trail_knee": knees[1],
         "lead_ankle": ankles[0], "trail_ankle": ankles[1], "lead_toe": toes[0], "trail_toe": toes[1],
         "axes": B, "pelvis_turn": P["pelvis"],
