@@ -1,48 +1,42 @@
-# Bag Drop — Tone Rules
+# The Bag Drop | Tone Rules
 
-The voice is **community-first, fun, supportive, member energy**. Below is how that
-translates per tone for Bag Drop specifically.
+The voice is **sharp, honest, confident, curated, clever**: dry and plain. The humour is
+the satisfaction of a good find. From `BRAND-BIBLE.md` section 5.
 
-## Relatable (primary)
-**Aim:** Name the moment every golfer has had. The reader nods and smiles.
-- Start with the specific situation ("when your mate says…" / "the Thursday after the round…").
-- Acknowledge the awkward / warm / funny part of being a golfer with people.
-- The reader is part of the group, not the subject.
+## Dials
+Formality 2/5 · Humour 3/5 · Boldness 3/5 · Technicality 3/5 · Friendliness 3/5 ·
+Energy 2/5 · Local flavour 3/5.
 
-✅ "When your mate says 'I'll fix it myself'. We've all been there. Almost."
-✅ "The bag that lives at Swing Shack. The one you forgot was yours."
-❌ "We are a community of golfers." (corporate, not warm)
-❌ "Join the Bag Drop family." (corporate)
+## Product-first (THE DROP)
+**Aim:** say what it is, what condition it is in and what it costs.
+- Product line, spec line, one dry line if it earns it, CTA. 15 to 30 words.
 
-## Funny
-**Aim:** Take a relatable golf-life moment and exaggerate one notch.
-- The joke is shared warmth, not sarcasm. Stick territory stays with Stick.
-- Self-deprecating as a group.
+✅ `Callaway Ai Smoke Triple Diamond driver head. Loft: 11°. Condition: B. Price: R5,000. Low-spin. Shop the drop. Link in bio.` (grade and price are placeholders: check the listing)
+❌ `The Mizuno STG driver head is seriously underrated... Don't sleep on this one.`
 
-✅ "Leave the bag. Play lighter. Apologise never."
-✅ "You joined for the data. You stayed for the people."
-❌ "Golfers, am I right?" (bait)
+## Honest (CONDITION CHECK)
+**Aim:** show the wear, don't apologise for it.
+✅ `Actual item. Actual condition. Face wear is light. Photos of the face, sole and crown below.`
+❌ `Mint condition.`
 
-## Educational
-**Aim:** Explain the service / the value without the data intensity of Swing Shack voice.
-- Frame it as "what you'll get out of it" not "what you'll learn."
-- Lead with the warmth, then the practical.
+## Problem first (WHO THIS SUITS, SMALL WINS)
+**Aim:** one golfer's real problem, then the product.
+✅ `Old balls do old-ball things.`
+✅ `Old wedges cost shots. Fresh grooves give you more control where it matters most.`
+✅ `The hardest club to fit in your bag is the 3-wood.`
 
-✅ "Drop your bag on the way in. It's waiting when you finish the round."
-✅ "Member bay priority. Your slot, your time."
-❌ "Our bag drop service uses advanced logistics." (corporate)
+## Dry humour
+- One dry line per post at most.
+✅ `Golf clubs do not enjoy being treated like loose biltong in a box.` (refund policy)
+✅ `Bag Drop stocks balls for the range, the course and the days when the water hazard starts collecting rent.`
+❌ Anything about the reader's budget, ability, or buying pre-owned.
 
-## Confident
-**Aim:** State what Bag Drop delivers, plainly.
-- One sentence. The reader feels it as a fact, not a sell.
-
-✅ "You'll never go back."
-✅ "The bag that lives at Swing Shack."
-❌ "We're confident you'll love it." (false confidence)
+## Confident, not loud
+- `Available now` over `ACT NOW`. Scarcity only when true: `One available`, `Last one`.
+- No exclamation marks in headlines, max one per post.
 
 ## Banned across all tones
-- Sarcasm — that's Stick.
-- Data intensity — that's Swing Shack.
-- Cross-business mentions without sign-off.
+- Hype and false scarcity.
+- Violent idiom.
+- Engagement bait.
 - Em dashes.
-- "Join the family" / "become a member of our community" — corporate warmth.

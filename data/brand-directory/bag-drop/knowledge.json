@@ -1,91 +1,95 @@
 {
   "schema_version": "p11c-v1",
   "brand_id": "bag-drop",
-  "generated_at": "2026-09-10T16:20:00+00:00",
+  "generated_at": "2026-10-30T10:00:00+00:00",
   "services": [
     {
-      "fact_id": "bd-service-bag-drop",
+      "fact_id": "bd-online-store",
       "type": "service",
-      "subject": "bag drop",
-      "value": "Bag Drop service — members leave their golf bag at Swing Shack and play lighter. The bag lives at Swing Shack between sessions.",
-      "source": "data/brand-directory/bag-drop/README.md + data/brand-directory/bag-drop/copy/ctas.md",
-      "source_path": "data/brand-directory/bag-drop/README.md",
+      "subject": "online store",
+      "value": "The Bag Drop is an online store for demo and pre-owned golf gear at thebagdrop.co.za: demo heads, pre-owned clubs, putters, shafts and the essentials (balls, gloves, grips, towels). National shipping. No shop to visit.",
+      "source": "BRAND-BIBLE.md section 1 (workbook A, live store 2026-10-13); store identity confirmed by Christelle 2026-10-21",
+      "source_path": "data/brand-directory/bag-drop/BRAND-BIBLE.md",
       "source_class": "approved_internal",
       "authority_level": "high",
       "confidence": "high",
-      "valid_from": "2026-09-10",
+      "valid_from": "2026-10-21",
       "valid_to": null,
       "status": "active",
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-10-13",
       "details": {
-        "operated_by": "swing-shack",
-        "format": "ongoing bag storage + session access",
-        "booking_url": "swingshack.co.za"
+        "website": "thebagdrop.co.za",
+        "instagram": "@the_bagdrop_za",
+        "email": "hello@thebagdrop.co.za",
+        "condition_grades": [
+          "A",
+          "B",
+          "New"
+        ],
+        "not_to_confuse_with": "bagdrop.co.za (unrelated luggage company)"
       }
     },
     {
-      "fact_id": "bd-service-thursday-social",
-      "type": "event",
-      "subject": "Thursday member social",
-      "value": "Recurring Bag Drop member social on Thursdays (weekly).",
-      "source": "data/brand-directory/bag-drop/README.md + data/brand-directory/bag-drop/copy/ctas.md",
-      "source_path": "data/brand-directory/bag-drop/README.md",
+      "fact_id": "bd-returns-30-days",
+      "type": "policy",
+      "subject": "returns",
+      "value": "Returns within 30 days of receiving the item, unused and in the condition received, after emailing hello@thebagdrop.co.za. Return shipping is paid by the customer unless the item is faulty, damaged or incorrect.",
+      "source": "BRAND-BIBLE.md section 7 Proof bank (refund policy, read 2026-10-13)",
+      "source_path": "data/brand-directory/bag-drop/BRAND-BIBLE.md",
       "source_class": "approved_internal",
       "authority_level": "high",
       "confidence": "high",
-      "valid_from": "2026-09-10",
+      "valid_from": "2026-10-21",
       "valid_to": null,
       "status": "active",
-      "last_verified": "2026-09-10",
-      "first_seen": "2026-07-30",
-      "provenance": "Pre-existing in canonical voice + CTAs. README mentions 'Thursday member social' as the named recurring event; copy/ctas.md contains a hard CTA 'Member social every Thursday. Join us' + an explicit CTA-selection rule for 'Event (Thursday social) → hard CTA, name the event.' This fact was promoted from these pre-existing canonical sources — NOT from a P1.1 test prompt, NOT from generated copy, NOT from session context, NOT from synthetic fixture data.",
-      "details": {
-        "schedule": "weekly, Thursdays",
-        "detail_caveat": "Exact start time, venue, and any guest fee are not in canonical sources — leave unknown unless user supplies them in the brief."
-      }
+      "last_verified": "2026-10-13"
     }
   ],
   "products": [],
   "voice_rules": {
-    "source": "data/brand-directory/bag-drop/README.md + data/brand-directory/bag-drop/voice/do-say-dont-say.md",
+    "source": "BRAND-BIBLE.md sections 5 and 6",
     "source_class": "approved_internal",
     "authority_level": "high",
     "do_say": [
-      "members",
-      "community",
-      "the bag that lives at Swing Shack",
-      "play lighter",
-      "Thursday",
-      "social",
-      "you'll never go back"
+      "demo head",
+      "pre-owned",
+      "the drop",
+      "condition grade",
+      "Good gear doesn't need to be new.",
+      "Actual item. Actual condition.",
+      "R6,500"
     ],
     "dont_say": [
-      "Take your game to the next level",
-      "Unlock your potential",
-      "Elevate",
-      "—",
-      "Stick / Swing Shack (cross-brand text banned unless approved)",
-      "Limited spots",
-      "Join the family",
-      "Join our community",
-      "Learn more",
-      "Click here"
+      "second-hand",
+      "pre-loved",
+      "bargain",
+      "cheap",
+      "mint condition",
+      "inspected",
+      "DM for price",
+      "Message us for current stock",
+      "Don't sleep on this one",
+      "Grab it before it's gone",
+      "Stock moves fast",
+      "lethal",
+      "aggressively",
+      "bagdrop.co.za",
+      "—"
     ]
   },
   "cta_rules": {
-    "source": "data/brand-directory/bag-drop/copy/ctas.md",
+    "source": "BRAND-BIBLE.md section 6 and Part 4 ctas_allowed",
     "source_class": "approved_internal",
     "authority_level": "high",
-    "default_cta": "Visit the online store or DM ⛳️",
+    "default_cta": "Shop the drop. Link in bio.",
     "hard_ctas": [
-      "Message us for current stock.",
-      "Member social every Thursday. Join us",
-      "Message us to check what’s available."
+      "Shop the drop. Link in bio.",
+      "View the product. Link in bio.",
+      "Message us to order."
     ],
     "soft_ctas": [
-      "You'll never go back.",
-      "Apologise never.",
-      "Play lighter."
+      "Tell us what you are after.",
+      "Visit the online store or DM us."
     ]
   },
   "performance_history_note": "Bag Drop has 0 eligible Instagram records (P0.6A close-out audit). Performance prior must default to confidence=unknown."
