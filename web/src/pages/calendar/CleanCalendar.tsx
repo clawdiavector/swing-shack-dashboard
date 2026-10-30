@@ -266,12 +266,13 @@ function Detail({
 
   async function press(action: CleanAction) {
     // Comment and Reject open the note box; its own Send button sends it.
-    if (action !== 'approve' && writing !== action) {
+    const oneClick = action === 'approve' || action === 'reopen'
+    if (!oneClick && writing !== action) {
       setWriting(action)
       setNote('')
       return
     }
-    if (action !== 'approve' && !text.trim()) {
+    if (!oneClick && !text.trim()) {
       setNote(action === 'reject' ? 'Say what should change first.' : 'Write a comment first.')
       return
     }
@@ -432,6 +433,17 @@ function Detail({
               </div>
             ) : null}
             <div className="flex flex-wrap gap-2 pt-1">
+              {entry.rejected ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void press('reopen')}
+                  title="Put it back to waiting for a yes"
+                  className="rounded-full border border-ac px-4 py-2 text-sm font-semibold text-ac disabled:opacity-50"
+                >
+                  Reopen
+                </button>
+              ) : null}
               {entry.actions.map((a) => (
                 <button
                   key={a}
