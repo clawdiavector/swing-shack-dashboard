@@ -1,85 +1,34 @@
-# Bag Drop | Punctuation Rules
+# The Bag Drop | Punctuation Rules
 
-The voice is **community-first, fun, supportive, member energy**. Punctuation is
-warm and conversational: the reader is part of the group, not the subject of a
-lecture. Below is how punctuation lands for Bag Drop.
+From `BRAND-BIBLE.md` section 2. South African English, British spelling.
 
-## Standing rule (all copy)
+## Standing rules
+- **No em dashes, no en dashes, no ellipsis.** Use full stops, commas or colons.
+- **Full stops** are the default. Short sentences.
+- **Exclamation marks:** none in headlines, max one per post. Usually none.
+- **No serial comma:** `balls, gloves and grips`.
+- **Curly quotes and apostrophes**, double for quotes.
+- **`and`, not `&`**, in prose.
 
-- **No em dashes.** Use pipes `|`, commas `,`, full stops `.`, or colons `:`.
-  Em dashes are banned across every brand.
-- **Conversational cadence.** Sentences can be longer than Swing Shack because
-  warmth takes room. But every sentence should still end with a clear beat.
-
-## Sentence terminators
-
-- **Period `.`** is the default. After a soft claim, after a CTA, after a joke.
-- **Question mark `?`** for the warm invitation:
-  ✅ "Drop your bag on the way in. It's waiting when you finish the round."
-  ✅ "When's the last time someone filled your divot for you?"
-- **Exclamation `!`** is allowed but warm, not loud. One per caption max.
-  ✅ "Member social every Thursday, join us!"
-  ❌ "Join us now!!!" (too loud, not Bag Drop)
-
-## Conjunctions
-
-- **Comma `,`** is the workhorse for warm, conversational joins.
-  ✅ "You joined for the data, you stayed for the people."
-- **"And"** beats "&" in prose. "&" is only for product names.
-- **Pipe `|`** for the three-beat CTA pattern:
-  ✅ `Drop your bag | play lighter | Thursday 18h.`
-- **Colon `:`** for the soft setup:
-  ✅ "The truth: you'll never go back."
-
-## Quotation marks
-
-- **Curly quotes** preferred (`"…"`, `'…'`). Straight quotes never in published copy.
-- **Single quotes** for inner voice or remembered phrase:
-  ✅ "When your mate says 'I'll fix it myself', we've all been there. Almost."
-- **Avoid scare-quotes**. Bag Drop is warm, not ironic. The Stick voice owns scare-quotes.
-
-## Lists
-
-- **Short parallel bullets** carry the warmth:
-  ✅ `- Drop your bag. - Play lighter. - Apologise never.`
-- **Numbered lists** for the practical how-to ("1. Drop your bag 2. Hit a bay 3. Grab a drink").
+## Numbers and money
+- Numerals for data, specs and money.
+- Price: `R6,500`. Always the R and the comma. Never `R5000`, `R8 500`, `R 6,500.00`.
+- Loft with a degree sign: `11°`.
+- Spec line: `Loft: 11°. Condition: B. Price: R5,000.` Each field its own sentence.
+- Dates: `30 July`, no ordinals.
 
 ## Capitalisation
+- Sentence case. No full stop on headlines set on an image.
+- No ALL CAPS lines in captions. The on-image titles `THE DROP`, `CONDITION CHECK`,
+  `OUT THE DOOR` are graphics, not caption text.
+- Brand and model names exactly as the product listing spells them.
 
-- **Sentence case** in headlines and CTAs.
-- **Member** capitalised when referring to Bag Drop members.
-- **TrackMan** capitalised exactly when mentioned (rarely for Bag Drop).
-- **Thursday** capitalised when referring to the member social event.
+## Emoji and hashtags
+- Max one emoji, with a job: `📦` OUT THE DOOR, `🔍` CONDITION CHECK, `⛳` THE DROP.
+  A space before it.
+- 0 to 3 hashtags, at the end, CamelCase: `#TheBagDrop` `#DemoGolf` `#PreOwnedGolf`
+  `#GolfGearSA`.
 
-## Numbers
-
-- **Numerals** for times, dates, and prices: "18h", "R500", "Thursdays".
-- **Words for warmth** ("a few of us", "every Thursday", "someone who knows").
-- **No $** in headlines. Spell out or omit.
-
-## Parentheses
-
-- Allowed for the soft aside or the heart:
-  ✅ "The bag that lives at Swing Shack (the one you forgot was yours)."
-- One parenthetical per caption max. Don't nest.
-
-## Apostrophes
-
-- **Curly apostrophe** `'`. Not straight `'`.
-- **Contractions** are Bag Drop voice: "it's", "you're", "you'll", "we're".
-- **Possessives** form normally: "the member's bag", "Thursday's social".
-
-## Tone cues
-
-- **Ellipsis `…`** is allowed in Bag Drop for the warm pause:
-  ✅ "Apologise never. Or… maybe once."
-- **Multiple sentences** in one line is fine when the rhythm is conversational.
-
-## What to avoid
-
-- ❌ Em dashes (banned everywhere).
-- ❌ Multiple exclamation marks (`!!`). One per caption max.
-- ❌ Staccato bullets like Stick (Bag Drop is warmer, not punchier).
-- ❌ ALL CAPS for emphasis. Use italic or bold.
-- ❌ Sarcasm punctuation (exclamation + question mark combos).
-- ❌ Slash conjunctions (`and/or`): write "and" or pick one.
+## Links
+- Instagram captions cannot carry a live link. Write `Link in bio.`, never a pasted
+  web address.

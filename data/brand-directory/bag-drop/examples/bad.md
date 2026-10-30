@@ -1,39 +1,47 @@
-# Bag Drop — Examples That Missed
+# The Bag Drop | Examples That Missed
+
+Real captions from `@the_bagdrop_za`, from `BRAND-BIBLE.md` section 15.
 
 ## ❌ Bad (missed the brand)
 
-### "Join the Bag Drop family and experience world-class bag storage today!"
+### "The Mizuno STG driver head is seriously underrated and packs a massive punch. Don't sleep on this one. Grab it before it's gone!"
 **Why this failed:**
-- "Join the family" — corporate warmth, banned across all Bag Drop tones.
-- "World-class" — banned unless verified, and never applies to a bag drop.
-- "Experience" — vague, not specific to what members actually get.
-- Em dash equivalent: three stock phrases in one sentence, no specificity.
+- Hype and false scarcity.
+- No price, no condition grade, an unverified performance claim.
+- **Fix:** `Mizuno STG driver head. Loft: [x]°. Condition: [grade]. Price: [R]. Shop the drop. Link in bio.`
 
-### "Our community of passionate golfers deserves the very best in convenience."
+### "Stealth mode activated. The all-black Ping Anser 2D is looking absolutely lethal."
 **Why this failed:**
-- "Community of passionate golfers" — corporate tone, banned.
-- "Deserves the very best" — vague, unprovable.
-- Passive voice — Bag Drop voice is active, member-led.
-- No mention of the actual service (drop the bag, it lives at the club).
+- Violent idiom and hype.
+- No price, no condition.
+- **Fix:** `Ping Anser 2D, black finish. Condition: [grade]. Price: [R]. Shop the drop. Link in bio.`
 
-### "We are thrilled to announce our new premium concierge service!"
+### "These heads are inspected, checked and in mint condition before they go up for sale."
 **Why this failed:**
-- "Thrilled to announce" — corporate announcement voice, banned.
-- "Premium concierge" — overstates the service, reads as luxury.
-- Exclamation mark in the headline — Bag Drop uses period or no punctuation.
-- No specific detail about what the service does.
+- "Mint" is not on the grade scale, and no inspection process is recorded.
+- **Fix:** `Every head is graded A or B, with photos of the face, sole and crown.` (only if true)
 
-### "Don't let your bag slow down your game."
+### "Bag Drop stocks demo clubs, second-hand clubs and useful golf essentials at better price points. Message us to check what's available."
 **Why this failed:**
-- Negative framing (don't, slow down) — Bag Drop voice is positive, member-led.
-- "Slow down your game" — the joke is overstated; the real friction is small.
-- Reads as a generic ad, not a member moment.
-- No warmth, no specificity.
+- `second-hand` is banned. No product, no price.
+- A CTA that makes the customer ask.
+- Could be any golf resale account.
+- **Fix:** lead with one product and its price.
+
+### "We are aggressively taking trade-ins. Drop what you've got in the comments!"
+**Why this failed:**
+- Trade-ins have no confirmed terms.
+- `aggressively`, engagement bait.
+- **Fix:** do not run until the owners confirm trade-ins.
+
+### "Buy from The Bag Drop and get R500 off a fitting at SwingShack or Stick.paarl. Shop now: www.thebagdrop.co.za"
+**Why this failed:**
+- Offer has no terms. Sister-brand names misspelt.
+- A pasted address cannot be clicked on Instagram.
+- **Fix:** record the offer's terms first, get approval, write the names properly.
 
 ## 🚫 Banned patterns to keep catching
-
-- "Join the family" / "Become a member of our community" — corporate warmth.
-- "Experience" / "discover" / "unlock" — vague verbs, banned.
-- Sarcasm, even mild — that's Stick territory.
-- Data intensity (attack angle, TrackMan) — that's Swing Shack.
+- A product post with no price.
+- `Message us for current stock` as the CTA.
+- `second-hand`, `mint`, `lethal`, `before it's gone`.
 - Em dashes.
