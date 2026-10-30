@@ -3,7 +3,7 @@
 
 export type CleanView = 'scheduled' | 'approval' | 'ideas' | 'todo'
 // 'edit' (a new caption) is offered only when an entry is editable, never as a button in `actions`.
-export type CleanAction = 'approve' | 'comment' | 'reject' | 'edit'
+export type CleanAction = 'approve' | 'comment' | 'reject' | 'edit' | 'reopen'
 
 export type CleanComment = {
   who: string
