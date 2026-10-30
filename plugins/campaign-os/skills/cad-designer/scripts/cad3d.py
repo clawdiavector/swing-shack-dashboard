@@ -5,8 +5,10 @@ Cameras: iso (isometric), plan (top-down), front/side elevation, persp (eye + ta
 Styles: blueprint (white lines on navy, grid, dimensions), plan (dark lines on paper), clay (lit flat faces).
 """
 
+import json
 import math
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -41,6 +43,7 @@ class Capsule:
     b: np.ndarray
     r: float               # radius in metres
     fill: tuple = (235, 235, 235)
+    r2: float = None       # radius at b, for a tapered limb (None: same as r)
 
 
 @dataclass
@@ -66,26 +69,49 @@ class Scene:
     decals: list = field(default_factory=list)
     dims: list = field(default_factory=list)
     lines: list = field(default_factory=list)    # (points, colour, width)
+    bands: list = field(default_factory=list)    # muscles: (a, b, belly radius in metres, RGBA), drawn see-through on top
 
 
-# ── golfer: a poseable mannequin with adult proportions ──────────────────
+# ── golfer: real anatomy (every number's source is in ../anatomy.json) ────
 
-SEG = {  # metres, for a 1.75 m adult (anthropometric proportions)
-    "upper_arm": 0.31, "forearm": 0.27, "head_r": 0.11,
-}
-CLUB_FROM_HANDS = 0.84     # a 7-iron is 37 in (0.94 m); the hands hold it about 10 cm below the butt
+ANATOMY = json.loads((Path(__file__).resolve().parents[1] / "anatomy.json").read_text(encoding="utf-8"))
+STATURE = 1.75                                       # the golfer's height in metres
+_DL, _AN = ANATOMY["segments_de_leva_m"], ANATOMY["ansur_men_mm"]
 
-# Seven positions of a two-lever swing. theta: how far the hands have travelled round the chest
-# (+ back, away from the target; - through); hinge: extra wrist angle of the club; tilt: spine
-# angle from vertical.
+
+def _ansur(key):
+    """An ANSUR II mean, in metres, scaled to the golfer's height."""
+    return _AN[key] / 1000 * STATURE / (_AN["stature"] / 1000)
+
+
+def _girth(key):
+    """The radius of an ANSUR II circumference."""
+    return _ansur(key) / (2 * math.pi)
+
+
+SEG = {k: _DL[k] * STATURE / _DL["stature"] for k in ("upper_arm", "forearm", "hand", "thigh", "shank", "foot", "trunk")}
+SEG.update(
+    head_r=(_ansur("head_breadth") + _ansur("head_length")) / 4,
+    shoulder_half=_ansur("biacromial_breadth") / 2,
+    hip_half=ANATOMY["golf"]["hip_joint_centre_separation_m_estimate"] / 2,
+    ankle_h=_ansur("lateral_malleolus_height"),
+    neck_to_head=STATURE - _ansur("tragion_to_top_of_head") - _ansur("suprasternale_height"),
+)
+CLUB_FROM_HANDS = 0.92     # a 7-iron is 37 in (0.94 m); the lead wrist sits about 2 cm below the butt (estimate)
+
+# Seven positions. pelvis/thorax: turn away from the target in degrees (thorax about the spine); arm: the
+# lead arm swinging across the chest; lift: the lead arm raised in front of the chest; hinge: wrist cock
+# from address (radial deviation +); roll: forearm rotation (pronation/supination); elbow: lead elbow flexion (it folds in the finish); tilt: spine forward from vertical; side: spine bent away from the
+# target; shift: pelvis slide towards the target (m); squat: pelvis lowered by bending the knees (m); heel: trail heel lift (m); pro: how far each
+# shoulder blade slides forward round the ribs (lead, trail; m), which is how an arm reaches across.
 POSES = {
-    "address":   dict(theta=0,    hinge=0,    tilt=30),
-    "takeaway":  dict(theta=45,   hinge=15,   tilt=30),
-    "top":       dict(theta=130,  hinge=135,  tilt=30),
-    "downswing": dict(theta=90,   hinge=40,   tilt=30),
-    "impact":    dict(theta=-5,   hinge=-5,   tilt=29),
-    "follow":    dict(theta=-90,  hinge=-40,  tilt=20),
-    "finish":    dict(theta=-160, hinge=-110, tilt=8),
+    "address":   dict(pelvis=0,   thorax=0,    arm=0,   lift=0,  hinge=0,   roll=0,   elbow=8,   tilt=41.5, side=6,  shift=0.0,   squat=0.0, heel=0.0,  pro=(0.0, 0.06)),
+    "takeaway":  dict(pelvis=12,  thorax=35,   arm=10,  lift=14, hinge=-46, roll=-26, elbow=8,   tilt=41,   side=6,  shift=-0.01, squat=0.0, heel=0.0,  pro=(0.03, 0.03)),
+    "top":       dict(pelvis=45,  thorax=97,   arm=90,  lift=105, hinge=48, roll=80,  elbow=5,  tilt=39,   side=4,  shift=-0.02, squat=0.0, heel=0.0,  pro=(0.06, -0.02)),
+    "downswing": dict(pelvis=8,   thorax=55,   arm=85,  lift=85, hinge=47.5, roll=7,  elbow=10,  tilt=39,   side=12, shift=0.06,  squat=0.0, heel=0.0,  pro=(0.04, 0.02)),
+    "impact":    dict(pelvis=-35, thorax=-3,   arm=1,   lift=2,  hinge=-7,  roll=-14, elbow=9,   tilt=44,   side=4,  shift=0.08,  squat=0.0, heel=0.03, pro=(0.0, 0.06)),
+    "follow":    dict(pelvis=-60, thorax=-85,  arm=-3,  lift=-9, hinge=1,   roll=6,   elbow=45,  tilt=28,   side=18, shift=0.11,  squat=0.0, heel=0.07, pro=(-0.02, 0.06)),
+    "finish":    dict(pelvis=-88, thorax=-118, arm=-15, lift=80, hinge=-48, roll=-80, elbow=137, tilt=6,    side=14, shift=0.12,  squat=0.0, heel=0.10, pro=(-0.02, 0.06)),
 }
 
 
@@ -96,93 +122,252 @@ def rotate(v, axis, deg):
     return v * math.cos(t) + np.cross(k, v) * math.sin(t) + k * np.dot(k, v) * (1 - math.cos(t))
 
 
+def angle_between(a, b):
+    """Angle between two vectors in degrees."""
+    c = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    return math.degrees(math.acos(max(-1.0, min(1.0, c))))
+
+
 def _reach(shoulder, hands, length):
     d = hands - shoulder
     n = np.linalg.norm(d)
     return hands if n <= length else shoulder + d * (length / n)
 
 
-def _elbow(shoulder, hands):
-    u, f = SEG["upper_arm"], SEG["forearm"]
-    d = hands - shoulder
-    n = np.linalg.norm(d)
-    a = (u * u - f * f + n * n) / (2 * n)
-    h = math.sqrt(max(u * u - a * a, 0.0))
-    axis = d / n
-    down = V([0.0, 0.0, -1.0]) - axis * axis[2]          # bend the elbow downwards, the way arms hang
-    down = down / (np.linalg.norm(down) or 1.0)
-    return shoulder + axis * a + down * h
+def _two_bone(root, end, a, b, pole):
+    """The middle joint of a two-bone limb (shoulder-elbow-wrist, hip-knee-ankle): bones keep their length
+    and the joint bends towards `pole`, the way that joint really bends."""
+    d = end - root
+    n = min(np.linalg.norm(d), a + b - 1e-9)
+    axis = d / np.linalg.norm(d)
+    x = (a * a - b * b + n * n) / (2 * n)
+    h = math.sqrt(max(a * a - x * x, 0.0))
+    side = pole - axis * np.dot(pole, axis)
+    side = side / (np.linalg.norm(side) or 1.0)
+    return root + axis * x + side * h
+
+
+def _basis(tilt, side, turn):
+    """Thorax axes: l (towards the target at address), u (up the spine), f (out of the chest)."""
+    t = math.radians(tilt)
+    u, f, l = V([math.sin(t), 0.0, math.cos(t)]), V([math.cos(t), 0.0, -math.sin(t)]), V([0.0, 1.0, 0.0])
+    u, l = rotate(u, f, side), rotate(l, f, side)          # + bends the spine away from the target
+    l, f = rotate(l, u, -turn), rotate(f, u, -turn)        # + turns away from the target
+    return np.stack([l, u, f], axis=1)
+
+
+def _legs(pelvis, ball_xy, pelvis_turn, heel):
+    bx, by = ball_xy
+    hips = [pelvis + rotate(V([0.0, s * SEG["hip_half"], 0.0]), V([0, 0, 1.0]), -pelvis_turn) for s in (1, -1)]
+    toes, ankles = [], []
+    for s, lift in ((1, 0.0), (-1, heel)):
+        toe = V([pelvis[0] + 0.19, by + s * 0.21, 0.03])
+        ankle = V([toe[0] - 0.19 + 0.6 * lift, toe[1], SEG["ankle_h"] + lift])   # heel up: the ankle rolls over the toes
+        toes.append(toe), ankles.append(ankle)
+    return hips, ankles, toes
+
+
+def _arm_len(elbow_flex):
+    """Shoulder-to-wrist distance with the elbow bent elbow_flex degrees (law of cosines)."""
+    ua, fa = SEG["upper_arm"], SEG["forearm"]
+    return math.sqrt(ua * ua + fa * fa + 2 * ua * fa * math.cos(math.radians(elbow_flex)))
+
+
+def _shoulders(sup, B, pro):
+    """Shoulder joint centres: behind and below the top of the breastbone (estimate), a biacromial width
+    apart, each slid forward round the ribs by its shoulder blade (pro)."""
+    l, u, f = B[:, 0], B[:, 1], B[:, 2]
+    centre = sup - f * 0.04 - u * 0.04
+    return (centre + l * SEG["shoulder_half"] + f * pro[0], centre - l * SEG["shoulder_half"] + f * pro[1])
+
+
+def _ELBOW_POLE(B):
+    return V([0, 0, -1.0]) - B[:, 2] * 0.3                 # the lead elbow points down and in, at the body
+
+
+def _address(ball_xy):
+    """Solve the set-up: club head behind the ball at the lie of a 7-iron, both hands on the grip, spine
+    at a tour player's forward bend, and the golfer standing exactly far enough away for the lead arm to
+    hang long."""
+    bx, by = ball_xy
+    head = V([bx, by - 0.035, 0.02])
+    lie = math.radians(62.5)                             # a 7-iron's lie angle, sole flat (typical spec)
+    shaft = V([-math.cos(lie), 0.07, math.sin(lie)])
+    wrist = head + shaft / np.linalg.norm(shaft) * CLUB_FROM_HANDS
+    P = POSES["address"]
+    want = _arm_len(P["elbow"])
+    B = _basis(P["tilt"], P["side"], 0)
+
+    def body(px):
+        # knees flexed about 22 degrees: shins lean 10 forward, thighs 12 back
+        z = SEG["ankle_h"] + SEG["shank"] * math.cos(math.radians(10)) + SEG["thigh"] * math.cos(math.radians(12))
+        pelvis = V([px, by, z])
+        sup = pelvis + B[:, 1] * SEG["trunk"]
+        return pelvis, _shoulders(sup, B, P["pro"])[0]
+
+    lo, hi = bx - 1.6, bx - 0.1                            # further back = further from the hands
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        if np.linalg.norm(body(mid)[1] - wrist) > want:
+            lo = mid
+        else:
+            hi = mid
+    pelvis, lead_sh = body((lo + hi) / 2)
+    elbow = _two_bone(lead_sh, wrist, SEG["upper_arm"], SEG["forearm"], _ELBOW_POLE(B))
+    return dict(pelvis=pelvis, B=B, arm=B.T @ (wrist - lead_sh), forearm=B.T @ (wrist - elbow),
+                club=B.T @ ((head - wrist) / CLUB_FROM_HANDS))
 
 
 def swing_rig(ball_xy, pose="address"):
     """Joint positions (metres) for a right-handed golfer at ball_xy; target is +y, the golfer faces +x.
-    Hands travel round the chest on the swing plane, the club follows them with a wrist hinge, the
-    shoulders and hips turn with the swing, and the arms can never stretch past their length."""
+    The pelvis turns over the feet, the thorax turns about the spine, the lead arm swings across the chest
+    and the club cocks at the wrist; every bone keeps its de Leva length and every joint bends the way it
+    can (sources: anatomy.json)."""
     P = POSES[pose]
-    bx, by = ball_xy
-    t_dir = V([0.0, 1.0, 0.0])
-    head_addr = V([bx, by - 0.035, 0.02])                # club head resting just behind the ball
-    dx, dy = 0.45, 0.085
-    hands_addr = V([bx - dx, by + 0.05, 0.02 + math.sqrt(CLUB_FROM_HANDS ** 2 - dx ** 2 - dy ** 2)])
-    pelvis = V([bx - 0.70, by, 0.92])
-    tilt = math.radians(P["tilt"])
-    chest = pelvis + 0.394 * V([math.sin(tilt), 0.0, math.cos(tilt)])
-    chest_addr = pelvis + 0.394 * V([math.sin(math.radians(30)), 0.0, math.cos(math.radians(30))])
-    spine = (chest - pelvis) / np.linalg.norm(chest - pelvis)
+    A = _address(ball_xy)
+    pelvis = A["pelvis"] + V([0.0, P["shift"], -P["squat"]])
+    hips, ankles, toes = _legs(pelvis, ball_xy, P["pelvis"], P["heel"])
+    reach = SEG["thigh"] + SEG["shank"] - 0.002
+    drop = 0.0
+    for h, a in zip(hips, ankles):                         # sink the hips just enough for both legs to reach
+        dxy = np.linalg.norm((h - a)[:2])
+        dz = h[2] - a[2]
+        if dxy < reach and math.hypot(dxy, dz) > reach:
+            drop = max(drop, dz - math.sqrt(reach * reach - dxy * dxy))
+    pelvis, hips = pelvis - V([0, 0, drop]), [h - V([0, 0, drop]) for h in hips]
+    knees = [_two_bone(h, a, SEG["thigh"], SEG["shank"], (t - a) * V([1, 1, 0]) + V([0, 0, 0.2]))
+             for h, a, t in zip(hips, ankles, toes)]
 
-    v = hands_addr - chest_addr
-    n = np.cross(v, -t_dir)                              # swing-plane axis: +theta moves the hands back
-    hands = chest + rotate(v, n, P["theta"])
-    club_dir = rotate((head_addr - hands_addr) / CLUB_FROM_HANDS, n, P["theta"] + P["hinge"])
+    B = _basis(P["tilt"], P["side"], P["thorax"])
+    l, u, f = B[:, 0], B[:, 1], B[:, 2]
+    sup = pelvis + u * SEG["trunk"]                        # suprasternale: the top of the breastbone
+    lead_sh, trail_sh = _shoulders(sup, B, P["pro"])
 
-    turn = float(np.clip(0.7 * P["theta"], -100, 92))
-    lead_sh = chest + rotate(V([0.0, 0.20, 0.03]), spine, -turn)
-    trail_sh = chest + rotate(V([0.0, -0.20, -0.03]), spine, -turn)
-    reach = SEG["upper_arm"] + SEG["forearm"]
-    for _ in range(12):                                  # keep both hands on the grip within reach
-        hands = _reach(lead_sh, hands, reach)
-        hands = _reach(trail_sh, hands, reach)
+    def carry(local):                                       # address direction, carried by the turn and arm swing
+        v = rotate(rotate(local, V([0, 1.0, 0]), -P["arm"]), V([1.0, 0, 0]), -P["lift"])
+        return B @ v
 
-    club_head = hands + club_dir * CLUB_FROM_HANDS
-    hip_turn = turn * 0.5
-    hips = [pelvis + rotate(V([0.0, s * 0.15, 0.0]), V([0, 0, 1.0]), -hip_turn) for s in (1, -1)]
-    ankles = [V([bx - 0.68, by + s * 0.24, 0.08]) for s in (1, -1)]
-    knees = [(h + a) / 2 + V([0.08, 0.0, 0.0]) for h, a in zip(hips, ankles)]
+    arm = carry(A["arm"])
+    hands = lead_sh + arm / np.linalg.norm(arm) * _arm_len(P["elbow"])
+    lead_el = _two_bone(lead_sh, hands, SEG["upper_arm"], SEG["forearm"], _ELBOW_POLE(B))
+    fa_was, fa_now = carry(A["forearm"]), hands - lead_el    # the club is held by the hand, so it follows the forearm
+    axis = np.cross(fa_was, fa_now)
+    club = carry(A["club"])
+    if np.linalg.norm(axis) > 1e-9:
+        club = rotate(club, axis, angle_between(fa_was, fa_now))
+    club = rotate(club, np.cross(fa_now, club), P["hinge"])  # cocking opens the angle between forearm and club
+    club = rotate(club, fa_now, P["roll"])                   # the forearm rolls (pronation/supination)
+    club = club / np.linalg.norm(club)
+    grip = hands + club * 0.09                               # the trail hand sits a hand-width down the grip
+    reach_t = SEG["upper_arm"] + SEG["forearm"] - 1e-6
+    extra = 0.0
+    while np.linalg.norm(grip - trail_sh) > reach_t and P["pro"][1] + extra < 0.12:
+        extra += 0.005                                       # still short: the trail shoulder blade wraps further forward
+        trail_sh = trail_sh + f * 0.005 + l * 0.0015
+    trail_wrist = _reach(trail_sh, grip, reach_t)
+
     return {
-        "hands": hands, "club_head": club_head, "chest": chest, "pelvis": pelvis,
-        "head": chest + spine * 0.30,
+        "hands": hands, "trail_wrist": trail_wrist, "club_head": hands + club * CLUB_FROM_HANDS,
+        "pelvis": pelvis, "neck": sup, "chest": sup - u * 0.17, "head": sup + u * SEG["neck_to_head"],
         "lead_shoulder": lead_sh, "trail_shoulder": trail_sh,
-        "lead_elbow": _elbow(lead_sh, hands), "trail_elbow": _elbow(trail_sh, hands),
+        "lead_elbow": lead_el,
+        "trail_elbow": _two_bone(trail_sh, trail_wrist, SEG["upper_arm"], SEG["forearm"], V([0, 0, -1.0])),
         "lead_hip": hips[0], "trail_hip": hips[1], "lead_knee": knees[0], "trail_knee": knees[1],
-        "lead_ankle": ankles[0], "trail_ankle": ankles[1],
+        "lead_ankle": ankles[0], "trail_ankle": ankles[1], "lead_toe": toes[0], "trail_toe": toes[1],
+        "axes": B, "pelvis_turn": P["pelvis"],
+        "turn": {k: P[k] for k in ("pelvis", "thorax", "arm", "hinge")},
     }
 
 
+# Muscles as origin-to-insertion bands. Base radius is the belly at address (estimate); the belly thickens
+# as the muscle shortens because muscle keeps its volume.
+def _muscle_anchors(r):
+    l, u, f = r["axes"][:, 0], r["axes"][:, 1], r["axes"][:, 2]
+    pl = rotate(V([0.0, 1.0, 0.0]), V([0, 0, 1.0]), -r["pelvis_turn"])
+    pf = rotate(V([1.0, 0.0, 0.0]), V([0, 0, 1.0]), -r["pelvis_turn"])
+    z, pc, sup = V([0, 0, 1.0]), r["pelvis"], r["neck"]
+
+    def along(a, b, t):
+        return r[a] + (r[b] - r[a]) * t
+
+    return {
+        "lead latissimus dorsi": (pc + pl * 0.07 - pf * 0.10 + z * 0.14, along("lead_shoulder", "lead_elbow", 0.25), 0.035),
+        "trail latissimus dorsi": (pc - pl * 0.07 - pf * 0.10 + z * 0.14, along("trail_shoulder", "trail_elbow", 0.25), 0.035),
+        "lead pectoralis major": (sup - u * 0.10 + f * 0.06, along("lead_shoulder", "lead_elbow", 0.2), 0.033),
+        "trail pectoralis major": (sup - u * 0.10 + f * 0.06, along("trail_shoulder", "trail_elbow", 0.2), 0.033),
+        "trail erector spinae": (pc - pl * 0.04 - pf * 0.11 + z * 0.05, sup - l * 0.05 - f * 0.12 - u * 0.05, 0.028),
+        "obliques": (sup - u * 0.30 + l * 0.10 + f * 0.08, pc - pl * 0.12 + pf * 0.10 + z * 0.08, 0.03),
+        "trail gluteus maximus": (pc - pl * 0.05 - pf * 0.11 + z * 0.03, along("trail_hip", "trail_knee", 0.25) - pf * 0.04, 0.045),
+        "lead adductor magnus": (pc + pl * 0.02 - pf * 0.03 - z * 0.08, along("lead_hip", "lead_knee", 0.85) - pl * 0.03, 0.035),
+        "lead hamstrings": (pc + pl * 0.06 - pf * 0.08 - z * 0.08, along("lead_knee", "lead_ankle", 0.08) - pf * 0.04, 0.035),
+        "trail biceps": (r["trail_shoulder"] + f * 0.02, along("trail_elbow", "trail_wrist", 0.12), 0.022),
+        "trail triceps": (r["trail_shoulder"] - f * 0.03, along("trail_elbow", "trail_wrist", -0.08), 0.025),
+    }
+
+
+def muscles(ball_xy, pose="address"):
+    """Each muscle's ends, length, belly radius (thicker when shorter) and, where an EMG study says so, how
+    hard it is working in this position (2 high, 1 moderate) with that study's key from anatomy.json."""
+    rest = {k: np.linalg.norm(b - a) for k, (a, b, _) in _muscle_anchors(swing_rig(ball_xy, "address")).items()}
+    fired = ANATOMY["muscle_activity"].get(pose, {})
+    out = []
+    for name, (a, b, r0) in _muscle_anchors(swing_rig(ball_xy, pose)).items():
+        n = float(np.linalg.norm(b - a))
+        level, source = fired.get(name, (0, ""))
+        out.append(dict(name=name, a=a, b=b, length=n, stretch=n / rest[name],
+                        radius=r0 * math.sqrt(rest[name] / n), activity=level, source=source))
+    return out
+
+
 def golfer(ball_xy, pose="address", facing=1.0, fill=(240, 240, 240), ghost=False):
-    """Capsules for a right-handed golfer at ball_xy (target +y). ghost=True draws only the arms and the
-    club as thin lines: the strobe look, where the club repeats and the body stays one figure."""
+    """Capsules for a right-handed golfer at ball_xy (target +y), shaped from ANSUR II girths: thighs
+    taper to the knee, calves have a belly, forearms taper to the wrist. ghost=True draws only the arms
+    and the club as thin lines: the strobe look, where the club repeats and the body stays one figure."""
     r = swing_rig(ball_xy, pose)
     if ghost:
-        caps = [Capsule(r["lead_shoulder"], r["lead_elbow"], 0.012, fill),
+        return [Capsule(r["lead_shoulder"], r["lead_elbow"], 0.012, fill),
                 Capsule(r["lead_elbow"], r["hands"], 0.012, fill),
                 Capsule(r["hands"], r["club_head"], 0.006, fill),
                 Capsule(r["club_head"], r["club_head"] + V([0, 0, 0.001]), 0.02, fill)]
-        return caps
-    k = 1.0
+    u = r["axes"][:, 1]
+    club = (r["club_head"] - r["hands"]) / CLUB_FROM_HANDS
+    knee_r, calf_r = _girth("lower_thigh_circumference"), _girth("calf_circumference")
     caps = []
     for side in ("lead", "trail"):
-        ankle, knee, hip = r[f"{side}_ankle"], r[f"{side}_knee"], r[f"{side}_hip"]
-        caps += [Capsule(ankle, knee, 0.055 * k, fill), Capsule(knee, hip, 0.075 * k, fill),
-                 Capsule(V([ankle[0] - 0.04, ankle[1], 0.04]), V([ankle[0] + 0.16, ankle[1], 0.04]), 0.04 * k, fill)]
+        hip, knee, ankle, toe = r[f"{side}_hip"], r[f"{side}_knee"], r[f"{side}_ankle"], r[f"{side}_toe"]
+        belly = knee + (ankle - knee) * 0.3
+        heel = ankle - (toe - ankle) * V([0.3, 0.3, 0.0]) - V([0, 0, ankle[2] - 0.035])
+        caps += [Capsule(hip, knee, _girth("thigh_circumference") * 0.95, fill, knee_r),
+                 Capsule(knee, belly, knee_r * 0.85, fill, calf_r),
+                 Capsule(belly, ankle, calf_r, fill, _girth("ankle_circumference")),
+                 Capsule(heel, toe, 0.035, fill, 0.03)]
         sh, el = r[f"{side}_shoulder"], r[f"{side}_elbow"]
-        caps += [Capsule(sh, el, 0.045 * k, fill), Capsule(el, r["hands"], 0.04 * k, fill)]
-    caps += [Capsule(r["pelvis"], r["chest"], 0.14 * k, fill),
-             Capsule(r["lead_shoulder"], r["trail_shoulder"], 0.06 * k, fill),
-             Capsule(r["head"], r["head"] + V([0, 0, 0.001]), SEG["head_r"] * (0.7 if ghost else 1.0), fill),
-             Capsule(r["hands"], r["club_head"], 0.008, (40, 40, 40) if not ghost else fill),
-             Capsule(r["club_head"], r["club_head"] + V([0, 0, 0.001]), 0.022 * (0.8 if ghost else 1.0),
-                     (40, 40, 40) if not ghost else fill)]
+        wrist = r["hands"] if side == "lead" else r["trail_wrist"]
+        caps += [Capsule(sh, el, 0.05, fill, 0.038),
+                 Capsule(el, wrist, _girth("forearm_circumference_flexed"), fill, _girth("wrist_circumference")),
+                 Capsule(wrist, wrist + club * 0.06, 0.03, fill)]
+    head = r["head"]
+    caps += [Capsule(r["lead_hip"], r["trail_hip"], _ansur("hip_breadth") / 2 - SEG["hip_half"], fill),
+             Capsule(r["pelvis"] + u * 0.05, r["chest"], 0.125, fill, 0.13),
+             Capsule(r["chest"], r["neck"] - u * 0.04, 0.13, fill, 0.11),
+             Capsule(r["lead_shoulder"], r["trail_shoulder"], 0.05, fill),
+             Capsule(r["neck"], head, _girth("neck_circumference"), fill),
+             Capsule(head - u * 0.02, head + u * 0.045, SEG["head_r"], fill),
+             Capsule(r["hands"], r["club_head"], 0.008, (40, 40, 40)),
+             Capsule(r["club_head"], r["club_head"] + V([0, 0, 0.001]), 0.022, (40, 40, 40))]
     return caps
+
+
+def muscle_bands(ball_xy, pose, colour=(255, 90, 60), stretched=(120, 200, 255), show_stretch=True):
+    """Bands for Scene.bands: muscles an EMG study says are working, in `colour` (opaque for high, lighter
+    for moderate), and muscles stretched more than 8% past their address length, in `stretched`."""
+    out = []
+    for m in muscles(ball_xy, pose):
+        if m["activity"]:
+            out.append((m["a"], m["b"], m["radius"], colour + ((235,) if m["activity"] == 2 else (150,))))
+        elif show_stretch and m["stretch"] > 1.08:
+            out.append((m["a"], m["b"], m["radius"] * 0.8, stretched + (150,)))
+    return out
 
 
 # ── cameras ───────────────────────────────────────────────────────────────
@@ -290,18 +475,23 @@ def render(scene: Scene, cam: Camera, size=(1080, 1350), style="blueprint", marg
                 d.line(geo + [geo[0]], fill=st["line"], width=lw)
         elif kind == "cap":
             pa, pb = geo
-            r = max(2, int(obj.r * k))
+            ra = max(2.0, obj.r * k)
+            rb = max(2.0, (obj.r if obj.r2 is None else obj.r2) * k)
             col = tuple(int(c) for c in obj.fill) if st["fill"] else st["line"]
-            if st["fill"]:
-                d.line([pa, pb], fill=(70, 70, 70), width=2 * r + 3)
-            d.line([pa, pb], fill=col, width=2 * r)
-            for q in (pa, pb):
-                if st["fill"]:
-                    d.ellipse([q[0] - r - 1, q[1] - r - 1, q[0] + r + 1, q[1] + r + 1], fill=(70, 70, 70))
-                d.ellipse([q[0] - r, q[1] - r, q[0] + r, q[1] + r], fill=col)
+            for grow, c in (((1.5, (70, 70, 70)),) if st["fill"] else ()) + ((0.0, col),):
+                _limb(d, pa, pb, ra + grow, rb + grow, c)
         elif kind == "decal":
             img = paste_decal(img, obj.image, geo)
             d = ImageDraw.Draw(img, "RGBA")
+
+    if scene.bands:                                 # muscles, see-through over the body
+        layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        ld = ImageDraw.Draw(layer)
+        for a, b, rad, col in scene.bands:
+            (pa, _), (pb, _) = P(a), P(b)
+            _spindle(ld, pa, pb, rad * k, col)
+        img = Image.alpha_composite(img.convert("RGBA"), layer).convert("RGB")
+        d = ImageDraw.Draw(img, "RGBA")
 
     for pts_, col, w in scene.lines:
         d.line([P(p)[0] for p in pts_], fill=col, width=w)
@@ -322,6 +512,28 @@ def render(scene: Scene, cam: Camera, size=(1080, 1350), style="blueprint", marg
         d.rectangle([mx - tw / 2 - 6, my - th / 2 - 6, mx + tw / 2 + 6, my + th / 2 + 8], fill=st["bg"])
         d.text((mx - tw / 2, my - th / 2 - 2), label, font=font, fill=st["dim"])
     return img
+
+
+def _limb(d, pa, pb, ra, rb, col):
+    """A tapered capsule on screen: circles of radius ra and rb joined by their tangent sides."""
+    dx, dy = pb[0] - pa[0], pb[1] - pa[1]
+    n = math.hypot(dx, dy) or 1.0
+    nx, ny = -dy / n, dx / n
+    d.polygon([(pa[0] + nx * ra, pa[1] + ny * ra), (pb[0] + nx * rb, pb[1] + ny * rb),
+               (pb[0] - nx * rb, pb[1] - ny * rb), (pa[0] - nx * ra, pa[1] - ny * ra)], fill=col)
+    for q, r in ((pa, ra), (pb, rb)):
+        d.ellipse([q[0] - r, q[1] - r, q[0] + r, q[1] + r], fill=col)
+
+
+def _spindle(d, pa, pb, r, col, steps=16):
+    """A muscle on screen: thick at the belly, thin at the tendons."""
+    dx, dy = pb[0] - pa[0], pb[1] - pa[1]
+    n = math.hypot(dx, dy) or 1.0
+    nx, ny = -dy / n, dx / n
+    w = [r * (0.2 + 0.8 * math.sin(math.pi * i / steps)) for i in range(steps + 1)]
+    pts = [(pa[0] + dx * i / steps, pa[1] + dy * i / steps) for i in range(steps + 1)]
+    d.polygon([(x + nx * wi, y + ny * wi) for (x, y), wi in zip(pts, w)] +
+              [(x - nx * wi, y - ny * wi) for (x, y), wi in reversed(list(zip(pts, w)))], fill=col)
 
 
 def paste_decal(img, decal, quad_xy):

@@ -89,22 +89,42 @@ c.render(s, c.Camera("iso", yaw=-35, pitch=32), style="blueprint").save("bay.png
 
    Keep any number on screen to a sourced fact; the picture says it's an illustration.
 
-## The swing model
+## The swing model: real anatomy
 
-`swing_rig(ball, pose)` returns joint positions in metres; `golfer(ball, pose)` draws them. It is a
-two-lever swing: the hands travel round the chest on the swing plane, the club follows with a wrist
-hinge, shoulders turn (hips half as much), both arms reach the grip with bent elbows, and the arms
-can never stretch past their length. Positions: `address`, `takeaway`, `top`, `downswing`,
-`impact`, `follow`, `finish`; add one by adding a row to `POSES` (theta, hinge, tilt). The club is a
-7-iron held 84 cm above its head; at address and impact the head rests on the ground behind the ball.
-Tests pin all of that (`campaign-os/tests/test_cad_designer_swing_20261030.py`).
+The golfer is built from published human measurements, all in `anatomy.json` with their sources:
+
+- **Bones** are de Leva's (1996) segment lengths and **widths, girths and the head** are ANSUR II means
+  (4,082 men), scaled to a 1.75 m golfer (`cad3d.STATURE`). Limbs taper like real ones: thighs to the
+  knee, a calf belly, forearms to the wrist.
+- **Joints only bend the way they can,** inside the AAOS ranges: elbows 0-150, knees 0-135 and over the
+  toes, the wrist cocks only by radial and ulnar deviation (20 + 30), forearms roll up to 80 each way.
+  Shoulder blades slide round the ribs so the trail arm can reach the grip.
+- **The swing** has a tour player's 41.5 degree forward bend at address, a pelvis turn of 35-55 and a thorax
+  turn of 85-110 at the top (X-factor 43-64), and a downswing that unwinds pelvis first, then thorax, then
+  arm, then club (the kinematic sequence).
+- **Muscles** (`cad3d.muscles`) run origin to insertion, keep their volume (a shortening muscle gets
+  thicker) and are marked working only where an EMG study says so: the downswing from Bechler et al. 1995
+  and Jobe, Perry & Pink 1989, impact from the 2012 EMG review. No source, no red muscle.
+
+```bash
+python3 plugins/campaign-os/skills/cad-designer/scripts/swing_muscles.py --out out/     --pose top|downswing|impact [--view faceon|dtl]
+```
+
+draws the golfer with the working muscles in red and the stretched ones in blue, naming the study on the
+image. `swing_rig(ball, pose)` returns the joints, `golfer(ball, pose)` the body, `muscle_bands(ball, pose)`
+the muscles for `Scene.bands`. Positions live in `POSES` (pelvis, thorax, arm, lift, hinge, roll, elbow,
+tilt, side, shift, squat, heel, pro). Tests pin all of it (`test_cad_designer_anatomy_20261030.py`,
+`test_cad_designer_swing_20261030.py`).
 
 ## Limits (be honest about them)
 
-- **The golfer is a mannequin of capsules.** Proportions, joints and the swing are right, but it
-  reads as a figure, not a person, and from behind it looks like stacked shapes. For finished
+- **The golfer is a mannequin.** Proportions, joints, turn and muscles are real, but it reads as a
+  figure, not a person. For finished
   posts the golfer comes from Krea, placed where the render puts him. It is a right-handed golfer
   only, and the swing is an illustration, not a measured swing.
+- **The top is a three-quarter swing.** With the wrist kept to side-to-side cocking (20 + 30 degrees) the
+  club stops short of level at the top. Real golfers also bend the lead wrist back (extension) to get
+  there; that is not modelled yet. The finish is the least real position.
 - **No curves, textures or club heads yet:** boxes, flat quads, capsules and image decals only.
   3D club illustrations need a parametric club (head, loft, lie, length from real specs) first.
 - **Painter's-algorithm drawing:** big faces that cut through each other can draw in the wrong

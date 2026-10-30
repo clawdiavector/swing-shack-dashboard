@@ -32,7 +32,8 @@ def path(key, steps=60):
         pa, pb = c.POSES[a], c.POSES[b]
         for i in range(steps):
             t = i / steps
-            c.POSES["_blend"] = {k: pa[k] + (pb[k] - pa[k]) * t for k in pa}
+            c.POSES["_blend"] = {k: tuple(x + (y - x) * t for x, y in zip(pa[k], pb[k])) if isinstance(pa[k], tuple)
+                                 else pa[k] + (pb[k] - pa[k]) * t for k in pa}
             pts.append(c.swing_rig(BALL, "_blend")[key])
     c.POSES.pop("_blend", None)
     return pts
