@@ -218,6 +218,12 @@ def post_entry(row: dict[str, Any], brand_id: str, *, caption: str = "",
     if rejected:
         status, actions = f"Sent back: {row['rejected_reason']}", ["comment"]
     channels = row.get("channels_picked") or ([row["primary_channel"]] if row.get("primary_channel") else [])
+    fmt = _format(row.get("post_type") or row.get("template_id"))
+    # A post read back from Meta or Postiz went to one platform as one kind (story, reel, feed).
+    if row.get("post_type") == OUTSIDE_POST_TYPE:
+        own = row.get("outside_channel") or row.get("primary_channel") or row.get("channel")
+        channels = [own] if own else channels
+        fmt = _format(row.get("media_kind"))
     return {
         "key": str(row.get("calendar_id") or ""),
         "kind": kind,
@@ -234,7 +240,7 @@ def post_entry(row: dict[str, Any], brand_id: str, *, caption: str = "",
         "when": _when(row.get("go_live_date")),
         "where": _where(channels),
         "channels": [str(c).lower() for c in channels if c] or ["instagram"],
-        "format": _format(row.get("post_type") or row.get("template_id")),
+        "format": fmt,
         "brand_name": BRAND_NAMES.get(brand_id, brand_id),
         "title": str(row.get("title") or "Untitled post"),
         "what": what,
@@ -358,6 +364,11 @@ def _with_record_fields(row: dict[str, Any], record: dict[str, Any]) -> dict[str
     for k in _RECORD_FIELDS:
         if record.get(k) and not row.get(k):
             row[k] = record[k]
+    # An outside post's kind and platform are what the sync read back; the row
+    # builder drops the kind and fills primary_channel with its own guess.
+    if record.get("post_type") == OUTSIDE_POST_TYPE:
+        row["media_kind"] = record.get("media_kind") or row.get("media_kind")
+        row["outside_channel"] = record.get("channel") or record.get("primary_channel")
     return row
 
 
