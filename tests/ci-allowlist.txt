@@ -164,6 +164,7 @@ campaign-os/tests/test_post_studio.py
 campaign-os/tests/test_post_studio_page_20261026.py
 campaign-os/tests/test_post_qa.py
 campaign-os/tests/test_visual_design_skill.py
+campaign-os/tests/test_content_formulas_in_skills.py
 campaign-os/tests/test_scheduled_over_suggestions_20261026.py
 campaign-os/tests/test_scheduled_over_suggestions_layout_real_20261026.py
 campaign-os/tests/test_layout_skip_real_records_20261028.py
@@ -202,5 +203,6 @@ campaign-os/tests/test_mockup_kit_20261029.py
 campaign-os/tests/test_clean_calendar_reject_20261029.py
 campaign-os/tests/test_cad_designer_20261030.py
 campaign-os/tests/test_cad_designer_swing_20261030.py
+campaign-os/tests/test_daily_target_counts_everything_20261030.py
 campaign-os/tests/jobs/test_asset_qc_respects_people_20261030.py
 campaign-os/tests/test_clean_calendar_reopen_20261030.py

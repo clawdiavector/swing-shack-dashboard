@@ -21,6 +21,10 @@ slide gives the viewer somewhere to go.
 Christelle's art direction (27 Oct 2026) and it overrides anything here on how a
 carousel should look. This page is the process, the checks and the plumbing.
 
+**Score it with the formulas in [`../visual-design/formulas.md`](../visual-design/formulas.md)**
+(`visual-design/formulas.md`): the poster formula on every slide (8/10 or more, no zeros; slide 1 is the
+strictest), then the post formula on the carousel as a whole.
+
 For a campaign spotlight (one brand, hero carousel, then singles that week), the
 campaign plan lives in `campaign-os-spotlight`; the carousel itself is made here.
 
