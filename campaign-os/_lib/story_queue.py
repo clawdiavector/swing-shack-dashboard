@@ -121,3 +121,23 @@ def set_status(item_id: str, status: str) -> dict:
                 _save(items)
                 return it
     raise KeyError(item_id)
+
+
+def shares(brand: str, first, last) -> list[dict]:
+    """Links a person shared to a story (marked done), for the daily counter.
+
+    One entry per link, dated by the South African day it was marked done, in the story slot of the
+    platform it was shared to: an Instagram link fills ig_story, a Facebook link fills fb_story.
+    """
+    out: list[dict] = []
+    lo, hi = first.isoformat(), last.isoformat()
+    for it in _load():
+        if it.get("brand") != brand or it.get("status") != "done":
+            continue
+        day = str(it.get("done_at") or "")[:10]
+        if not day or not (lo <= day <= hi):
+            continue
+        host = (urlsplit(str(it.get("url") or "")).hostname or "").lower()
+        slot = "ig_story" if host == "instagram.com" or host.endswith(".instagram.com") or host == "instagr.am" else "fb_story"
+        out.append({"id": it.get("id"), "date": day, "slot": slot, "url": it.get("url")})
+    return out

@@ -105,7 +105,7 @@ function TargetBadge({ t, onOpen }: { t: DayTarget; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      title={`${t.done} scheduled and ${t.waiting} waiting, of ${t.target} a day`}
+      title={`${t.done - (t.reshared ?? 0)} scheduled${t.reshared ? `, ${t.reshared} reshared to stories` : ''} and ${t.waiting} waiting, of ${t.target} a day`}
       className="block w-full rounded px-0.5 text-left hover:bg-bg3"
     >
       <span className="flex items-baseline justify-between gap-1 text-[11px] font-semibold text-tx2">
@@ -152,7 +152,7 @@ function TargetPanel({ day, t, onClose }: { day: string; t: DayTarget; onClose: 
           <div>
             <h2 className="font-display text-xl font-semibold">{label}</h2>
             <p className="text-sm text-tx2">
-              {t.done} scheduled, {t.waiting} waiting for a yes,{' '}
+              {t.done - (t.reshared ?? 0)} scheduled, {t.reshared ? `${t.reshared} reshared to stories, ` : ''}{t.waiting} waiting for a yes,{' '}
               {missing > 0 ? `${missing} still to make` : 'target met'}. The target is {t.target} a day.
             </p>
           </div>
@@ -202,7 +202,10 @@ function TargetPanel({ day, t, onClose }: { day: string; t: DayTarget; onClose: 
                     {s.label}
                     {gap > 0 ? <span className="ml-1.5 text-xs text-yel">{gap} to make</span> : null}
                   </td>
-                  <td className="py-1.5 text-right">{s.done}</td>
+                  <td className="py-1.5 text-right">
+                    {s.done}
+                    {s.reshared ? <span className="ml-1 text-xs text-tx3">({s.reshared} reshared)</span> : null}
+                  </td>
                   <td className="py-1.5 text-right">{s.waiting}</td>
                   <td className="py-1.5 text-right text-tx2">{s.target}</td>
                 </tr>
