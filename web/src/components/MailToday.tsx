@@ -249,7 +249,6 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
           ) : null}
         </div>
       ) : null}
-      {error ? <p className="mt-1 text-xs text-red">{error}</p> : null}
       {open && brand && briefId ? (
         <div className="mt-3 rounded-lg border border-bd" data-testid="mail-idea-plan">
           <PlanPanel key={`${briefId}-${version}`} brandId={brand} briefId={briefId} />
