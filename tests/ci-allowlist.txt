@@ -201,6 +201,7 @@ campaign-os/tests/test_clean_calendar_missed_20261029.py
 campaign-os/tests/test_clean_calendar_move_20261029.py
 campaign-os/tests/test_mockup_kit_20261029.py
 campaign-os/tests/test_clean_calendar_reject_20261029.py
+campaign-os/tests/test_daily_target_counts_everything_20261030.py
 campaign-os/tests/jobs/test_asset_qc_respects_people_20261030.py
 campaign-os/tests/test_clean_calendar_reopen_20261030.py
 campaign-os/tests/test_bag_drop_online_store.py
