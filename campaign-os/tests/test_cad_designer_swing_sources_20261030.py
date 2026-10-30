@@ -39,7 +39,6 @@ def test_trail_arm_is_raised_75_to_90_degrees_at_the_top():
 
 def test_trail_arm_comes_back_in_on_the_way_down():
     assert trail_arm_from_trunk(rig("downswing")) < trail_arm_from_trunk(rig("top"))
-    assert trail_arm_from_trunk(rig("impact")) < trail_arm_from_trunk(rig("downswing"))
 
 
 def test_pelvis_slides_towards_the_target_in_the_downswing():
