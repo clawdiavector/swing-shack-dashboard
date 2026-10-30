@@ -17,6 +17,15 @@ REQUIRED_FIELDS = frozenset(
     {"schema", "asset_id", "campaign_id", "brand_id", "source_inbox_item_id", "created_at"}
 )
 
+# Finished posts a person lodged (lodge_post / render_batch / schedule_posts). Their sidecar is only the
+# join row to the calendar, not a pipeline draft, so this QC leaves them alone: it once rejected every
+# lodged draft for "missing fields: schema". Lodging queues its own publish rows.
+LODGED_CREATORS = frozenset({"campaign-os/render_batch", "campaign-os/schedule_posts.py"})
+
+
+def _is_lodged(sidecar: dict[str, Any]) -> bool:
+    return str(sidecar.get("created_by") or "") in LODGED_CREATORS
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -213,10 +222,15 @@ def run() -> dict[str, Any]:
         checked = 0
         passed = 0
         failed = 0
+        skipped = 0
         results: list[dict[str, Any]] = []
 
         for path, sidecar in sidecars:
             asset_id = str(sidecar.get("asset_id") or path.stem)
+            if _is_lodged(sidecar):
+                skipped += 1
+                results.append({"asset_id": asset_id, "verdict": "skipped", "issues": []})
+                continue
             campaign_id = str(sidecar.get("campaign_id") or "")
             caption = ""
             campaign = (campaign_data.get("campaigns") or {}).get(campaign_id) or {}
@@ -273,6 +287,7 @@ def run() -> dict[str, Any]:
             "checked": checked,
             "passed": passed,
             "failed": failed,
+            "skipped": skipped,
             "spend": {
                 "spent_usd": spend.get("spent_usd"),
                 "cap_usd": spend.get("cap_usd"),
