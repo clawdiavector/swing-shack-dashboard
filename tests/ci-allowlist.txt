@@ -202,3 +202,5 @@ campaign-os/tests/test_mockup_kit_20261029.py
 campaign-os/tests/test_clean_calendar_reject_20261029.py
 campaign-os/tests/test_cad_designer_20261030.py
 campaign-os/tests/test_cad_designer_swing_20261030.py
+campaign-os/tests/jobs/test_asset_qc_respects_people_20261030.py
+campaign-os/tests/test_clean_calendar_reopen_20261030.py

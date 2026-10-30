@@ -17,6 +17,15 @@ REQUIRED_FIELDS = frozenset(
     {"schema", "asset_id", "campaign_id", "brand_id", "source_inbox_item_id", "created_at"}
 )
 
+# Finished posts a person lodged (lodge_post / render_batch / schedule_posts). Their sidecar is only the
+# join row to the calendar, not a pipeline draft, so this QC leaves them alone: it once rejected every
+# lodged draft for "missing fields: schema". Lodging queues its own publish rows.
+LODGED_CREATORS = frozenset({"campaign-os/render_batch", "campaign-os/schedule_posts.py"})
+
+
+def _is_lodged(sidecar: dict[str, Any]) -> bool:
+    return str(sidecar.get("created_by") or "") in LODGED_CREATORS
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -68,7 +77,11 @@ def _check_sidecar(sidecar: dict[str, Any], caption: str) -> list[str]:
     from _lib.p11_context_engine import _extract_banned_terms  # noqa: PLC0415
 
     issues: list[str] = []
-    missing = REQUIRED_FIELDS - set(sidecar.keys())
+    missing = set(REQUIRED_FIELDS - set(sidecar.keys()))
+    if str(sidecar.get("action") or "") == "compose_post":
+        # Posts lodged ready-made (render_batch) never write the schema label;
+        # its absence says nothing about the post.
+        missing.discard("schema")
     if missing:
         issues.append(f"missing fields: {', '.join(sorted(missing))}")
 
@@ -107,6 +120,37 @@ def _resolve_png_size(asset: dict[str, Any]) -> int | None:
     from _lib.unified_inbox import _asset_image_file_size  # noqa: PLC0415
 
     return _asset_image_file_size(asset)
+
+
+def _brand_image_size(brand_id: str, *urls: Any) -> int | None:
+    """Size of a /brand-images/<brand>/<file> image, looked for where the app
+    serves it from (brand_image_serve): composed lodged posts live in
+    draft-assets/images/<brand>/. None when no such file has bytes."""
+    root = _data_dir()
+    prefix = f"/brand-images/{brand_id}/"
+    for url in urls:
+        url = str(url or "").split("?", 1)[0]
+        if not brand_id or not url.startswith(prefix):
+            continue
+        name = url[len(prefix):]
+        if not name or ".." in name.split("/"):
+            continue
+        for base in (root / "draft-assets" / "images" / brand_id,
+                     root / "draft-assets" / "images" / brand_id / "images",
+                     root / "brand-directory" / brand_id / "images"):
+            path = base / name
+            if path.is_file() and path.stat().st_size > 0:
+                return path.stat().st_size
+    return None
+
+
+def _image_size(asset: dict[str, Any], sidecar: dict[str, Any]) -> int | None:
+    size = _resolve_png_size(asset)
+    if size:
+        return size
+    composed = [v for v in (sidecar.get("composed") or {}).values()] if isinstance(sidecar.get("composed"), dict) else []
+    return _brand_image_size(str(sidecar.get("brand_id") or ""), sidecar.get("image_url"),
+                             asset.get("image_url"), *composed)
 
 
 def _enqueue_ready(
@@ -178,10 +222,15 @@ def run() -> dict[str, Any]:
         checked = 0
         passed = 0
         failed = 0
+        skipped = 0
         results: list[dict[str, Any]] = []
 
         for path, sidecar in sidecars:
             asset_id = str(sidecar.get("asset_id") or path.stem)
+            if _is_lodged(sidecar):
+                skipped += 1
+                results.append({"asset_id": asset_id, "verdict": "skipped", "issues": []})
+                continue
             campaign_id = str(sidecar.get("campaign_id") or "")
             caption = ""
             campaign = (campaign_data.get("campaigns") or {}).get(campaign_id) or {}
@@ -201,11 +250,13 @@ def run() -> dict[str, Any]:
                     fallback=asset_platform or "instagram",
                 )
                 if platform != "gbp":
-                    size = _resolve_png_size(asset)
+                    size = _image_size(asset, sidecar)
                     if size is None or size <= 0:
                         issues.append("image file missing or empty")
             checked += 1
             verdict = "pass" if not issues else "fail"
+            # A person's yes stands: the check reports, it does not overrule.
+            kept = verdict == "fail" and str(asset.get("approvalStatus") or "").lower() == "approved"
             if verdict == "pass":
                 passed += 1
                 _maybe_enqueue_publish_request(
@@ -216,7 +267,8 @@ def run() -> dict[str, Any]:
                 )
             else:
                 failed += 1
-                _reject_asset(campaign_id, asset_id, "; ".join(issues))
+                if not kept:
+                    _reject_asset(campaign_id, asset_id, "; ".join(issues))
 
             sidecar["qc"] = {
                 "verdict": verdict,
@@ -224,6 +276,8 @@ def run() -> dict[str, Any]:
                 "checked_at": _utc_now_iso(),
                 "spend_reconciled": not spend.get("broken"),
             }
+            if kept:
+                sidecar["qc"]["kept_because"] = "approved by a person"
             atomic_write(f"draft-assets/{asset_id}.json", sidecar)
             results.append({"asset_id": asset_id, "verdict": verdict, "issues": issues})
 
@@ -233,6 +287,7 @@ def run() -> dict[str, Any]:
             "checked": checked,
             "passed": passed,
             "failed": failed,
+            "skipped": skipped,
             "spend": {
                 "spent_usd": spend.get("spent_usd"),
                 "cap_usd": spend.get("cap_usd"),
