@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   fetchMailIntake,
   ideaHeading,
+  mailIdeaBoth,
   mailIdeaFlesh,
   mailIdeaPlan,
   markMail,
@@ -19,6 +20,7 @@ import { Badge } from './ui'
 // Shows nothing when the inbox is quiet. Nothing goes on the calendar or is posted until you say so.
 
 const BRANDS = ['stick', 'swing-shack', 'bag-drop']
+const BOTH = 'both'
 const field = 'rounded-md border border-bd bg-transparent px-2 py-1 text-xs text-tx'
 const btn = 'rounded-full border border-yel/40 bg-yel/20 px-3 py-1 text-xs font-bold text-yel hover:bg-yel/30 disabled:opacity-60'
 const quiet = 'text-xs font-semibold text-tx3 hover:text-tx disabled:opacity-60'
@@ -97,7 +99,7 @@ export function MailToday({ brandId }: { brandId?: string }) {
           </div>
           <ul className="mt-2 space-y-3 text-sm">
             {data.ideas.map((m) => (
-              <li key={m.id} className="rounded-xl border border-bd p-3" data-testid="mail-idea">
+              <li key={`${m.id}-${m.brand || ''}`} className="rounded-xl border border-bd p-3" data-testid="mail-idea">
                 <IdeaCard m={m} run={run} />
               </li>
             ))}
@@ -177,6 +179,15 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
     void run(Promise.resolve({ ok: true }))
   }
 
+  // Both brands: the card becomes two, one per brand, each fleshed out and planned on its own.
+  function pickBrand(b: string) {
+    if (b !== BOTH) {
+      setBrand(b)
+      return
+    }
+    void run(mailIdeaBoth(m.id, date))
+  }
+
   const briefId = m.brief_id || `brf-${m.id}`
 
   return (
@@ -187,13 +198,14 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
       </div>
       {m.summary ? <p className="mt-0.5 line-clamp-4 text-xs whitespace-pre-line text-tx2">{m.summary}</p> : null}
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <select aria-label="Which brand" className={field} value={brand} onChange={(e) => setBrand(e.target.value)}>
+        <select aria-label="Which brand" className={field} value={brand} onChange={(e) => pickBrand(e.target.value)}>
           <option value="">Which brand?</option>
           {BRANDS.map((b) => (
             <option key={b} value={b}>
               {brandLabel(b)}
             </option>
           ))}
+          <option value={BOTH}>Both: Stick and Swing Shack</option>
         </select>
         <input aria-label="Which date" type="date" className={field} value={date} onChange={(e) => setDate(e.target.value)} />
         <button
@@ -237,7 +249,6 @@ function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
           ) : null}
         </div>
       ) : null}
-      {error ? <p className="mt-1 text-xs text-red">{error}</p> : null}
       {open && brand && briefId ? (
         <div className="mt-3 rounded-lg border border-bd" data-testid="mail-idea-plan">
           <PlanPanel key={`${briefId}-${version}`} brandId={brand} briefId={briefId} />
