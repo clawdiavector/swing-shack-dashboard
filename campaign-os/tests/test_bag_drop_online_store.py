@@ -99,9 +99,9 @@ def test_every_cta_in_use_is_one_the_bible_allows(cta):
 
 
 def test_gbp_poster_uses_the_store_domain():
-    from _lib.gbp_daily_poster import BRANDS
+    from _lib.gbp_daily_poster import BRAND_PROFILES
 
-    bd = BRANDS["bag-drop"]
+    bd = BRAND_PROFILES["bag-drop"]
     assert bd["domain"] == "thebagdrop.co.za"
     assert "swingshack" not in json.dumps(bd).lower()
 
