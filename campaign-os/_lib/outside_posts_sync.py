@@ -24,7 +24,7 @@ SAST = ZoneInfo("Africa/Johannesburg")
 
 @dataclass(frozen=True)
 class ObservedPost:
-    platform: str  # instagram | facebook
+    platform: str  # instagram | facebook | postiz
     kind: str  # feed | reel | story
     external_id: str
     published_at: str  # ISO-8601
@@ -32,6 +32,7 @@ class ObservedPost:
     permalink: str
     thumbnail_url: str
     postiz_post_id: str | None = None
+    target: str = ""  # postiz only: where it went (instagram | facebook | tiktok | gbp | ...)
 
 
 @dataclass
@@ -40,6 +41,15 @@ class MatchIndex:
     media_ids: set[str]
     timed_captions: list[tuple[dt.datetime, str]]
     permalinks: set[str] = field(default_factory=set)
+    # Stories Postiz sent, by time and platform: Meta gives a story no caption to match on.
+    postiz_stories: list[tuple[dt.datetime, str]] = field(default_factory=list)
+
+
+# Postiz sends that count on the calendar. Google posts come from the approve-once
+# queue, which the calendar already shows; YouTube has no slot.
+POSTIZ_COUNTED_TARGETS = ("instagram", "facebook", "tiktok")
+_POSTIZ_TARGETS = (("instagram", "instagram"), ("facebook", "facebook"), ("tiktok", "tiktok"),
+                   ("gmb", "gbp"), ("google", "gbp"), ("youtube", "youtube"))
 
 
 def normalize_caption(text: str) -> str:
@@ -160,6 +170,8 @@ def add_postiz_observations(index: MatchIndex, observed: Iterable[ObservedPost])
         cap = normalize_caption(obs.caption)
         if when and cap:
             index.timed_captions.append((when, cap))
+        if when and obs.kind == "story" and obs.target:
+            index.postiz_stories.append((when, obs.target))
 
 
 def matches_campaign_os(obs: ObservedPost, index: MatchIndex) -> bool:
@@ -171,9 +183,12 @@ def matches_campaign_os(obs: ObservedPost, index: MatchIndex) -> bool:
         return True
     when = _parse_ts(obs.published_at)
     cap = normalize_caption(obs.caption)
+    window = dt.timedelta(minutes=MATCH_WINDOW_MINUTES)
+    if when and obs.kind == "story" and not cap:
+        if any(target == obs.platform and abs(when - other) <= window for other, target in index.postiz_stories):
+            return True
     if not when or not cap:
         return False
-    window = dt.timedelta(minutes=MATCH_WINDOW_MINUTES)
     for other_when, other_cap in index.timed_captions:
         if other_cap != cap:
             continue
@@ -204,6 +219,8 @@ def upsert_outside_calendar_item(brand_id: str, obs: ObservedPost) -> dict[str, 
         )
     if obs.platform == "facebook":
         title = "Facebook story" if obs.kind == "story" and not obs.caption else (title or "Facebook post")
+    if obs.platform == "tiktok" and not obs.caption:
+        title = "TikTok"
     record = {
         "event_key": _event_key(brand_id, obs),
         "brand_id": brand_id,
@@ -302,8 +319,9 @@ def _postiz_rows(brand_id: str, since: dt.date, until: dt.date) -> list[dict[str
         (integrations or {}).get("integrations") or (integrations or {}).get("identities") or []
     )
     out: list[dict[str, Any]] = []
-    start = since.isoformat()
-    end = until.isoformat()
+    # Same window format as the Plan calendar's Postiz read (app._clean_cal_postiz_rows).
+    start = since.isoformat() + "T00:00:00.000Z"
+    end = until.isoformat() + "T23:59:59.000Z"
     for ig in items:
         if not isinstance(ig, dict) or ig.get("disabled"):
             continue
@@ -316,14 +334,19 @@ def _postiz_rows(brand_id: str, since: dt.date, until: dt.date) -> list[dict[str
             end_date=end,
             state="PUBLISHED",
             limit=50,
+            brand_id=brand_id,
         )
         if perr or not posts:
             continue
         rows = posts if isinstance(posts, list) else (posts or {}).get("posts") or (posts or {}).get("data") or []
         for row in rows:
-            if isinstance(row, dict):
-                row = {**row, "_postiz_integration_id": iid}
-                out.append(row)
+            if not isinstance(row, dict):
+                continue
+            state = str(row.get("state") or row.get("status") or "PUBLISHED").upper()
+            if state != "PUBLISHED":
+                continue
+            out.append({**row, "_postiz_integration_id": iid,
+                        "_postiz_provider": str(ig.get("providerIdentifier") or ig.get("identifier") or "")})
     return out
 
 
@@ -394,15 +417,26 @@ def _observed_from_postiz(row: dict[str, Any]) -> ObservedPost | None:
         content = " ".join(str(x) for x in content)
     when = row.get("publishDate") or row.get("publishedAt") or row.get("createdAt") or ""
     link = row.get("releaseURL") or row.get("releaseUrl") or row.get("permalink") or ""
+    provider = str(row.get("_postiz_provider") or ((row.get("integration") or {}).get("providerIdentifier")) or "")
+    target = next((name for needle, name in _POSTIZ_TARGETS if needle in provider.lower()), "")
+    settings = row.get("settings") or {}
+    if isinstance(settings, str):
+        try:
+            settings = json.loads(settings)
+        except ValueError:
+            settings = {}
+    post_type = str((settings if isinstance(settings, dict) else {}).get("post_type") or "").lower()
+    kind = post_type if post_type in ("story", "reel") else "feed"
     return ObservedPost(
         platform="postiz",
-        kind="feed",
+        kind=kind,
         external_id=pid,
         published_at=str(when),
-        caption=str(content or ""),
+        caption=re.sub(r"<[^>]+>", " ", str(content or "")).strip(),
         permalink=str(link or ""),
         thumbnail_url="",
         postiz_post_id=pid,
+        target=target,
     )
 
 
@@ -450,15 +484,30 @@ def sync_brand(brand_id: str, *, fetch_live: bool = True) -> dict[str, Any]:
     except Exception as exc:
         return {"ok": False, "brand_id": brand_id, "error": str(exc)[:300]}
     index = build_match_index(brand_id)
+    # A Postiz send Campaign OS did not make is a post in its own right (a story queued
+    # straight in Postiz, a TikTok). Decide before Postiz ids join the index, or all would match.
+    postiz_sends = [
+        obs for obs in observed
+        if obs.platform == "postiz" and obs.target in POSTIZ_COUNTED_TARGETS
+        and not matches_campaign_os(obs, index)
+    ]
     add_postiz_observations(index, observed)
     matched = 0
     outside_written = 0
     actions: list[str] = []
     for obs in observed:
-        if matches_campaign_os(obs, index):
-            matched += 1
-            continue
         if obs.platform == "postiz":
+            if obs in postiz_sends:
+                # Written once from Postiz; the same post read back from Meta matches it below.
+                obs = ObservedPost(platform=obs.target, kind=obs.kind, external_id=f"postiz-{obs.external_id}",
+                                   published_at=obs.published_at, caption=obs.caption,
+                                   permalink=obs.permalink, thumbnail_url=obs.thumbnail_url,
+                                   postiz_post_id=obs.postiz_post_id)
+            else:
+                matched += 1
+                continue
+        elif matches_campaign_os(obs, index):
+            matched += 1
             continue
         result = upsert_outside_calendar_item(brand_id, obs)
         actions.append(str(result.get("action") or "unknown"))
