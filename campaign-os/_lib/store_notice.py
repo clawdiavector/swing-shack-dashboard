@@ -1,11 +1,9 @@
-"""One line added to a brand's product captions while its online store is not live yet.
-
-Delete the brand's entry when the store opens, and replace it with the store link."""
+"""One line added to a brand's product captions pointing at its online store."""
 
 from __future__ import annotations
 
 NOTICES: dict[str, str] = {
-    "stick": "Shopify store coming soon.",
+    "stick": "Shop online at shop.stickgolf.co.za.",
 }
 
 # A closing signature stays last, so the notice goes above it.
