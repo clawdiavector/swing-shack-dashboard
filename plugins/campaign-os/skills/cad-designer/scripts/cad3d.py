@@ -37,6 +37,32 @@ def quad(a, b, c, d, fill=(210, 210, 210), name="", line=True):
     return Solid([np.stack([V(a, float), V(b, float), V(c, float), V(d, float)])], fill, line, name)
 
 
+def frustum(a, b, ra, rb, fill=(210, 210, 210), name="", n=20, line=False):
+    """A (tapered) cylinder from point a (radius ra) to b (radius rb), as n flat sides and two caps: shafts,
+    hosels, ferrules, grips, posts."""
+    a, b = V(a, float), V(b, float)
+    ax = (b - a) / np.linalg.norm(b - a)
+    u = np.cross(ax, V([0.0, 0.0, 1.0]) if abs(ax[2]) < 0.9 else V([1.0, 0.0, 0.0]))
+    u /= np.linalg.norm(u)
+    w = np.cross(ax, u)
+    ring = [(math.cos(2 * math.pi * i / n), math.sin(2 * math.pi * i / n)) for i in range(n)]
+    pa = [a + (u * c + w * s_) * ra for c, s_ in ring]
+    pb = [b + (u * c + w * s_) * rb for c, s_ in ring]
+    faces = [np.stack([pa[i], pa[(i + 1) % n], pb[(i + 1) % n], pb[i]]) for i in range(n)]
+    faces += [np.stack(pa[::-1]), np.stack(pb)]
+    return Solid(faces, fill, line, name)
+
+
+def prism(profile, depth, fill=(210, 210, 210), name="", line=True):
+    """A flat outline (k points, in order) pushed along the vector depth: a club head, a sign, a cabinet."""
+    front = [V(p, float) for p in profile]
+    back = [p + V(depth, float) for p in front]
+    k = len(front)
+    faces = [np.stack(front), np.stack(back[::-1])]
+    faces += [np.stack([front[i], front[(i + 1) % k], back[(i + 1) % k], back[i]]) for i in range(k)]
+    return Solid(faces, fill, line, name)
+
+
 @dataclass
 class Capsule:
     a: np.ndarray
@@ -101,18 +127,18 @@ CLUB_FROM_HANDS = 0.92     # a 7-iron is 37 in (0.94 m); the lead wrist sits abo
 
 # Seven positions. pelvis/thorax: turn away from the target in degrees (thorax about the spine); arm: the
 # lead arm swinging across the chest; lift: the lead arm raised in front of the chest; hinge: wrist cock
-# from address (radial deviation +); roll: forearm rotation (pronation/supination); elbow: lead elbow flexion (it folds in the finish); tilt: spine forward from vertical; side: spine bent away from the
+# from address (radial deviation +); ext: lead wrist bent back (extension +, flexion -); roll: forearm rotation (pronation/supination); elbow: lead elbow flexion (it folds in the finish); tilt: spine forward from vertical; side: spine bent away from the
 # target; tray: how far the trail elbow lifts away from the body (0 tucked; at the top it carries like a
 # waiter's tray); shift: pelvis slide towards the target (m); squat: pelvis lowered by bending the knees (m); heel: trail heel lift (m); pro: how far each
 # shoulder blade slides forward round the ribs (lead, trail; m), which is how an arm reaches across.
 POSES = {
-    "address":   dict(pelvis=0,   thorax=0,    arm=0,   lift=0,  hinge=0,   roll=0,   elbow=8,   tilt=41.5, side=6,  shift=0.0,   squat=0.0, heel=0.0,  tray=0, pro=(0.0, 0.06)),
-    "takeaway":  dict(pelvis=12,  thorax=35,   arm=10,  lift=14, hinge=-46, roll=-26, elbow=8,   tilt=41,   side=6,  shift=-0.01, squat=0.0, heel=0.0,  tray=0.5, pro=(0.03, 0.03)),
-    "top":       dict(pelvis=45,  thorax=97,   arm=90,  lift=105, hinge=48, roll=80,  elbow=5,  tilt=39,   side=4,  shift=-0.02, squat=0.0, heel=0.0,  tray=6, pro=(0.06, -0.02)),
-    "downswing": dict(pelvis=8,   thorax=55,   arm=85,  lift=85, hinge=47.5, roll=7,  elbow=10,  tilt=39,   side=12, shift=0.06,  squat=0.0, heel=0.0,  tray=1.5, pro=(0.04, 0.02)),
-    "impact":    dict(pelvis=-35, thorax=-3,   arm=1,   lift=2,  hinge=-7,  roll=-14, elbow=9,   tilt=44,   side=4,  shift=0.08,  squat=0.0, heel=0.03, tray=0, pro=(0.0, 0.06)),
-    "follow":    dict(pelvis=-60, thorax=-85,  arm=-3,  lift=-9, hinge=1,   roll=6,   elbow=45,  tilt=28,   side=18, shift=0.11,  squat=0.0, heel=0.07, tray=0, pro=(-0.02, 0.06)),
-    "finish":    dict(pelvis=-88, thorax=-118, arm=-15, lift=80, hinge=-48, roll=-80, elbow=137, tilt=6,    side=14, shift=0.12,  squat=0.0, heel=0.10, tray=0, pro=(-0.02, 0.06)),
+    "address":   dict(pelvis=0,   thorax=0,    arm=0,   lift=0,  hinge=0, ext=0,   roll=0,   elbow=8,   tilt=41.5, side=6,  shift=0.0,   squat=0.0, heel=0.0,  tray=0, pro=(0.0, 0.06)),
+    "takeaway":  dict(pelvis=12,  thorax=35,   arm=10,  lift=14, hinge=-46, ext=0, roll=-26, elbow=8,   tilt=41,   side=6,  shift=-0.01, squat=0.0, heel=0.0,  tray=0.5, pro=(0.03, 0.03)),
+    "top":       dict(pelvis=45,  thorax=97,   arm=90,  lift=140, hinge=48, ext=70, roll=33,  elbow=0,  tilt=39,   side=4,  shift=-0.02, squat=0.0, heel=0.0,  tray=7.5, pro=(0.06, -0.02)),
+    "downswing": dict(pelvis=8,   thorax=55,   arm=85,  lift=85, hinge=47.5, ext=0, roll=7,  elbow=10,  tilt=39,   side=12, shift=0.06,  squat=0.0, heel=0.0,  tray=1.5, pro=(0.04, 0.02)),
+    "impact":    dict(pelvis=-35, thorax=-3,   arm=1,   lift=2,  hinge=-7, ext=0,  roll=-14, elbow=9,   tilt=44,   side=4,  shift=0.08,  squat=0.0, heel=0.03, tray=0, pro=(0.0, 0.06)),
+    "follow":    dict(pelvis=-60, thorax=-85,  arm=-3,  lift=-9, hinge=1, ext=0,   roll=6,   elbow=45,  tilt=28,   side=18, shift=0.11,  squat=0.0, heel=0.07, tray=0, pro=(-0.02, 0.06)),
+    "finish":    dict(pelvis=-88, thorax=-118, arm=-15, lift=80, hinge=-48, ext=0, roll=-80, elbow=137, tilt=6,    side=14, shift=0.12,  squat=0.0, heel=0.10, tray=0, pro=(-0.02, 0.06)),
 }
 
 
@@ -256,7 +282,9 @@ def swing_rig(ball_xy, pose="address"):
     club = carry(A["club"])
     if np.linalg.norm(axis) > 1e-9:
         club = rotate(club, axis, angle_between(fa_was, fa_now))
-    club = rotate(club, np.cross(fa_now, club), P["hinge"])  # cocking opens the angle between forearm and club
+    dev_axis = np.cross(fa_now, club)
+    club = rotate(club, dev_axis, P["hinge"])               # cocking (radial deviation) opens the forearm-club angle
+    club = rotate(club, np.cross(fa_now, dev_axis), P["ext"])  # the wrist bends back (extension +) or forward
     club = rotate(club, fa_now, P["roll"])                   # the forearm rolls (pronation/supination)
     club = club / np.linalg.norm(club)
     grip = hands + club * 0.09                               # the trail hand sits a hand-width down the grip
@@ -277,6 +305,7 @@ def swing_rig(ball_xy, pose="address"):
         "lead_ankle": ankles[0], "trail_ankle": ankles[1], "lead_toe": toes[0], "trail_toe": toes[1],
         "axes": B, "pelvis_turn": P["pelvis"],
         "turn": {k: P[k] for k in ("pelvis", "thorax", "arm", "hinge")},
+        "wrist": {"deviation": P["hinge"], "extension": P["ext"], "roll": P["roll"]},
     }
 
 
@@ -418,7 +447,8 @@ STYLES = {
 
 
 def render(scene: Scene, cam: Camera, size=(1080, 1350), style="blueprint", margin=90, font_path=None,
-           fit_points=None, light=V([-0.4, -0.6, 0.7])):
+           fit_points=None, light=V([-0.4, -0.6, 0.7]), projector=False):
+    """Draw the scene. projector=True also returns a function mapping a 3D point to its pixel, for labels."""
     st = STYLES[style]
     W, H = size
     img = Image.new("RGB", size, st["bg"])
@@ -512,6 +542,8 @@ def render(scene: Scene, cam: Camera, size=(1080, 1350), style="blueprint", marg
         tw, th = tb[2] - tb[0], tb[3] - tb[1]
         d.rectangle([mx - tw / 2 - 6, my - th / 2 - 6, mx + tw / 2 + 6, my + th / 2 + 8], fill=st["bg"])
         d.text((mx - tw / 2, my - th / 2 - 2), label, font=font, fill=st["dim"])
+    if projector:
+        return img, (lambda p: P(p)[0])
     return img
 
 
