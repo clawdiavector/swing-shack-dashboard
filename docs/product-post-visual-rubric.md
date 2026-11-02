@@ -3,6 +3,8 @@
 The pass a person (or a vision model) makes on every product post before it goes to Christelle.
 `campaign-os/_lib/post_qa.py` automates the measurable half. Everything below was found by looking at
 real output on 2026-10-21 (Stick, Callaway Chrome Soft and Psycho Bunny polo). Score each item pass or fail.
+The design side (the idea, recipes, type modes, colour, the 40/50 creative score) is the
+`visual-design` skill in `plugins/campaign-os/skills/visual-design/SKILL.md`; this rubric is its execution check.
 Any fail sends the post back.
 
 ## 1. Is the product IN the set, or pasted on it?

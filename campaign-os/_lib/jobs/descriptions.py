@@ -97,6 +97,15 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Outputs feed recommendation engine inputs."
         ),
     },
+    "geo_observe": {
+        "title": "GEO watchlist check (AI answers)",
+        "summary": "Asks a few watchlist questions a day to an AI model with web search; whole list about weekly.",
+        "detail": (
+            "Per brand (Swing Shack, Stick). gpt-4o-mini with web search, about US$0.025 a question. "
+            "Stops starting new questions after a time budget and remembers its place in "
+            "geo-observe-cursor.json. Observations land where the GEO page reads them. Needs OPENAI_API_KEY."
+        ),
+    },
     "insights_hooks": {
         "title": "Hook bank generator",
         "summary": "Builds hook-bank.json from Meta + trend inputs.",

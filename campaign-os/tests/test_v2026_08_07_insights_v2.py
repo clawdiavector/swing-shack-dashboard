@@ -20,11 +20,17 @@ import shutil
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
 
 CAMPAIGN_OS = Path(__file__).resolve().parents[1]
+
+
+def _days_ago(n: int) -> str:
+    """Top posts only counts the last 90 days, so post dates count back from today."""
+    return (datetime.now(timezone.utc) - timedelta(days=n)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class InsightsV2ApiTests(unittest.TestCase):
@@ -107,17 +113,17 @@ class TopInstagramPostsTests(InsightsV2ApiTests):
                      "like_count": 420, "comments_count": 38, "media_type": "IMAGE",
                      "permalink": "https://www.instagram.com/p/1",
                      "thumbnail_url": "https://example.com/1.jpg",
-                     "timestamp": "2026-08-06T11:00:00Z"},
+                     "timestamp": _days_ago(1)},
                     {"id": "ig-2", "caption": "Average performer", "engagementRate": 3.0,
                      "like_count": 100, "comments_count": 10, "media_type": "IMAGE",
                      "permalink": "https://www.instagram.com/p/2",
                      "thumbnail_url": "https://example.com/2.jpg",
-                     "timestamp": "2026-08-05T11:00:00Z"},
+                     "timestamp": _days_ago(2)},
                     {"id": "ig-3", "caption": "Underperformer", "engagementRate": 0.5,
                      "like_count": 5, "comments_count": 0, "media_type": "IMAGE",
                      "permalink": "https://www.instagram.com/p/3",
                      "thumbnail_url": "https://example.com/3.jpg",
-                     "timestamp": "2026-08-04T11:00:00Z"},
+                     "timestamp": _days_ago(3)},
                 ]
             }
             (self.tmpdir / "instagram.json").write_text(json.dumps(ig))
@@ -145,9 +151,9 @@ class TopInstagramPostsTests(InsightsV2ApiTests):
                 "posts": [
                     # avg = (5+3+0.2)/3 = 2.73. 5/2.73 = 1.83x → "Above average"
                     # 0.2/2.73 = 0.07x → "Underperformer"
-                    {"id": "ig-a", "caption": "Great", "engagementRate": 5.0, "like_count": 1, "comments_count": 0, "permalink": "x", "thumbnail_url": "x", "timestamp": "2026-08-01T00:00:00Z"},
-                    {"id": "ig-b", "caption": "OK", "engagementRate": 3.0, "like_count": 1, "comments_count": 0, "permalink": "x", "thumbnail_url": "x", "timestamp": "2026-08-02T00:00:00Z"},
-                    {"id": "ig-c", "caption": "Bad", "engagementRate": 0.2, "like_count": 1, "comments_count": 0, "permalink": "x", "thumbnail_url": "x", "timestamp": "2026-08-03T00:00:00Z"},
+                    {"id": "ig-a", "caption": "Great", "engagementRate": 5.0, "like_count": 1, "comments_count": 0, "permalink": "x", "thumbnail_url": "x", "timestamp": _days_ago(3)},
+                    {"id": "ig-b", "caption": "OK", "engagementRate": 3.0, "like_count": 1, "comments_count": 0, "permalink": "x", "thumbnail_url": "x", "timestamp": _days_ago(2)},
+                    {"id": "ig-c", "caption": "Bad", "engagementRate": 0.2, "like_count": 1, "comments_count": 0, "permalink": "x", "thumbnail_url": "x", "timestamp": _days_ago(1)},
                 ]
             }
             (self.tmpdir / "instagram.json").write_text(json.dumps(ig))
@@ -165,7 +171,7 @@ class TopInstagramPostsTests(InsightsV2ApiTests):
         try:
             ig = {"posts": [{"id": f"ig-{i}", "caption": f"p{i}", "engagementRate": 1.0*i,
                               "like_count": 0, "comments_count": 0, "permalink": "x",
-                              "thumbnail_url": "x", "timestamp": "2026-08-01T00:00:00Z"}
+                              "thumbnail_url": "x", "timestamp": _days_ago(1)}
                               for i in range(15)]}
             (self.tmpdir / "instagram.json").write_text(json.dumps(ig))
             r = self.client.get("/api/insights/top-instagram-posts?limit=5")

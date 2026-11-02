@@ -161,8 +161,14 @@ def lodge_post(
     title: str | None = None,
     created_by: str = "operator",
     approve: bool = True,
+    product_layout: str | None = None,
 ) -> dict[str, Any]:
-    """Book, render and (by default) approve one post. Raises LodgeError."""
+    """Book, render and (by default) approve one post. Raises LodgeError.
+
+    ``product_layout`` (type-hero / one-hero / pick-yours) is recorded on a finished
+    image so layout rotation and the calendar's "not the same layout twice" check
+    can see it.
+    """
     from _lib import unified_inbox  # noqa: PLC0415
     from _lib.marketing_calendar import transition_status, upsert_event  # noqa: PLC0415
 
@@ -198,6 +204,8 @@ def lodge_post(
             render_spec["photo"] = photo
     if channels:
         render_spec["channels"] = list(channels)
+    if product_layout:
+        render_spec["product_layout"] = str(product_layout)
 
     primary = (channels or rb.default_channels(brand))[0]
     record = {

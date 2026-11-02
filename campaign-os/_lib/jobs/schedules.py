@@ -42,6 +42,11 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
         "cron_sast": ["09:00"],
         "cadence": "daily",
     },
+    "geo_observe": {
+        "scheduler": "GitHub Actions (geo-observe-daily.yml)",
+        "cron_sast": ["08:00"],
+        "cadence": "daily, a few questions per brand; whole watchlist about weekly",
+    },
     "freshness_scan": _LAYER1_DAILY,
     "golf_news": _LAYER1_DAILY,
     "youtube_trends": _LAYER1_DAILY,

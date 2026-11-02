@@ -1,0 +1,50 @@
+name: GEO watchlist check (08:00 SAST)
+
+# Asks each brand's GEO watchlist a few questions a day (gpt-4o-mini with web search),
+# so the whole list is covered about once a week. One brand per request: each request
+# stays inside the job's time budget. About US$0.025 a question.
+# Auth: COS_JOB_TOKEN bearer (same secret as the other job workflows).
+
+on:
+  schedule:
+    # 06:00 UTC = 08:00 SAST. GitHub Actions cron uses UTC.
+    - cron: '0 6 * * *'
+  workflow_dispatch:  # manual trigger for testing
+
+jobs:
+  geo-observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
+      BASE: https://swing-shack-dashboard-production.up.railway.app
+    steps:
+      - name: Preflight — COS_JOB_TOKEN required
+        run: |
+          set -euo pipefail
+          if [ -z "${COS_JOB_TOKEN:-}" ]; then
+            echo "::error::COS_JOB_TOKEN secret is not set — refuse to fall back to password login"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Swing Shack
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -m 300 -X POST "$BASE/api/jobs/run/geo_observe?brand=swing-shack" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/geo_ss.json
+          python3 scripts/cos_job_summary.py print /tmp/geo_ss.json
+
+      - name: Stick
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -m 300 -X POST "$BASE/api/jobs/run/geo_observe?brand=stick" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/geo_stick.json
+          python3 scripts/cos_job_summary.py print /tmp/geo_stick.json

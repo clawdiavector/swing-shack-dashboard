@@ -1,0 +1,60 @@
+{
+  "about": "Real-world sizes for the reality check. Measure each object along the same dimension named here. Only compare objects at the same distance from the camera.",
+  "objects": {
+    "golf_ball": {
+      "dimension": "diameter",
+      "min_mm": 42.67, "typical_mm": 42.7, "max_mm": 43.0,
+      "source": "Rules of Golf Equipment Rules: ball diameter not less than 1.680 in (42.67 mm)"
+    },
+    "hole": {
+      "dimension": "diameter of the cup",
+      "min_mm": 107.0, "typical_mm": 108.0, "max_mm": 109.0,
+      "source": "Rules of Golf, Definitions (Hole): 4.25 in (108 mm) in diameter"
+    },
+    "flagstick": {
+      "dimension": "height above the green",
+      "min_mm": 2000.0, "typical_mm": 2130.0, "max_mm": 2450.0,
+      "source": "Industry standard 7 ft (2.13 m), 8 ft on some courses; the Rules set no height. Estimate"
+    },
+    "tee": {
+      "dimension": "length",
+      "min_mm": 54.0, "typical_mm": 70.0, "max_mm": 101.6,
+      "source": "Common tee lengths 2 1/8 to 3 1/4 in; Rules of Golf Equipment Rules cap tees at 4 in (101.6 mm)"
+    },
+    "driver": {
+      "dimension": "club length, grip end to sole",
+      "min_mm": 1092.0, "typical_mm": 1156.0, "max_mm": 1168.0,
+      "source": "Rules of Golf Equipment Rules: max 46 in (1168 mm) for drivers in competitions (Model Local Rule G-10); most are 43 to 45.5 in"
+    },
+    "putter": {
+      "dimension": "club length",
+      "min_mm": 813.0, "typical_mm": 864.0, "max_mm": 914.0,
+      "source": "Standard putters 32 to 36 in, most 33 to 35 in (maker specs). Estimate"
+    },
+    "stand_bag": {
+      "dimension": "height, legs closed, without clubs",
+      "min_mm": 840.0, "typical_mm": 890.0, "max_mm": 950.0,
+      "source": "Typical stand-bag specs 33 to 37 in (maker specs, e.g. Vessel, Jordan). Estimate; check the exact model's listing"
+    },
+    "cap": {
+      "dimension": "width across the crown, seen from the front",
+      "min_mm": 180.0, "typical_mm": 195.0, "max_mm": 215.0,
+      "source": "Adult cap sizes 56 to 61 cm round, about 18 to 19.5 cm across plus fabric. Estimate"
+    },
+    "cap_length": {
+      "dimension": "front of brim to back of crown, side view",
+      "min_mm": 250.0, "typical_mm": 275.0, "max_mm": 300.0,
+      "source": "Typical curved-brim cap, 7 cm brim on a 19 to 20 cm crown. Estimate"
+    },
+    "person": {
+      "dimension": "standing height, crown to heel",
+      "min_mm": 1550.0, "typical_mm": 1720.0, "max_mm": 1950.0,
+      "source": "Adult height range; South African adult men average about 1.69 m (NCD Risk Factor Collaboration). Estimate"
+    },
+    "head": {
+      "dimension": "chin to crown",
+      "min_mm": 210.0, "typical_mm": 230.0, "max_mm": 250.0,
+      "source": "Adult anthropometric range. Estimate"
+    }
+  }
+}

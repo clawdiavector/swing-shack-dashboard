@@ -55,9 +55,13 @@ def excluded_reason(name: str) -> str:
     return ""
 
 CATEGORY_RULES = [
+    # Clothing first; "tee" only singular, so a pack of golf tees is not a T-shirt.
+    ("apparel", r"\bpolo\b|\btee\b|t-shirt|\bshirt|\bcap\b|\bhat\b|beanie|\bsocks?\b|\bshorts\b|trousers|\bpants\b"
+                r"|jacket|hoodie|pullover|\bvest\b|skirt|swim|\btrunks?\b|quarter zip|1/4 zip|sweater|jumper|visor"),
     ("rangefinder", r"rangefinder"),
     ("putter", r"putter|sausage|runner"),
     ("wedge", r"wedge|vokey"),
+    ("iron", r"\birons?\b"),
     ("driver-wood", r"driver|3 wood|\bwood\b"),
     ("shaft", r"shaft|tensei|speeder"),
     ("bag", r"golf bag"),
@@ -80,6 +84,8 @@ PUSH_IDEAS = {
     "rangefinder": "On-course use, side by side with the others",
     "towel": "Gift or add-on idea",
     "ferrule": "Custom-build detail: the finishing touch on a club",
+    "iron": "Iron fitting on the launch monitor",
+    "apparel": "Styled on the rail or worn in the bay",
 }
 
 # Grips, ferrules and towels are promoted as a range per brand ("GripDrip is

@@ -249,6 +249,51 @@ def preview_archive(
     return {"ok": True, "kind": kind_norm, "id": iid, "title": title, "message": msg, "touches": touches, "purge_at": purge}
 
 
+_QUEUE_DONE = ("skipped", "failed", "rejected")
+
+
+def _queue_rows_for_draft(asset_id: str) -> list[dict[str, Any]]:
+    """Send-queue rows (qc-<asset_id>-<platform>) still able to go out for this draft."""
+    from _lib import publish_sandbox as sandbox  # noqa: PLC0415
+    from _lib.unified_inbox import asset_id_from_queue_row  # noqa: PLC0415
+
+    return [
+        r
+        for r in sandbox._read_jsonl(sandbox._queue_path())  # noqa: SLF001
+        if asset_id_from_queue_row(r) == asset_id and str(r.get("status") or "") not in _QUEUE_DONE
+    ]
+
+
+def _stop_queue_for_draft(asset_id: str, actor: str) -> int:
+    """Take an archived draft out of the send queue, removing any future Postiz schedule.
+
+    Each row is written back as soon as its Postiz post is gone, so a failure on a later
+    channel never leaves a row approved with its receipt removed.
+    """
+    from _lib import publish_sandbox as sandbox  # noqa: PLC0415
+    from _lib.postiz_on_approve import clear_postiz_on_unapprove  # noqa: PLC0415
+
+    stopped = 0
+    for active in _queue_rows_for_draft(asset_id):
+        key = str(active.get("idempotency_key") or "")
+        res, err = clear_postiz_on_unapprove(key)
+        if err:
+            raise ValueError(f"can't archive: {err}")
+        if str(active.get("status") or "") == "dispatched" and not res.get("removed_receipt"):
+            raise ValueError("can't archive: it was already sent to Postiz")
+        path = sandbox._queue_path()  # noqa: SLF001
+        rows = sandbox._read_jsonl(path)  # noqa: SLF001
+        for row in rows:
+            if str(row.get("idempotency_key") or "") == key:
+                row["status"] = "skipped"
+                row["skipped_reason"] = f"archived by {actor}"
+                row["human_approved"] = False
+                row["human_approved_at"] = None
+        sandbox._rewrite_jsonl(path, rows)  # noqa: SLF001
+        stopped += 1
+    return stopped
+
+
 def _resolve_title_touches(
     brand_id: str,
     kind: str,
@@ -263,8 +308,10 @@ def _resolve_title_touches(
             if str(r.get("asset_id") or "") == item_id:
                 title = str(r.get("title") or item_id)
                 touches = []
-                if str(r.get("publish_state") or "") in ("scheduled", "postiz_scheduled"):
-                    touches.append("Also removes it from Postiz.")
+                if draft_is_published(item_id):
+                    raise ValueError("already published; it can't be archived from here")
+                if _queue_rows_for_draft(item_id):
+                    touches.append("Also stops it going out, and removes it from Postiz if it is scheduled there.")
                 return title, touches
         raise ValueError("draft not found")
     if kind == "plan":
@@ -325,6 +372,7 @@ def archive_item(
         if not row:
             raise ValueError("draft not found")
         cid = str(row.get("campaign_id") or "")
+        _stop_queue_for_draft(iid, actor)
         if not _archive_draft(iid, cid):
             raise ValueError("draft not found")
         data = _load_campaign_data()

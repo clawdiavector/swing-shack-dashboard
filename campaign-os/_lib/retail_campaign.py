@@ -65,7 +65,7 @@ def _layout_from_record(rec: dict[str, Any]) -> str:
     if arch in pt.LAYOUTS:
         return arch
     fields = rs.get("fields") if isinstance(rs.get("fields"), dict) else {}
-    layout = str(fields.get("product_layout") or "").strip()
+    layout = str(rs.get("product_layout") or fields.get("product_layout") or "").strip()
     return layout if layout in pt.LAYOUTS else ""
 
 
@@ -113,7 +113,8 @@ def _fit_hook(hook: str, max_chars: int) -> str:
     return trimmed.rstrip(".,;:- ")
 
 
-def build_caption(brand_id: str, product_name: str, idea: str = "", status: str = "") -> str:
+def build_caption(brand_id: str, product_name: str, idea: str = "", status: str = "", angle: str | None = None) -> str:
+    """Product caption. With an ``angle`` (product_angle.ANGLES) it carries only that angle's line."""
     hook = idea.strip() or f"{product_name} is in store now."
     if status == "new":
         hook = f"Just landed: {product_name}."
@@ -124,6 +125,14 @@ def build_caption(brand_id: str, product_name: str, idea: str = "", status: str 
     if hook_max:
         hook = _fit_hook(hook, hook_max)
     cta = _default_cta(brand_id)
+    if angle:
+        from _lib.product_angle import apply_angle  # noqa: PLC0415
+        from _lib.service_tiein import service_tiein_line  # noqa: PLC0415
+
+        # The service line is the post's one ask, so it takes the CTA's place.
+        ask = (service_tiein_line(product_name, brand_id) if angle == "service" else None) or f"{cta}."
+        base = f"{hook}.\n{ask}\nBetter begins here." if brand_id == "stick" else f"{hook}.\n{ask}"
+        return base if angle == "service" else (apply_angle(base, angle, product_name, brand_id) or base)
     if brand_id == "stick":
         return f"{hook}.\nBook a fitting at Stick.\nBetter begins here."
     return f"{hook}.\n{cta}."
@@ -274,22 +283,27 @@ def plan_week(
 ) -> dict[str, Any]:
     start = start or date.today()
     picks, gaps = pick_week_products(brand_id, start=start, days=days)
+    from _lib import product_angle  # noqa: PLC0415
+
     history = product_layout_history(brand_id) if brand_id == "swing-shack" else []
     posts: List[dict[str, Any]] = []
     for item in picks:
-        caption = build_caption(brand_id, item["name"], item.get("idea") or "", item.get("status") or "")
+        angle = product_angle.next_angle(brand_id, item["name"], product_angle.recent_angles(brand_id))
+        caption = build_caption(brand_id, item["name"], item.get("idea") or "", item.get("status") or "", angle)
         hard = caption_hard_fails(brand_id, caption)
         slot: dict[str, Any] = {
             "date": item["date"],
             "product": item["name"],
             "slug": _slug(item["name"], item["date"]),
             "caption": caption,
+            "angle": angle,
             "skipped": bool(hard),
             "lint_hard": hard,
         }
         if hard:
             posts.append(slot)
             continue
+        product_angle.remember(brand_id, angle)
         if brand_id == "swing-shack":
             layout = suggest_product_layout(1, history)
             history.append(layout)
@@ -338,6 +352,7 @@ def lodge_plan(brand_id: str, plan: dict[str, Any], *, approve: bool = False) ->
                     image_bytes=image_bytes,
                     created_by=CREATED_BY,
                     approve=approve,
+                    product_layout=layout,
                 )
             else:
                 fields = {

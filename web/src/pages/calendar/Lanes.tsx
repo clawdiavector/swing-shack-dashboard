@@ -284,7 +284,7 @@ export function Lanes() {
 
   return (
     <div className="space-y-6">
-      <PageIntro badge="Planning" here="/calendar/lanes" title="Plan">
+      <PageIntro badge="Planning" here="/calendar/lanes" title="Everything planned">
         What’s coming up, soonest first. Anything you’ve suggested waits at the top until you put it on the calendar.
       </PageIntro>
 

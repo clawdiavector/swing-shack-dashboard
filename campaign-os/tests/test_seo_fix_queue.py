@@ -104,7 +104,8 @@ def test_resolved_history_is_capped():
     assert len(out["items"]) == q.MAX_RESOLVED_KEPT
 
 
-@pytest.mark.parametrize("brand", ["stick", "bag-drop", "", "swing-shack-typo"])
+# Stick has its own page list since 2026-10-28 (site_audit.PAGES_BY_BRAND); Bag Drop does not.
+@pytest.mark.parametrize("brand", ["bag-drop", "", "swing-shack-typo"])
 def test_other_brands_are_refused(brand):
     with pytest.raises(ValueError):
         q.sync(brand, [f("missing_h1")], [], None, T1)
@@ -140,14 +141,16 @@ def test_site_audit_writes_queue_for_swing_shack(data_dir):
             assert item["type"] in q.AUTO_PUBLISH_TYPES and item["page"] != "Homepage"
 
 
-def test_site_audit_does_not_queue_for_stick(data_dir, monkeypatch):
+def test_site_audit_queues_stick_under_stick_only_using_stick_pages(data_dir, monkeypatch):
     from _lib.jobs.layer1 import site_audit
 
     monkeypatch.setenv("BRAND_DOMAIN_STICK", "stickgolf.co.za")
-    with patch.object(site_audit, "_fetch_page", return_value=HTML):
+    fetched = []
+    with patch.object(site_audit, "_fetch_page", side_effect=lambda url: fetched.append(url) or HTML):
         site_audit.run(brand="stick")
-    assert not _queue_path(data_dir, "stick").exists()
+    assert _queue_path(data_dir, "stick").exists()
     assert not _queue_path(data_dir, "swing-shack").exists()
+    assert all("stickgolf.co.za" in u for u in fetched) and not any(u.endswith("/membership") for u in fetched)
 
 
 def test_a_queue_failure_never_fails_the_audit(data_dir):

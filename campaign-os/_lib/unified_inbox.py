@@ -790,6 +790,29 @@ def _publish_request_items(*, brand: str | None, status: str, now: datetime) -> 
     return out
 
 
+def _add_channel_options(items: list[dict[str, Any]]) -> None:
+    """Give draft and publish cards the brand's real channel list; without it the page falls back to an old built-in one."""
+    from _lib import onepost, publish_sandbox  # noqa: PLC0415
+
+    coming = sorted(onepost.COMING_SOON_CHANNELS)
+    by_brand: dict[str, list[str] | None] = {}
+    for item in items:
+        if item.get("type") not in ("draft_asset", "publish_request"):
+            continue
+        brand_id = str(item.get("brand_id") or "")
+        if brand_id not in by_brand:
+            try:
+                by_brand[brand_id] = publish_sandbox.brand_channels(brand_id)
+            except ValueError:
+                by_brand[brand_id] = None
+        available = by_brand[brand_id]
+        if available is None:
+            continue
+        meta = item.setdefault("meta", {})
+        meta.setdefault("channels_available", available)
+        meta.setdefault("channels_coming", coming)
+
+
 def _publish_request_meta(
     row: dict[str, Any],
     key: str,
@@ -848,6 +871,7 @@ def list_items(
         return datetime.min.replace(tzinfo=timezone.utc)
 
     items.sort(key=_created_desc_key, reverse=True)
+    _add_channel_options(items)
 
     def _pending_stale(item: dict[str, Any]) -> bool:
         if item.get("status") != "pending":
@@ -1414,6 +1438,17 @@ def post_state(
     if any(str(d.get("status") or "") == "sandbox_only" for d in deliveries):
         if not any(str(d.get("status") or "") == "posted" for d in deliveries):
             out["next_action"] = "Sandbox only (not sent)"
+    composed_map: dict[str, Any] = {}
+    if isinstance(asset, dict) and isinstance(asset.get("composed"), dict):
+        composed_map.update(asset["composed"])
+    sidecar = _load_draft_sidecar(str(post_id or "")) if post_id else {}
+    if isinstance(sidecar.get("composed"), dict):
+        composed_map.update(sidecar["composed"])
+    if composed_map:
+        out["composed"] = composed_map
+        from _lib.feed_vertical_renders import vertical_renders_from_composed  # noqa: PLC0415
+
+        out["vertical_renders"] = vertical_renders_from_composed(composed_map)
     return out
 
 
@@ -2157,6 +2192,17 @@ def approve_item(
         asset = (campaign.get("assets") or {}).get(asset_id)
         if not asset:
             return {"ok": False, "error": "asset not found"}
+        from _lib.feed_vertical_renders import ensure_vertical_composed_for_asset  # noqa: PLC0415
+
+        brand_for_asset = str(item.get("brand_id") or campaign.get("brand_id") or "")
+        if brand_for_asset:
+            ensure_vertical_composed_for_asset(
+                brand_id=brand_for_asset,
+                asset_id=asset_id,
+            )
+            data = _load_campaign_data()
+            campaign = (data.get("campaigns") or {}).get(campaign_id) or campaign
+            asset = (campaign.get("assets") or {}).get(asset_id) or asset
         now = _utc_now_iso()
         asset["approvalStatus"] = "approved"
         asset["updatedAt"] = now

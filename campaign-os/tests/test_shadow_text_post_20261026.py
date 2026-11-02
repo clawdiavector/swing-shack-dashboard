@@ -35,11 +35,13 @@ def test_text_is_drawn_inside_the_shadows(tmp_path):
     # the lit middle of the photo is untouched
     for xy in ((540, 675), (300, 600), (900, 900)):
         assert after.getpixel(xy) == before.getpixel(xy)
-    # mint and white text appear in the top-right and bottom-left corners
+    # brand grey and white text appear in the top-right and bottom-left corners
+    # (Stick grey #D2D2D2 from the designer, not the feed's mint: Christelle, 2026-10-28)
     top = after.crop((500, 0, 1080, 200)).getcolors(1 << 20)
     bottom = after.crop((0, 1150, 700, 1350)).getcolors(1 << 20)
-    assert any(c[1][1] > 200 and c[1][0] < 120 for c in top)       # mint
+    assert any(c[1] == (210, 210, 210) for c in top)                # brand grey
     assert any(min(c[1]) > 230 for c in bottom)                     # white
+    assert not any(c[1][1] > 200 and c[1][0] < 120 for c in top + bottom)  # no mint
 
 
 def test_refuses_a_photo_without_shadows(tmp_path):

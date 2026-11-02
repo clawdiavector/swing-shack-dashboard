@@ -27,6 +27,8 @@ CACHE_TTL = 6 * 3600
 MAX_AGE_DAYS = 14
 PER_BRAND = 6
 PER_PAGE = 2
+PRODUCT_SLOTS = 3  # of PER_BRAND: stocked-brand product posts are the point, not just vibes
+WOMEN_SLOTS = 1  # of PER_BRAND: ladies' golf, not only winners and big news
 
 _RELEASE = re.compile(
     r"\b(drops?|dropping|dropped|launch(es|ed|ing)?|pre-?orders?|coming soon|available now|"
@@ -97,6 +99,7 @@ def rank_page(page: dict, posts: list[dict], now: datetime | None = None) -> lis
         video = p.get("media_type") == "VIDEO"
         out.append({
             "page_id": page["id"], "page": page["name"], "kind": kind, "why": why,
+            "women": bool(page.get("women")),
             "url": p["permalink"], "likes": p.get("like_count"), "comments": p.get("comments_count"),
             "posted": p["timestamp"][:10], "media_type": p.get("media_type"),
             "image": p.get("thumbnail_url") if video else p.get("media_url"),
@@ -106,17 +109,30 @@ def rank_page(page: dict, posts: list[dict], now: datetime | None = None) -> lis
 
 
 def pick(cands: list[dict]) -> list[dict]:
-    """Best first, at most PER_PAGE from one page so one brand does not take the list."""
+    """Best first, at most PER_PAGE from one page so one brand does not take the list.
+
+    Vibe posts score highest, so left alone they fill the list. Room is held first for
+    product posts from the brands we stock and for ladies' golf, then the best of the rest.
+    """
     taken: dict[str, int] = {}
-    out = []
-    for c in sorted(cands, key=lambda c: -c["score"]):
-        if taken.get(c["page_id"], 0) >= PER_PAGE:
-            continue
-        taken[c["page_id"]] = taken.get(c["page_id"], 0) + 1
-        out.append(c)
-        if len(out) >= PER_BRAND:
-            break
-    return out
+    out: list[dict] = []
+
+    def take(group: list[dict], limit: int) -> None:
+        n = 0
+        for c in group:
+            if n >= limit or len(out) >= PER_BRAND:
+                return
+            if c in out or taken.get(c["page_id"], 0) >= PER_PAGE:
+                continue
+            taken[c["page_id"]] = taken.get(c["page_id"], 0) + 1
+            out.append(c)
+            n += 1
+
+    ranked = sorted(cands, key=lambda c: -c["score"])
+    take([c for c in ranked if c["kind"] == "product"], PRODUCT_SLOTS)
+    take([c for c in ranked if c.get("women")], WOMEN_SLOTS)
+    take(ranked, PER_BRAND)
+    return sorted(out, key=lambda c: -c["score"])
 
 
 def _fetch(username: str) -> list[dict]:

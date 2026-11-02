@@ -696,6 +696,7 @@ def _normalize_platform(raw: str) -> str:
         "google_business": "gbp",
         "google-business": "gbp",
         "gmb": "gbp",
+        "tiktok-business": "tiktok",
     }
     return aliases.get(p, p)
 

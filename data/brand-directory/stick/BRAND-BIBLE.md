@@ -600,6 +600,10 @@ brand: stick
 # Hashtag, emoji and unlisted-CTA hits warn until this bible is CONFIRMED.
 # Set to hard when the owners sign those lists. Other mechanical bans stay hard.
 list_enforcement: warn
+# Kyle, 23 Oct 2026: no more than 7 words per sentence (CTA and sign-off excluded).
+# Warns while this bible is DRAFT; set sentence_length_enforcement: hard to fail.
+max_words_per_sentence: 7
+sentence_length_enforcement: warn
 language: en-ZA
 serial_comma: false
 quotes: double-curly

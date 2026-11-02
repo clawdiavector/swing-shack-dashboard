@@ -371,6 +371,24 @@ export function PostCard({
                 onDrop={needsAttention ? handleDrop : undefined}
                 busyChannel={deliveryBusy}
               />
+              {post.vertical_renders?.length ? (
+                <div className="flex flex-wrap gap-2" data-testid="vertical-render-links">
+                  {post.vertical_renders.map((row) => {
+                    const href = resolveAssetUrl(row.url)
+                    return (
+                      <a
+                        key={row.channel}
+                        href={href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-full border border-bd px-2 py-0.5 text-[11px] font-semibold text-tx2 hover:border-ac hover:text-ac"
+                      >
+                        {row.label}
+                      </a>
+                    )
+                  })}
+                </div>
+              ) : null}
             </div>
           )}
           {canEditFields && to ? (

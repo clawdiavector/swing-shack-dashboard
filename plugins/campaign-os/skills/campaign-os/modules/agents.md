@@ -87,6 +87,18 @@ overdue, and plan steps due today. It says "Nothing needs you today." when there
 the agent that sends the Telegram brief (cos-triage, or the 07:00 Mac digest) reads it and adds `text` to its message.
 Not wired into a cron yet; that is a Mac change for Kyle. Built from `_lib/plan_todo.py` and `_lib/calendar_alerts.py`.
 
+## Foreman weekly messages (Monday and Tuesday)
+
+Same shape as the morning message: bearer `GET`, plain `text`, sends nothing itself. `brand=all` means the two facilities
+(Swing Shack, Stick); Bag Drop only when asked for by name.
+
+| When | Route | Says |
+|---|---|---|
+| Monday 09:00 SAST | `/api/jobs/weekly-selling-message` | what is on each facility's calendar Mon to Sun (approved entries) |
+| Tuesday | `/api/jobs/weekly-report-message` | the `/weekly-report?brand=` page link per facility (`links` + `text`); signed per-brand link, no login, works 7 days |
+
+Not wired into a cron yet; that is a Mac change for Kyle. Built from `_lib/plan_todo.py`.
+
 ## Calendar evening message (foreman end-of-day)
 
 `GET /api/jobs/evening-message?brand=all` (or per brand) with the job bearer returns plain

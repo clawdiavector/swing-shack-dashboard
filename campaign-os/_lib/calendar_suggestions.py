@@ -235,6 +235,24 @@ def _post_layout(post: Dict[str, Any]) -> str:
     return _layout_slug_from_template(str(post.get("template_id") or ""))
 
 
+def _record_layouts(brand_id: str) -> Dict[str, str]:
+    """calendar_id -> product layout, read from the calendar record (archetype,
+    post_type or render_spec), since week_board rows carry no layout."""
+    try:
+        from _lib import retail_campaign as rc  # noqa: PLC0415
+        from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+        out: Dict[str, str] = {}
+        for rec in canonical_records(brand_id):
+            layout = rc._layout_from_record(rec)  # noqa: SLF001
+            cid = str(rec.get("calendar_id") or "")
+            if layout and cid:
+                out[cid] = layout
+        return out
+    except Exception:  # noqa: BLE001 - suggestions must still render
+        return {}
+
+
 def posts_by_day_for_month(brand_id: str, month: str) -> Dict[str, List[Dict[str, Any]]]:
     """Primary (non-candidate) posts keyed by go-live ISO date in `month`."""
     from _lib.unified_inbox import week_board  # noqa: PLC0415
@@ -253,6 +271,7 @@ def posts_by_day_for_month(brand_id: str, month: str) -> Dict[str, List[Dict[str
     except ValueError:
         return {}
     out: Dict[str, List[Dict[str, Any]]] = {}
+    record_layouts = _record_layouts(brand_id)
     for day in payload.get("days_list") or []:
         iso = str(day.get("date") or "")
         if not iso.startswith(month):
@@ -272,9 +291,10 @@ def posts_by_day_for_month(brand_id: str, month: str) -> Dict[str, List[Dict[str
             tid = str(post.get("template_id") or "")
             if tid:
                 row["template_id"] = tid
-                layout = _post_layout({"template_id": tid})
-                if layout:
-                    row["layout"] = layout
+            layout = _post_layout({"template_id": tid}) if tid else ""
+            layout = layout or record_layouts.get(str(post.get("calendar_id") or ""), "")
+            if layout:
+                row["layout"] = layout
             primaries.append(row)
         if primaries:
             out[iso] = primaries
