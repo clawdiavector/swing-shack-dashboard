@@ -37,6 +37,8 @@ def _load_sidecars() -> list[tuple[Path, dict[str, Any]]]:
         return []
     out: list[tuple[Path, dict[str, Any]]] = []
     for path in sorted(root.glob("*.json")):
+        if path.name.startswith("_"):
+            continue  # job state files such as _image-jobs.json, not asset sidecars
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
