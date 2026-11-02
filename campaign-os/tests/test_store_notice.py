@@ -18,7 +18,7 @@ def test_stick_caption_gets_the_line_before_the_sign_off():
 
 def test_caption_without_sign_off_gets_it_at_the_end():
     out = sn.add_store_notice("Takomo irons at Stick.", "stick")
-    assert out.endswith("\nShopify store coming soon.")
+    assert out.endswith("\nShop online: shop.stickgolf.co.za")
 
 
 def test_not_added_twice():
