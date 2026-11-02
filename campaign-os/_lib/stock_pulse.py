@@ -542,3 +542,22 @@ def candidates_for(brand_id: str) -> List[Dict[str, Any]]:
     """The brand's current candidates, straight from its saved stock lists. Empty when none saved."""
     snaps = load_snapshots(brand_id)
     return candidates(analyse(snaps)) if snaps else []
+
+
+def feed_candidates(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Feed lines: new and back-in-stock lines first (new stock is announced), then candidates()."""
+    arrivals = [r for r in results if r["status"] in ("new", "back")
+                and not r["not_for_feed"] and not r.get("folded_into_range")]
+    seen, out = set(), []
+    for r in arrivals + candidates(results):
+        if r["name"] in seen:
+            continue
+        seen.add(r["name"])
+        out.append(r)
+    return out
+
+
+def feed_candidates_for(brand_id: str) -> List[Dict[str, Any]]:
+    """The brand's feed lines from its saved stock lists. Empty when none saved."""
+    snaps = load_snapshots(brand_id)
+    return feed_candidates(analyse(snaps)) if snaps else []

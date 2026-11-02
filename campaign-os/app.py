@@ -47791,7 +47791,7 @@ def _cs_bundle(brand_id, month):
     note_rows, names = _cs_inputs(brand_id, sorted({first.year, last.year}))
     decisions = cs.read_decisions(brand_id)
     try:
-        stock = sp.candidates_for(brand_id)
+        stock = sp.feed_candidates_for(brand_id)
     except Exception:
         _app_log.exception("stock suggestions failed for %s", brand_id)
         stock = []
