@@ -30,7 +30,8 @@ class ScoresAsOfToday(brief_tests._JobCase):
         self.run_job(ending, brief_tests.DAY)
         self.assertIn("home_page_destination", baseline)
         self.assertIn("home_page_destination", self._open_rules())
-        self.assertEqual(self.read("latest.json")["resolved"], [])
+        # Only the "no end date" finding clears; nothing else reads the ad as finished.
+        self.assertEqual([f["rule"] for f in self.read("latest.json")["resolved"]], ["open_ended_non_lead"])
 
 
 if __name__ == "__main__":
