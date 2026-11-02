@@ -126,13 +126,13 @@ def build_caption(brand_id: str, product_name: str, idea: str = "", status: str 
         hook = _fit_hook(hook, hook_max)
     cta = _default_cta(brand_id)
     if angle:
-        from _lib.product_angle import apply_angle  # noqa: PLC0415
         from _lib.service_tiein import service_tiein_line  # noqa: PLC0415
+        from _lib.store_notice import NOTICES  # noqa: PLC0415
 
-        # The service line is the post's one ask, so it takes the CTA's place.
-        ask = (service_tiein_line(product_name, brand_id) if angle == "service" else None) or f"{cta}."
-        base = f"{hook}.\n{ask}\nBetter begins here." if brand_id == "stick" else f"{hook}.\n{ask}"
-        return base if angle == "service" else (apply_angle(base, angle, product_name, brand_id) or base)
+        # The service line or the shop line is the post's one ask, so it takes the CTA's place.
+        lead = {"service": service_tiein_line(product_name, brand_id), "shopify": NOTICES.get(brand_id)}.get(angle)
+        ask = lead or f"{cta}."
+        return f"{hook}.\n{ask}\nBetter begins here." if brand_id == "stick" else f"{hook}.\n{ask}"
     if brand_id == "stick":
         return f"{hook}.\nBook a fitting at Stick.\nBetter begins here."
     return f"{hook}.\n{cta}."
