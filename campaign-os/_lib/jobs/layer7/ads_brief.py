@@ -90,6 +90,8 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
     if not account or not (token or get):
         return {"ok": False, "error": "no ad account or token for this brand"}
 
+    # A given ``today`` also pins "now" for scoring (end dates, days running); otherwise the real clock.
+    now = (_dt.datetime.combine(today, _dt.time(12), tzinfo=_dt.timezone.utc) if today else None)
     today = today or ads_brief.sast_today()
     io = io_for_job(JOB_NAME, lane_brand)
     kw = {"get": get, "get_as": get_as, "today": today}
@@ -97,7 +99,7 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
     if not full["ads"]:
         # Nothing readable: leave yesterday's brief in place rather than blank it.
         return {"ok": False, "error": "Meta returned no ads", "errors": full["errors"][:3]}
-    scored = ads_brain.score_snapshot(full)
+    scored = ads_brain.score_snapshot(full, now=now)
     recent = ads_brain.fetch_snapshot(lane_brand, account, token, days=7,
                                       insights_only=True, **kw)
 
