@@ -29,7 +29,7 @@ KNOWN_AGENTS: tuple[dict[str, Any], ...] = (
         "kind": "hermes",
         "layer": "all",
         "schedule": "daily 07:25 + 15m watch",
-        "enabled": False,
+        "enabled": True,
         "expected_every_s": 86400,
     },
     {
@@ -38,7 +38,7 @@ KNOWN_AGENTS: tuple[dict[str, Any], ...] = (
         "kind": "hermes",
         "layer": "L3",
         "schedule": "daily 07:40",
-        "enabled": False,
+        "enabled": True,
         "expected_every_s": 86400,
     },
     {
@@ -47,7 +47,7 @@ KNOWN_AGENTS: tuple[dict[str, Any], ...] = (
         "kind": "hermes",
         "layer": "L3",
         "schedule": "daily 07:45",
-        "enabled": False,
+        "enabled": True,
         "expected_every_s": 86400,
     },
     {
@@ -56,7 +56,7 @@ KNOWN_AGENTS: tuple[dict[str, Any], ...] = (
         "kind": "hermes",
         "layer": "L3",
         "schedule": "daily 08:10",
-        "enabled": False,
+        "enabled": True,
         "expected_every_s": 86400,
     },
     {
@@ -65,21 +65,13 @@ KNOWN_AGENTS: tuple[dict[str, Any], ...] = (
         "kind": "hermes",
         "layer": "L3",
         "schedule": "daily 08:30",
-        "enabled": False,
+        "enabled": True,
         "expected_every_s": 86400,
-    },
-    {
-        "id": "pi-score",
-        "profile": "pi-score",
-        "kind": "pi",
-        "layer": "L3",
-        "schedule": "one-shot",
-        "enabled": False,
-        "expected_every_s": None,
     },
 )
 
 _SEED_BY_ID = {row["id"]: row for row in KNOWN_AGENTS}
+ORPHAN_HIDE_AFTER_S = 14 * 86400
 
 
 def _utc_now_iso() -> str:
@@ -110,8 +102,8 @@ def _coerce_status(raw: Any) -> str:
     value = str(raw or "OK").upper()
     if value in VALID_STATUS:
         return value
-    if value in {"ERROR", "FAIL"}:
-        return "FAILED"
+    if value in {"COMPLETED", "COMPLETE", "DONE", "SUCCESS", "PASS"}:
+        return "OK"
     return "FAILED"
 
 
@@ -139,7 +131,7 @@ def normalise_heartbeat(body: dict[str, Any]) -> dict[str, Any]:
     """Validate and clamp a heartbeat body; raises ValueError on bad id."""
     if not isinstance(body, dict):
         raise ValueError("body must be an object")
-    agent_id = str(body.get("id") or "").strip()
+    agent_id = str(body.get("id") or body.get("agent_id") or "").strip()
     if not AGENT_ID_RE.match(agent_id):
         raise ValueError("invalid agent id")
     seed = _SEED_BY_ID.get(agent_id, {})
@@ -247,6 +239,9 @@ def read_roster(base_dir: Path) -> list[dict[str, Any]]:
     for agent_id, hb in sorted(observed.items()):
         if agent_id in seen:
             continue
+        age = _age_seconds(hb.get("last_heartbeat_at") or "")
+        if age is None or age > ORPHAN_HIDE_AFTER_S:
+            continue  # ghost card: not a known agent and silent for two weeks
         roster.append(_merge_agent_row(None, hb))
 
     return roster

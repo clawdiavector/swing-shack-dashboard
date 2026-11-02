@@ -2,7 +2,7 @@ name: Mail intake (Herman's mail, every 30 minutes)
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: "*/30 * * * *"
   workflow_dispatch:  # manual trigger for testing
 
 jobs:
