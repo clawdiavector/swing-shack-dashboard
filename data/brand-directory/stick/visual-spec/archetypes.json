@@ -2325,6 +2325,135 @@
         "h": 1351
       },
       "vetted": true
+    },
+    {
+      "id": "stick-editorial-shadow",
+      "name": "Editorial shadow - full-bleed product close-up, copy and stick logo set in the photo's own shadow (no plate)",
+      "description": "Kyle's pick, 2026-10-26. The photo owns the canvas: an editorial close-up of a REAL product (Krea restyle of a real photo, or a real photo) lit so the lower third falls into deep shadow. Copy sits left-aligned in that shadow: mint tracked eyebrow, white ExtraBold product name, white Light 'AVAILABLE @', white stick logo. No navy block. The photo MUST have a dark lower-left; the Krea recipe in templates/editorial-shadow/README.md guarantees it. Measured from templates/editorial-shadow/references/ref-01.jpg.",
+      "canvas": "ig_post",
+      "block_anchor": "bottom",
+      "template_pack": "templates/editorial-shadow",
+      "post_type": "product_post",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook",
+          "gbp"
+        ],
+        "record_types": [
+          "moment",
+          "campaign",
+          "evergreen"
+        ],
+        "needs_photo": true
+      },
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true
+      },
+      "zones": {
+        "photo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "image",
+          "source": "photo"
+        },
+        "eyebrow": {
+          "rect": {
+            "x0": 0.0611,
+            "y0": 0.7733,
+            "x1": 0.94,
+            "y1": 0.797
+          },
+          "kind": "text",
+          "source": "eyebrow",
+          "font_role": "cta_emphasis",
+          "max_lines": 1,
+          "max_chars_per_line": 32,
+          "text_transform": "uppercase",
+          "tracking_em": 0.1,
+          "align": "left",
+          "valign": "middle",
+          "colour": "mint",
+          "min_font_px": 22,
+          "max_font_px": 26
+        },
+        "headline": {
+          "rect": {
+            "x0": 0.0593,
+            "y0": 0.8074,
+            "x1": 0.94,
+            "y1": 0.8593
+          },
+          "kind": "text",
+          "source": "product_name",
+          "font_role": "cta_emphasis",
+          "max_lines": 1,
+          "max_chars_per_line": 22,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "middle",
+          "colour": "white",
+          "min_font_px": 44,
+          "max_font_px": 62
+        },
+        "subhead": {
+          "rect": {
+            "x0": 0.0593,
+            "y0": 0.8652,
+            "x1": 0.6,
+            "y1": 0.8933
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "AVAILABLE @",
+          "font_role": "h2",
+          "max_lines": 1,
+          "align": "left",
+          "valign": "middle",
+          "colour": "white",
+          "min_font_px": 26,
+          "max_font_px": 30
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.0593,
+            "y0": 0.9096,
+            "x1": 0.1981,
+            "y1": 0.9467
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 60,
+      "measured_from": [
+        "templates/editorial-shadow/references/ref-01.jpg"
+      ],
+      "reference_size": {
+        "w": 1080,
+        "h": 1350
+      },
+      "vetted": true
     }
   ],
   "selection": {
