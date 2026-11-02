@@ -47581,7 +47581,8 @@ def morning_message_route():
             _app_log.exception("morning message alerts failed for %s", b)
             alerts = []
         sections[b] = {"alerts": alerts, "steps": pt.todo_steps(b, cp.list_plans(b), today)}
-    text = pt.morning_text(sections, today)
+    from _lib import foreman_eod as feod
+    text = pt.morning_text(sections, today, base_url=feod.public_base_url())
     return jsonify({"ok": True, "date": today.isoformat(), "text": text,
                     "screaming": sum(1 for s in sections.values() for a in s["alerts"] if a["level"] == "scream"),
                     "overdue": sum(1 for s in sections.values() for x in s["steps"] if x["bucket"] == "overdue"),
