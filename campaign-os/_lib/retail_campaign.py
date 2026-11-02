@@ -113,6 +113,10 @@ def _fit_hook(hook: str, max_chars: int) -> str:
     return trimmed.rstrip(".,;:- ")
 
 
+# Each brand's closing line, last in the caption (Herman, 31 Oct 2026).
+_SIGN_OFFS = {"stick": "Better begins here.", "swing-shack": "Keep Swinging"}
+
+
 def build_caption(brand_id: str, product_name: str, idea: str = "", status: str = "", angle: str | None = None) -> str:
     """Product caption. With an ``angle`` (product_angle.ANGLES) it carries only that angle's line."""
     hook = idea.strip() or f"{product_name} is in store now."
@@ -132,9 +136,11 @@ def build_caption(brand_id: str, product_name: str, idea: str = "", status: str 
         # The service line or the shop line is the post's one ask, so it takes the CTA's place.
         lead = {"service": service_tiein_line(product_name, brand_id), "shopify": NOTICES.get(brand_id)}.get(angle)
         ask = lead or f"{cta}."
-        return f"{hook}.\n{ask}\nBetter begins here." if brand_id == "stick" else f"{hook}.\n{ask}"
+        return f"{hook}.\n{ask}" + (f"\n{_SIGN_OFFS[brand_id]}" if brand_id in _SIGN_OFFS else "")
     if brand_id == "stick":
         return f"{hook}.\nBook a fitting at Stick.\nBetter begins here."
+    if brand_id in _SIGN_OFFS:
+        return f"{hook}.\n{cta}.\n{_SIGN_OFFS[brand_id]}"
     return f"{hook}.\n{cta}."
 
 
