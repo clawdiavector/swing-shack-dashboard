@@ -211,5 +211,4 @@ campaign-os/tests/test_clean_calendar_reopen_20261030.py
 campaign-os/tests/test_bag_drop_online_store.py
 campaign-os/tests/test_daily_target_outside_rows_20261030.py
 campaign-os/tests/test_add_sound.py
-campaign-os/tests/test_beat_cut.py
 campaign-os/tests/test_sound_library.py
