@@ -1,4 +1,4 @@
-"""Stick product captions carry a 'Shopify store coming soon' line until the store is live."""
+"""Stick product captions carry the online store link (shop.stickgolf.co.za, live since Nov 2026)."""
 import sys
 from pathlib import Path
 
@@ -11,14 +11,14 @@ def test_stick_caption_gets_the_line_before_the_sign_off():
     cap = "Vice Pro Air available at Stick.\nDM us for price and details.\nBetter begins here."
     out = sn.add_store_notice(cap, "stick")
     lines = out.split("\n")
-    assert "Shopify store coming soon." in lines
+    assert "Shop online at shop.stickgolf.co.za." in lines
     assert lines[-1] == "Better begins here."
-    assert lines.index("Shopify store coming soon.") == len(lines) - 2
+    assert lines.index("Shop online at shop.stickgolf.co.za.") == len(lines) - 2
 
 
 def test_caption_without_sign_off_gets_it_at_the_end():
     out = sn.add_store_notice("Takomo irons at Stick.", "stick")
-    assert out.endswith("\nShopify store coming soon.")
+    assert out.endswith("\nShop online at shop.stickgolf.co.za.")
 
 
 def test_not_added_twice():
