@@ -10,7 +10,7 @@ The brand bibles drift from the real feed. Stick's tagline "Better begins here."
 appears in 173 of 258 captions and closes 121 of them, yet appears in no brand
 file; the bible is entirely fitting and TrackMan while only 15% of captions
 mention fitting at all. The audit output is
-the source of real voice — prefer it over the copy bible when they disagree.
+evidence of the real voice. The brand bible still wins when they disagree (Herman, 31 Oct 2026).
 
 ## Run it
 
