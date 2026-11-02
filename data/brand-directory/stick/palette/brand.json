@@ -1,8 +1,8 @@
 {
   "schema": "https://campaign-os/brand-directory/palette/v1",
   "brand_id": "stick",
-  "version": "3.0",
-  "updated": "2026-10-20T00:00:00Z",
+  "version": "3.1",
+  "updated": "2026-11-02T00:00:00Z",
   "source": "designer's colour document (brand-guide/stick-colour-font.pdf, supplied by Christelle 2026-10-20); measured feed tokens kept for existing templates",
   "tokens": {
     "navy_deep": "#073C52",
@@ -15,14 +15,14 @@
     "grey_light": "#D1D1D1",
     "gradient_sky": "#D6E4EC",
     "gradient_fog": "#EAEEF1",
-    "brand_navy": "#003D54",
+    "brand_navy": "#042840",
     "brand_grey": "#D2D2D2"
   },
   "palette": {
     "primary": {
-      "hex": "#003D54",
+      "hex": "#042840",
       "name": "brand navy",
-      "usage": "designer's main colour: dominant fields, headlines on light tiles, the logo colour"
+      "usage": "main colour: dominant fields, headlines on light tiles. The darker navy of Stick's own service graphics (fields #042840 fading to navy_alt #05325D); replaces the designer document's petrol swatch, which reads teal-blue next to them (Christelle, 2026-11-02)"
     },
     "neutral_mid": {
       "hex": "#D2D2D2",
