@@ -572,7 +572,22 @@ def verdict_for(
     if not getattr(spec, "enabled", True):
         return "DISABLED"
     now = now or _utc_now()
+    verdict = _verdict_for_clock(name, spec, rows, now=now, brand=brand, grouped=grouped)
+    # An on-demand job has no clock to be late against: idle is not a fault. FAILED/STUCK still show.
+    if schedule_for(name).get("on_demand") and verdict in {"LATE", "NEVER"}:
+        return "SKIPPED"
+    return verdict
 
+
+def _verdict_for_clock(
+    name: str,
+    spec: JobSpec,
+    rows: list[dict],
+    *,
+    now: datetime,
+    brand: str | None,
+    grouped: dict[tuple[str, str | None], list[dict]] | None,
+) -> str:
     if brand is not None:
         return _verdict_for_rows(spec, [r for r in rows if r.get("brand") == brand], now)
 

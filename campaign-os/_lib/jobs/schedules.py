@@ -75,6 +75,32 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "proposal_outcome": _LAYER2_7_DAILY,
     "human_edit_signal": _LAYER2_7_DAILY,
     "ads_brief": _LAYER2_7_DAILY,
+    "booking_truth": _LAYER1_DAILY,
+    "content_ideas_refresh": _LAYER1_DAILY,
+    "gsc_report": _LAYER1_DAILY,
+    "post_conversion_score": _LAYER1_DAILY,
+    "windsor_refresh": _LAYER1_DAILY,
+    "competitor_tracker": {
+        "scheduler": "GitHub Actions (layer1-daily-cron.yml)",
+        "cron_sast": ["07:00"],
+        "cadence": "weekly (checked daily)",
+    },
+    # Runs when a post with a render_spec is lodged, not on a clock.
+    "render_batch": {
+        "scheduler": "on demand (POST /api/jobs/run/render_batch after a lodge)",
+        "cron_sast": [],
+        "cadence": "on demand",
+        "on_demand": True,
+    },
+    # Registered but no workflow calls them yet: NEVER is the true state.
+    "clublab_pull": {"scheduler": "none (not scheduled yet)", "cron_sast": [], "cadence": "unscheduled"},
+    "retail_campaign": {"scheduler": "none (not scheduled yet)", "cron_sast": [], "cadence": "unscheduled"},
+    "onepost_backfill": {"scheduler": "none (not scheduled yet)", "cron_sast": [], "cadence": "unscheduled"},
+    "mail_intake": {
+        "scheduler": "GitHub Actions (mail-intake-cron.yml)",
+        "cron_sast": ["every 30 min"],
+        "cadence": "every 30 minutes",
+    },
     "ads_budget_guard": {
         "scheduler": "GitHub Actions (ads-budget-guard-hourly.yml)",
         "cron_sast": ["hourly"],
