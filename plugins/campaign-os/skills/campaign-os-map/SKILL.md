@@ -69,7 +69,10 @@ still not templated. `campaign-os-template` measures new ones from reference ima
 `data/brand-directory/_system/IMAGES.md` is the one-page map: own photos on Drive,
 brand logos in `<brand>/logos/` (+ `logos.json`), maker logos once in
 `_shared/maker-logos/`, official maker images in the shared catalogue
-`_shared/catalogue/` (index in git, pictures not), rights per maker in
+`_shared/catalogue/` (index in git, pictures not; master copy in the Drive
+**Catalogue** folder `1Aj6BzbUFVvpmG3g-fpQuHc0l-xBxIX9R`, a third child of the
+parent next to the two brand roots, synced with `scripts/sync_catalogue.py`; it is
+not a brand ingest root), rights per maker in
 `_system/image-sources.json`. `_lib/image_library.py` resolves them; a sourced photo
 cannot be approved until its maker's rights are `cleared`.
 
