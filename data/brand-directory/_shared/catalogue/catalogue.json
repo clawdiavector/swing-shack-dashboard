@@ -12,7 +12,8 @@
    "used_by": [
     "stick:Products/CT__front.jpg",
     "swing-shack:Products/CT001__front.jpg"
-   ]
+   ],
+   "drive_id": "1sS9axspSfjdOyYe14zjrqftb7TK0PS6r"
   },
   {
    "file": "images/callaway/callaway-chrome-tour-chrome-tour-x__1.jpg",
@@ -26,7 +27,8 @@
    "used_by": [
     "stick:Products/X__front.jpg",
     "swing-shack:Products/CTX001__front.jpg"
-   ]
+   ],
+   "drive_id": "1PLOm3tVy4cRYzTBIDxNUtiOnPDZuKOh4"
   },
   {
    "file": "images/callaway/callaway-chrome-tour-chrome-tour-triple-diamond__1.jpg",
@@ -40,7 +42,8 @@
    "used_by": [
     "stick:Products/CTTD__front.jpg",
     "swing-shack:Products/CTTD001__front.jpg"
-   ]
+   ],
+   "drive_id": "1ycGH9rnNTYaSN2jnXQPDeocmjzqJcqKa"
   },
   {
    "file": "images/callaway/callaway-chrome-soft__1.jpg",
@@ -54,7 +57,8 @@
    "used_by": [
     "stick:Products/CS001__front.jpg",
     "swing-shack:Products/CS001__front.jpg"
-   ]
+   ],
+   "drive_id": "1GDLRaXKiVRwlN9Ntrl6_IciiAz3sNXnh"
   },
   {
    "file": "images/vice-golf/vice-pro-white-sleeve__1.jpg",
@@ -67,7 +71,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/VPWS001__front.jpg"
-   ]
+   ],
+   "drive_id": "1cGMVNlbzmKguETYK3jzI0TFWctDWlO1l"
   },
   {
    "file": "images/vice-golf/vice-pro-air-white-sleeve__1.jpg",
@@ -80,7 +85,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/VPAWS001__front.jpg"
-   ]
+   ],
+   "drive_id": "1LjfUoA3MbT8rNzlExGG5WmVokhD6CX9u"
   },
   {
    "file": "images/vice-golf/vice-tour-white-sleeve__1.jpg",
@@ -93,7 +99,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/VTWS001__front.jpg"
-   ]
+   ],
+   "drive_id": "1ioDykI0ie0sBPj5DA6Rb2wRJNsMCnu-d"
   },
   {
    "file": "images/vice-golf/vice-drive-white-sleeve__1.jpg",
@@ -106,7 +113,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/VDWS001__front.jpg"
-   ]
+   ],
+   "drive_id": "1F2M8as7ZzrP-YvqIEv3sTXUN-FxjB7Cz"
   },
   {
    "file": "images/vice-golf/vice-pro-tracer-white-sleeve__1.png",
@@ -119,7 +127,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/VPTWS001__front.png"
-   ]
+   ],
+   "drive_id": "1Fw9-m4pPOxtkbtRbDRgNbs9H777LKnFv"
   },
   {
    "file": "images/takomo/takomo-sf002__1.png",
@@ -133,7 +142,8 @@
    "used_by": [
     "stick:Products/TS001__front.png",
     "swing-shack:Products/TNSW001__front.png"
-   ]
+   ],
+   "drive_id": "1mHQLNKjDojigS9xlraGic4X8vZbnZorT"
   },
   {
    "file": "images/takomo/takomo-101-mk2__1.png",
@@ -146,7 +156,8 @@
    "exact_build": true,
    "used_by": [
     "stick:Products/T1M001__front.png"
-   ]
+   ],
+   "drive_id": "1RDyHlMtGGToGs6YQlk9p21P7VNv0mZK-"
   },
   {
    "file": "images/takomo/takomo-101u__1.png",
@@ -159,7 +170,8 @@
    "exact_build": true,
    "used_by": [
     "stick:Products/T1001__front.png"
-   ]
+   ],
+   "drive_id": "19zv_-6aWwYF_wUuTkAbN_jw-PdMLwN9Z"
   },
   {
    "file": "images/takomo/takomo-glove-100__1.png",
@@ -173,7 +185,8 @@
    "used_by": [
     "stick:Products/GLV100M__front.png",
     "swing-shack:Products/TG001-ML__front.png"
-   ]
+   ],
+   "drive_id": "1WTfOG4YZKrzUPLdcsFjNH-8spBGmaOdT"
   },
   {
    "file": "images/lab-golf/lab-mezz-1-black__1.png",
@@ -187,7 +200,8 @@
    "used_by": [
     "stick:Products/LM1B001__front.png",
     "swing-shack:Products/LPM1S001__front.png"
-   ]
+   ],
+   "drive_id": "100MFbpogUv-l9TWAxP5wjOTdsLuCIJn1"
   },
   {
    "file": "images/lab-golf/lab-oz1-stock__1.png",
@@ -204,7 +218,8 @@
     "stick:Products/LOAB001__front.png",
     "swing-shack:Products/LPOS001__front.png",
     "swing-shack:Products/LPOC001__front.png"
-   ]
+   ],
+   "drive_id": "1Zdc681gSde0U94pFlnU-UN5YAqgv5GAd"
   },
   {
    "file": "images/lab-golf/lab-oz-1i-stock-hs__1.png",
@@ -219,7 +234,8 @@
     "stick:Products/LO1SH001__front.png",
     "stick:Products/LOHCAP001__front.png",
     "swing-shack:Products/LOH001__front.png"
-   ]
+   ],
+   "drive_id": "1EpxasLGiAOeEc7Z1kfT-aSKp6taXT564"
   },
   {
    "file": "images/lab-golf/lab-link-22-stock__1.png",
@@ -235,7 +251,8 @@
     "stick:Products/LL2C002__front.png",
     "swing-shack:Products/LPL2001__front.png",
     "swing-shack:Products/LPLS002__front.png"
-   ]
+   ],
+   "drive_id": "1XX9F8nWe8Gtq0az5pm7ugZD66h2acDBZ"
   },
   {
    "file": "images/lab-golf/lab-df3i-stock-black__1.png",
@@ -252,7 +269,8 @@
     "stick:Products/LDCAG001__front.png",
     "swing-shack:Products/LPDS001__front.png",
     "swing-shack:Products/LPD3C001__front.png"
-   ]
+   ],
+   "drive_id": "1bpWRixMCLjpP6v5sa_7FLwxrzM9y85aN"
   },
   {
    "file": "images/lab-golf/lab-vzn1i-custom-accra__1.jpg",
@@ -265,7 +283,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/LVCA001__front.jpg"
-   ]
+   ],
+   "drive_id": "1IdSw-H8QjMaGHNJaRb6bow0df8uFrAsi"
   },
   {
    "file": "images/vessel/vessel-player-v-stand-white__1.png",
@@ -278,7 +297,8 @@
    "exact_build": true,
    "used_by": [
     "stick:Products/VPVSW001__front.png"
-   ]
+   ],
+   "drive_id": "12rO2TQLR7I98cAkF4SGQsfes9sUcikdJ"
   },
   {
    "file": "images/vessel/vessel-prime-20-staff-black__1.jpg",
@@ -291,7 +311,8 @@
    "exact_build": true,
    "used_by": [
     "stick:Products/P2SB001__front.jpg"
-   ]
+   ],
+   "drive_id": "1mbVGGTSeYcUCqQXSQ2XZ3xI9CT4MxF0p"
   },
   {
    "file": "images/vessel/vessel-prime-20-staff-white__1.jpg",
@@ -304,7 +325,8 @@
    "exact_build": true,
    "used_by": [
     "stick:Products/P2SW001__front.jpg"
-   ]
+   ],
+   "drive_id": "1PxFlR0gP964BSxNPO2QUm4nr4J0TAxDN"
   },
   {
    "file": "images/gripdrip/grip-drip-par-3-grey-white-carolina-blue__1.jpg",
@@ -318,7 +340,8 @@
    "used_by": [
     "stick:Products/GDP3-GWCB001__front.jpg",
     "swing-shack:Products/GDP3GG001__front.jpg"
-   ]
+   ],
+   "drive_id": "1MZFBJ6FhiwV6CdgmHbzcYV5l60xhBBU2"
   },
   {
    "file": "images/gripdrip/grip-drip-par-3-true-blue-grey-red__1.jpg",
@@ -332,7 +355,8 @@
    "used_by": [
     "stick:Products/GDP3-TBGR001__front.jpg",
     "swing-shack:Products/GDP3GTB001__front.jpg"
-   ]
+   ],
+   "drive_id": "1nddl1NSDLP4KhgguYbzlOq5I3Fpth-ga"
   },
   {
    "file": "images/gripdrip/grip-drip-par-3-white-black-red__1.jpg",
@@ -346,7 +370,8 @@
    "used_by": [
     "stick:Products/GDP3-WBR001__front.jpg",
     "swing-shack:Products/GDP3GW001__front.jpg"
-   ]
+   ],
+   "drive_id": "15rDg9HbFxjEW4VCZvWBtlSn5m3XkhpgC"
   },
   {
    "file": "images/gripdrip/grip-drip-chevron-carolina-blue__1.jpg",
@@ -360,7 +385,8 @@
    "used_by": [
     "stick:Products/GDC-CB001__front.jpg",
     "swing-shack:Products/CGCB001__front.jpg"
-   ]
+   ],
+   "drive_id": "1S4jr5iLMfHJgJURhIUIqi96tLJPg6ien"
   },
   {
    "file": "images/gripdrip/grip-drip-chevron-augusta__1.jpg",
@@ -374,7 +400,8 @@
    "used_by": [
     "stick:Products/GDGDC-A001__front.jpg",
     "swing-shack:Products/CSG-A001__front.jpg"
-   ]
+   ],
+   "drive_id": "1YPQF7nxZFlqb7BSpxlzfDGgeOSIs70k8"
   },
   {
    "file": "images/gripdrip/grip-drip-chevron-white-red-blue__1.jpg",
@@ -388,7 +415,8 @@
    "used_by": [
     "stick:Products/GDC-WRB001__front.jpg",
     "swing-shack:Products/GDC001__front.jpg"
-   ]
+   ],
+   "drive_id": "1fylJHtHXf-hBoxyxhsN34pV3FXZ0Anp-"
   },
   {
    "file": "images/gripdrip/grip-drip-zen-swing-plum__1.jpg",
@@ -402,7 +430,8 @@
    "used_by": [
     "stick:Products/GDZS-P001__front.jpg",
     "swing-shack:Products/GDZGP001__front.jpg"
-   ]
+   ],
+   "drive_id": "1vbeC-7bTDVRlUhzAe5_xeyKCmYOCp1a7"
   },
   {
    "file": "images/ripit/ripit-grips-stripe-blue__1.jpg",
@@ -415,7 +444,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/RGS-B001__front.jpg"
-   ]
+   ],
+   "drive_id": "1OnISmVA3xRi-drqe5XWO6eXvoLcMPCBz"
   },
   {
    "file": "images/ripit/ripit-grips-marilyn-20-ivory__1.png",
@@ -428,7 +458,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/RGM2-I001__front.png"
-   ]
+   ],
+   "drive_id": "1XYmt9Q0WgmZGac4kmtD2xGPgvoVpz6c9"
   },
   {
    "file": "images/ripit/ripit-grips-ripitman-black__1.jpg",
@@ -441,7 +472,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/RGR-B001__front.jpg"
-   ]
+   ],
+   "drive_id": "1qf01LTz8Y2ELs1s15sSbjlIzRKIKxXHv"
   },
   {
    "file": "images/ripit/ripit-grips-flower-of-life-clay-cream__1.jpg",
@@ -458,7 +490,8 @@
     "stick:Products/RGFOL-T001__front.jpg",
     "stick:Products/RGFOL-P001__front.jpg",
     "stick:Products/RGFOL-L001__front.jpg"
-   ]
+   ],
+   "drive_id": "1eAYzGSHg9SviETiUorQAEF9_KuSxxtuz"
   },
   {
    "file": "images/ripit/ripit-grips-squiggle-pink__1.png",
@@ -475,7 +508,8 @@
     "stick:Products/RGS-L002__front.png",
     "stick:Products/RGS-P002__front.png",
     "stick:Products/RGS-T001__front.png"
-   ]
+   ],
+   "drive_id": "1bz8X1ys0iPMAdQY1mxhckmc-yYIlxMM9"
   },
   {
    "file": "images/psycho-bunny/mens-classic-polo-white__1.jpg",
@@ -488,7 +522,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/B6K001ARPC-WHITE-3-W4__front.jpg"
-   ]
+   ],
+   "drive_id": "1tGMCN-mHX6WUxJTGvT1LKNjTqZQCrQ7b"
   },
   {
    "file": "images/psycho-bunny/mens-classic-polo-black__1.jpg",
@@ -501,7 +536,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/B6K001ARPC-WHITE-3-B3__front.jpg"
-   ]
+   ],
+   "drive_id": "1lcMXBDOVZCMJStwKHsmyEEhumsbrzPjy"
   },
   {
    "file": "images/psycho-bunny/samos-hydrochromic-printed-swim-trunk-black-2__1.jpg",
@@ -514,7 +550,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/B6W453F200-BLACK2-XS-BX__front.jpg"
-   ]
+   ],
+   "drive_id": "1BYEzoeG7fAyu-dPJPRzLgQvdyqTFw5O3"
   },
   {
    "file": "images/psycho-bunny/mens-classic-crew-neck-tee-white__1.jpg",
@@ -527,7 +564,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/B6U014CRPC-WHITE-4-W4__front.jpg"
-   ]
+   ],
+   "drive_id": "1PTNSoPYxikqUqYT-zTedx5MBBnSvsr1r"
   },
   {
    "file": "images/psycho-bunny/mens-classic-crew-neck-tee-black__1.jpg",
@@ -540,7 +578,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/B6U014CRPC-WHITE-4-B4__front.jpg"
-   ]
+   ],
+   "drive_id": "1wUd1jZcyI8E-GB-UbYDOxNt0UoyzCNMa"
   },
   {
    "file": "images/psycho-bunny/mens-classic-crew-neck-tee-evening-blue__1.jpg",
@@ -553,7 +592,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/B6U014CRPC-WHITE-4-E4__front.jpg"
-   ]
+   ],
+   "drive_id": "12hNMQJ-vM4nX6tBg8LpsnLZxo6qC8di1"
   },
   {
    "file": "images/psycho-bunny/maverick-10k-step-pant-black-black__1.jpg",
@@ -566,7 +606,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/black10k32__front.jpg"
-   ]
+   ],
+   "drive_id": "11oMqdVpqbVgfwlLKD4Nn87iOob4lPS0H"
   },
   {
    "file": "images/psycho-bunny/maverick-10k-step-pant-baritone-blue-baritone-blue__1.jpg",
@@ -579,7 +620,8 @@
    "exact_build": false,
    "used_by": [
     "stick:Products/blue10k32__front.jpg"
-   ]
+   ],
+   "drive_id": "1Gf-qk3nsOnqObjiaLXjR_YHV2mfUaOvO"
   },
   {
    "file": "images/herschel/herschel-watt-light-stand-bag__1.jpg",
@@ -592,7 +634,8 @@
    "exact_build": true,
    "used_by": [
     "stick:Products/HWLSB001__front.jpg"
-   ]
+   ],
+   "drive_id": "1RgoM9_2umF9jpVO1TMlwK7L4uuMj4bvS"
   },
   {
    "file": "images/mileseey/mileseey-gene-pro-g1__1.png",
@@ -605,7 +648,8 @@
    "exact_build": true,
    "used_by": [
     "stick:Products/GGP001__front.png"
-   ]
+   ],
+   "drive_id": "1nqzJVvrhfy2wwu2mnu7RERdaC2JarXEN"
   },
   {
    "file": "images/mileseey/mileseey-genesonic-pro__1.png",
@@ -619,7 +663,8 @@
    "used_by": [
     "stick:Products/GP001__front.png",
     "swing-shack:Products/MGGP-RF001__front.png"
-   ]
+   ],
+   "drive_id": "1gNaxv7ykbCddjAGvdF5Xr1hWiFI6FvWV"
   },
   {
    "file": "images/mileseey/mileseey-ionme-2__1.png",
@@ -633,7 +678,8 @@
    "used_by": [
     "stick:Products/I2001__front.png",
     "swing-shack:Products/MGI-RF001__front.png"
-   ]
+   ],
+   "drive_id": "1_50-jsGoW7KenOfrRhmdYQDSioUnSsOe"
   },
   {
    "file": "images/mileseey/mileseey-gene-pro-s1__1.png",
@@ -647,7 +693,8 @@
    "used_by": [
     "stick:Products/MGPS001__front.png",
     "swing-shack:Products/MGGS001__front.png"
-   ]
+   ],
+   "drive_id": "1stKGGKB-8bmZl7EZN69-ROYaqDMwUqbb"
   },
   {
    "file": "images/callaway/quantam-mini-driver__1.png",
@@ -661,7 +708,8 @@
    "used_by": [
     "stick:Products/QMD001__front.png",
     "swing-shack:Products/CQM001__front.png"
-   ]
+   ],
+   "drive_id": "1NaMXlSER6CYAzwv8OqONKu_THIoJeHmW"
   },
   {
    "file": "images/srixon/srixon-z-star-xv__1.jpg",
@@ -674,7 +722,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/SZSXS001__front.jpg"
-   ]
+   ],
+   "drive_id": "1ecMVz73ttbZLWNhiI6o41cacGmh-5z-o"
   },
   {
    "file": "images/srixon/srixon-z-star-9__1.jpg",
@@ -687,7 +736,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/ZS9001__front.jpg"
-   ]
+   ],
+   "drive_id": "12d7QUOd70-aZQ28AkAcX0ThQHi5nOPh6"
   },
   {
    "file": "images/srixon/srixon-z-star-diamond-3__1.jpg",
@@ -700,7 +750,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/ZD3001__front.jpg"
-   ]
+   ],
+   "drive_id": "1rLcQuR6eB62inF5eyC5lWMZVFzsZ31XW"
   },
   {
    "file": "images/srixon/srixon-q-star-5__1.jpg",
@@ -713,7 +764,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/Q5001__front.jpg"
-   ]
+   ],
+   "drive_id": "1ioM09d0kIVQoj_iDJFe_ZcZu4Kk3HIpK"
   },
   {
    "file": "images/srixon/srixon-soft-feel-14__1.jpg",
@@ -726,7 +778,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/SSF1001__front.jpg"
-   ]
+   ],
+   "drive_id": "1sBB73un6r_JqkF38P0GOJau27SMYayXo"
   },
   {
    "file": "images/lab-golf/lab-putters-link-1__1.png",
@@ -739,7 +792,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/LPLS001__front.png"
-   ]
+   ],
+   "drive_id": "1OXEaGYxZayPoGtXOZjCoYVZHuBn1KDWi"
   },
   {
    "file": "images/lab-golf/lab-putter-link-21-accra-shaft__1.png",
@@ -752,7 +806,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/LPL2AS001__front.png"
-   ]
+   ],
+   "drive_id": "1h53IRKjbc4MsfvYStGy7syY82to2kNmo"
   },
   {
    "file": "images/gripdrip/gripdrip-bandana-magnet-towel__1.jpg",
@@ -765,7 +820,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDB001__front.jpg"
-   ]
+   ],
+   "drive_id": "1N82czxHI3nhYZQPcuezcS0HDgkV7oraR"
   },
   {
    "file": "images/gripdrip/gripdrip-grey-camo-magnet-towel__1.jpg",
@@ -778,7 +834,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDGCT001__front.jpg"
-   ]
+   ],
+   "drive_id": "1f8aHeCTIOK0iZyAdZvuLJ90-v0-seZs6"
   },
   {
    "file": "images/gripdrip/gripdrip-serape-magnet-towel__1.png",
@@ -791,7 +848,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDST001__front.png"
-   ]
+   ],
+   "drive_id": "1wCI-853WSB_k5nwDTzpoWX3lo6Qdqb95"
   },
   {
    "file": "images/gripdrip/gripdrip-par-3-red-magnet-towel__1.png",
@@ -804,7 +862,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDP3RT001__front.png"
-   ]
+   ],
+   "drive_id": "1zxyuowNxJzMxPW_Q57EfFiHFRzIONULh"
   },
   {
    "file": "images/gripdrip/tropical-vibes-magnet-towel__1.jpg",
@@ -817,7 +876,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDTVT001__front.jpg"
-   ]
+   ],
+   "drive_id": "19Eg6k7MPn7Uaa00rsG_GhqFFiZ7uqlHd"
   },
   {
    "file": "images/gripdrip/gripdrip-duck-camo-magnet-towel__1.jpg",
@@ -830,7 +890,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDDCT001__front.jpg"
-   ]
+   ],
+   "drive_id": "1BjCo7J01pfynfCvFDVgzDZV-5vj6Fct4"
   },
   {
    "file": "images/gripdrip/gripdrip-par-3-white-black-magnet-towel__1.jpg",
@@ -843,7 +904,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDP3WABT001__front.jpg"
-   ]
+   ],
+   "drive_id": "1_EVhylDCGlFqYX_4oz5fE-T05X4DR0Hx"
   },
   {
    "file": "images/gripdrip/gripdrip-chevron-swing-grip-navy-blue-light-blue-grey__1.jpg",
@@ -856,7 +918,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDCNB001__front.jpg"
-   ]
+   ],
+   "drive_id": "1s1C9lOE5jBp4mJyhafgi12uhwFrbwYFH"
   },
   {
    "file": "images/gripdrip/gripdrip-chevron-swing-grip-blue-red-orange-yellow__1.jpg",
@@ -869,7 +932,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDCBR001__front.jpg"
-   ]
+   ],
+   "drive_id": "1U9IWVASe63RNqipp0DQo5RJhjalv43vT"
   },
   {
    "file": "images/gripdrip/gripdrip-par-3-swing-grip-black-white-lucky-green__1.jpg",
@@ -882,7 +946,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDP3GB001__front.jpg"
-   ]
+   ],
+   "drive_id": "1F3wa4_3nj40ERgMLnt6oh9spX9DK0o2B"
   },
   {
    "file": "images/gripdrip/gripdrip-zen-swing-grip-sky__1.jpg",
@@ -895,7 +960,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDZGS001__front.jpg"
-   ]
+   ],
+   "drive_id": "1sew6uaHMcHLB8PPTt8mSwsmC3kwnqoSU"
   },
   {
    "file": "images/gripdrip/gripdrip-zen-swing-grip-ocean__1.jpg",
@@ -908,7 +974,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDZGO001__front.jpg"
-   ]
+   ],
+   "drive_id": "19XhH9ehnZ1W7ayFesnTnY39nd4nVE_90"
   },
   {
    "file": "images/gripdrip/gripdrip-zen-swing-grip-cherry__1.jpg",
@@ -921,7 +988,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDZGC001__front.jpg"
-   ]
+   ],
+   "drive_id": "191Y4Yb_sF3rJ5JJi9VmoJhX0-xPl6Ti_"
   },
   {
    "file": "images/gripdrip/gripdrip-par-3-swing-grip-bred__1.jpg",
@@ -934,7 +1002,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/P3SGB001__front.jpg"
-   ]
+   ],
+   "drive_id": "1tk87tl_Mp5BTvI1gszSNXRdih_AfZc_s"
   },
   {
    "file": "images/gripdrip/gripdrip-zen-swing-grip-mint__1.jpg",
@@ -947,7 +1016,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/GDZGM002__front.jpg"
-   ]
+   ],
+   "drive_id": "1-x8HfXGXznRm9AnGsoGyxhgq66qATIwV"
   },
   {
    "file": "images/herschel/herschel-golf-bag-stand__1.jpg",
@@ -960,7 +1030,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/HGB002__front.jpg"
-   ]
+   ],
+   "drive_id": "1m_qxftqb3v9RN4_xd0ySBFgoafZ_WA80"
   },
   {
    "file": "images/herschel/herschel-golf-bag-sunday__1.jpg",
@@ -973,7 +1044,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/HGB003__front.jpg"
-   ]
+   ],
+   "drive_id": "1n2r3AiSp97pNuNRTXLJyuWfdUpjPqBMF"
   },
   {
    "file": "images/herschel/herschel-golf-bag-camo__1.jpg",
@@ -986,7 +1058,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/HGB001__front.jpg"
-   ]
+   ],
+   "drive_id": "1yWCdYmUQf09MjkI5kZH-ovidBnppYazj"
   },
   {
    "file": "images/callaway/odyssey-ai-one-double-wide__1.png",
@@ -999,7 +1072,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/OADW001__front.png"
-   ]
+   ],
+   "drive_id": "1nifmCcwSSJDSsUDFfAAVbRjkkK-P3rT1"
   },
   {
    "file": "images/callaway/odyssey-ai-one-milled-seven-t__1.png",
@@ -1012,7 +1086,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/OAMST001__front.png"
-   ]
+   ],
+   "drive_id": "14P0DMAig3-4sbfOaFJHtL-wV0ByNGEfo"
   },
   {
    "file": "images/callaway/odyssey-ai-one-rossie__1.png",
@@ -1025,7 +1100,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/OAR001__front.png"
-   ]
+   ],
+   "drive_id": "1mkBqDuM7ULlg4qOg1gMaR2Z-VtlcxIkW"
   },
   {
    "file": "images/ping/ping-answer-2d__1.png",
@@ -1038,7 +1114,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/PA2001__address-2023.png"
-   ]
+   ],
+   "drive_id": "1i_T1Oio1MMhKUqajIM0yZrw3KMPgea06"
   },
   {
    "file": "images/ping/ping-answer-2d__2.png",
@@ -1051,7 +1128,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/PA2001__address-scottsdale.png"
-   ]
+   ],
+   "drive_id": "1hO2HRTAk4Eh6j5pKU2aKOGz5uwh5Stbf"
   },
   {
    "file": "images/ping/ping-answer-2d__3.png",
@@ -1064,7 +1142,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/PA2001__face-pld-milled.png"
-   ]
+   ],
+   "drive_id": "1hTx8CTlWPVKUHkD5pqu2P0rsPBi9OaZ-"
   },
   {
    "file": "images/ping/ping-ds-72__1.png",
@@ -1077,7 +1156,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/PD001__address-2023.png"
-   ]
+   ],
+   "drive_id": "1Sxc0-0-7tqWz6C9X7gtBPfJSYwbZnNsV"
   },
   {
    "file": "images/ping/ping-ds-72__2.png",
@@ -1090,7 +1170,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/PD001__address-scottsdale.png"
-   ]
+   ],
+   "drive_id": "1xvrwbYLvPmuD9eV_-yl7HdTGY-94mL16"
   },
   {
    "file": "images/ping/ping-ds-72__3.png",
@@ -1103,7 +1184,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/PD001__face-pld-milled.png"
-   ]
+   ],
+   "drive_id": "1WdVnEquW2ctY1TMmX_HyuAXL2bkA-uoa"
   },
   {
    "file": "images/la-golf/la-golf-putter-belair-2__1.jpg",
@@ -1116,7 +1198,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/LGPB2001__front.jpg"
-   ]
+   ],
+   "drive_id": "14Fp1zc9kN43KqwVD-onWLFNHZY_5R-j_"
   },
   {
    "file": "images/la-golf/la-golf-putter-belair-xt__1.png",
@@ -1129,7 +1212,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/LGPBX001__front.png"
-   ]
+   ],
+   "drive_id": "1JuDE0VwL_a0eCgL5hdXhTH0HBrGfoFpd"
   },
   {
    "file": "images/titleist/titleist-avx-2026__1.png",
@@ -1143,7 +1227,8 @@
    "used_by": [
     "swing-shack:Products/AVX002__front.png",
     "swing-shack:Products/AVX001__front.png"
-   ]
+   ],
+   "drive_id": "13ZecqiNeawMoZNe_UoE9sSZG_J_Zem10"
   },
   {
    "file": "images/titleist/titleist-tour-soft-2025__1.png",
@@ -1157,7 +1242,8 @@
    "used_by": [
     "swing-shack:Products/YS001__front.png",
     "swing-shack:Products/2TS-Y001__front.png"
-   ]
+   ],
+   "drive_id": "1YhaBf1V0a6Jt1ES4DM7mfXDIZGwnxSC6"
   },
   {
    "file": "images/titleist/titleist-velocity-2025__1.png",
@@ -1171,7 +1257,8 @@
    "used_by": [
     "swing-shack:Products/VEL001__front.png",
     "swing-shack:Products/TV2-W001__front.png"
-   ]
+   ],
+   "drive_id": "1ZAkDvfe6USmI8e1VB80U26s9CeYi2uuY"
   },
   {
    "file": "images/titleist/titleist-tru-feel-2026__1.png",
@@ -1184,7 +1271,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/TF001__front.png"
-   ]
+   ],
+   "drive_id": "1MZ3h5UTEYXheE4_AqOFfn2SJQX4Zt9W7"
   },
   {
    "file": "images/titleist/titleist-pro-v1-yellow__1.png",
@@ -1198,7 +1286,8 @@
    "used_by": [
     "swing-shack:Products/PV004__front.png",
     "swing-shack:Products/PVS2001__front.png"
-   ]
+   ],
+   "drive_id": "1xm5l0mQWfYbhrbs6LaUDUL0MFsgSZMfW"
   },
   {
    "file": "images/titleist/titleist-pro-v1-x-2025__1.png",
@@ -1212,7 +1301,8 @@
    "used_by": [
     "swing-shack:Products/PVS2002__front.png",
     "swing-shack:Products/2PVX-Y001__front.png"
-   ]
+   ],
+   "drive_id": "1m78vHq4Xl3VaPy54ZPPEOVCvcPUXYAqo"
   },
   {
    "file": "images/titleist/titleist-pro-v1x-left-dash-white__1.png",
@@ -1225,7 +1315,8 @@
    "exact_build": true,
    "used_by": [
     "swing-shack:Products/-V001__front.png"
-   ]
+   ],
+   "drive_id": "1taUd2_ZnawgbBGReH6-uVNQpxvISdj8H"
   },
   {
    "file": "images/footjoy/foot-joy-stasof__1.png",
@@ -1238,7 +1329,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/FJSL001-S__front.png"
-   ]
+   ],
+   "drive_id": "15j-r3pyhIlwXd-qkohHq5HFlxSFtYKAO"
   },
   {
    "file": "images/footjoy/foot-joy-weathersoft__1.png",
@@ -1251,7 +1343,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/FJWL001-S__front.png"
-   ]
+   ],
+   "drive_id": "1w5Ou-kEC2QGFq2jEO34i7vMkObNnUcYd"
   },
   {
    "file": "images/footjoy/foot-joy-raingrip__1.png",
@@ -1264,7 +1357,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/FJRL001-S__front.png"
-   ]
+   ],
+   "drive_id": "1XQC0nYrlW6XgH-D4qFMudWAqAGNCi48j"
   },
   {
    "file": "images/footjoy/foot-joy-sofjoy__1.png",
@@ -1277,7 +1371,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/FJS003M__front.png"
-   ]
+   ],
+   "drive_id": "1qGP6l4Vs7YPmM8ofWGKznmFFMjRzxYj_"
   },
   {
    "file": "images/footjoy/foot-joy-sciflex__1.png",
@@ -1290,7 +1385,8 @@
    "exact_build": false,
    "used_by": [
     "swing-shack:Products/FJS004S__front.png"
-   ]
+   ],
+   "drive_id": "1nkUisvLysC8RUMwcOqx3zSmehgY4XLE3"
   }
  ]
 }
