@@ -48661,7 +48661,7 @@ def review_pack_comment(token):
                              role="client", tag=str(body.get("tag") or "general"))
     except ValueError as e:
         return _rp_error(e)
-    return jsonify({"ok": True, "comment": row}), 200
+    return jsonify({"ok": True, "comment": {**row, "colour": rp.colour_of(share["pack"], row.get("who", ""))}}), 200
 
 
 @app.route("/review-pack/<token>/upload", methods=["POST"])
@@ -48721,6 +48721,16 @@ def review_packs_view(pack_id):
     from _lib import review_pack as rp
     try:
         return jsonify({"ok": True, **rp.view(pack_id)}), 200
+    except ValueError as e:
+        return _rp_error(e)
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/news", methods=["GET"])
+def review_packs_news(pack_id):
+    """What the client did since ?since=<time>: counts and plain text for the Mac watcher. Sends nothing."""
+    from _lib import review_pack as rp
+    try:
+        return jsonify({"ok": True, **rp.news(pack_id, request.args.get("since") or "")}), 200
     except ValueError as e:
         return _rp_error(e)
 
