@@ -224,11 +224,20 @@ def admin_client_log():
 
 
 def _is_authed():
-    """Check request cookie for a valid signed session token."""
+    """Check request cookie for a valid signed session token.
+
+    Agents (Kyle's and Christelle's Claude, Hermes) use the app through the API with
+    COS_JOB_TOKEN, so a valid job bearer counts as signed in on /api/ routes. The agent
+    skills confirm with the person before anything that approves, publishes or deletes.
+    """
     # Set only by the /share/calendar/<token>/act route, after it has checked the
     # token, for the one approve it hands to the session-only approval path.
     if getattr(g, "calendar_share_authed", False):
         return True
+    if (request.path or "").startswith("/api/") and COS_JOB_TOKEN:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer ") and auth[len("Bearer "):] == COS_JOB_TOKEN:
+            return True
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
         return False
