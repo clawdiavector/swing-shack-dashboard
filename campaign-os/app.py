@@ -393,6 +393,14 @@ def _gate():
         if _cc.read_share_token(_serializer, path[len('/share/calendar/'):].split('/', 1)[0]):
             return None
         return _cc.render_bad_link_page(), 404, {'Content-Type': 'text/html; charset=utf-8'}
+    # A client's review-pack link (_lib/review_pack.py): no login, but only with a good
+    # signed token for one pack. Checked BEFORE the static-extension rule below, so an
+    # uploaded .jpg cannot be fetched without its link.
+    if path.startswith('/review-pack/'):
+        from _lib import review_pack as _rp_gate
+        if _rp_gate.read_token(_serializer, path[len('/review-pack/'):].split('/', 1)[0]):
+            return None
+        return _rp_gate.render_bad_link_page(), 404, {'Content-Type': 'text/html; charset=utf-8'}
     # Allow static asset extensions (CSS, JS, images, fonts) needed to render login page.
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
@@ -48517,6 +48525,269 @@ def clean_calendar_share_act(token):
     finally:
         g.calendar_share_authed = False
     return jsonify(out), code
+
+
+# ── Review pack: a client's no-login page (_lib/review_pack.py) ──────────────
+# The client opens /review-pack/<token> with no login. Approve and Reject only RECORD
+# a decision here: nothing on these routes schedules, sends or posts anything.
+# Our side (build a pack, read what she did, reply) is under /api/jobs/review-packs,
+# which the gate already reserves for the bearer token.
+_REVIEW_PACK_LIMIT_PER_MIN = 120
+_REVIEW_PACK_UPLOAD_LIMIT_PER_MIN = 12
+_REVIEW_PACK_HITS: dict = {}
+_RP_HEADERS = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer"}
+
+
+def _review_pack_limited(token, kind, limit):
+    """True when this link has done too much in the last minute."""
+    import time as _t
+    now = _t.time()
+    ip = (request.headers.get('X-Forwarded-For') or request.remote_addr or '').split(',')[0].strip()
+    key = (token[:40], ip, kind)
+    hits = [h for h in _REVIEW_PACK_HITS.get(key, []) if now - h < 60]
+    if len(hits) >= limit:
+        _REVIEW_PACK_HITS[key] = hits
+        return True
+    hits.append(now)
+    _REVIEW_PACK_HITS[key] = hits
+    if len(_REVIEW_PACK_HITS) > 5000:
+        _REVIEW_PACK_HITS.clear()
+    return False
+
+
+def _rp_share(token):
+    from _lib import review_pack as rp
+    return rp.read_token(_serializer, token)
+
+
+_RP_MIME = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
+
+
+def _rp_send(path):
+    """Serve one stored picture. Bytes, not send_file: no file handle is left open,
+    and the type comes from our own extension map, never guessed."""
+    return Response(path.read_bytes(), mimetype=_RP_MIME.get(path.suffix.lower(), "application/octet-stream"))
+
+
+_RP_GONE = {"ok": False, "error": "This link has expired. Ask for a new one."}
+_RP_SLOW = {"ok": False, "error": "That was a lot, quickly. Please wait a moment and try again."}
+
+
+@app.route("/review-pack/<token>", methods=["GET"])
+def review_pack_page(token):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return rp.render_bad_link_page(), 404, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
+    page = rp.render_page(rp.public_view(share["pack"], token), token=token)
+    return page, 200, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/review-pack/<token>/data", methods=["GET"])
+def review_pack_data(token):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    resp = jsonify(rp.public_view(share["pack"], token))
+    resp.headers.update(_RP_HEADERS)
+    return resp
+
+
+@app.route("/review-pack/<token>/image/<item>/<int:idx>", methods=["GET"])
+def review_pack_image(token, item, idx):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    path = rp.image_path(share["pack"], item, idx) if share else None
+    if path is None:
+        abort(404)
+    resp = _rp_send(path)
+    resp.headers.update({"Cache-Control": "private, max-age=600", "X-Robots-Tag": "noindex"})
+    return resp
+
+
+@app.route("/review-pack/<token>/file/<name>", methods=["GET"])
+def review_pack_file(token, name):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    path = rp.upload_path(share["pack"], name) if share else None
+    if path is None:
+        abort(404)
+    resp = _rp_send(path)
+    resp.headers.update({"Cache-Control": "private, max-age=600", "X-Robots-Tag": "noindex",
+                         "Content-Disposition": "inline", "X-Content-Type-Options": "nosniff"})
+    return resp
+
+
+def _rp_error(e):
+    from _lib import review_pack as rp
+    return jsonify({"ok": False, "error": str(e)}), (404 if isinstance(e, rp.NotFound) else 400)
+
+
+@app.route("/review-pack/<token>/act", methods=["POST"])
+def review_pack_act(token):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    if _review_pack_limited(token, "act", _REVIEW_PACK_LIMIT_PER_MIN):
+        return jsonify(_RP_SLOW), 429
+    body = request.get_json(silent=True) or {}
+    state = str(body.get("state") or "")
+    choice = str(body.get("choice") or "") or None
+    if not state and not choice:
+        return jsonify({"ok": False, "error": "choose Approve, Reject, Hold or a design"}), 400
+    try:
+        if state:
+            row = rp.record_decision(share["pack"], str(body.get("item") or ""), state, share["who"], choice=choice)
+        else:
+            row = rp.record_choice(share["pack"], str(body.get("item") or ""), choice, share["who"])
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "decision": row}), 200
+
+
+@app.route("/review-pack/<token>/comment", methods=["POST"])
+def review_pack_comment(token):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    if _review_pack_limited(token, "comment", _REVIEW_PACK_LIMIT_PER_MIN):
+        return jsonify(_RP_SLOW), 429
+    body = request.get_json(silent=True) or {}
+    try:
+        row = rp.add_comment(share["pack"], str(body.get("item") or ""), share["who"], str(body.get("text") or ""),
+                             role="client", tag=str(body.get("tag") or "general"))
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "comment": row}), 200
+
+
+@app.route("/review-pack/<token>/upload", methods=["POST"])
+def review_pack_upload(token):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    if _review_pack_limited(token, "upload", _REVIEW_PACK_UPLOAD_LIMIT_PER_MIN):
+        return jsonify(_RP_SLOW), 429
+    files = request.files.getlist("files")
+    if not files:
+        return jsonify({"ok": False, "error": "Choose a photo first."}), 400
+    if len(files) > rp.MAX_UPLOADS_PER_BATCH:
+        return jsonify({"ok": False, "error": f"Only {rp.MAX_UPLOADS_PER_BATCH} photos at a time. Please choose fewer."}), 400
+    item = str(request.form.get("item") or "")
+    if not rp.item_exists(share["pack"], item):
+        return jsonify({"ok": False, "error": "That post is not in this pack."}), 404
+    # Check every file BEFORE keeping any, so a bad one saves nothing.
+    blobs = []
+    for f in files:
+        data = f.read(rp.MAX_UPLOAD_BYTES + 1)
+        try:
+            rp.check_upload(data)
+        except ValueError as e:
+            return jsonify({"ok": False, "error": f"{rp._clean_name(f.filename)}: {e}"}), 400
+        blobs.append((data, f.filename))
+    source = str(request.form.get("source") or "")
+    rights = str(request.form.get("rights") or "").lower() in ("1", "true", "on", "yes")
+    saved = [rp.save_upload(share["pack"], item, data, original_name=name or "", source=source,
+                            rights=rights, who=share["who"]) for data, name in blobs]
+    return jsonify({"ok": True, "uploads": saved}), 200
+
+
+# Our side. Bearer token only (the gate treats /api/jobs as job-authed).
+@app.route("/api/jobs/review-packs", methods=["GET"])
+def review_packs_list():
+    from _lib import review_pack as rp
+    return jsonify({"ok": True, "packs": rp.list_packs()}), 200
+
+
+@app.route("/api/jobs/review-packs", methods=["POST"])
+def review_packs_create():
+    from _lib import review_pack as rp
+    body = request.get_json(silent=True) or {}
+    try:
+        pack = rp.create_pack(str(body.get("title") or ""), body.get("items") or [],
+                              client=str(body.get("client") or ""), theme=body.get("theme"),
+                              notice=str(body.get("notice") or ""))
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "pack_id": pack["id"], "items": [i["id"] for i in pack["items"]]}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>", methods=["GET"])
+def review_packs_view(pack_id):
+    from _lib import review_pack as rp
+    try:
+        return jsonify({"ok": True, **rp.view(pack_id)}), 200
+    except ValueError as e:
+        return _rp_error(e)
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/items/<item_id>/image", methods=["POST"])
+def review_packs_add_image(pack_id, item_id):
+    from _lib import review_pack as rp
+    f = request.files.get("file")
+    if f is None:
+        return jsonify({"ok": False, "error": "send the picture as the 'file' field"}), 400
+    try:
+        out = rp.add_item_image(pack_id, item_id, f.read(rp.MAX_PACK_IMAGE_BYTES + 1),
+                                replace=str(request.args.get("replace") or "") in ("1", "true"))
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, **out}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/share", methods=["POST"])
+def review_packs_share(pack_id):
+    from _lib import review_pack as rp
+    body = request.get_json(silent=True) or {}
+    who = str(body.get("who") or "Chantalle")
+    try:
+        token = rp.mint_token(_serializer, pack_id, who=who)
+    except ValueError as e:
+        return _rp_error(e)
+    scheme = (request.headers.get('X-Forwarded-Proto') or request.scheme).split(',')[0].strip()
+    expires = _dt_cls.now(_tz.utc) + _td(seconds=rp.MAX_AGE)
+    return jsonify({"ok": True, "share_url": f"{scheme}://{request.host}/review-pack/{token}",
+                    "expires_at": expires.isoformat(), "who": who}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/reply", methods=["POST"])
+def review_packs_reply(pack_id):
+    from _lib import review_pack as rp
+    body = request.get_json(silent=True) or {}
+    try:
+        row = rp.add_comment(pack_id, str(body.get("item") or ""), str(body.get("who") or "Christelle"),
+                             str(body.get("text") or ""), role="us", tag=str(body.get("tag") or "general"))
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "comment": row}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/file/<name>", methods=["GET"])
+def review_packs_file(pack_id, name):
+    # The gate lets any URL ending in .png/.jpg through unchecked (its static-asset
+    # rule), and this one does end that way, so the handler asks for the token itself.
+    if not _is_job_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    from _lib import review_pack as rp
+    path = rp.upload_path(pack_id, name)
+    if path is None:
+        abort(404)
+    return _rp_send(path)
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/image/<item_id>/<int:idx>", methods=["GET"])
+def review_packs_image(pack_id, item_id, idx):
+    if not _is_job_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    from _lib import review_pack as rp
+    path = rp.image_path(pack_id, item_id, idx)
+    if path is None:
+        abort(404)
+    return _rp_send(path)
 
 
 @app.route("/api/calendar-suggestions/<brand_id>/swap", methods=["POST"])
