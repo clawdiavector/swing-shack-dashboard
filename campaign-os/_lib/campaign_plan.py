@@ -33,6 +33,7 @@ ALLOWED_BRAND_IDS = ("swing-shack", "stick", "bag-drop")
 PLAN_PROPOSED = "proposed"      # editable, nothing committed
 PLAN_APPROVED = "approved"      # operator said yes; locked until reopened
 PLAN_SUPERSEDED = "superseded"  # replaced by a newer plan for the same brief
+PLAN_ARCHIVED = "archived"      # hidden until restored; purged after retention
 
 ITEM_KINDS = ("research", "decide", "shoot", "edit", "review", "post",
               "story", "boost")
@@ -295,6 +296,51 @@ def _attach_offer_step_payload(plan: dict, brief: dict) -> None:
         break
 
 
+# What to capture, as a starting point the person who shoots can change. Real
+# photos and real people only (Christelle's rules): nothing here asks for a
+# generated product, venue or person. Marked `shots_suggested` until edited.
+_SHOTS_BY_BRAND = {
+    "stick": [
+        "The real product in hand, natural light, plain background behind it",
+        "A customer or staff member trying it in the shop, not posed",
+        "The shelf or display where it sits, wide enough to show the shop",
+    ],
+    "swing-shack": [
+        "A real player mid-swing in a bay with the screen visible",
+        "The lounge or bar with people in it, wide, as a visitor would see it",
+        "A detail close-up: club, ball on the tee, the screen data",
+    ],
+    "bag-drop": [
+        "The real product on a plain background, whole and sharp",
+        "The same product being used or carried",
+        "A tidy flat lay of the product with what it comes with",
+    ],
+}
+_VIDEO_SHOTS = [
+    "One person on camera saying it in their own words, one take, 10 to 15 seconds",
+    "The same person showing the real product or space",
+    "Vertical 9:16, steady, good light, sound on",
+]
+
+
+def suggest_shots(plan: dict, item: dict) -> list:
+    """A short shot list for a shoot step, from the date and the brand. Real people and places only."""
+    name = plan.get("event_name") or "the date"
+    if item.get("needs_real_video"):
+        base = list(_VIDEO_SHOTS)
+        base.insert(1, f"Say what {name} is about, and why to come")
+        return [x[:MAX_SHOT_LEN] for x in base]
+    brand = _SHOTS_BY_BRAND.get(plan.get("brand_id"), _SHOTS_BY_BRAND["stick"])
+    return [x[:MAX_SHOT_LEN] for x in [f"Hero shot for {name}: the real place or product the post is about", *brand]]
+
+
+def _suggest_shots(plan: dict) -> None:
+    for it in plan.get("items") or []:
+        if it.get("kind") == "shoot" and not it.get("shots"):
+            it["shots"] = suggest_shots(plan, it)
+            it["shots_suggested"] = True
+
+
 def _find_plan_for_brief(brand_id: str, brief_id: str) -> Optional[dict]:
     d = _plans_dir(brand_id)
     if not os.path.isdir(d):
@@ -396,6 +442,7 @@ def propose_plan(brand_id: str, brief: dict, *, force: bool = False,
         from _lib import candidate_offers
         brief = dict(brief, candidate_offers=candidate_offers.build(brand_id))
     _attach_offer_step_payload(plan, brief)
+    _suggest_shots(plan)
     _write_plan(plan)
     return {"ok": True, "plan": plan, "existing": False}
 
@@ -467,7 +514,12 @@ def list_plans(brand_id: str, status: Optional[str] = None) -> list[dict]:
     for fn in sorted(os.listdir(d)):
         if fn.endswith(".json"):
             p = _read_json(os.path.join(d, fn))
-            if p and (not status or p.get("status") == status):
+            if not p:
+                continue
+            if status:
+                if p.get("status") == status:
+                    out.append(refresh_late(p))
+            elif p.get("status") != PLAN_ARCHIVED:
                 out.append(refresh_late(p))
     return out
 
@@ -484,6 +536,8 @@ def _editable(plan: Optional[dict]) -> Optional[str]:
         return "plan not found"
     if plan.get("status") == PLAN_SUPERSEDED:
         return "plan is superseded"
+    if plan.get("status") == PLAN_ARCHIVED:
+        return "plan is archived; restore it to edit"
     if plan.get("status") == PLAN_APPROVED:
         return "plan is approved; reopen it to edit"
     return None
@@ -547,6 +601,8 @@ def edit_item(brand_id: str, plan_id: str, item_id: str, patch: dict,
         if item.get(k) != v:
             item[k] = v
             changed.append(k)
+            if k == "shots":
+                item.pop("shots_suggested", None)  # a person has now written it
     if "due" in changed:
         anchor = item.get("anchor") or "peak"
         anchor_d = _anchor_day(plan, anchor) or _parse_date(plan["event_date"])
@@ -799,6 +855,35 @@ def request_draft(brand_id: str, plan_id: str, item_id: str, actor: str = "opera
     return {"ok": True, "plan": plan, "item": item, "queued": actions}
 
 
+def request_all_drafts(brand_id: str, plan_id: str, actor: str = "operator",
+                       enqueue=None) -> dict:
+    """Ask for a caption draft of every post step that has not been asked for yet.
+
+    The same rules as one step: the plan must be approved and on the calendar.
+    A step that fails is reported and the rest still go. Drafts land in Approve
+    drafts for a person to approve; nothing is posted."""
+    plan = get_plan(brand_id, plan_id)
+    if not plan:
+        return {"ok": False, "error": "plan not found"}
+    if plan.get("status") != PLAN_APPROVED:
+        return {"ok": False, "error": "approve the plan first"}
+    if not plan.get("placed_at"):
+        return {"ok": False, "error": "put the plan on the calendar first"}
+    asked, already, failed = 0, 0, []
+    for it in [i for i in plan["items"] if i["kind"] == "post" and i["status"] not in ("removed", "done")]:
+        if it.get("draft"):
+            already += 1
+            continue
+        r = request_draft(brand_id, plan_id, it["item_id"], actor, enqueue=enqueue)
+        if r.get("ok"):
+            asked += 1
+        else:
+            failed.append({"item_id": it["item_id"], "title": it["title"], "error": r.get("error", "")})
+    return {"ok": not failed, "plan": get_plan(brand_id, plan_id), "asked": asked,
+            "already": already, "failed": failed,
+            **({"error": f"{len(failed)} drafts could not be asked for"} if failed else {})}
+
+
 def take_off_calendar(brand_id: str, plan_id: str, actor: str = "operator",
                       transition=None) -> dict:
     """Undo: mark this plan's calendar entries ignored and clear the links.
@@ -829,3 +914,51 @@ def take_off_calendar(brand_id: str, plan_id: str, actor: str = "operator",
     if failed:
         out["error"] = f"{len(failed)} steps could not be taken off"
     return out
+
+
+def archive_plan(brand_id: str, plan_id: str, actor: str = "operator") -> dict:
+    plan = get_plan(brand_id, plan_id)
+    if not plan:
+        return {"ok": False, "error": "plan not found"}
+    if plan.get("status") == PLAN_ARCHIVED:
+        return {"ok": False, "error": "plan is already archived"}
+    if plan.get("status") == PLAN_SUPERSEDED:
+        return {"ok": False, "error": "plan is superseded"}
+    plan["status_before_archive"] = plan.get("status")
+    plan["status"] = PLAN_ARCHIVED
+    plan["archived_at"] = _now_iso()
+    plan["archived_by"] = actor
+    from _lib.archive_retention import purge_at_iso  # noqa: PLC0415
+
+    plan["purge_at"] = purge_at_iso(plan["archived_at"])
+    _log(plan, actor, "archived")
+    _write_plan(plan)
+    return {"ok": True, "plan": plan}
+
+
+def restore_plan(brand_id: str, plan_id: str, actor: str = "operator") -> dict:
+    plan = get_plan(brand_id, plan_id)
+    if not plan:
+        return {"ok": False, "error": "plan not found"}
+    if plan.get("status") != PLAN_ARCHIVED:
+        return {"ok": False, "error": "plan is not archived"}
+    prev = plan.get("status_before_archive") or PLAN_PROPOSED
+    if prev == PLAN_ARCHIVED:
+        prev = PLAN_PROPOSED
+    plan["status"] = prev
+    for k in ("archived_at", "archived_by", "purge_at", "status_before_archive"):
+        plan.pop(k, None)
+    _log(plan, actor, "restored from archive")
+    _write_plan(plan)
+    return {"ok": True, "plan": plan}
+
+
+def purge_plan(brand_id: str, plan_id: str, actor: str = "operator") -> dict:
+    path = _plan_path(brand_id, plan_id)
+    if not os.path.isfile(path):
+        return {"ok": False, "error": "plan not found"}
+    try:
+        os.remove(path)
+    except OSError as e:
+        return {"ok": False, "error": str(e)}
+    return {"ok": True, "plan_id": plan_id, "actor": actor}

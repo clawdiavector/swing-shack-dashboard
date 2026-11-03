@@ -1,5 +1,5 @@
 {
-  "_readme": "Agent-to-agent mail. 'email' is the contact's AGENT inbox (an @agentmail.to address that their Claude reads), not a human address. Fill your own blank entry (or run: cos_mail.py set-email <id> <address>), commit, push. Never put API keys here. 'notify_email' is their work (Outlook) address: it gets a short 'you have agent mail' notice after each mail.",
+  "_readme": "Agent-to-agent mail. 'email' is the contact's AGENT inbox (an @agentmail.to address that their Claude reads), not a human address. Fill your own blank entry (or run: cos_mail.py set-email <id> <address>), commit, push. Never put API keys here. 'notify_email' is their work (Outlook) address: it gets a short 'you have agent mail' notice after each mail. 'cc_kyle': true on an owner means outbound mail to that agent inbox also CCs Kyle's agent. Kyle keeps it as context and does not reply unless asked. Do not invent contacts.",
   "contacts": {
     "kyle": {
       "name": "Kyle M",
@@ -19,6 +19,7 @@
       "name": "Herman",
       "role": "CEO",
       "email": "therealclawdius@agentmail.to",
+      "cc_kyle": true,
       "tell_them": "Releases, decisions needed, client-facing changes, weekly progress.",
       "notify_email": "hermank@fivefriday.com"
     }

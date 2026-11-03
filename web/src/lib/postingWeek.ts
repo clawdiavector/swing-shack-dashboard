@@ -149,6 +149,7 @@ export type PostingWeekPost = {
   channels_locked?: boolean
   deliveries?: PostDelivery[]
   delivery_summary?: DeliverySummary
+  vertical_renders?: { channel: string; label: string; url: string }[]
 }
 
 export type PostingWeekDay = {

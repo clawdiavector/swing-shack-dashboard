@@ -1,34 +1,39 @@
-# Bag Drop — Headline Bank
+# The Bag Drop | Headline Bank
 
-Pre-approved headline patterns. Tag with `[tone]` `[pillar]` `[intent]`.
+Pre-approved headline patterns, from `BRAND-BIBLE.md` sections 6 and 15. Tag with
+`[lane]` `[intent]`. A product name, grade or price in a headline is checked against the
+live listing on the day.
 
-## Relatable
-- `When your mate says 'I'll fix it myself'. We've all been there. Almost.` `[tone:relatable][intent:empathise]`
-- `Leave the bag. Play lighter. Apologise never.` `[tone:relatable][intent:warm]`
-- `The bag that lives at Swing Shack.` `[tone:relatable][intent:warm]`
-- `You joined for the data. You stayed for the people.` `[tone:relatable][intent:warm]`
+## Belief
+- `Good gear doesn't need to be new.` `[lane:brand][intent:belief]`
+- `Great golf gear, ready for another round.` `[lane:brand][intent:promise]`
+- `Already been hit. Still got it.` `[lane:the-drop][intent:pre-owned]`
 
-## Warm community
-- `Drop your bag with us.` `[tone:confident][pillar:bag_drop_service][intent:warm]`
-- `Member bay waiting → swingshack.co.za` `[tone:confident][pillar:bag_drop_service][intent:warm]`
+## THE DROP
+- `This just dropped.` `[lane:the-drop][intent:new-stock]`
+- `Missed the last one? Here's the next.` `[lane:the-drop][intent:restock]`
+- `Demo heads, in stock now.` `[lane:the-drop][intent:new-stock]`
 
-## Confident
-- `You'll never go back.` `[tone:confident][intent:warm]`
-- `Member social every Thursday. Join us.` `[tone:confident][intent:warm]`
+## CONDITION CHECK
+- `Actual item. Actual condition.` `[lane:condition-check][intent:trust]`
+- `Demo head does not mean damaged.` `[lane:condition-check][intent:trust]`
 
-## Funny
-- `Your handicap will thank you. So will your wallet.` `[tone:funny][intent:warm]`
-- `Apologise never.` `[tone:confident][intent:warm]`
+## WHO THIS SUITS
+- `The hardest club to fit in your bag is the 3-wood.` `[lane:who-this-suits][intent:problem]`
+- `Putters are personal.` `[lane:who-this-suits][intent:category]`
+
+## SMALL WINS
+- `Old balls do old-ball things.` `[lane:small-wins][intent:problem]`
+- `Old wedges cost shots.` `[lane:small-wins][intent:problem]`
+- `Running low on golf balls?` `[lane:small-wins][intent:problem]`
 
 ## Pattern rules
-- One sentence (rarely two). Warm, specific, real.
-- Lead with the situation or the warmth. Never with "we."
-- Never use em dashes. Pipes | / commas / full stops only.
-- Every headline pairs with one CTA per `ctas.md`.
+- Max 80 characters. One idea.
+- Lead with the product or the golfer's problem, never with "we".
+- No exclamation mark, no em dash.
+- Every headline pairs with one CTA from `ctas.md`.
 
 ## Banned patterns
-- ❌ Sarcasm — Stick territory
-- ❌ Data intensity — Swing Shack territory
-- ❌ "Join the family" / "Become part of our community"
-- ❌ Urgency pressure ("limited spots", "last chance")
-- ❌ Cross-business mentions without sign-off
+- Hype: `seriously underrated`, `looking absolutely lethal`, `stealth mode activated`.
+- False scarcity: `before it's gone`, `stock moves fast`.
+- Generic store statements with no product and no price.

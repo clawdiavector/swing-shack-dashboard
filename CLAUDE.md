@@ -33,9 +33,10 @@ exists, what's a stub, and what's measurably wrong.
 
 The marketing capability ships as a plugin in this repo —
 [`plugins/campaign-os/`](plugins/campaign-os/README.md): four commands
-(`/audit-social`, `/render-post`, `/schedule-post`, `/verify-specs`) and seven skills
+(`/audit-social`, `/render-post`, `/schedule-post`, `/verify-specs`) and skills including
 (`campaign-os-map`, `campaign-os`, `campaign-os-template`, `krea-lab`,
-`brand-voice-truth`, `schedule-from-anywhere`, `the-algorithm`). Install it
+`brand-voice-truth`, `visual-design`, `schedule-from-anywhere`, `the-algorithm`).
+Designing or reviewing any post? Load `visual-design` first. Install it
 with `/plugin marketplace add .` then `/plugin install campaign-os@campaign-os`.
 Onboarding a teammate: [`docs/ONBOARDING-MARKETING.md`](docs/ONBOARDING-MARKETING.md).
 
@@ -79,10 +80,11 @@ The ingest script's constants are the children only. Note the
 `.gitignore` pattern only matches one level, so files under `images/<subdir>/`
 currently escape it — ~421 MB is committed that shouldn't be.
 
-**The brand bibles drift from the real feed.** Stick's tagline
-"Better begins here." appears in 173 of 258 captions and closes 121 of them, and is in no brand file; the
-bible is entirely fitting/TrackMan while 39% of posts are product arrivals. Treat
-`feedback/instagram-audit.json` as the source of real voice.
+**The brand bible beats the feed, always** (Herman, CEO, 31 Oct 2026). The feed
+(`feedback/instagram-audit.json`) is evidence of what works, not the authority:
+39% of Stick posts are product arrivals the old files ignored. Never call Stick or
+Swing Shack a "golf shop". Stick signs off "Better begins here.", Swing Shack
+"Keep Swinging". Load `brand-voice-truth` before writing any copy.
 
 ## Hosts
 

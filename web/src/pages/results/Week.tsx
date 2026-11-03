@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../../components/chrome'
+import { CmoCard } from '../../components/CmoCard'
 import { Badge, ClassicLink, Tip } from '../../components/ui'
 import {
   fetchIntelWeeklyReport,
@@ -392,6 +393,8 @@ export function Week() {
       {brandErr ? <p className="text-sm text-red">{brandErr}</p> : null}
       {intelErr ? <p className="text-sm text-red">{intelErr}</p> : null}
       {actionMsg ? <p className="text-sm text-yel">{actionMsg}</p> : null}
+
+      <CmoCard cmo={brandJson?.cmo} />
 
       {brandJson ? (
         <section className="glass rounded-2xl border border-ac/20 p-4">

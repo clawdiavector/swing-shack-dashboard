@@ -1,0 +1,29 @@
+{
+  "_about": "A typical modern 7-iron for the exploded view. Lengths in inches as makers list them. 'estimate' marks shape numbers with no maker figure; the head outline is a generic cavity blade, not any brand's head.",
+  "sources": {
+    "t200": "Titleist T200 (2023) 7-iron: loft 30.5 deg, lie 63 deg, length 37 in (Titleist Canada listing and retailers). https://titleist.ca/product/t200/556C.html",
+    "shaft_tip": ".355 in taper-tip iron shafts widen to about .370 in at the top of the hosel; parallel-tip shafts are .370 in. https://kbs.kayako.com/article/2-what-is-the-difference-between-tapered-355-and-parallel-370-tip-shafts",
+    "shaft_butt": "Steel iron shafts commonly list a .600 in butt. https://billybobsgolf.com/product/dynamic-gold-355-taper-tip-370-parallel-tip-buy-sets-save/",
+    "ferrule": "Iron ferrules for .355 taper tips sold as 1 in long. https://www.valuegolf.com/10-1-355-taper-tip-iron-ferrules",
+    "grip": "Golf Pride Tour Velvet standard: .600 in core (60 round), 49.5 g. https://www.golfgalaxy.com/p/golf-pride-tour-velvet-grip/14golmtovelvetgrp"
+  },
+  "loft_deg": 30.5,
+  "lie_deg": 63,
+  "length_in": 37,
+  "shaft_tip_in": 0.355,
+  "shaft_at_hosel_in": 0.370,
+  "shaft_butt_in": 0.600,
+  "ferrule_length_in": 1.0,
+  "grip_core_in": 0.600,
+  "grip_mass_g": 49.5,
+  "estimates": {
+    "grip_length_in": 10.5,
+    "grip_outer_diameter_in": [0.80, 0.98],
+    "head_length_mm": 78,
+    "head_toe_height_mm": 52,
+    "head_heel_height_mm": 32,
+    "head_depth_mm": 18,
+    "hosel_length_mm": 62,
+    "hosel_diameter_mm": [19, 15]
+  }
+}

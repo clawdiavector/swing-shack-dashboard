@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Products/AVX001__front.png",
+  "layer1_metadata": {
+    "filename": "AVX001__front.png",
+    "format": "PNG",
+    "mode": "RGBA",
+    "width_px": 2000,
+    "height_px": 2000,
+    "aspect_ratio": 1.0,
+    "orientation": "square",
+    "file_size_bytes": 4123027,
+    "modified": 1792982251.111876,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.5413
+      },
+      {
+        "hex": "#2a484e",
+        "rgb": [
+          42,
+          72,
+          78
+        ],
+        "share": 0.1384
+      },
+      {
+        "hex": "#0a4940",
+        "rgb": [
+          10,
+          73,
+          64
+        ],
+        "share": 0.102
+      },
+      {
+        "hex": "#135b54",
+        "rgb": [
+          19,
+          91,
+          84
+        ],
+        "share": 0.0822
+      },
+      {
+        "hex": "#17524e",
+        "rgb": [
+          23,
+          82,
+          78
+        ],
+        "share": 0.0559
+      },
+      {
+        "hex": "#608c86",
+        "rgb": [
+          96,
+          140,
+          134
+        ],
+        "share": 0.0387
+      },
+      {
+        "hex": "#18393a",
+        "rgb": [
+          24,
+          57,
+          58
+        ],
+        "share": 0.0341
+      },
+      {
+        "hex": "#010000",
+        "rgb": [
+          1,
+          0,
+          0
+        ],
+        "share": 0.0075
+      }
+    ],
+    "mean_brightness": 30.2,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.0,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 21.4,
+    "brightness_bottom": 15.6,
+    "edge_density_grid": [
+      [
+        5.18,
+        10.31,
+        6.28
+      ],
+      [
+        10.57,
+        25.57,
+        17.14
+      ],
+      [
+        2.77,
+        7.22,
+        4.43
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 5,
+    "text_preview": "PURE DISTANCE. TOUR INSPIRED SPIN."
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 38,
+    "median_text_height_px": 36,
+    "likely_heading_text": "PURE DISTANCE. TOUR",
+    "is_all_caps": true,
+    "sample_text_colour": "#87afa6"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#000000",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "PURE DISTANCE. TOUR INSPIRED SPIN.",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

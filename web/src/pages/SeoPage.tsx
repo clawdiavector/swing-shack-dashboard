@@ -1,10 +1,10 @@
 import { Activity, RefreshCw, Search } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, StatCard } from '../components/ui'
 import { getJson } from '../lib/api'
-import { closesItem, fieldLabel, lengthState, resultNote, type ApplyResult, type FixDraft } from '../lib/seoFixer'
+import { cannotSave, closesItem, fieldLabel, lengthState, resultNote, type ApplyResult, type FixDraft } from '../lib/seoFixer'
 import { fixLabel, splitByButton, type SeoFix, type SeoFixQueue } from '../lib/seoFixQueue'
 import { canUndo, modeNote, statusLabel, type MetaChange, type PublishMode } from '../lib/seoMetaPublish'
 
@@ -103,28 +103,35 @@ function KeywordTable({ title, read, rows }: { title: string; read: string; rows
 
 const SEVERITY_TONE = { high: 'red', medium: 'gold', low: 'mute' } as const
 
+// Which brand's website the fix list, edit box and change history act on.
+type SeoBrand = 'swing-shack' | 'stick'
+const SEO_BRAND_NAMES: Record<SeoBrand, string> = { 'swing-shack': 'Swing Shack', stick: 'Stick' }
+const SeoBrandContext = createContext<SeoBrand>('swing-shack')
+
 // POST that reads the body on errors too: the reason ("names another company", "edited since") is in it.
-async function postFix<T>(path: string, body: Record<string, unknown>): Promise<T> {
+async function postFix<T>(path: string, body: Record<string, unknown>, brand: SeoBrand): Promise<T> {
   const res = await fetch(path, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ brand: 'swing-shack', ...body }),
+    body: JSON.stringify({ ...body, brand }),
   })
   return (await res.json().catch(() => ({ ok: false, error: 'No reply from the server' }))) as T
 }
 
 // Fix / Improve: read the live page, suggest wording, let the person edit it, apply on one click.
 function FixEditor({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id: string) => void; onChanged: () => void }) {
+  const brand = useContext(SeoBrandContext)
   const [draft, setDraft] = useState<FixDraft | null>(null)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [warnings, setWarnings] = useState<string[] | null>(null)
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     let live = true
-    postFix<FixDraft>('/api/seo/fix/draft', { id: fix.id }).then((d) => {
+    postFix<FixDraft>('/api/seo/fix/draft', { id: fix.id }, brand).then((d) => {
       if (!live) return
       setDraft(d)
       // With no suggestion the box starts from what is on the site, so it can still be edited.
@@ -133,7 +140,7 @@ function FixEditor({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id:
     return () => {
       live = false
     }
-  }, [fix.id])
+  }, [fix.id, brand])
 
   if (!draft) return <p className="mt-2 text-sm text-tx3">Reading the page…</p>
   if (!draft.ok) return <p className="mt-2 text-sm text-red">{draft.error || 'Could not read the page.'}</p>
@@ -143,17 +150,26 @@ function FixEditor({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id:
   const len = lengthState(text, min, max)
   const unchanged = text.trim() === (draft.current ?? '').trim()
   const practice = draft.mode === 'dry-run'
+  const noSave = cannotSave(draft)
+
+  async function copyText() {
+    try {
+      await navigator.clipboard.writeText(text.trim().replace(/\s+/g, ' '))
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
 
   async function apply(confirm: boolean) {
     setBusy(true)
     setNote(null)
     try {
-      const r = await postFix<ApplyResult>('/api/seo/fix/apply', {
-        id: fix.id,
-        text,
-        expected_current: draft?.current ?? '',
-        confirm,
-      })
+      const r = await postFix<ApplyResult>(
+        '/api/seo/fix/apply',
+        { id: fix.id, text, expected_current: draft?.current ?? '', confirm },
+        brand,
+      )
       if (r.needs_confirm) {
         setWarnings(r.warnings ?? [r.error ?? 'Please check this wording.'])
         return
@@ -205,6 +221,16 @@ function FixEditor({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id:
         ) : null}
       </div>
 
+      {noSave ? (
+        <div className="mt-2 rounded-lg border border-gold/40 p-2 text-xs text-tx2">
+          <p className="font-semibold text-tx">Campaign OS cannot save this one for you yet.</p>
+          <p className="mt-1">
+            WordPress keeps Yoast's {draft.field_label?.toLowerCase()} hidden from pages, so a save is quietly dropped. Copy the text above and
+            paste it into the Yoast box on the page in WordPress. Blog posts are not affected. A one-time WordPress snippet makes pages work.
+          </p>
+        </div>
+      ) : null}
+
       {warnings ? (
         <div className="mt-2 rounded-lg border border-gold/40 p-2 text-xs text-tx2">
           {warnings.map((w) => (
@@ -214,16 +240,30 @@ function FixEditor({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id:
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {noSave ? (
+          <button
+            type="button"
+            onClick={() => void copyText()}
+            disabled={len.state !== 'ok'}
+            className="glass-pill rounded-full border border-white/10 px-4 py-1.5 text-sm font-semibold text-tx hover:border-ac hover:text-ac disabled:opacity-50"
+          >
+            {copied ? 'Copied' : 'Copy text'}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => void apply(warnings !== null)}
-          disabled={busy || len.state !== 'ok' || unchanged}
+          disabled={busy || noSave || len.state !== 'ok' || unchanged}
           className="glass-pill rounded-full border border-white/10 px-4 py-1.5 text-sm font-semibold text-tx hover:border-ac hover:text-ac disabled:opacity-50"
         >
           {busy ? 'Working…' : warnings ? 'Apply anyway' : practice ? 'Record (practice mode)' : 'Apply'}
         </button>
         <span className="text-xs text-tx3">
-          {practice ? 'Practice mode: nothing is changed on the website.' : 'Changes the live website. You can undo it afterwards.'}
+          {noSave
+            ? 'Nothing is changed on the website from here.'
+            : practice
+              ? 'Practice mode: nothing is changed on the website.'
+              : 'Changes the live website. You can undo it afterwards.'}
         </span>
       </div>
       {note ? <p className={`mt-2 text-sm ${note.ok ? 'text-ac' : 'text-red'}`}>{note.text}</p> : null}
@@ -261,6 +301,7 @@ function FixRow({ fix, onApplied, onChanged }: { fix: SeoFix; onApplied: (id: st
 // Findings from the daily site check. Fix and Improve buttons write to the
 // website only when you click Apply; everything else here is still read-only.
 function FixesWaiting({ queue, onChanged }: { queue: SeoFixQueue | null; onChanged: () => void }) {
+  const brand = useContext(SeoBrandContext)
   const [done, setDone] = useState<string[]>([])
   const { click, rest } = splitByButton(queue)
   const shownClick = click.filter((f) => !done.includes(f.id))
@@ -272,7 +313,7 @@ function FixesWaiting({ queue, onChanged }: { queue: SeoFixQueue | null; onChang
         Fixes waiting <span className="text-sm text-tx3">({total})</span>
       </h2>
       <p className="mt-1 text-sm text-tx3">
-        Found by the daily check of the Swing Shack website. Nothing changes on the site until you click Apply.
+        Found by the daily check of the {SEO_BRAND_NAMES[brand]} website. Nothing changes on the site until you click Apply.
       </p>
       {!queue ? (
         <p className="mt-4 text-sm text-tx3">No check has run yet. The first list appears after tonight's check.</p>
@@ -311,13 +352,14 @@ const CHANGE_TONE = { applied: 'green', dry_run: 'blue', undone: 'mute', failed:
 
 // Search descriptions the system wrote (or, in practice mode, would write), each with an undo.
 function AutoChanges() {
+  const brand = useContext(SeoBrandContext)
   const [mode, setMode] = useState<PublishMode>('off')
   const [entries, setEntries] = useState<MetaChange[]>([])
   const [busy, setBusy] = useState<string | null>(null)
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
 
   const load = useCallback(() => {
-    return getJson<{ ok: boolean; mode?: PublishMode; entries?: MetaChange[] }>('/api/seo/meta-publish?brand=swing-shack')
+    return getJson<{ ok: boolean; mode?: PublishMode; entries?: MetaChange[] }>(`/api/seo/meta-publish?brand=${brand}`)
       .then((r) => {
         if (r.ok) {
           setMode(r.mode ?? 'off')
@@ -325,7 +367,7 @@ function AutoChanges() {
         }
       })
       .catch(() => undefined)
-  }, [])
+  }, [brand])
 
   useEffect(() => {
     void load()
@@ -340,7 +382,7 @@ function AutoChanges() {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brand: 'swing-shack', id }),
+        body: JSON.stringify({ brand, id }),
       })
       const r = (await res.json().catch(() => ({ ok: false }))) as { ok: boolean; error?: string }
       setNote(r.ok ? { ok: true, text: 'Put back the way it was.' } : { ok: false, text: r.error || 'Could not undo' })
@@ -408,6 +450,8 @@ export function SeoPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [refreshNote, setRefreshNote] = useState<{ ok: boolean; text: string } | null>(null)
   const isSwingShack = brandId === 'swing-shack'
+  // The fix list, edit box and change history work for Stick too; the rankings below are Swing Shack's data only.
+  const seoBrand: SeoBrand | null = isSwingShack ? 'swing-shack' : brandId === 'stick' ? 'stick' : null
 
   const load = useCallback(() => {
     return getJson<{ ok: boolean; insights?: SeoInsights; error?: string }>('/api/seo/insights')
@@ -428,11 +472,15 @@ export function SeoPage() {
 
   // The fix list is separate from the rankings: if it fails to load the rest of the page still works.
   useEffect(() => {
-    if (!isSwingShack) return
-    getJson<{ ok: boolean; queue?: SeoFixQueue | null }>('/api/seo/fix-queue?brand=swing-shack')
-      .then((r) => setQueue(r.ok ? (r.queue ?? null) : null))
-      .catch(() => setQueue(null))
-  }, [isSwingShack])
+    if (!seoBrand) return
+    let live = true
+    getJson<{ ok: boolean; queue?: SeoFixQueue | null }>(`/api/seo/fix-queue?brand=${seoBrand}`)
+      .then((r) => live && setQueue(r.ok ? (r.queue ?? null) : null))
+      .catch(() => live && setQueue(null))
+    return () => {
+      live = false
+    }
+  }, [seoBrand])
 
   // Pulls fresh Ubersuggest data via POST /api/seo/refresh. The server needs
   // Ubersuggest tokens; the first-time login runs on the operator's Mac
@@ -463,15 +511,26 @@ export function SeoPage() {
   }
 
   return (
+    <SeoBrandContext.Provider value={seoBrand ?? 'swing-shack'}>
     <div className="space-y-6">
       <PageIntro icon={Search} badge="Results" here="/results/seo" title="SEO">
-        Rankings and gaps for the Swing Shack website.
+        {seoBrand === 'stick' ? 'Fixes for the Stick website.' : 'Rankings and gaps for the Swing Shack website.'}
       </PageIntro>
 
-      {!isSwingShack ? (
+      {seoBrand === 'stick' ? (
+        <>
+          <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
+            <p className="text-sm text-tx2">
+              Keyword rankings are shown for Swing Shack only for now. Stick's daily site check, its fixes and the change history are below.
+            </p>
+          </section>
+          <FixesWaiting key="stick" queue={queue} onChanged={() => setChangesKey((k) => k + 1)} />
+          <AutoChanges key={`stick-${changesKey}`} />
+        </>
+      ) : !isSwingShack ? (
         <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
           <p className="text-sm text-tx2">
-            SEO data is only tracked for Swing Shack right now{brandLabel ? `, not ${brandLabel}` : ''}. Switch the brand to Swing Shack to see it.
+            SEO fixes are tracked for Swing Shack and Stick{brandLabel ? `, not ${brandLabel}` : ''}. Switch the brand to Swing Shack or Stick to see them.
           </p>
         </section>
       ) : error ? (
@@ -538,7 +597,7 @@ export function SeoPage() {
 
           <FixesWaiting queue={queue} onChanged={() => setChangesKey((k) => k + 1)} />
 
-          <AutoChanges key={changesKey} />
+          <AutoChanges key={`swing-shack-${changesKey}`} />
 
           <KeywordTable title="Winning" read="Top 10 or moved up this period." rows={data.winning} />
           <KeywordTable title="Quick wins" read="Close to page one; a small push may move them." rows={data.quick_wins} />
@@ -569,5 +628,6 @@ export function SeoPage() {
         </>
       )}
     </div>
+    </SeoBrandContext.Provider>
   )
 }

@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Products/FJS003M__front.png",
+  "layer1_metadata": {
+    "filename": "FJS003M__front.png",
+    "format": "PNG",
+    "mode": "RGBA",
+    "width_px": 2000,
+    "height_px": 2000,
+    "aspect_ratio": 1.0,
+    "orientation": "square",
+    "file_size_bytes": 2284744,
+    "modified": 1792982299.555324,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.5761
+      },
+      {
+        "hex": "#ebedf0",
+        "rgb": [
+          235,
+          237,
+          240
+        ],
+        "share": 0.1248
+      },
+      {
+        "hex": "#514749",
+        "rgb": [
+          81,
+          71,
+          73
+        ],
+        "share": 0.1158
+      },
+      {
+        "hex": "#fefeff",
+        "rgb": [
+          254,
+          254,
+          255
+        ],
+        "share": 0.0678
+      },
+      {
+        "hex": "#f9fafb",
+        "rgb": [
+          249,
+          250,
+          251
+        ],
+        "share": 0.0602
+      },
+      {
+        "hex": "#abacae",
+        "rgb": [
+          171,
+          172,
+          174
+        ],
+        "share": 0.0396
+      },
+      {
+        "hex": "#020001",
+        "rgb": [
+          2,
+          0,
+          1
+        ],
+        "share": 0.0155
+      },
+      {
+        "hex": "#000001",
+        "rgb": [
+          0,
+          0,
+          1
+        ],
+        "share": 0.0001
+      }
+    ],
+    "mean_brightness": 78.4,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.0,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 53.1,
+    "brightness_bottom": 58.2,
+    "edge_density_grid": [
+      [
+        1.97,
+        7.26,
+        2.39
+      ],
+      [
+        3.27,
+        11.29,
+        5.96
+      ],
+      [
+        2.06,
+        6.8,
+        2.64
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 16,
+    "text_preview": "SofJo Soft, Premium Cabretta Feel \u201c1 GLOVE IN GOLF Premium Feel Durable Grip Perfo: Grip Performan"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 100,
+    "median_text_height_px": 16,
+    "likely_heading_text": "SofJo",
+    "is_all_caps": false,
+    "sample_text_colour": "#ffffff"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": false,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#000000",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "SofJo Soft, Premium Cabretta Feel \u201c1 GLOVE IN GOLF Premium Feel Durable Grip Perfo: Grip Performan",
+      "all_caps_detected": false
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

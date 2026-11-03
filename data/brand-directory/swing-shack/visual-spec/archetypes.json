@@ -202,75 +202,6 @@
       "max_total_chars": 80
     },
     {
-      "id": "ss-story-banner",
-      "name": "Story banner",
-      "canvas": "ig_post",
-      "block_anchor": "center",
-      "applies_to": {
-        "channels": [
-          "instagram",
-          "instagram_story",
-          "facebook",
-          "gbp"
-        ],
-        "needs_photo": true
-      },
-      "background": {
-        "kind": "solid",
-        "fill": "primary"
-      },
-      "zones": {
-        "headline": {
-          "rect": {
-            "x0": 0.1,
-            "y0": 0.2,
-            "x1": 0.9,
-            "y1": 0.35
-          },
-          "kind": "text",
-          "source": "caption_hook",
-          "font_role": "h1",
-          "max_lines": 2,
-          "max_chars_per_line": 24,
-          "colour": "neutral_light",
-          "min_font_px": 32
-        },
-        "photo": {
-          "rect": {
-            "x0": 0,
-            "y0": 0.4,
-            "x1": 1,
-            "y1": 1
-          },
-          "kind": "image",
-          "source": "photo",
-          "optional": false
-        },
-        "logo": {
-          "rect": {
-            "x0": 0.1,
-            "y0": 0.85,
-            "x1": 0.3,
-            "y1": 0.95
-          },
-          "kind": "logo"
-        }
-      },
-      "logo_anchor": {
-        "zone": "logo",
-        "variant": "mono_light",
-        "fit": "height",
-        "align": "left"
-      },
-      "safe_zone": {
-        "x0": 0.05,
-        "y0": 0.04,
-        "x1": 0.95,
-        "y1": 0.96
-      },
-      "max_total_chars": 80
-    },
-    {
       "id": "ss-did-you-know",
       "name": "Did you know? \u2014 dimmed venue photo, thin kicker, huge outlined italic question",
       "description": "Measured from Content Bank Services/cf1\u2013cf6 (1081\u00d71201). Dimmed full-bleed venue photo, 8px 50% white frame inset 35px, logo top-right, thin italic 'DID YOU KNOW?' kicker 33px above a 3\u20134 line Montserrat Black Italic question (cap 127px, pitch 146px, 85% width) with an offset outline echo. Accent rotates green/orange/blue/purple.",
@@ -2706,6 +2637,188 @@
       "vetted": true
     }
   ],
+  "product_post_archetypes": [
+    {
+      "id": "ss-product-type-hero",
+      "name": "Product post: type hero (dark)",
+      "description": "Retail product post — dark type-hero layout. Composed by product_post_templates.py from templates/product-type-hero.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "campaign"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "primary"
+      },
+      "zones": {
+        "photo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "image",
+          "source": "photo"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.75,
+            "y0": 0.04,
+            "x1": 0.96,
+            "y1": 0.12
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "right"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "template_pack": "templates/product-type-hero",
+      "post_type": "product_post",
+      "product_layout": "type-hero",
+      "renderer": "product_post",
+      "vetted": true
+    },
+    {
+      "id": "ss-product-one-hero",
+      "name": "Product post: one hero (charcoal)",
+      "description": "Retail product post — charcoal one-hero layout. Composed by product_post_templates.py from templates/product-one-hero.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "campaign"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "primary"
+      },
+      "zones": {
+        "photo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "image",
+          "source": "photo"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.75,
+            "y0": 0.04,
+            "x1": 0.96,
+            "y1": 0.12
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "right"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "template_pack": "templates/product-one-hero",
+      "post_type": "product_post",
+      "product_layout": "one-hero",
+      "renderer": "product_post",
+      "vetted": true
+    },
+    {
+      "id": "ss-product-pick-yours",
+      "name": "Product post: pick yours (light)",
+      "description": "Retail product post — light pick-yours layout. Composed by product_post_templates.py from templates/product-pick-yours.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "campaign"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "primary"
+      },
+      "zones": {
+        "photo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "image",
+          "source": "photo"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.75,
+            "y0": 0.04,
+            "x1": 0.96,
+            "y1": 0.12
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "right"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "template_pack": "templates/product-pick-yours",
+      "post_type": "product_post",
+      "product_layout": "pick-yours",
+      "renderer": "product_post",
+      "vetted": true
+    }
+  ],
   "selection": {
     "default": "ss-photo-post",
     "rules": [
@@ -2801,6 +2914,14 @@
           ]
         },
         "use": "ss-zen-venue-promo"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "product_post"
+          ]
+        },
+        "use": "ss-product-type-hero"
       }
     ]
   }

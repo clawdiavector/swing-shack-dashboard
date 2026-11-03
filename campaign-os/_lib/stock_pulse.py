@@ -55,9 +55,13 @@ def excluded_reason(name: str) -> str:
     return ""
 
 CATEGORY_RULES = [
+    # Clothing first; "tee" only singular, so a pack of golf tees is not a T-shirt.
+    ("apparel", r"\bpolo\b|\btee\b|t-shirt|\bshirt|\bcap\b|\bhat\b|beanie|\bsocks?\b|\bshorts\b|trousers|\bpants\b"
+                r"|jacket|hoodie|pullover|\bvest\b|skirt|swim|\btrunks?\b|quarter zip|1/4 zip|sweater|jumper|visor"),
     ("rangefinder", r"rangefinder"),
     ("putter", r"putter|sausage|runner"),
     ("wedge", r"wedge|vokey"),
+    ("iron", r"\birons?\b"),
     ("driver-wood", r"driver|3 wood|\bwood\b"),
     ("shaft", r"shaft|tensei|speeder"),
     ("bag", r"golf bag"),
@@ -80,6 +84,8 @@ PUSH_IDEAS = {
     "rangefinder": "On-course use, side by side with the others",
     "towel": "Gift or add-on idea",
     "ferrule": "Custom-build detail: the finishing touch on a club",
+    "iron": "Iron fitting on the launch monitor",
+    "apparel": "Styled on the rail or worn in the bay",
 }
 
 # Grips, ferrules and towels are promoted as a range per brand ("GripDrip is
@@ -536,3 +542,22 @@ def candidates_for(brand_id: str) -> List[Dict[str, Any]]:
     """The brand's current candidates, straight from its saved stock lists. Empty when none saved."""
     snaps = load_snapshots(brand_id)
     return candidates(analyse(snaps)) if snaps else []
+
+
+def feed_candidates(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Feed lines: new and back-in-stock lines first (new stock is announced), then candidates()."""
+    arrivals = [r for r in results if r["status"] in ("new", "back")
+                and not r["not_for_feed"] and not r.get("folded_into_range")]
+    seen, out = set(), []
+    for r in arrivals + candidates(results):
+        if r["name"] in seen:
+            continue
+        seen.add(r["name"])
+        out.append(r)
+    return out
+
+
+def feed_candidates_for(brand_id: str) -> List[Dict[str, Any]]:
+    """The brand's feed lines from its saved stock lists. Empty when none saved."""
+    snaps = load_snapshots(brand_id)
+    return feed_candidates(analyse(snaps)) if snaps else []

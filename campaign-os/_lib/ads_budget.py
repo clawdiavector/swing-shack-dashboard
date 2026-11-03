@@ -1,4 +1,4 @@
-"""Monthly ad budget per brand: where the month stands, where it is heading, and whether it fits.
+"""Ad budget per brand (a month or a week): where the period stands, where it is heading, and whether it fits.
 
 Read-only on Meta. Two halves:
 
@@ -42,6 +42,23 @@ def _date(value):
 
 def month_bounds(today: _dt.date) -> tuple[_dt.date, _dt.date]:
     return today.replace(day=1), today.replace(day=calendar.monthrange(today.year, today.month)[1])
+
+
+def period_of(settings) -> str:
+    """"week" when the brand's budget is a weekly one, else "month"."""
+    return "week" if (settings or {}).get("budget_period") == "week" else "month"
+
+
+def period_bounds(today: _dt.date, period: str = "month") -> tuple[_dt.date, _dt.date]:
+    """The budget period that contains today: Monday to Sunday for a week, the calendar month otherwise."""
+    if period == "week":
+        monday = today - _dt.timedelta(days=today.weekday())
+        return monday, monday + _dt.timedelta(days=6)
+    return month_bounds(today)
+
+
+def word(period) -> str:
+    return "week" if period == "week" else "month"
 
 
 def _live_budgets(adsets: list[dict], today: _dt.date, month_end: _dt.date) -> tuple[list[dict], float, float]:
@@ -102,15 +119,21 @@ def _live_budgets(adsets: list[dict], today: _dt.date, month_end: _dt.date) -> t
 
 
 def build_figures(*, mtd_spend: float, today_spend: float, adsets: list[dict], today: _dt.date,
-                  errors: list | None = None) -> dict:
-    """The plain numbers, from what was read. Pure."""
-    first, last = month_bounds(today)
+                  errors: list | None = None, period: str = "month") -> dict:
+    """The plain numbers, from what was read. Pure.
+
+    ``period`` is "month" or "week". The key names keep "mtd"/"month" for the spend so far and the rest of the
+    period, whichever it is; ``period`` says which.
+    """
+    period = word(period)
+    first, last = period_bounds(today, period)
     rows, daily_today, future = _live_budgets(adsets, today, last)
     # Today is partly spent already: only what is left of today's budgets is still to come.
     left_today = max(0.0, daily_today - today_spend)
     daily_after = sum(r["amount"] for r in rows if r["kind"] == "daily" and r["days_left"] > 0)
     return {
         "schema": SCHEMA, "month": first.strftime("%Y-%m"), "as_of": today.isoformat(),
+        "period": period, "period_start": first.isoformat(), "period_end": last.isoformat(),
         "days_left_after_today": (last - today).days,
         "mtd_spend": round(mtd_spend, 2), "today_spend": round(today_spend, 2),
         "daily_run_rate": round(daily_after, 2),
@@ -129,17 +152,18 @@ def evaluate(figures: dict, budget) -> dict:
     worst = round(mtd + (f.get("worst_case_rest_of_month") or 0.0), 2)
     f.update({"budget": budget or None, "projected_total": projected, "worst_case_total": worst})
     days = f.get("days_left_after_today") or 0
+    w = word(f.get("period"))
     if not budget:
-        f.update({"status": "NO_BUDGET", "headline": "No monthly budget set yet.", "left": None, "safe_per_day": None})
+        f.update({"status": "NO_BUDGET", "headline": f"No {w}ly budget set yet.", "left": None, "safe_per_day": None})
         return f
     left = round(budget - mtd, 2)
     f["left"] = left
     f["used_pct"] = round(100 * mtd / budget, 1)
     f["safe_per_day"] = round(left / days, 2) if days > 0 and left > 0 else (0.0 if left <= 0 else round(left, 2))
     if mtd >= budget:
-        status, head = "OVER", f"The month's budget of {_r(budget)} is already spent ({_r(mtd)}). Pause the running ad sets."
+        status, head = "OVER", f"The {w}'s budget of {_r(budget)} is already spent ({_r(mtd)}). Pause the running ad sets."
     elif projected > budget * WATCH_AT:
-        status, head = "AT_RISK", (f"On the current settings the month ends near {_r(projected)}, "
+        status, head = "AT_RISK", (f"On the current settings the {w} ends near {_r(projected)}, "
                                    f"over the {_r(budget)} budget by {_r(projected - budget)}.")
     elif worst > budget:
         status, head = "WATCH", (f"Fits on paper ({_r(projected)}), but Meta may spend up to a quarter more on a "
@@ -156,7 +180,7 @@ def _r(x) -> str:
 
 def brief_view(ev: dict) -> dict:
     """The part of an evaluation that goes into the daily brief."""
-    keys = ("month", "as_of", "budget", "mtd_spend", "projected_total", "worst_case_total", "left",
+    keys = ("month", "period", "period_start", "period_end", "as_of", "budget", "mtd_spend", "projected_total", "worst_case_total", "left",
             "safe_per_day", "daily_run_rate", "status", "headline", "complete")
     return {k: ev.get(k) for k in keys}
 
@@ -166,10 +190,11 @@ def add_action(daily: dict, ev: dict, limit: int = 3) -> None:
     if ev.get("status") not in ("OVER", "AT_RISK"):
         return
     over = ev["status"] == "OVER"
+    w = word(ev.get("period"))
     action = {
         "rule": "monthly_budget", "status": ev["status"], "severity": "high",
-        "action": ("Pause the running ad sets: the monthly budget is spent." if over else
-                   "Bring the ad sets' daily budgets down, or raise the monthly budget on purpose."),
+        "action": (f"Pause the running ad sets: the {w}ly budget is spent." if over else
+                   f"Bring the ad sets' daily budgets down, or raise the {w}ly budget on purpose."),
         "why": ev["headline"], "ads": [], "ad_ids": [], "days_open": 0,
     }
     daily["top_actions"] = ([action] + [a for a in daily.get("top_actions") or []
@@ -183,14 +208,15 @@ _ADSET_FIELDS = ("id,name,effective_status,daily_budget,lifetime_budget,budget_r
 
 
 def fetch_figures(account_id: str, token: str, *, today: _dt.date, api_version: str | None = None,
-                  get=None) -> dict:
+                  get=None, period: str = "month") -> dict:
     ver = api_version or ads_brain.DEFAULT_API_VERSION
     if get is None:
         def get(path, params):
             return ads_brain._graph_get(path, token, params)
     base = f"/{ver}/{account_id}"
     errors = []
-    first, _ = month_bounds(today)
+    period = word(period)
+    first, _ = period_bounds(today, period)
 
     def spend(since, until):
         got, err = ads_brain._get_all(get, f"{base}/insights", {
@@ -207,7 +233,8 @@ def fetch_figures(account_id: str, token: str, *, today: _dt.date, api_version: 
     if err:
         errors.append(f"ad sets: {err}")
         sets = []
-    out = build_figures(mtd_spend=mtd or 0.0, today_spend=tod or 0.0, adsets=sets, today=today, errors=errors)
+    out = build_figures(mtd_spend=mtd or 0.0, today_spend=tod or 0.0, adsets=sets, today=today, errors=errors,
+                        period=period)
     # A figure Meta would not give is not zero: say so, so the page never shows a false all-clear.
     out["complete"] = mtd is not None and tod is not None and not err
     return out

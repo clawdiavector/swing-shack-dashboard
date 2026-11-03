@@ -580,7 +580,9 @@ def stage_to_cms(rec: dict, *, actor: str = "operator") -> dict:
             seo_plugin = detect_seo_plugin(rec["brand_id"])
             meta_input, seo_written, seo_unsupported = build_meta_input(rec["brand_id"], seo_block)
             if meta_input:
-                payload["meta_input"] = meta_input
+                # The REST route takes registered meta under `meta`. `meta_input` is a
+                # wp_insert_post argument that the REST API ignores, so it never saved.
+                payload["meta"] = meta_input
         except Exception:
             # Strategy module not available — fall back to the conservative
             # "not written" path.
@@ -598,6 +600,25 @@ def stage_to_cms(rec: dict, *, actor: str = "operator") -> dict:
         update_status(rec, STATUS_PUBLISH_FAILED, actor=actor,
                       action=ACTION_PUBLISH_FAILED, result={"cms": cms_result})
         return {"ok": False, "code": "CMS_WRITE_FAILED", "error": cms_result.get("error"), "cms": cms_result}
+
+    # Read the SEO fields back. A key WordPress did not keep is not "written".
+    if payload.get("meta") and cms_result.get("cms_post_id"):
+        try:
+            from _lib import seo_meta_strategy as _sms
+            from _lib.geo_audit import _wp_request
+            back = _wp_request(rec["brand_id"], "GET", f"/posts/{cms_result['cms_post_id']}?context=edit&_fields=meta")
+            kept = (back.get("data") or {}).get("meta") if back.get("ok") else None
+            if isinstance(kept, dict):
+                key_map = (_sms.PLUGIN_BEHAVIOR.get(seo_plugin or "none") or {}).get("meta_key_map", {})
+                wp_to_os = {v: k for k, v in key_map.items()}
+                lost = [wp_to_os.get(k, k) for k, v in payload["meta"].items() if kept.get(k) != v]
+                rec["checks"]["seo_metadata_written"] = [k for k in seo_written if k not in lost]
+                rec["checks"]["seo_metadata_unsupported"] = sorted(set(seo_unsupported) | set(lost))
+                rec["checks"]["seo_metadata_readback"] = "verified" if not lost else "some fields not kept"
+            else:
+                rec["checks"]["seo_metadata_readback"] = "unavailable"
+        except Exception:  # noqa: BLE001 - the read-back is a check, never a reason to fail staging
+            rec["checks"]["seo_metadata_readback"] = "unavailable"
 
     # Update record with CMS identifiers
     rec["cms_post_id"] = cms_result.get("cms_post_id")

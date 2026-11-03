@@ -6,6 +6,7 @@ import json
 import os
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -312,7 +313,16 @@ class PublishSandboxTests(unittest.TestCase):
         self.assertTrue(result.get("ok"))
         self.assertEqual(result.get("dispatched"), 1)
         _args, kwargs = create_post.call_args
-        self.assertIsNone(kwargs.get("publish_date"))
+        publish_date = kwargs.get("publish_date")
+        self.assertIsInstance(publish_date, str)
+        self.assertNotEqual(publish_date, "2099-01-01T11:00:00Z")
+        self.assertTrue(str(publish_date).endswith("Z"))
+        when = datetime.fromisoformat(str(publish_date).replace("Z", "+00:00"))
+        lead = (when - datetime.now(timezone.utc)).total_seconds()
+        self.assertGreater(lead, 4 * 60)
+        self.assertLess(lead, 6 * 60)
+        self.assertEqual(result.get("publish_at"), publish_date)
+        self.assertIs(result.get("moved"), True)
 
     def test_integration_match_uses_identifier_not_first_channel(self) -> None:
         from _lib.publish_live import _integration_for_platform

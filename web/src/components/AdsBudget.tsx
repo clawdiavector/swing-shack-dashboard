@@ -5,11 +5,12 @@ import { BudgetGuard } from './AdsGuard'
 import { HardStop, type HardStopInfo } from './AdsHardStop'
 import { Badge } from './ui'
 
-// Monthly ad budget for one brand: where the month stands and a box to set the budget.
+// Ad budget for one brand (per week or per month): where the period stands and a box to set the budget.
 // GET/POST /api/meta/ads/<brand>/budget. Setting a budget changes nothing in Meta.
 
 export type BudgetEval = {
   month?: string
+  period?: 'week' | 'month'
   as_of?: string
   budget: number | null
   mtd_spend: number
@@ -55,6 +56,8 @@ export function BudgetView({
   onInput,
   onSave,
   hardStop,
+  period = 'month',
+  onPeriod,
 }: {
   ev: BudgetEval | null
   input: string
@@ -63,7 +66,10 @@ export function BudgetView({
   onInput: (v: string) => void
   onSave: () => void
   hardStop?: React.ReactNode
+  period?: 'week' | 'month'
+  onPeriod?: (p: 'week' | 'month') => void
 }) {
+  const shown = ev?.period ?? period
   const budget = ev?.budget ?? null
   const max = Math.max(budget ?? 0, ev?.projected_total ?? 0, ev?.mtd_spend ?? 0, 1)
   const pct = (n: number) => `${Math.min(100, (n / max) * 100)}%`
@@ -88,7 +94,7 @@ export function BudgetView({
           ) : null}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Stat label="Spent so far" value={rand(ev.mtd_spend)} sub={ev.used_pct != null ? `${ev.used_pct}% of budget` : undefined} />
-            <Stat label="Expected by month end" value={rand(ev.projected_total)} sub={`worst case ${rand(ev.worst_case_total)}`} />
+            <Stat label={`Expected by ${shown} end`} value={rand(ev.projected_total)} sub={`worst case ${rand(ev.worst_case_total)}`} />
             <Stat label="Left in budget" value={rand(ev.left)} />
             <Stat
               label="Safe per day"
@@ -97,17 +103,17 @@ export function BudgetView({
             />
           </div>
           {ev.complete === false ? (
-            <p className="text-xs text-red">Part of this month's spend could not be read from Meta, so these numbers may be low.</p>
+            <p className="text-xs text-red">Part of this {shown}'s spend could not be read from Meta, so these numbers may be low.</p>
           ) : null}
         </>
       ) : (
         <p className="text-sm text-tx2">
-          The first reading of this month's spend arrives with the next ads brief. You can set the budget now.
+          The first reading of this {shown}'s spend arrives with the next ads brief. You can set the budget now.
         </p>
       )}
       <div className="flex flex-wrap items-center gap-2">
         <label className="text-sm text-tx2" htmlFor="monthly-budget">
-          Monthly budget (R)
+          {period === 'week' ? 'Weekly' : 'Monthly'} budget (R)
         </label>
         <input
           id="monthly-budget"
@@ -126,6 +132,25 @@ export function BudgetView({
         </button>
         {error ? <span className="text-xs text-red">{error}</span> : null}
       </div>
+      {onPeriod ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-tx2" role="group" aria-label="Budget period">
+          {(['week', 'month'] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              disabled={saving}
+              aria-pressed={period === p}
+              onClick={() => onPeriod(p)}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold disabled:opacity-50 ${
+                period === p ? 'border-ac text-ac' : 'border-white/15 text-tx hover:border-ac'
+              }`}
+            >
+              {p === 'week' ? 'Per week' : 'Per month'}
+            </button>
+          ))}
+          <span className="text-xs text-tx3">A week runs Monday to Sunday.</span>
+        </div>
+      ) : null}
       <p className="text-xs text-tx3">Saving a budget changes nothing in Meta. It only sets the line this page and the daily brief warn against.</p>
       {hardStop}
     </div>
@@ -136,10 +161,11 @@ export function AdsBudget({ brandId }: { brandId: string }) {
   const [ev, setEv] = useState<BudgetEval | null>(null)
   const [hs, setHs] = useState<HardStopInfo>({ on: false })
   const [input, setInput] = useState('')
+  const [period, setPeriod] = useState<'week' | 'month'>('month')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  type Reply = { budget: BudgetEval | null; settings?: { monthly_budget?: number | null }; hard_stop?: HardStopInfo }
+  type Reply = { budget: BudgetEval | null; settings?: { monthly_budget?: number | null; budget_period?: 'week' | 'month' }; hard_stop?: HardStopInfo }
   const load = () =>
     getJson<Reply>(`/api/meta/ads/${brandId}/budget`)
       .then((r) => {
@@ -147,6 +173,7 @@ export function AdsBudget({ brandId }: { brandId: string }) {
         setHs(r.hard_stop ?? { on: false })
         const b = r.settings?.monthly_budget
         setInput(b ? String(b) : '')
+        setPeriod(r.settings?.budget_period === 'week' ? 'week' : 'month')
       })
       .catch((e: Error) => setError(e.message))
 
@@ -159,18 +186,19 @@ export function AdsBudget({ brandId }: { brandId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandId])
 
-  const save = () => {
+  const save = (nextPeriod: 'week' | 'month' = period) => {
     const n = Number(input.replace(/[^0-9.]/g, ''))
     if (!Number.isFinite(n) || n < 0) {
-      setError('Type the budget as a number, for example 8000.')
+      setError('Type the budget as a number, for example 1000.')
       return
     }
     setSaving(true)
     setError(null)
-    postJson<Reply>(`/api/meta/ads/${brandId}/budget`, { monthly_budget: n })
+    postJson<Reply>(`/api/meta/ads/${brandId}/budget`, { monthly_budget: n, budget_period: nextPeriod })
       .then((r) => {
         setEv(r.budget)
         setHs(r.hard_stop ?? { on: false })
+        setPeriod(nextPeriod)
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setSaving(false))
@@ -183,7 +211,9 @@ export function AdsBudget({ brandId }: { brandId: string }) {
       saving={saving}
       error={error}
       onInput={setInput}
-      onSave={save}
+      onSave={() => save()}
+      period={period}
+      onPeriod={(p) => save(p)}
       hardStop={
         <>
           <BudgetGuard brandId={brandId} hasBudget={!!ev?.budget} />

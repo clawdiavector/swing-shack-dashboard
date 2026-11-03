@@ -32,6 +32,11 @@ export type PlanningMonthItem = {
   /** What kind of date it is, for its icon. Set on events, not on content cards. */
   kind?: string
   event_key?: string
+  post_type?: string
+  permalink?: string
+  thumbnail_url?: string
+  outside_label?: string
+  execution_type?: string
 }
 
 export type PlanningMonthView = {

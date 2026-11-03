@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-COMING_SOON_CHANNELS = frozenset({"youtube", "tiktok"})
+COMING_SOON_CHANNELS = frozenset({"youtube"})
 MAX_SEND_ATTEMPTS = 3
 CHANNELS_LOCKED_STATES = frozenset({"released", "partly_posted", "send_failed", "posted"})
-_FEED_IMAGE_PLATFORMS = frozenset({"facebook", "gbp", "youtube", "tiktok"})
+_FEED_IMAGE_PLATFORMS = frozenset({"facebook", "gbp"})
 
 
 def brand_channels(brand_id: str) -> list[str]:
@@ -42,8 +42,9 @@ def default_channels(brand_id: str) -> list[str]:
 
 
 def render_channels(brand_id: str) -> list[str]:
-    _ = brand_id
-    return ["instagram"]
+    from _lib.feed_vertical_renders import render_channel_keys  # noqa: PLC0415
+
+    return render_channel_keys(brand_id)
 
 
 def normalize_picked_channels(channels: list[str], brand_id: str) -> list[str]:
@@ -116,6 +117,8 @@ def delivery_chip_status(
     if status == "failed":
         return "failed"
     if receipt:
+        if str(receipt.get("mode") or "") == "sandbox":
+            return "sandbox_only"
         return "posted"
     if status == "dispatched":
         return "posted"
@@ -160,7 +163,7 @@ def build_deliveries(
             summary["posted"] += 1
         elif chip == "failed":
             summary["failed"] += 1
-        elif chip in ("queued", "sending", "awaiting_approval"):
+        elif chip in ("queued", "sending", "awaiting_approval", "sandbox_only"):
             summary["queued"] += 1
         ext = row.get("external_id")
         if not ext and receipt:

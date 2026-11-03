@@ -234,6 +234,20 @@ _FILLER = {
 }
 
 
+def _with_vendor(brand: str, arc: dict, fields: dict[str, str]) -> dict[str, str]:
+    """Templates with a maker-logo zone need a real vendor_name: take it from the pack's cases.json."""
+    zones = (arc.get("zones") or {}).values()
+    if not any(z.get("source") == "vendor_logo" for z in zones if isinstance(z, dict)):
+        return fields
+    cases = REPO / "data" / "brand-directory" / brand / arc["template_pack"] / "cases.json"
+    try:
+        first = json.loads(cases.read_text(encoding="utf-8"))[0]
+        fields = dict(fields, vendor_name=str(first["vendor_name"]))
+    except Exception:  # noqa: BLE001 - no cases file: the render reports the missing logo
+        pass
+    return fields
+
+
 def _fields_for(arc: dict) -> dict[str, str]:
     """Fill every text zone's declared source with content shaped like that zone.
 
@@ -317,7 +331,7 @@ def _declared_budget():
             try:
                 compose_post_for_channels(
                     brand_id=brand, archetype=arc, channels=[chans[0]],
-                    fields=fields, photo_bytes=photo)
+                    fields=_with_vendor(brand, arc, fields), photo_bytes=photo)
                 ok.append(label)
             except Exception as e:  # noqa: BLE001
                 worst = max(
@@ -354,7 +368,7 @@ def _templates_render():
             try:
                 res = compose_post_for_channels(
                     brand_id=brand, archetype=arc, channels=[chans[0]],
-                    fields=_fields_for(arc), photo_bytes=photo)
+                    fields=_with_vendor(brand, arc, _fields_for(arc)), photo_bytes=photo)
                 img = next(iter(res.values()), b"") if res else b""
                 if len(img) < 2000 or not img.startswith(b"\x89PNG"):
                     failed.append(f"{label}: {len(img)}B, not a PNG")

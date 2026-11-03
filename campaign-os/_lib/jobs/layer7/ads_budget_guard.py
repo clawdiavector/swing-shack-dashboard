@@ -38,7 +38,8 @@ def run(*, brand: str | None = None, today: _dt.date | None = None, now: _dt.dat
     io = io_for_job(JOB_NAME, lane_brand)
     settings = as_dict(io.read(SETTINGS, allow_flat_fallback=False))
 
-    figures = ads_budget.fetch_figures(account, token, today=today, get=get)
+    figures = ads_budget.fetch_figures(account, token, today=today, get=get,
+                                      period=ads_budget.period_of(settings))
     running, err = ads_guard.fetch_running(account, token, now=now, get=get)
     if err:
         figures["complete"] = False  # not knowing which ad sets run is not a reason to pause (or to say all is well)

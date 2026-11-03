@@ -51,7 +51,19 @@ from typing import Any, Optional
 _LOG = logging.getLogger("campaign_os.gbp_daily_poster")
 
 # Same folder app.py writes GBP drafts to (campaign-os/data/gmb-drafts).
-GMB_DRAFTS_DIR = Path(__file__).resolve().parent.parent / "data" / "gmb-drafts"
+def resolve_drafts_dir(env: Optional[dict] = None) -> Path:
+    """Where Google Business drafts live.
+
+    On Railway only DATA_DIR sits on the permanent volume; a folder inside the
+    app is wiped by every deploy, which deleted every draft once (2026-10-23).
+    """
+    data_dir = (env if env is not None else os.environ).get("DATA_DIR")
+    if data_dir:
+        return Path(data_dir) / "gmb-drafts"
+    return Path(__file__).resolve().parent.parent / "data" / "gmb-drafts"
+
+
+GMB_DRAFTS_DIR = resolve_drafts_dir()
 
 # ── Brand-scoped defaults ────────────────────────────────────────────
 
@@ -133,11 +145,11 @@ BRAND_PROFILES = {
     "bag-drop": {
         "display_name": "Bag Drop",
         "voice_id": "bag-drop",
-        "domain": "swingshack.co.za",
-        "bookings_url": "https://swingshack.co.za/bookings/",
+        "domain": "thebagdrop.co.za",
+        "bookings_url": "https://thebagdrop.co.za/",
         "primary_color": "#F4A261",
         "accent_color": "#264653",
-        "voice": "Community, fun, supportive, relatable, warm. The Thursday social crowd.",
+        "voice": "Online store for demo and pre-owned golf gear. Sharp, honest, dry. Product, condition grade and price lead.",
         "postiz_gbp_integration_id": None,
         "google_account": "not_connected",
     },
@@ -1031,6 +1043,7 @@ def publish_post(post: dict, *, dry_run: bool = False) -> dict:
         return {"ok": False, "error": f"postiz_client_unavailable: {exc}"}
 
     media_ids: list[str] = []
+    media_items: list[dict] = []
     image = post.get("image_url")
     if image:
         try:
@@ -1040,6 +1053,9 @@ def publish_post(post: dict, *, dry_run: bool = False) -> dict:
         if up_err or not (upload and upload.get("id")):
             return {"ok": False, "error": f"image_upload_failed: {up_err}", "post_status": "ERROR"}
         media_ids.append(upload["id"])
+        # Postiz needs the photo's address as well as its id.
+        if upload.get("path"):
+            media_items.append({"id": str(upload["id"]), "path": str(upload["path"])})
 
     scheduled_at = _dt.datetime.utcnow().isoformat()
     try:
@@ -1047,6 +1063,7 @@ def publish_post(post: dict, *, dry_run: bool = False) -> dict:
             integration_id=integration_id,
             content=gbp_post_text(post),
             media_ids=media_ids,
+            media=media_items,
             publish_date=scheduled_at,
         )
         if err:

@@ -24,7 +24,8 @@ INTENDED_CHANNELS_FALLBACK: dict[str, list[str]] = {
 }
 
 # Match L5 compose_post_for_channels — social feed channels only (GBP is separate).
-COMPOSE_PUBLISH_CHANNEL_EXCLUDE = frozenset({"gbp"})
+# Not composed per channel and not on by default: GBP has its own queue, TikTok is picked per post.
+COMPOSE_PUBLISH_CHANNEL_EXCLUDE = frozenset({"gbp", "tiktok"})
 MAX_SEND_ATTEMPTS = 3
 
 
@@ -179,14 +180,16 @@ def _composed_url_for_platform(
         block = src.get("composed")
         if isinstance(block, dict):
             composed.update(block)
+    from _lib.feed_vertical_renders import composed_key_for_platform  # noqa: PLC0415
     from _lib.onepost import _FEED_IMAGE_PLATFORMS  # noqa: PLC0415
 
-    if plat in _FEED_IMAGE_PLATFORMS or plat not in composed:
+    compose_key = composed_key_for_platform(plat)
+    if plat in _FEED_IMAGE_PLATFORMS or compose_key not in composed:
         for key in ("instagram",):
             raw = composed.get(key)
             if raw:
                 return str(raw).strip() or None
-    for key in (plat, platform):
+    for key in (compose_key, plat, platform):
         raw = composed.get(key)
         if raw:
             return str(raw).strip() or None
@@ -520,11 +523,17 @@ def skip_delivery(
     key = f"qc-{asset_id}-{plat}"
     rows = _read_jsonl(_queue_path())
     found = False
+    from _lib.postiz_on_approve import clear_postiz_on_unapprove  # noqa: PLC0415
+
     for row in rows:
         if str(row.get("idempotency_key") or "") == key:
+            _, clear_err = clear_postiz_on_unapprove(key)
+            if clear_err:
+                return {"ok": False, "error": clear_err, "code": "postiz_clear_failed"}
             row["status"] = "skipped"
             row["skipped_reason"] = "dropped by operator"
             row["human_approved"] = False
+            row["human_approved_at"] = None
             found = True
             break
     if not found:
@@ -799,12 +808,51 @@ def approve_item(idempotency_key: str) -> tuple[Optional[dict[str, Any]], Option
     found: Optional[dict[str, Any]] = None
     for row in rows:
         if row.get("idempotency_key") == idempotency_key and row.get("status") == "pending":
-            row["human_approved"] = True
-            row["human_approved_at"] = _utc_now_iso()
             found = row
             break
     if not found:
         return None, "queue item not found or not pending"
+    from _lib.postiz_on_approve import schedule_row_on_approve  # noqa: PLC0415
+
+    approved_at = _utc_now_iso()
+    draft = {**found, "human_approved": True, "human_approved_at": approved_at}
+    _receipt, sched_err = schedule_row_on_approve(draft)
+    if sched_err:
+        return None, sched_err
+    found["human_approved"] = True
+    found["human_approved_at"] = approved_at
+    _rewrite_jsonl(_queue_path(), rows)
+    return found, None
+
+
+def unapprove_item(idempotency_key: str) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+    """Clear human approval; remove live Postiz schedule when on-approve is active."""
+    key = str(idempotency_key or "").strip()
+    if not key:
+        return None, "idempotency_key required"
+    from _lib.postiz_on_approve import clear_postiz_on_unapprove  # noqa: PLC0415
+
+    _, clear_err = clear_postiz_on_unapprove(key)
+    if clear_err:
+        return None, clear_err
+    rows = _read_jsonl(_queue_path())
+    found: Optional[dict[str, Any]] = None
+    for row in rows:
+        if row.get("idempotency_key") != key:
+            continue
+        if str(row.get("status") or "") in ("skipped", "failed", "rejected"):
+            return None, "queue item not approvable"
+        row["human_approved"] = False
+        row["human_approved_at"] = None
+        if str(row.get("status") or "") == "dispatched":
+            row["status"] = "pending"
+            row.pop("dispatched_at", None)
+            row.pop("sandbox_post_id", None)
+            row.pop("external_id", None)
+        found = row
+        break
+    if not found:
+        return None, "queue item not found"
     _rewrite_jsonl(_queue_path(), rows)
     return found, None
 
@@ -993,7 +1041,15 @@ def release_moment(
             continue
         updated, err = approve_item(key)
         if err:
-            return {"ok": False, "error": err, "code": "approve_failed", "state": state}
+            for prev in released:
+                unapprove_item(prev)
+            return {
+                "ok": False,
+                "error": err,
+                "code": "approve_failed",
+                "state": state,
+                "released": released,
+            }
         if updated:
             released.append(key)
 

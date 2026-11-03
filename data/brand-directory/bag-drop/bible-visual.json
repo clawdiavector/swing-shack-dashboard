@@ -1,56 +1,59 @@
 {
   "_schema": "https://campaign-os/brand-directory/bible-visual/v1",
   "brand_id": "bag-drop",
-  "version": "0.1.0-draft",
-  "updated": "2026-09-25T00:00:00Z",
+  "version": "0.2.0-draft",
+  "updated": "2026-10-30T00:00:00Z",
   "confidence": "draft",
-  "voice": "Community-first, member-energy; fun, supportive, relatable; warmth over hard sell.",
-  "philosophy": "Shared golfer social warmth — orange-forward backgrounds with deep teal-navy contrast; vibe matters as much as data.",
-  "visual_philosophy": "Warm orange (#F4A261) fields with deep teal-navy (#264653) text zones; candid member moments and social energy, not sales-y promo or sarcasm.",
+  "voice": "Sharp, honest, confident, curated, clever. Dry and plain; price and condition do the selling.",
+  "philosophy": "Product first and honest: the actual item, its real condition, its price. Clean, sharp, uncluttered.",
+  "visual_philosophy": "Clean product photography on a dark or neutral background, product 60 to 70% of frame, lighting that makes condition visible. Colours and fonts are UNCONFIRMED (repo, workbook and live site disagree): do not pick a palette until the designer's files arrive.",
   "composition_rules": [
-    "Warm orange dominant backgrounds with teal-navy headline contrast",
-    "Candid member social moments — celebration and connection",
-    "Inviting venue or sim social spaces; never pristine showroom luxury",
-    "One clear community focal group or shared moment",
-    "Readable at feed scale; generous space for overlay headline later"
+    "Product centred, 60 to 70% of the frame",
+    "Logo top-left on feed, top-right on Stories",
+    "DROP stamp or SOLD overlay in the top or bottom third, never covering the product face",
+    "Text outside the product frame",
+    "Condition visible: face, sole, crown, shaft and grip shots for a condition check"
   ],
   "anti_patterns": [
-    "Hard-sell promo and fake scarcity language",
-    "Stick-style sarcasm or punchy black-red meme frames",
-    "Unboxing luxury or thrift-store poverty aesthetic",
-    "Stock-photo loneliness or bargain-bin framing",
-    "Model-rendered text and invented prices",
-    "Breaking the community frame for a product hard sell"
+    "Golf course, outdoor grass, country club or cluttered workshop backgrounds",
+    "Fake luxury: marble, satin, gold",
+    "Retouching that hides wear or makes a graded item look better than it is",
+    "Model-rendered text, prices, specs or logos",
+    "Rendered products, rendered venues or fake SOLD proof",
+    "Hype graphics and false scarcity"
   ],
-  "people_policy": "Real-feeling members socialising; diverse group energy; warm not posed stock smiles.",
+  "people_policy": "Mostly no people. When a person appears: hands holding a club for scale, never stock-model smiles.",
   "text_policy": "no model-rendered text",
   "look_and_feel_keywords": [
-    "warm orange",
-    "deep teal-navy",
-    "member social",
-    "community joy",
-    "Johannesburg golf social",
-    "supportive relatable"
+    "clean",
+    "sharp",
+    "honest",
+    "product first",
+    "neutral light",
+    "condition visible"
   ],
   "negative_prompts": [
-    "sarcastic meme aesthetic",
-    "luxury showroom pristine",
-    "bargain-bin thrift cues",
+    "golf course",
+    "grass",
+    "marble",
+    "gold luxury",
+    "warm golden cast",
     "model-rendered text overlays"
   ],
   "archetype_preference": {
-    "primary": "venue-post",
-    "secondary": "community-story"
+    "primary": "product-post",
+    "secondary": "condition-check"
   },
   "subject_bias": {
     "lean_toward": [
-      "Thursday member social energy",
-      "group celebration at the sim",
-      "warm venue candid moments"
+      "the actual product on a clean background",
+      "close-ups of face, sole and crown",
+      "packed parcel for OUT THE DOOR (real sales only)"
     ],
     "lean_away": [
-      "solo performance coaching seriousness",
-      "ironic Stick-style callouts"
+      "venue or lifestyle scenes",
+      "people as the subject"
     ]
-  }
+  },
+  "source": "data/brand-directory/bag-drop/BRAND-BIBLE.md sections 11 and 12"
 }

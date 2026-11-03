@@ -42,6 +42,9 @@ _DEFAULT_LOCAL_DIR = Path(
     os.environ.get("BRAND_DIR_LOCAL", "/Users/fivefriday/hermes-fleet/shared/data/brand-directory")
 )
 _REPO_DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "brand-directory"  # repo-local data/brand-directory/
+from _lib.data_paths import runtime_data_dir as _runtime_data_dir
+
+_SEED_DATA_ROOT = Path(__file__).resolve().parents[2] / "data"
 _DATA_DIR = Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
 _CALENDAR_DIR = _DATA_DIR / "intelligence" / "marketing-calendar"
 _CALENDAR_DIR_READY = False
@@ -50,7 +53,16 @@ _CALENDAR_DIR_READY = False
 VALID_BRAND_IDS = ["swing-shack", "stick", "bag-drop"]
 VALID_PRODUCT_BRANDS = {"takomo": "stick"}  # product_brand → parent brand
 VALID_RECORD_TYPES = ["campaign", "content", "moment", "reminder", "watchlist"]
-VALID_STATUSES = ["candidate", "watchlist", "approved", "ignored", "active", "completed"]
+VALID_STATUSES = [
+    "candidate",
+    "watchlist",
+    "approved",
+    "ignored",
+    "active",
+    "completed",
+    "archived",
+    "purged",
+]
 VALID_RENDER_MODES = ("template", "oneshot")
 DEFAULT_RENDER_MODE = "template"
 
@@ -72,6 +84,9 @@ ALWAYS_TEMPLATE_POST_TYPES = frozenset({
     "service_square",
     "service_end",
     "brand_statement",
+    # Stick retail (2026-10-23): maker stack and partner plate, real product photo only.
+    "product_post",
+    "product_lifestyle",
 })
 
 
@@ -430,13 +445,14 @@ def _ensure_calendar_dir() -> Path:
     same fallback chain as the brand-planning directory.
     """
     global _CALENDAR_DIR, _CALENDAR_DIR_READY
+    runtime_calendar = _runtime_data_dir() / "intelligence" / "marketing-calendar"
     if _CALENDAR_DIR_READY:
         return _CALENDAR_DIR
-    candidates_dirs = [
-        _CALENDAR_DIR,  # DATA_DIR/calendar
-        Path(os.path.dirname(os.path.abspath(__file__))) / ".." / "data" / "calendar",  # baked
-    ]
-    # First try the existing _CALENDAR_DIR (the canonical DATA_DIR/intelligence/marketing-calendar)
+    baked = Path(os.path.dirname(os.path.abspath(__file__))) / ".." / "data" / "calendar"
+    candidates_dirs: list[Path] = []
+    for cand in (_CALENDAR_DIR, runtime_calendar, baked):
+        if cand not in candidates_dirs:
+            candidates_dirs.append(cand)
     for cand in candidates_dirs:
         try:
             cand.mkdir(parents=True, exist_ok=True)
@@ -787,6 +803,42 @@ def set_fields(
         allowed["oneshot_ai_logo"] = bool(allowed["oneshot_ai_logo"])
     for key, val in allowed.items():
         updated[key] = val
+    if reason:
+        updated["edit_reason"] = reason
+    updated["revision"] = int(target.get("revision") or 1) + 1
+    updated["last_verified"] = _now_iso()
+    target_path = (
+        _watchlist_path(brand_id)
+        if str(updated.get("status") or "") == "watchlist"
+        else _calendar_path(brand_id)
+    )
+    with target_path.open("a") as f:
+        f.write(json.dumps(updated, ensure_ascii=False) + "\n")
+    return updated
+
+
+def append_fields(
+    brand_id: str,
+    calendar_id: str,
+    fields: Dict[str, Any],
+    *,
+    clear: tuple[str, ...] = (),
+    reason: str = "",
+) -> Optional[Dict[str, Any]]:
+    """Append a revision merging extra metadata (archive timestamps, etc.)."""
+    if brand_id not in VALID_BRAND_IDS:
+        raise ValueError(f"brand_id '{brand_id}' is not an operating brand")
+    target = _newest_row(brand_id, calendar_id)
+    if not target:
+        return None
+    updated = dict(target)
+    for k in clear:
+        updated.pop(k, None)
+    for k, v in (fields or {}).items():
+        if v is None:
+            updated.pop(k, None)
+        else:
+            updated[k] = v
     if reason:
         updated["edit_reason"] = reason
     updated["revision"] = int(target.get("revision") or 1) + 1
@@ -2385,7 +2437,7 @@ def _ensure_runs_dir() -> "Path":
     with DATA_DIR/_system as the production preferred location.
     """
     for candidate in (
-        _DATA_DIR / "_system" / "calendar_runs",
+        _runtime_data_dir() / "_system" / "calendar_runs",
         Path("/tmp/calendar_runs"),
     ):
         try:

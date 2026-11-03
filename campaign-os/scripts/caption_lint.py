@@ -194,6 +194,7 @@ RULES_INDEX = {
     "superlative": ("L4.2", "A superlative that needs evidence"),
     "stock-claim": ("L4.1", "A stock claim that needs a stock check"),
     "only-tags": ("L5", "Caption is only hashtags"),
+    "sentence-length": ("L2.10", "A sentence longer than the brand's word limit"),
 }
 
 
@@ -638,6 +639,28 @@ def lint(brand: str, text: str, *, rules: dict | None = None, lane: str | None =
         F.add("cta-unlisted", list_level(rules, "cta-unlisted", HARD), "Call to action not on the approved list", u[:90])
     if lane_rules.get("cta_required") and n_cta == 0:
         F.add("cta-missing", WARN, f"The '{lane}' lane needs a call to action", "")
+
+    # --- sentence length (L2.10) ---
+    # The CTA line and the sign-off are left out of the count. Warn until the
+    # bible sets sentence_length_enforcement: hard.
+    max_w = rules.get("max_words_per_sentence")
+    if max_w:
+        level = HARD if str(rules.get("sentence_length_enforcement", "warn")).lower() == "hard" else WARN
+        so_letters = letters(rules.get("signoff") or "")
+        cta_norms = [_norm_cta(c) for c in (listed + unlisted) if c]
+        long_ones: list[tuple[int, str]] = []
+        for ln in nonblank:
+            if so_letters and letters(ln) == so_letters:
+                continue
+            if any(c and c in _norm_cta(ln) for c in cta_norms):
+                continue
+            body = EMAIL_RE.sub(" ", URL_RE.sub(" ", HANDLE_RE.sub(" ", HASHTAG_RE.sub(" ", ln))))
+            for sent in re.split(r"(?<=[.!?])\s+|[|:;]", body):
+                n = len(re.findall(r"[A-Za-z0-9][\w'’&.-]*", EMOJI_RE.sub(" ", sent)))
+                if n > int(max_w):
+                    long_ones.append((n, sent.strip()))
+        for n, sent in long_ones[:5]:
+            F.add("sentence-length", level, f"{n} words in one sentence, the limit is {max_w}", sent[:90])
 
     # --- sign-off (L5.7) ---
     so = rules.get("signoff") or ""

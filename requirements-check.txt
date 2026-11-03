@@ -1,0 +1,5 @@
+# Same dependency set as .github/workflows/ci.yml (pytest job) before ./check.
+-r requirements.txt
+-r campaign-os/requirements.txt
+pytest
+pytest-subtests

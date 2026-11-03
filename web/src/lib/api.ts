@@ -533,6 +533,10 @@ export function publishDispatchNow(idempotencyKeyOrKeys: string | string[]) {
     dispatched?: number
     errors?: string[]
     mode?: string
+    /** ISO from scheduled_at_least on the Publish now path. */
+    publish_at?: string
+    /** True when that call moved the time to now + 5 minutes. */
+    moved?: boolean
   }>('/api/publish/dispatch-now', body)
 }
 
@@ -994,7 +998,20 @@ export function fetchTopPosts(brand?: string, limit = 3) {
   return getJson<InsightsPosts>(`/api/insights/top-instagram-posts?${q}`)
 }
 
+export type CmoBrief = {
+  week?: { current?: string; previous?: string }
+  verdict: { headline: string; tone: 'act' | 'watch' | 'good'; lines: string[] }
+  numbers: { label: string; value: string; vs: string; note?: string }[]
+  decisions: { decision: string; recommendation: string; because: string; confidence: string }[]
+  working: string[]
+  not_working: string[]
+  risks: string[]
+  gaps: string[]
+  next_week: string[]
+}
+
 export type WeeklyReportJson = {
+  cmo?: CmoBrief | null
   brand_id?: string
   data_source_brand_id?: string
   brand_meta?: Record<string, unknown>
@@ -2400,10 +2417,201 @@ export function postBrandLibraryBulk(
   )
 }
 
+export type ArchivedItem = {
+  kind: 'draft' | 'plan' | 'suggestion'
+  id: string
+  title: string
+  archived_at: string
+  archived_by: string
+  purge_at: string
+  touches?: string[]
+  suggestion_key?: string
+  campaign_id?: string
+}
+
+export type BrandArchivePayload = {
+  ok?: boolean
+  brand_id?: string
+  count?: number
+  items?: ArchivedItem[]
+  error?: string
+}
+
+export function fetchBrandArchive(brandId: string) {
+  return getJson<BrandArchivePayload>(`/api/brands/${encodeURIComponent(brandId)}/archive`)
+}
+
+export function previewBrandArchive(
+  brandId: string,
+  body: {
+    kind: string
+    id: string
+    suggestion_key?: string
+    title?: string
+  },
+) {
+  return postJson<{ ok?: boolean; message?: string; title?: string; touches?: string[]; error?: string }>(
+    `/api/brands/${encodeURIComponent(brandId)}/archive/preview`,
+    body,
+  )
+}
+
+export async function archiveBrandItem(
+  brandId: string,
+  body: {
+    kind: string
+    id: string
+    suggestion_key?: string
+    title?: string
+  },
+  actorName?: string,
+) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (actorName) headers['X-Actor-Display-Name'] = actorName
+  const res = await fetch(`/api/brands/${encodeURIComponent(brandId)}/archive`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers,
+    body: JSON.stringify(body),
+  })
+  return (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+}
+
+export async function restoreBrandArchiveItem(
+  brandId: string,
+  body: { kind: string; id: string; suggestion_key?: string },
+  actorName?: string,
+) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (actorName) headers['X-Actor-Display-Name'] = actorName
+  const res = await fetch(`/api/brands/${encodeURIComponent(brandId)}/archive/restore`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers,
+    body: JSON.stringify(body),
+  })
+  return (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+}
+
+export type BrandArchivePurgeResult = {
+  ok?: boolean
+  error?: string
+  total?: number
+  dry_run?: boolean
+  live?: boolean
+  retention_days?: number
+  purged?: Record<string, number>
+}
+
+/** Archive page "Delete expired": items past retention. Dry run unless ARCHIVE_PURGE_LIVE is on. */
+export async function purgeExpiredBrandArchive(brandId: string, actorName?: string) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (actorName) headers['X-Actor-Display-Name'] = actorName
+  const res = await fetch(`/api/brands/${encodeURIComponent(brandId)}/archive/purge`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers,
+    body: '{}',
+  })
+  return (await res.json().catch(() => ({}))) as BrandArchivePurgeResult
+}
+
 export function fetchTemplateGallery(brandId: string) {
   return getJson<TemplateGalleryPayload>(
     `/api/brands/${encodeURIComponent(brandId)}/template-gallery`,
   )
+}
+
+export type PostStudioFieldSpec = {
+  key: string
+  label: string
+  hint?: string
+  required?: boolean
+}
+
+export function fetchPostStudioFields(brandId: string, archetypeId: string) {
+  const q = new URLSearchParams({
+    brand: brandId,
+    archetype: archetypeId,
+  })
+  return getJson<{
+    ok?: boolean
+    fields?: PostStudioFieldSpec[]
+    error?: string
+  }>(`/api/posts/studio/fields?${q}`)
+}
+
+export type PostStudioPreviewResult = {
+  ok?: boolean
+  brand_id?: string
+  archetype_id?: string
+  channels?: string[]
+  images?: Record<string, string>
+  needs_photo?: boolean
+  field_specs?: PostStudioFieldSpec[]
+  error?: string
+}
+
+export async function previewPostStudio(body: {
+  brand: string
+  archetype: string
+  fields?: Record<string, string>
+  photo?: string
+  channels?: string[]
+}) {
+  const res = await fetch('/api/posts/studio/preview', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json()) as PostStudioPreviewResult
+  return { status: res.status, data }
+}
+
+export type LodgePostResult = {
+  ok?: boolean
+  error?: string
+  state?: string
+  next_action?: string
+  calendar_id?: string
+  asset_id?: string
+  links?: { review?: string; shelf?: string; week?: string }
+  images?: Record<string, string>
+}
+
+export async function lodgePostDraft(
+  body: {
+    brand: string
+    slug: string
+    date: string
+    caption: string
+    archetype: string
+    fields?: Record<string, string>
+    photo?: string
+    channels?: string[]
+  },
+  actorName: string,
+) {
+  const res = await fetch('/api/posts/lodge', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Actor-Display-Name': actorName,
+    },
+    body: JSON.stringify({ ...body, approve: false }),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json()) as LodgePostResult
+  return { status: res.status, data }
 }
 
 export type BrandReferenceBody = {
@@ -2545,12 +2753,17 @@ export function fetchStoryMarks() {
   return getJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks')
 }
 
-export function setStoryMark(key: string, state: 'shared' | 'skipped' | 'clear') {
-  return postJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks', { key, state })
+export function setStoryMark(key: string, state: 'shared' | 'skipped' | 'clear', brand?: string) {
+  return postJson<{ ok: boolean; marks: Record<string, 'shared' | 'skipped'> }>('/api/stories/marks', { key, state, brand })
+}
+
+export function fetchStoriesWeek(brands?: string[]) {
+  const q = brands?.length ? `?brands=${encodeURIComponent(brands.join(','))}` : ''
+  return getJson<{ ok: boolean; shared_this_week: number }>(`/api/stories/week${q}`)
 }
 
 export function fetchStoryCandidates(brand: string) {
-  return getJson<{ ok: boolean; posts: StoryCandidate[]; errors: string[] }>(
+  return getJson<{ ok: boolean; posts: StoryCandidate[]; by_page?: Record<string, StoryCandidate>; errors: string[] }>(
     `/api/stories/candidates?brand=${encodeURIComponent(brand)}`,
   )
 }

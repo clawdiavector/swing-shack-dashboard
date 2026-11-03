@@ -73,6 +73,8 @@ def todo_steps(brand_id: str, plans: Iterable[Dict[str, Any]], today: _dt.date) 
             needs: List[str] = []
             if kind == "shoot" and not i.get("shots"):
                 needs.append("no shot list yet")
+            if kind == "shoot" and i.get("shots") and i.get("shots_suggested"):
+                needs.append("suggested shots: check them")
             if kind == "shoot" and not i.get("asked"):
                 needs.append("nobody asked yet")
             if kind == "boost" and not i.get("budget"):
@@ -131,17 +133,56 @@ def _block(heading: str, lines: List[str]) -> List[str]:
     return ["", heading, *shown, *([f"…and {more} more"] if more > 0 else [])]
 
 
+# The weekly routine (Christelle, 2 Nov 2026): one job a weekday. Links are app pages.
+DAILY_FOCUS = {
+    0: {"job": "Plan the week and stories",
+        "do": "Fill calendar gaps against the stock list, top up stories to the daily target, approve Review.",
+        "links": [("Stories", "/app/stories"), ("Review", "/app/review")]},
+    1: {"job": "Marketing report and ads",
+        "do": "Read the weekly report Foreman sends at 09:00 and act on its decisions (each has undo).",
+        "links": [("Weekly report", "/app/results/week")]},
+    2: {"job": "SEO and GEO",
+        "do": "Fix one page, check the Google Business queue, write or approve one blog.",
+        "links": [("SEO", "/app/results/seo"), ("GEO", "/app/geo"), ("Google Business", "/app/publish/gbp")]},
+    3: {"job": "Make the posts",
+        "do": "Build posts for two weeks out; design, sales and reality checks before Review.",
+        "links": [("Create", "/app/create"), ("Review", "/app/review")]},
+    4: {"job": "Replies and close-out",
+        "do": "Answer comments, DMs and reviews; check next week is approved; file what you learned.",
+        "links": [("Inbox", "/app/inbox"), ("Calendar", "/app/calendar")]},
+}
+
+
+def daily_focus(today: _dt.date) -> Optional[Dict[str, Any]]:
+    """Today's job in the weekly routine, or None at the weekend."""
+    return DAILY_FOCUS.get(today.weekday())
+
+
+def _focus_lines(today: _dt.date, base_url: str) -> List[str]:
+    focus = daily_focus(today)
+    if not focus:
+        return []
+    out = ["", f"Today: {focus['job']}.", focus["do"]]
+    if base_url:
+        root = base_url.rstrip("/")
+        out += [f"• {label}: {root}{path}" for label, path in focus["links"]]
+    return out
+
+
 def morning_text(
     sections: Dict[str, Dict[str, Any]],
     today: _dt.date,
+    base_url: str = "",
 ) -> str:
     """The message. `sections` is {brand_id: {"alerts": [...], "steps": [...]}}.
 
-    Alerts come first, because those are the dates that are close with nothing
-    ready. Then what is overdue and what is due today. This week and later are
-    left out: the message is for what needs you now. Nothing to say is said too.
+    Today's job in the weekly routine comes straight after the greeting, with links
+    when `base_url` is given. Then alerts, because those are the dates that are close
+    with nothing ready. Then what is overdue and what is due today. This week and
+    later are left out: the message is for what needs you now. Nothing to say is said too.
     """
     lines = [f"Good morning. Calendar check, {today.strftime('%a')} {today.day} {today.strftime('%b')}."]
+    lines += _focus_lines(today, base_url)
     anything = False
     for brand_id, sec in sections.items():
         alerts = sec.get("alerts") or []
@@ -160,4 +201,46 @@ def morning_text(
             lines += block
     if not anything:
         lines += ["", "Nothing needs you today."]
+    return "\n".join(lines)
+
+
+def week_bounds(today: _dt.date) -> tuple:
+    """Monday and Sunday of the week `today` falls in."""
+    monday = today - _dt.timedelta(days=today.weekday())
+    return monday, monday + _dt.timedelta(days=6)
+
+
+def _day(d: _dt.date) -> str:
+    return f"{d.strftime('%a')} {d.day} {d.strftime('%b')}"
+
+
+def weekly_selling_text(sections: Dict[str, Dict[str, Any]], today: _dt.date) -> str:
+    """Monday's message: what is on each facility's calendar this week.
+
+    `sections` is {brand_id: {"items": [{"date": iso, "title": str}]}}. Items outside
+    Monday to Sunday are left out; a facility with nothing says so.
+    """
+    monday, sunday = week_bounds(today)
+    lines = [f"Good morning. What we are selling this week, {_day(monday)} to {_day(sunday)}."]
+    for brand_id, sec in sections.items():
+        week = sorted(
+            ((d, i) for i in sec.get("items") or [] if (d := _parse(i.get("date"))) and monday <= d <= sunday),
+            key=lambda p: (p[0], str(p[1].get("title"))),
+        )
+        lines += ["", f"— {BRAND_LABEL.get(brand_id, brand_id)} —"]
+        if not week:
+            lines.append("Nothing on the calendar yet.")
+            continue
+        shown = [f"• {_day(d)}: {i.get('title') or '(untitled)'}" for d, i in week]
+        lines += shown[:MAX_LINES * 2]
+        if len(shown) > MAX_LINES * 2:
+            lines.append(f"…and {len(shown) - MAX_LINES * 2} more")
+    return "\n".join(lines)
+
+
+def weekly_report_text(links: Dict[str, str], today: _dt.date) -> str:
+    """Tuesday's message: one weekly report link per facility."""
+    lines = [f"Good morning. The weekly report, {_day(today)}.", ""]
+    lines += [f"{BRAND_LABEL.get(b, b)}: {url}" for b, url in links.items()]
+    lines += ["", "Each link opens without a login and works for 7 days."]
     return "\n".join(lines)

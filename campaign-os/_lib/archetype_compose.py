@@ -565,7 +565,7 @@ def _draw_text_zone(
     return int(y_base), int(y_base + block_h)
 
 
-def _paste_photo(base, photo_bytes: bytes | None, rect: dict[str, float]) -> None:
+def _paste_photo(base, photo_bytes: bytes | None, rect: dict[str, float], zone: dict[str, Any] | None = None) -> None:
     if not photo_bytes:
         return
     from _lib.brand_overlay import _load_image_from_bytes
@@ -574,8 +574,77 @@ def _paste_photo(base, photo_bytes: bytes | None, rect: dict[str, float]) -> Non
     if photo is None:
         return
     x0, y0, x1, y1 = _rect_px(rect, base.width, base.height)
+    if (zone or {}).get("fit") == "contain":
+        _paste_contained(base, photo, (x0, y0, x1, y1), zone or {})
+        return
     target = photo.resize((x1 - x0, y1 - y0), Image.LANCZOS)
     base.paste(target, (x0, y0))
+
+
+def _alpha_bbox(im, threshold: int = 60):
+    """Bounding box of the solid part of an RGBA image (ignores faint drop shadows)."""
+    if im.mode != "RGBA":
+        return im.getbbox()
+    return im.split()[3].point(lambda v: 255 if v > threshold else 0).getbbox() or im.getbbox()
+
+
+def _paste_contained(base, im, box: tuple[int, int, int, int], zone: dict[str, Any]) -> None:
+    """Fit a cut-out inside the box without stretching and keep its transparency.
+
+    Zone keys: max_w / max_h (share of the box, default 1), valign top|middle|bottom,
+    inset (share of the box height kept clear at the top or bottom edge).
+    """
+    x0, y0, x1, y1 = box
+    im = im.convert("RGBA")
+    bbox = _alpha_bbox(im)
+    if bbox:
+        im = im.crop(bbox)
+    bw, bh = x1 - x0, y1 - y0
+    scale = min(bw * float(zone.get("max_w", 1.0)) / im.width, bh * float(zone.get("max_h", 1.0)) / im.height)
+    w, h = max(1, int(im.width * scale)), max(1, int(im.height * scale))
+    im = im.resize((w, h), Image.LANCZOS)
+    x = x0 + (bw - w) // 2
+    inset = int(bh * float(zone.get("inset", 0.0)))
+    valign = str(zone.get("valign") or "middle")
+    if valign == "top":
+        y = y0 + inset
+    elif valign == "bottom":
+        y = y1 - h - inset
+    else:
+        y = y0 + (bh - h) // 2
+    base.alpha_composite(im, (x, y)) if base.mode == "RGBA" else base.paste(im, (x, y), im)
+
+
+def vendor_slug(name: str) -> str:
+    """'L.A.B. Golf' -> 'lab-golf', 'RIPIT' -> 'ripit'. File: <brand>/logos/vendors/<slug>.png."""
+    import re
+
+    s = re.sub(r"[^a-z0-9]+", "-", str(name or "").lower().replace(".", "")).strip("-")
+    return s
+
+
+def _paste_vendor_logo(base, brand_id: str, fields: dict[str, str], zone: dict[str, Any]) -> None:
+    """Paste the maker's logo for fields['vendor_name'] from the brand's logos/vendors/ folder."""
+    from _lib.brand_overlay import _resolve_brand_relative
+
+    name = str(fields.get("vendor_name") or "").strip()
+    if not name:
+        raise ComposeError("missing vendor_name")
+    path = _resolve_brand_relative(brand_id, f"logos/vendors/{vendor_slug(name)}.png")
+    if path is None:
+        raise ComposeError(f"no vendor logo for {name!r} (logos/vendors/{vendor_slug(name)}.png)")
+    logo = _load_image(path)
+    if logo is None:
+        raise ComposeError(f"unreadable vendor logo for {name!r}")
+    logo = logo.convert("RGBA")
+    tint = zone.get("tint")
+    if tint:
+        r, g, b, _ = _palette_colour(str(tint), brand_id)
+        solid = Image.new("RGBA", logo.size, (r, g, b, 255))
+        solid.putalpha(logo.split()[3])
+        logo = solid
+    rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
+    _paste_contained(base, logo, _rect_px(rect, base.width, base.height), {"valign": "middle"})
 
 
 def _paste_logo(base, brand_id: str, rect: dict[str, float]) -> None:
@@ -928,7 +997,7 @@ def compose_to_canvas(
                 continue
             if source == "photo":
                 if photo_bytes:
-                    _paste_photo(base, photo_bytes, rect)
+                    _paste_photo(base, photo_bytes, rect, zone)
                 elif not zone.get("optional"):
                     raise ComposeError("missing photo")
             elif source == "asset":
@@ -950,6 +1019,13 @@ def compose_to_canvas(
                         mirror_x=mirror,
                         align_override="right" if mirror else None,
                     )
+                except ComposeError:
+                    if zone.get("optional"):
+                        continue
+                    raise
+            elif source == "vendor_logo":
+                try:
+                    _paste_vendor_logo(base, brand_id, fields, zone)
                 except ComposeError:
                     if zone.get("optional"):
                         continue

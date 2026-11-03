@@ -13,6 +13,7 @@ type Paused = { id: string; ad_id: string; ad_name?: string | null; at: string; 
 export type GuardInfo = {
   auto_pause: boolean
   budget?: number | null
+  period?: 'week' | 'month'
   writes_enabled?: boolean
   last?: { at?: string; plan?: Plan; paused?: Paused[]; errors?: unknown[] } | null
   paused: Paused[]
@@ -48,6 +49,7 @@ export function GuardView({
   handlers: Handlers
 }) {
   const last = info.last
+  const w = info.period === 'week' ? 'week' : 'month'
   return (
     <div className="space-y-2 rounded-xl border border-white/10 p-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -56,8 +58,8 @@ export function GuardView({
       </div>
       <p className="text-xs text-tx2">
         {info.auto_pause
-          ? 'Every hour this checks the month’s spend. When the budget is used up, it pauses this brand’s running ad sets. It never turns anything back on; a new month gives the budget back, and you turn ad sets on yourself.'
-          : 'Off: the budget only warns. Turn it on and an hourly check pauses this brand’s running ad sets when the month’s budget is used up.'}
+          ? `Every hour this checks the ${w}’s spend. When the budget is used up, it pauses this brand’s running ad sets. It never turns anything back on; a new ${w} gives the budget back, and you turn ad sets on yourself.`
+          : `Off: the budget only warns. Turn it on and an hourly check pauses this brand’s running ad sets when the ${w}’s budget is used up.`}
       </p>
       {last?.plan ? (
         <p className="text-xs text-tx3">
@@ -79,7 +81,7 @@ export function GuardView({
             type="button"
             className={`${btn} text-tx disabled:opacity-50`}
             disabled={!hasBudget}
-            title={hasBudget ? undefined : 'Set a monthly budget first'}
+            title={hasBudget ? undefined : 'Set a budget first'}
             onClick={handlers.onPreview}
           >
             Turn budget guard on…
@@ -90,7 +92,7 @@ export function GuardView({
       {state.step === 'confirm' ? (
         <div className="rounded-xl border border-yel/40 bg-yel/10 p-3 text-sm">
           <p className="text-tx">
-            Budget {rand(state.preview.budget)}, spent this month {rand(state.preview.mtd_spend)}. {state.preview.plan.reason}
+            Budget {rand(state.preview.budget)}, spent this {w} {rand(state.preview.mtd_spend)}. {state.preview.plan.reason}
           </p>
           {state.preview.plan.trigger ? (
             <>

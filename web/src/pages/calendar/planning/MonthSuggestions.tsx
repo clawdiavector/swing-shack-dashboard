@@ -17,14 +17,16 @@ import {
 import { EventTypeIcon, EventTypeLegend } from '../../../components/EventTypeIcon'
 import { HoverChip } from './HoverChip'
 import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
+import { archiveBrandItem, previewBrandArchive } from '../../../lib/api'
 import { actorName, planFromEvent } from '../../../lib/plan'
 import { plainCategory, plainNotes, tierLabel } from '../../../lib/planning'
 
-export type Decided = { undo: Undo; title: string }
+export type Decided = { undo: Undo; title: string; warning?: string }
 
 /** The faded suggestions for one month, and the three things you can do with them. */
 export function useMonthSuggestions(brandId: string, month: string, enabled: boolean, onChanged: () => void) {
   const [items, setItems] = useState<Suggestion[]>([])
+  const [postsByDay, setPostsByDay] = useState<Record<string, import('../../../lib/calendarSuggestions').DayPrimaryPost[]>>({})
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [decided, setDecided] = useState<Decided | null>(null)
@@ -38,8 +40,10 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
     let cancelled = false
     void fetchSuggestions(brandId, month).then((r) => {
       if (cancelled) return
-      if (r.ok) setItems(r.items || [])
-      else setError(r.error || 'Could not load the suggestions.')
+      if (r.ok) {
+        setItems(r.items || [])
+        setPostsByDay(r.posts_by_day || {})
+      } else setError(r.error || 'Could not load the suggestions.')
     })
     return () => {
       cancelled = true
@@ -83,6 +87,35 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
     settle()
   }
 
+  async function archive(s: Suggestion) {
+    const name = actorName()
+    if (!name) {
+      setError('A name is needed so the calendar knows who decided.')
+      return
+    }
+    const id = s.calendar_id || s.key
+    const preview = await previewBrandArchive(brandId, {
+      kind: 'suggestion',
+      id,
+      suggestion_key: s.key,
+      title: s.title,
+    })
+    if (!preview.message || !window.confirm(preview.message)) return
+    setBusyKey(s.key)
+    setError(null)
+    const r = await archiveBrandItem(
+      brandId,
+      { kind: 'suggestion', id, suggestion_key: s.key, title: s.title },
+      name,
+    )
+    setBusyKey(null)
+    if (!r.ok) {
+      setError(r.error || 'Archive failed.')
+      return
+    }
+    settle()
+  }
+
   async function decide(s: Suggestion, verb: 'approve' | 'reject', pillar = '') {
     const name = actorName()
     if (!name) {
@@ -101,7 +134,7 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
       return
     }
     setPlanNote(null)
-    setDecided({ undo: r.undo, title: s.title })
+    setDecided({ undo: r.undo, title: s.title, warning: r.warning || undefined })
     settle()
     // An approved date nearly always needs a plan, so make it now. If it cannot be
     // made (no pillar, or the brief is refused) the reason shows and Make a plan stays.
@@ -149,12 +182,14 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
 
   return {
     items: enabled && brandId ? items : [],
+    postsByDay: enabled && brandId ? postsByDay : {},
     pillars,
     busyKey,
     error,
     decided,
     approve: (s: Suggestion, pillar?: string) => decide(s, 'approve', pillar),
     reject: (s: Suggestion) => decide(s, 'reject'),
+    archive,
     swap,
     undo,
     makePlan,
@@ -170,20 +205,30 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
 
 export { cardPosition } from './HoverChip'
 
+/** "New in · post 09:00-12:00" for a stock line; empty for anything without a feed job. */
+export function feedJobLine(s: Pick<Suggestion, 'job_label' | 'best_time'>): string {
+  if (!s.job_label) return ''
+  return s.best_time ? `${s.job_label} · post ${s.best_time}` : s.job_label
+}
+
 /** A faded chip for one suggestion. Hover, focus or tap opens its card. */
 export function GhostChip({
   s,
   busy,
   pillars,
+  compact,
   onApprove,
   onReject,
+  onArchive,
   onSwap,
 }: {
   s: Suggestion
   busy: boolean
   pillars: PillarOption[]
+  compact?: boolean
   onApprove: (pillar: string) => void
   onReject: () => void
+  onArchive?: () => void
   onSwap?: () => void
 }) {
   const [pillar, setPillar] = useState('')
@@ -195,7 +240,11 @@ export function GhostChip({
       chipTestId="ghost-chip"
       cardTestId="ghost-card"
       cardLabel={`Suggestion: ${s.title}`}
-      chipClass="flex max-w-full cursor-pointer items-center gap-1 rounded-full border border-dashed border-tx3/50 bg-tx3/5 px-1.5 py-0.5 text-[10.5px] font-semibold text-tx2 opacity-60 hover:opacity-100"
+      chipClass={
+        compact
+          ? 'flex max-w-full cursor-pointer items-center gap-1 rounded-full border border-dashed border-tx3/40 bg-tx3/5 px-1 py-0.5 text-[9px] font-semibold text-tx3 opacity-70 hover:opacity-100'
+          : 'flex max-w-full cursor-pointer items-center gap-1 rounded-full border border-dashed border-tx3/50 bg-tx3/5 px-1.5 py-0.5 text-[10.5px] font-semibold text-tx2 opacity-60 hover:opacity-100'
+      }
       chip={
         <>
           <EventTypeIcon kind={s.kind} size="sm" className="!border-0 !bg-transparent !p-0" />
@@ -215,6 +264,7 @@ export function GhostChip({
         ) : null}
         {plainCategory(s.category) ? <span className="text-tx3">{plainCategory(s.category)}</span> : null}
       </p>
+      {feedJobLine(s) ? <p className="text-xs font-semibold text-tx2">{feedJobLine(s)}</p> : null}
       {s.why ? <p className="line-clamp-4 text-xs text-tx3">{plainNotes(s.why)}</p> : null}
       {needsPillar ? (
         <label className="block text-xs text-tx2">
@@ -255,6 +305,17 @@ export function GhostChip({
         >
           Reject
         </button>
+        {onArchive ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onArchive}
+            data-testid="ghost-archive"
+            className="rounded-full border border-bd px-3 py-1 text-xs font-semibold text-tx2 hover:text-tx disabled:opacity-60"
+          >
+            Archive
+          </button>
+        ) : null}
         {onSwap ? (
           <button
             type="button"
@@ -335,6 +396,11 @@ export function SuggestionBar({
           data-testid="undo-bar"
         >
           <span>{undoMessage(decided.undo.kind, decided.title)}</span>
+          {decided.warning ? (
+            <span className="font-semibold text-yel" data-testid="approve-warning">
+              {decided.warning}
+            </span>
+          ) : null}
           {decided.undo.kind === 'approve' && decided.undo.event_key && onMakePlan && !planNote ? (
             <button
               type="button"

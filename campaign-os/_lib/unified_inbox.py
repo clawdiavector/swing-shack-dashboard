@@ -790,6 +790,29 @@ def _publish_request_items(*, brand: str | None, status: str, now: datetime) -> 
     return out
 
 
+def _add_channel_options(items: list[dict[str, Any]]) -> None:
+    """Give draft and publish cards the brand's real channel list; without it the page falls back to an old built-in one."""
+    from _lib import onepost, publish_sandbox  # noqa: PLC0415
+
+    coming = sorted(onepost.COMING_SOON_CHANNELS)
+    by_brand: dict[str, list[str] | None] = {}
+    for item in items:
+        if item.get("type") not in ("draft_asset", "publish_request"):
+            continue
+        brand_id = str(item.get("brand_id") or "")
+        if brand_id not in by_brand:
+            try:
+                by_brand[brand_id] = publish_sandbox.brand_channels(brand_id)
+            except ValueError:
+                by_brand[brand_id] = None
+        available = by_brand[brand_id]
+        if available is None:
+            continue
+        meta = item.setdefault("meta", {})
+        meta.setdefault("channels_available", available)
+        meta.setdefault("channels_coming", coming)
+
+
 def _publish_request_meta(
     row: dict[str, Any],
     key: str,
@@ -848,6 +871,7 @@ def list_items(
         return datetime.min.replace(tzinfo=timezone.utc)
 
     items.sort(key=_created_desc_key, reverse=True)
+    _add_channel_options(items)
 
     def _pending_stale(item: dict[str, Any]) -> bool:
         if item.get("status") != "pending":
@@ -1045,7 +1069,7 @@ def _rollup_stages(
         "approved": False,
         "queued": bool(sandbox_rows),
         "released": any(bool(r.get("human_approved")) for r in sandbox_rows),
-        "posted": bool(receipts),
+        "posted": any(str(r.get("mode") or "") != "sandbox" for r in receipts),
     }
     if draft:
         if draft.get("caption", "").strip():
@@ -1411,6 +1435,20 @@ def post_state(
     out["channels_locked"] = onepost.channels_locked_for_state(state)
     out["deliveries"] = deliveries
     out["delivery_summary"] = delivery_summary
+    if any(str(d.get("status") or "") == "sandbox_only" for d in deliveries):
+        if not any(str(d.get("status") or "") == "posted" for d in deliveries):
+            out["next_action"] = "Sandbox only (not sent)"
+    composed_map: dict[str, Any] = {}
+    if isinstance(asset, dict) and isinstance(asset.get("composed"), dict):
+        composed_map.update(asset["composed"])
+    sidecar = _load_draft_sidecar(str(post_id or "")) if post_id else {}
+    if isinstance(sidecar.get("composed"), dict):
+        composed_map.update(sidecar["composed"])
+    if composed_map:
+        out["composed"] = composed_map
+        from _lib.feed_vertical_renders import vertical_renders_from_composed  # noqa: PLC0415
+
+        out["vertical_renders"] = vertical_renders_from_composed(composed_map)
     return out
 
 
@@ -1942,6 +1980,45 @@ def find_item(item_id: str) -> Optional[dict[str, Any]]:
             ):
                 if item.get("id") == grouped:
                     return item
+        from _lib import publish_sandbox  # noqa: PLC0415
+
+        for row in _read_jsonl(publish_sandbox._queue_path()):  # noqa: SLF001
+            if str(row.get("idempotency_key") or "") != key:
+                continue
+            if str(row.get("status") or "") not in ("pending", "failed"):
+                break
+            brand_id = str(row.get("brand_id") or "")
+            return {
+                "id": item_id,
+                "type": "publish_request",
+                "brand_id": brand_id,
+                "meta": _publish_request_meta(row, key, _load_campaign_data()),
+            }
+    if item_type == "publish_request" and key.startswith("post-"):
+        asset_id = key[5:]
+        grouped = _item_id("publish_request", key)
+        from _lib import publish_sandbox  # noqa: PLC0415
+
+        for row in _read_jsonl(publish_sandbox._queue_path()):  # noqa: SLF001
+            row_asset = asset_id_from_queue_row(row) or ""
+            if row_asset != asset_id:
+                continue
+            if str(row.get("status") or "") not in ("pending", "failed"):
+                continue
+            brand_id = str(row.get("brand_id") or "")
+            return {
+                "id": grouped,
+                "type": "publish_request",
+                "brand_id": brand_id,
+                "meta": {
+                    "asset_id": asset_id,
+                    **_publish_request_meta(
+                        row,
+                        str(row.get("idempotency_key") or ""),
+                        _load_campaign_data(),
+                    ),
+                },
+            }
     if item_type == "draft_asset":
         return _draft_asset_item_by_campaign_key(key, now=datetime.now(timezone.utc))
     if item_type == "calendar_candidate":
@@ -2115,6 +2192,17 @@ def approve_item(
         asset = (campaign.get("assets") or {}).get(asset_id)
         if not asset:
             return {"ok": False, "error": "asset not found"}
+        from _lib.feed_vertical_renders import ensure_vertical_composed_for_asset  # noqa: PLC0415
+
+        brand_for_asset = str(item.get("brand_id") or campaign.get("brand_id") or "")
+        if brand_for_asset:
+            ensure_vertical_composed_for_asset(
+                brand_id=brand_for_asset,
+                asset_id=asset_id,
+            )
+            data = _load_campaign_data()
+            campaign = (data.get("campaigns") or {}).get(campaign_id) or campaign
+            asset = (campaign.get("assets") or {}).get(asset_id) or asset
         now = _utc_now_iso()
         asset["approvalStatus"] = "approved"
         asset["updatedAt"] = now
@@ -2327,17 +2415,42 @@ def reject_item(item_id: str, *, editor: str = "operator", reason: str = "") -> 
 
     if item_type == "publish_request":
         from _lib import publish_sandbox  # noqa: PLC0415
+        from _lib.postiz_on_approve import clear_postiz_on_unapprove  # noqa: PLC0415
+
+        idem_keys: list[str]
+        if key.startswith("qc-"):
+            idem_keys = [key]
+        elif key.startswith("post-"):
+            asset_id = key[5:]
+            prefix = f"qc-{asset_id}-"
+            idem_keys = [
+                str(r.get("idempotency_key") or "")
+                for r in _read_jsonl(publish_sandbox._queue_path())  # noqa: SLF001
+                if str(r.get("idempotency_key") or "").startswith(prefix)
+                and str(r.get("status") or "") in ("pending", "failed")
+            ]
+        else:
+            idem_keys = [key]
+
+        for idem in idem_keys:
+            _, clear_err = clear_postiz_on_unapprove(idem)
+            if clear_err:
+                return {"ok": False, "error": clear_err, "code": "postiz_clear_failed"}
 
         queue_path = publish_sandbox._queue_path()  # noqa: SLF001
         rows = _read_jsonl(queue_path)
         found = False
+        idem_set = set(idem_keys)
         for row in rows:
-            if str(row.get("idempotency_key") or "") == key:
-                row["status"] = "rejected"
-                row["rejected_at"] = _utc_now_iso()
-                if reason:
-                    row["rejection_reason"] = reason
-                found = True
+            if str(row.get("idempotency_key") or "") not in idem_set:
+                continue
+            row["status"] = "rejected"
+            row["rejected_at"] = _utc_now_iso()
+            row["human_approved"] = False
+            row["human_approved_at"] = None
+            if reason:
+                row["rejection_reason"] = reason
+            found = True
         if not found:
             return {"ok": False, "error": "publish request not found"}
         publish_sandbox._rewrite_jsonl(queue_path, rows)  # noqa: SLF001

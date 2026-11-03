@@ -230,7 +230,7 @@ def test_late_derivation(job_app, tmp_path):
     assert row["last_status"] == "LATE"
 
 
-def test_oneshot_never_late(job_app, tmp_path):
+def test_stale_unseeded_agent_hidden(job_app, tmp_path):
     from _lib import ops_agents as ops_agents_mod
 
     roster_dir = tmp_path / "ops-agents"
@@ -256,8 +256,28 @@ def test_oneshot_never_late(job_app, tmp_path):
         ),
         encoding="utf-8",
     )
-    row = next(a for a in ops_agents_mod.read_roster(roster_dir) if a["id"] == "pi-score")
-    assert row["last_status"] != "LATE"
+    # pi-score is no longer a seeded agent (Pi banned 2026-10-31): a silent unseeded card is hidden.
+    assert all(a["id"] != "pi-score" for a in ops_agents_mod.read_roster(roster_dir))
+
+
+def test_recent_unseeded_agent_still_listed(job_app, tmp_path):
+    from _lib import ops_agents as ops_agents_mod
+
+    roster_dir = tmp_path / "ops-agents"
+    roster_dir.mkdir()
+    hb = ops_agents_mod.normalise_heartbeat({"id": "cos-new", "status": "OK"})
+    ops_agents_mod.write_heartbeat(roster_dir, hb)
+    assert any(a["id"] == "cos-new" for a in ops_agents_mod.read_roster(roster_dir))
+
+
+def test_heartbeat_accepts_agent_id_and_completed():
+    from _lib import ops_agents as ops_agents_mod
+
+    hb = ops_agents_mod.normalise_heartbeat({"agent_id": "cos-scout", "status": "completed"})
+    assert hb["id"] == "cos-scout"
+    assert hb["status"] == "OK"
+    assert hb["enabled"] is True
+    assert ops_agents_mod.normalise_heartbeat({"id": "cos-scout", "status": "error"})["status"] == "FAILED"
 
 
 def test_enqueue_appends_queue_row(job_app, tmp_path):

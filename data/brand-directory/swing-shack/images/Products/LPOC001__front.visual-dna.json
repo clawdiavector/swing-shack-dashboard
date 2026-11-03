@@ -1,0 +1,186 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Products/LPOC001__front.png",
+  "layer1_metadata": {
+    "filename": "LPOC001__front.png",
+    "format": "PNG",
+    "mode": "RGBA",
+    "width_px": 1800,
+    "height_px": 1800,
+    "aspect_ratio": 1.0,
+    "orientation": "square",
+    "file_size_bytes": 1110808,
+    "modified": 1792982417.6593218,
+    "exif": {
+      "296": 2,
+      "34665": 112,
+      "274": 1,
+      "316": "imagery4"
+    }
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.6838
+      },
+      {
+        "hex": "#1e222e",
+        "rgb": [
+          30,
+          34,
+          46
+        ],
+        "share": 0.0753
+      },
+      {
+        "hex": "#242833",
+        "rgb": [
+          36,
+          40,
+          51
+        ],
+        "share": 0.072
+      },
+      {
+        "hex": "#1c202c",
+        "rgb": [
+          28,
+          32,
+          44
+        ],
+        "share": 0.0669
+      },
+      {
+        "hex": "#3c414c",
+        "rgb": [
+          60,
+          65,
+          76
+        ],
+        "share": 0.0368
+      },
+      {
+        "hex": "#9195a0",
+        "rgb": [
+          145,
+          149,
+          160
+        ],
+        "share": 0.0358
+      },
+      {
+        "hex": "#171a23",
+        "rgb": [
+          23,
+          26,
+          35
+        ],
+        "share": 0.0244
+      },
+      {
+        "hex": "#010000",
+        "rgb": [
+          1,
+          0,
+          0
+        ],
+        "share": 0.005
+      }
+    ],
+    "mean_brightness": 17.5,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.0,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 13.9,
+    "brightness_bottom": 0.0,
+    "edge_density_grid": [
+      [
+        0.47,
+        2.83,
+        0.49
+      ],
+      [
+        3.47,
+        3.71,
+        3.44
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 9,
+    "text_preview": "L.A.B. GOLF iy \u00b0 62 TZ) \u00a9@ 69 ee"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 142,
+    "median_text_height_px": 142,
+    "likely_heading_text": "\u00a9@ 69",
+    "is_all_caps": true,
+    "sample_text_colour": "#333641"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#000000",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "L.A.B. GOLF iy \u00b0 62 TZ) \u00a9@ 69 ee",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

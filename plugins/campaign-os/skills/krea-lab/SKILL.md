@@ -123,11 +123,31 @@ first — the model supports it, the pipeline does not.
 
 Krea's MCP exposes ~32 tools; `krea_mcp.py` wires about nine. `list_tools()` shows the rest.
 
+## Restyle a real photo through the MCP connector (works today)
+
+The connector tools (`get_upload_url`, `generate_image`, `get_balance`) bill the Krea
+**workspace** (plan credits), not the API key Campaign OS uses. They take reference
+images directly, so they bypass the router's `reference_dropped` problem above.
+
+1. `get_upload_url`, then `curl -X POST "$URL" -F "file=@ref.jpg"`: returns an asset URL.
+2. `generate_image(model="google/nano-banana-pro", input={prompt, image_urls:[asset],
+   aspect_ratio:"4:5", resolution:"2K"}, preflight=true)`: quote (about 111 credits).
+3. Same call with `sync=true` to make it.
+4. Compare with the real photo before use: colour, logo shape, trims. Black Friday
+   2026: neon and the Jordan "23" bag came out faithful; a navy polo turned near black
+   and its badge picked up pink ears from a second reference. Give one reference per
+   product when colour matters.
+
 ## Prompt quality
 
 Model and payload only get a render to happen. Whether it's *good* is a separate standard:
 `swing-shack-dashboard-main/docs/plans/oneshot-prompt-composer/benchmark.md` — gold set,
 ten-dimension rubric, and the hard constraints that fail rather than score.
+
+Every photoreal render then passes the `reality-check` skill before anyone sees it. Krea gets
+scale wrong easily (caps came out 2.4x their real size on a flagstick) and ignores framing asks
+like "zoom out" on edits: pad the canvas and have it fill the border instead. Write real sizes
+into the prompt ("an adult cap about 19 to 20 cm wide"; "he is 1.75 m, the flagstick 2.13 m").
 
 ## Related
 

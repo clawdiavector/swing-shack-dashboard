@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Products/CT001__front.jpg",
+  "layer1_metadata": {
+    "filename": "CT001__front.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 2000,
+    "height_px": 2000,
+    "aspect_ratio": 1.0,
+    "orientation": "square",
+    "file_size_bytes": 347278,
+    "modified": 1792982266.2594275,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#f7f7f7",
+        "rgb": [
+          247,
+          247,
+          247
+        ],
+        "share": 0.5577
+      },
+      {
+        "hex": "#d9b260",
+        "rgb": [
+          217,
+          178,
+          96
+        ],
+        "share": 0.1988
+      },
+      {
+        "hex": "#977b43",
+        "rgb": [
+          151,
+          123,
+          67
+        ],
+        "share": 0.1938
+      },
+      {
+        "hex": "#ecd7ab",
+        "rgb": [
+          236,
+          215,
+          171
+        ],
+        "share": 0.0234
+      },
+      {
+        "hex": "#f9fafa",
+        "rgb": [
+          249,
+          250,
+          250
+        ],
+        "share": 0.0093
+      },
+      {
+        "hex": "#f8f7f6",
+        "rgb": [
+          248,
+          247,
+          246
+        ],
+        "share": 0.009
+      },
+      {
+        "hex": "#f7f7f8",
+        "rgb": [
+          247,
+          247,
+          248
+        ],
+        "share": 0.0067
+      },
+      {
+        "hex": "#f6f7f9",
+        "rgb": [
+          246,
+          247,
+          249
+        ],
+        "share": 0.0013
+      }
+    ],
+    "mean_brightness": 201.8,
+    "luminance_category": "light"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.0,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 212.4,
+    "brightness_bottom": 230.8,
+    "edge_density_grid": [
+      [
+        7.3,
+        15.0,
+        5.83
+      ],
+      [
+        17.22,
+        20.07,
+        17.42
+      ],
+      [
+        5.55,
+        4.43,
+        4.77
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 47,
+    "text_preview": "\u2014 I, mer, > \u00b0\u00b0 oO mal oO z =x o w i a w rr) a. 77) = irr) =z a = = w oO z =z = a r=) pri a wi a [ = = a, \u00a9 z r=) z =< e a e"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 22,
+    "median_text_height_px": 21,
+    "likely_heading_text": "\u2014 > z",
+    "is_all_caps": false,
+    "sample_text_colour": "#424242"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": false,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#f7f7f7",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "\u2014 I, mer, > \u00b0\u00b0 oO mal oO z =x o w i a w rr) a. 77) = irr) =z a = = w oO z =z = a r=) pri a wi a [ = = a, \u00a9 z r=) z =< e a e",
+      "all_caps_detected": false
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

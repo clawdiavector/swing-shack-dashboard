@@ -21,6 +21,7 @@ import re
 import uuid
 from typing import Any, Dict, Iterable, List, Optional
 
+from _lib.data_paths import runtime_data_dir as _runtime_data_dir
 from _lib.plan_profiles import event_kind
 from _lib.plan_extras import _JUNK_TITLE_RE, _key, _parse, dates_to_note, _same_event
 
@@ -29,6 +30,54 @@ SOURCES = ("yours", "scout", "date", "stock")
 DECIDED_SOURCES = ("date", "stock")
 # A stock suggestion every other day, so a month shows a steady rhythm and not a wall.
 STOCK_EVERY_DAYS = 2
+
+# Feed rotation (wiki research/weekly-post-rotation-plan-2026-11-02). Each stock line gets
+# a job from its stock status, and the best time from Swing Shack's reach by hour band.
+# Monday is planning day and the weakest feed day, so stock is not suggested on it.
+FEED_JOBS = {
+    "new_in": ("New in", "09:00-12:00"),
+    "move_pile": ("Move the pile", "after 18:00"),
+    "tip": ("Tip with a product", "09:00-12:00"),
+}
+NO_STOCK_WEEKDAYS = (0,)
+# A product on the feed is not offered again for four weeks.
+FEED_REPEAT_DAYS = 28
+
+
+def feed_job(candidate: Dict[str, Any]) -> str:
+    """new/back stock is announced, still/stuck stock is pushed, a deep shelf gets a tip."""
+    status = str(candidate.get("status") or "")
+    if status in ("new", "back"):
+        return "new_in"
+    if status in ("stuck", "still"):
+        return "move_pile"
+    return "tip"
+
+
+def _maker(candidate: Dict[str, Any]) -> str:
+    words = str(candidate.get("name") or "").lower().split()
+    return words[0] if words else ""
+
+
+def rotate_feed(candidates: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Most urgent first, but the next line differs from the last in job, maker and
+    category where it can. Falls back step by step, so no line is ever dropped."""
+    pool = list(candidates)
+    out: List[Dict[str, Any]] = []
+    while pool:
+        if not out:
+            out.append(pool.pop(0))
+            continue
+        prev = out[-1]
+        job, maker, cat = feed_job(prev), _maker(prev), prev.get("category") or ""
+        new_job = lambda c: feed_job(c) != job  # noqa: E731
+        new_maker = lambda c: _maker(c) != maker and not (cat and (c.get("category") or "") == cat)  # noqa: E731
+        for test in (lambda c: new_job(c) and new_maker(c), new_maker, new_job, lambda c: True):
+            hit = next((i for i, c in enumerate(pool) if test(c)), None)
+            if hit is not None:
+                out.append(pool.pop(hit))
+                break
+    return out
 
 
 def month_bounds(month: str) -> tuple[_dt.date, _dt.date]:
@@ -109,7 +158,7 @@ def month_items(
     taken = list(approved) + [_key(i["title"]) for i in out]
     for n in dates_to_note(brand_id, note_rows, first, last, already_named=taken):
         # Approved and rejected dates are done with. "Not now" keeps a date on the grid.
-        if (decisions.get(n["id"]) or {}).get("decision") in ("approved", "rejected"):
+        if (decisions.get(n["id"]) or {}).get("decision") in ("approved", "rejected", "archived"):
             continue
         if not first <= _parse(n["start"]) <= last:
             continue
@@ -150,13 +199,16 @@ def stock_items(
     taken_days: Iterable[str],
     today: _dt.date,
     every: int = STOCK_EVERY_DAYS,
+    recent_titles: Iterable[str] = (),
 ) -> List[Dict[str, Any]]:
-    """Stock-list suggestions for `month`: one line every `every` days, from today on.
+    """Stock-list suggestions for `month`: one line every `every` days, from today on,
+    never on a Monday, rotated so jobs and makers take turns.
 
-    candidates   stock_pulse.candidates() for the brand, most urgent first
+    candidates   stock_pulse.feed_candidates() for the brand, most urgent first
     decisions    the decisions file; approved, rejected and swapped lines are left out
     approved_names names already on the calendar
     taken_days   ISO dates already holding another suggestion, so stock does not stack on them
+    recent_titles products already on the feed within FEED_REPEAT_DAYS
     """
     first, last = month_bounds(month)
     start = max(first, today)
@@ -166,23 +218,29 @@ def stock_items(
     approved = [k for k in (_key(n) for n in approved_names) if k]
     every = max(1, int(every))
     days = [start + _dt.timedelta(days=i) for i in range(0, (last - start).days + 1, every)]
-    days = [d for d in days if d.isoformat() not in taken]
+    days = [d for d in days if d.isoformat() not in taken and d.weekday() not in NO_STOCK_WEEKDAYS]
+    on_feed = approved + [k for k in (_key(t) for t in recent_titles) if k]
     open_lines = []
     for c in candidates:
         name = str(c.get("name") or "").strip()
         if not name:
             continue
         key = stock_key(name, month)
-        if (decisions.get(key) or {}).get("decision") in ("approved", "rejected", "swapped"):
+        if (decisions.get(key) or {}).get("decision") in ("approved", "rejected", "swapped", "archived"):
             continue
-        if any(_same_event(_key(name), t) for t in approved):
+        if any(_same_event(_key(name), t) for t in on_feed):
             continue
-        open_lines.append((key, c))
+        open_lines.append(c)
     out: List[Dict[str, Any]] = []
-    for d, (key, c) in zip(days, open_lines):
+    for d, c in zip(days, rotate_feed(open_lines)):
+        key = stock_key(str(c["name"]).strip(), month)
         reason, idea = (c.get("reason") or "").strip(), (c.get("idea") or "").strip()
         why = f"{reason.rstrip('.')}. {idea}" if reason and idea else (reason or idea)
-        out.append({
+        job = feed_job(c)
+        item = {
+            "job": job,
+            "job_label": FEED_JOBS[job][0],
+            "best_time": FEED_JOBS[job][1],
             "key": key,
             "source": "stock",
             "title": c["name"],
@@ -194,11 +252,218 @@ def stock_items(
             "calendar_id": None,
             "pillars": [],
             "kind": "stock",
-        })
+        }
+        if brand_id == "swing-shack":
+            from _lib import retail_campaign as rc  # noqa: PLC0415
+
+            hist = rc.product_layout_history(brand_id)
+            layout = rc.suggest_product_layout(1, hist)
+            item["product_layout"] = layout
+            item["archetype_id"] = rc.archetype_for_layout(layout)
+        out.append(item)
     return out
 
 
 LATER_DAYS = 14
+PRODUCT_NEARBY_DAYS = 7
+
+# Posting states that count as real work on a day (lodged, approved, scheduled, …).
+PRIMARY_POST_STATES = frozenset(
+    {"booked", "drafting", "needs_fix", "draft_ready", "scheduled", "released", "posted"}
+)
+
+
+def is_primary_post(state: str) -> bool:
+    return str(state or "") in PRIMARY_POST_STATES
+
+
+def _layout_slug_from_template(template_id: str) -> str:
+    tid = (template_id or "").lower()
+    for slug in ("one-hero", "type-hero", "pick-yours"):
+        if slug in tid:
+            return slug
+    return ""
+
+
+def _post_layout(post: Dict[str, Any]) -> str:
+    layout = str(post.get("layout") or "")
+    if layout:
+        return layout
+    return _layout_slug_from_template(str(post.get("template_id") or ""))
+
+
+def _record_layouts(brand_id: str) -> Dict[str, str]:
+    """calendar_id -> product layout, read from the calendar record (archetype,
+    post_type or render_spec), since week_board rows carry no layout."""
+    try:
+        from _lib import retail_campaign as rc  # noqa: PLC0415
+        from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+        out: Dict[str, str] = {}
+        for rec in canonical_records(brand_id):
+            layout = rc._layout_from_record(rec)  # noqa: SLF001
+            cid = str(rec.get("calendar_id") or "")
+            if layout and cid:
+                out[cid] = layout
+        return out
+    except Exception:  # noqa: BLE001 - suggestions must still render
+        return {}
+
+
+def posts_by_day_for_month(brand_id: str, month: str) -> Dict[str, List[Dict[str, Any]]]:
+    """Primary (non-candidate) posts keyed by go-live ISO date in `month`."""
+    from _lib.unified_inbox import week_board  # noqa: PLC0415
+
+    first, last = month_bounds(month)
+    span = (last - first).days + 1
+    try:
+        payload = week_board(
+            brand_id=brand_id,
+            start=first,
+            days=span,
+            past_days=0,
+            include_candidates=True,
+            include_undated=False,
+        )
+    except ValueError:
+        return {}
+    out: Dict[str, List[Dict[str, Any]]] = {}
+    record_layouts = _record_layouts(brand_id)
+    for day in payload.get("days_list") or []:
+        iso = str(day.get("date") or "")
+        if not iso.startswith(month):
+            continue
+        primaries: List[Dict[str, Any]] = []
+        for post in day.get("posts") or []:
+            if not is_primary_post(str(post.get("state") or "")):
+                continue
+            # T9 outside posts already draw their own grey chip; not our scheduled posts.
+            if str(post.get("post_type") or "") == "posted-outside-campaign-os":
+                continue
+            row: Dict[str, Any] = {
+                "calendar_id": post.get("calendar_id"),
+                "title": str(post.get("title") or "").strip(),
+                "state": post.get("state"),
+            }
+            tid = str(post.get("template_id") or "")
+            if tid:
+                row["template_id"] = tid
+            layout = _post_layout({"template_id": tid}) if tid else ""
+            layout = layout or record_layouts.get(str(post.get("calendar_id") or ""), "")
+            if layout:
+                row["layout"] = layout
+            primaries.append(row)
+        if primaries:
+            out[iso] = primaries
+    return out
+
+
+def _product_nearby(title: str, day: _dt.date, posts_by_day: Dict[str, List[Dict[str, Any]]], window: int) -> bool:
+    key = _key(title)
+    if not key:
+        return False
+    for offset in range(-window, window + 1):
+        if offset == 0:
+            continue
+        other = day + _dt.timedelta(days=offset)
+        for post in posts_by_day.get(other.isoformat()) or []:
+            if _key(str(post.get("title") or "")) == key:
+                return True
+    return False
+
+
+def _layout_on_previous_day(day: _dt.date, posts_by_day: Dict[str, List[Dict[str, Any]]]) -> str:
+    prev = (day - _dt.timedelta(days=1)).isoformat()
+    for post in posts_by_day.get(prev) or []:
+        layout = _post_layout(post)
+        if layout:
+            return layout
+    return ""
+
+
+def _annotate_stock_layouts(
+    items: List[Dict[str, Any]],
+    brand_id: str,
+    posts_by_day: Dict[str, List[Dict[str, Any]]],
+) -> List[Dict[str, Any]]:
+    if brand_id != "swing-shack":
+        return items
+    from _lib import product_post_templates as pt  # noqa: PLC0415
+
+    history: List[str] = []
+    for iso in sorted(posts_by_day):
+        for post in posts_by_day[iso]:
+            layout = _post_layout(post)
+            if layout:
+                history.append(layout)
+    out: List[Dict[str, Any]] = []
+    for it in sorted(items, key=lambda i: (i.get("date") or "", i.get("title") or "")):
+        if it.get("source") != "stock":
+            out.append(it)
+            continue
+        layout = pt.layout_for(1, history)
+        out.append({**it, "_layout": layout})
+        history.append(layout)
+    return out
+
+
+def filter_suggestions_nearby_scheduled(
+    items: List[Dict[str, Any]],
+    posts_by_day: Dict[str, List[Dict[str, Any]]],
+    brand_id: str,
+    *,
+    product_window: int = PRODUCT_NEARBY_DAYS,
+) -> List[Dict[str, Any]]:
+    """Drop stock lines that repeat a nearby product or the same layout twice in a row."""
+    annotated = _annotate_stock_layouts(items, brand_id, posts_by_day)
+    kept: List[Dict[str, Any]] = []
+    for it in annotated:
+        if it.get("source") != "stock":
+            kept.append({k: v for k, v in it.items() if k != "_layout"})
+            continue
+        day = _parse(str(it.get("date") or ""))
+        if not day:
+            continue
+        if _product_nearby(str(it.get("title") or ""), day, posts_by_day, product_window):
+            continue
+        if brand_id == "swing-shack":
+            prev_layout = _layout_on_previous_day(day, posts_by_day)
+            if prev_layout and str(it.get("_layout") or "") == prev_layout:
+                continue
+        kept.append({k: v for k, v in it.items() if k != "_layout"})
+    return kept
+
+
+def month_suggestions_bundle(
+    brand_id: str,
+    month: str,
+    today: _dt.date,
+    pending_rows: Iterable[Dict[str, Any]],
+    typed_by_operator,
+    note_rows: Iterable[Dict[str, Any]],
+    decisions: Dict[str, Any],
+    approved_names: Iterable[str],
+    stock_candidates: Iterable[Dict[str, Any]],
+    stock_every: int,
+) -> Dict[str, Any]:
+    """Faded suggestions plus primary posts per day for the month grid and Today."""
+    items = month_items(
+        brand_id, month, pending_rows, typed_by_operator, note_rows, decisions, approved_names, today
+    )
+    taken = [i["date"] for i in items]
+    posts_by_day = posts_by_day_for_month(brand_id, month)
+    first, _last = month_bounds(month)
+    since = (max(first, today) - _dt.timedelta(days=FEED_REPEAT_DAYS)).isoformat()
+    prev_month = (first - _dt.timedelta(days=1)).strftime("%Y-%m")
+    looked_back = {**posts_by_day_for_month(brand_id, prev_month), **posts_by_day}
+    recent = [p.get("title") or "" for iso, posts in looked_back.items() if iso >= since for p in posts]
+    items += stock_items(
+        brand_id, month, stock_candidates, decisions, approved_names, taken, today, stock_every,
+        recent_titles=recent,
+    )
+    items = filter_suggestions_nearby_scheduled(items, posts_by_day, brand_id)
+    items.sort(key=lambda i: (i["date"], i["title"]))
+    return {"items": items, "posts_by_day": posts_by_day}
 
 
 def triage_items(
@@ -234,6 +499,25 @@ def triage_items(
     return out
 
 
+SOON_DAYS = 7
+
+
+def approval_date_check(date_iso: Any, today: _dt.date) -> Dict[str, Any]:
+    """Can this date be approved? A date that has passed cannot. One only days away can,
+    with a warning, because most of its plan steps will already be late."""
+    d = _parse(date_iso)
+    if not d:
+        return {"ok": False, "error": "this one has no date yet, so it cannot be approved"}
+    days = (d - today).days
+    if days < 0:
+        return {"ok": False, "days": days, "error": f"that date has passed ({d.isoformat()}); pick a date still to come"}
+    warning = ""
+    if days <= SOON_DAYS:
+        warning = (f"Only {days} day{'s' if days != 1 else ''} away, so most plan steps will be late."
+                   if days else "That is today, so most plan steps will be late.")
+    return {"ok": True, "days": days, "warning": warning}
+
+
 # ── undo tokens ───────────────────────────────────────────────────────
 #
 # Approve and reject hand back a token; undo takes the token, not the details.
@@ -245,8 +529,7 @@ UNDO_TTL_HOURS = 24
 
 
 def _undo_path(brand_id: str) -> str:
-    return os.path.join(os.environ.get("DATA_DIR", "data"), "calendar-suggestion-undo",
-                        f"{brand_id}.json")
+    return os.path.join(str(_runtime_data_dir()), "calendar-suggestion-undo", f"{brand_id}.json")
 
 
 def _read_undo(brand_id: str) -> Dict[str, Any]:
@@ -302,8 +585,7 @@ def drop_undo(brand_id: str, token: Any) -> None:
 # ── decisions on important dates ──────────────────────────────────────
 
 def _decisions_path(brand_id: str) -> str:
-    return os.path.join(os.environ.get("DATA_DIR", "data"), "calendar-suggestion-decisions",
-                        f"{brand_id}.json")
+    return os.path.join(str(_runtime_data_dir()), "calendar-suggestion-decisions", f"{brand_id}.json")
 
 
 def read_decisions(brand_id: str) -> Dict[str, Any]:

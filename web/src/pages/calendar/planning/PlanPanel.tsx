@@ -5,6 +5,7 @@ import { MessageComposer } from './MessageComposer'
 import { defaultShots, shootRequest, shootSteps, signOffMessage, stepsWithoutShots } from '../../../lib/planMessages'
 import { notifyAlertsChanged } from '../../../lib/calendarAlerts'
 import { useCallback, useEffect, useState } from 'react'
+import { archiveBrandItem, previewBrandArchive } from '../../../lib/api'
 import {
   KIND_LABEL,
   KIND_ORDER,
@@ -23,6 +24,7 @@ import {
   formatDay as formatPlanDate,
   findPlan,
   proposePlan,
+  requestAllDrafts,
   requestDraft,
   draftState,
   savedActorName,
@@ -346,6 +348,12 @@ function ItemRow({
               <p className="text-[11px] text-tx2">
                 Capture: {item.shots.slice(0, 4).join('; ')}
                 {item.shots.length > 4 ? ` and ${item.shots.length - 4} more` : ''}
+                {item.shots_suggested ? (
+                  <span className="text-yel" data-testid="plan-shots-suggested">
+                    {' '}
+                    (suggested, check them)
+                  </span>
+                ) : null}
               </p>
             ) : (
               <p className="text-[11px] text-yel">No shot list yet. Use Change to say exactly what to capture.</p>
@@ -535,6 +543,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
   const blocker = approveBlocker(plan)
   const boosts = boostBudget(plan.items)
   const late = active.filter((i) => i.late && i.status !== 'done').length
+  const needDrafts = active.filter((i) => i.kind === 'post' && i.status !== 'done' && !i.draft).length
 
   return (
     <div className="space-y-3 px-3 py-4" data-testid="plan-panel">
@@ -652,15 +661,37 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
         {approved ? (
           <>
             {plan.placed_at ? (
-              <button
-                type="button"
-                className={btnQuiet}
-                disabled={busy}
-                onClick={() => void run(() => unplacePlan(brandId, plan.plan_id))}
-                data-testid="plan-unplace"
-              >
-                Take off the calendar (undo)
-              </button>
+              <>
+                {needDrafts > 0 ? (
+                  <button
+                    type="button"
+                    className={btnYel}
+                    disabled={busy}
+                    title="Writes a caption draft for every post step. Nothing is posted; each one waits in Approve drafts."
+                    onClick={() => {
+                      const name = actorName()
+                      if (!name) {
+                        setError('A name is needed so the calendar knows who asked.')
+                        return
+                      }
+                      void run(() => requestAllDrafts(brandId, plan.plan_id, name))
+                    }}
+                    data-testid="plan-draft-all"
+                  >
+                    {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                    Make all {needDrafts} caption draft{needDrafts === 1 ? '' : 's'}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className={btnQuiet}
+                  disabled={busy}
+                  onClick={() => void run(() => unplacePlan(brandId, plan.plan_id))}
+                  data-testid="plan-unplace"
+                >
+                  Take off the calendar (undo)
+                </button>
+              </>
             ) : (
               <>
                 <button
@@ -721,6 +752,32 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
               }}
             >
               Start again
+            </button>
+            <button
+              type="button"
+              className={btnQuiet}
+              disabled={busy}
+              onClick={() => {
+                void (async () => {
+                  const preview = await previewBrandArchive(brandId, {
+                    kind: 'plan',
+                    id: plan.plan_id,
+                  })
+                  if (!preview.message || !window.confirm(preview.message)) return
+                  const name = actorName()
+                  if (!name) return
+                  const r = await archiveBrandItem(brandId, { kind: 'plan', id: plan.plan_id }, name)
+                  if (!r.ok) {
+                    setError(r.error || 'Archive failed.')
+                    return
+                  }
+                  notifyAlertsChanged()
+                  setPlan(null)
+                })()
+              }}
+              data-testid="plan-archive"
+            >
+              Archive
             </button>
             <select
               aria-label="Change the shape of the plan"

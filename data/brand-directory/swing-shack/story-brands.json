@@ -1,6 +1,6 @@
 {
   "brand": "swing-shack",
-  "verified": "2026-10-12",
+  "verified": "2026-10-27",
   "note": "Official pages, read from each brand's own website on 2026-10-12.",
   "retail": [
     {
@@ -37,6 +37,20 @@
       "instagram": "https://www.instagram.com/vesselgolf/",
       "facebook": "https://www.facebook.com/vesselgolf/",
       "look_for": "Bags and accessories we carry."
+    },
+    {
+      "id": "sub70",
+      "name": "Sub 70",
+      "instagram": "https://www.instagram.com/golfsub70/",
+      "facebook": null,
+      "look_for": "Irons, wedges, putters and head covers we carry. Skip limited editions and anything not on our shelves."
+    },
+    {
+      "id": "fujimoto",
+      "name": "Fujimoto",
+      "instagram": "https://www.instagram.com/fujimoto_golf/",
+      "facebook": null,
+      "look_for": "Forged heads and the craft behind them. Posts rarely, so check the page itself."
     },
     {
       "id": "ripit",
@@ -94,6 +108,38 @@
       "instagram": "https://www.instagram.com/sunshinetourgolf/",
       "facebook": null,
       "look_for": "South African pro golf. Handle looks right but the Sunshine Tour website does not link to it."
+    },
+    {
+      "id": "sunshine-ladies-tour",
+      "name": "Sunshine Ladies Tour",
+      "instagram": "https://www.instagram.com/sunshineladiestour/",
+      "facebook": null,
+      "women": true,
+      "look_for": "South African women's golf. Everyday tour life, up-and-coming players and events, not only the winner."
+    },
+    {
+      "id": "let",
+      "name": "Ladies European Tour",
+      "instagram": "https://www.instagram.com/letgolf/",
+      "facebook": null,
+      "women": true,
+      "look_for": "Women's golf news, features and player stories, not only results."
+    },
+    {
+      "id": "lpga",
+      "name": "LPGA",
+      "instagram": "https://www.instagram.com/lpga_tour/",
+      "facebook": null,
+      "women": true,
+      "look_for": "Women's golf: tour life, features and the game, not only the big winners."
+    },
+    {
+      "id": "womens-golf-day",
+      "name": "Women's Golf Day",
+      "instagram": "https://www.instagram.com/womensgolfday/",
+      "facebook": null,
+      "women": true,
+      "look_for": "Women picking up the game and playing together. The everyday side of ladies' golf."
     }
   ]
 }

@@ -150,3 +150,16 @@ class RouteTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_candidates_report_best_post_per_page(monkeypatch, tmp_path):
+    """Idea cards open a page's own latest post, so every page with a usable post needs one."""
+    from datetime import datetime, timezone
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    now = datetime(2026, 10, 23, tzinfo=timezone.utc)
+    posts = [{"permalink": "https://www.instagram.com/p/AAA/", "timestamp": "2026-10-22T08:00:00+0000",
+              "caption": "Sunday vibes", "like_count": 50, "comments_count": 2, "media_type": "IMAGE"}]
+    monkeypatch.setattr(story_scout, "_fetch", lambda username: posts)
+    out = story_scout.candidates("swing-shack", refresh=True, now=now)
+    assert out["by_page"]["lab"]["url"] == "https://www.instagram.com/p/AAA/"
+    assert set(out["by_page"]) >= {"takomo", "trackman"}

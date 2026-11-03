@@ -14,6 +14,7 @@ from . import (
     competitor_tracker,
     content_ideas_refresh,
     ga4_report,
+    geo_observe,
     golf_news,
     gsc_report,
     insights_hooks,
@@ -43,6 +44,7 @@ LAYER1_JOB_NAMES: tuple[str, ...] = (
     "content_ideas_refresh",
     "insights_reco",
     "social_ingest",
+    "geo_observe",
 )
 
 _ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
@@ -135,6 +137,19 @@ def layer1_specs() -> list[JobSpec]:
             brand_mode="per_brand",
             brands=_SS_AND_STICK,
             requires_integrations=("ubersuggest",),
+        ),
+        JobSpec(
+            name="geo_observe",
+            fn=geo_observe.run,
+            every_seconds=86400,
+            timeout_seconds=240,
+            best_effort=True,
+            criticality="LOW",
+            retries=0,
+            credentials=("OPENAI_API_KEY",),
+            writes=("geo-observe-cursor.json",),
+            brand_mode="per_brand",
+            brands=_SS_AND_STICK,
         ),
         JobSpec(
             name="competitor_tracker",

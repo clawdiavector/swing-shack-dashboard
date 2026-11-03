@@ -14,6 +14,15 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "to $DATA_DIR. Powers intel views and downstream insights_hooks."
         ),
     },
+    "outside_posts_sync": {
+        "title": "Outside posts on calendar",
+        "summary": "Read-back Meta + Postiz; unmatched posts appear on the Plan grid.",
+        "detail": (
+            "Pulls Instagram feed/reels/stories, Facebook page posts, and Postiz published "
+            "rows. Matches Campaign OS by Postiz id, then time (±30 min) and caption. "
+            "Unmatched live posts upsert grey outside chips on the Plan month calendar."
+        ),
+    },
     "social_ingest": {
         "title": "Social history ingest",
         "summary": "Caches IG/FB posts under brand-directory for Visuals + reference pickers.",
@@ -86,6 +95,15 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
         "detail": (
             "Deterministic audit against swingshack.co.za content. Best-effort. "
             "Outputs feed recommendation engine inputs."
+        ),
+    },
+    "geo_observe": {
+        "title": "GEO watchlist check (AI answers)",
+        "summary": "Asks a few watchlist questions a day to an AI model with web search; whole list about weekly.",
+        "detail": (
+            "Per brand (Swing Shack, Stick). gpt-4o-mini with web search, about US$0.025 a question. "
+            "Stops starting new questions after a time budget and remembers its place in "
+            "geo-observe-cursor.json. Observations land where the GEO page reads them. Needs OPENAI_API_KEY."
         ),
     },
     "insights_hooks": {

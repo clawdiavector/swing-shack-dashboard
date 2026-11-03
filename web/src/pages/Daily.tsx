@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom'
 import { BrandChip } from '../components/BrandChip'
 import { BrandSwitch, useBrand, useBrandScope } from '../components/BrandSwitch'
 import { DailyBrandSocials } from '../components/DailyBrandSocials'
+import { MailToday } from '../components/MailToday'
 import { MomentsToday } from '../components/MomentsToday'
 import { StoryReposts } from '../components/StoryReposts'
 import { AlertBanner } from './calendar/planning/AlertBanner'
@@ -407,6 +408,8 @@ export function Daily() {
       </PageIntro>
 
       <AlertBanner brandId={isAll ? '' : focusBrandId || ''} />
+
+      <MailToday brandId={isAll ? undefined : focusBrandId} />
 
       <MomentsToday brandLabel={isAll ? undefined : brandLabel} brandId={isAll ? undefined : focusBrandId} />
 

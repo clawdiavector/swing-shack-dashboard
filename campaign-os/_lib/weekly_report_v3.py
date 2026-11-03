@@ -1165,14 +1165,15 @@ def _render_html(bid: str, v24: dict, organic: Dict[str, Any],
                           primary, accent)
     cards = _kpi_cards(bid, v24, periods)
     exec_text = _build_executive_narrative(bid, v24, organic, periods)
+    ads_extras = _read_ads_extras(bid, as_of)
     sections = []
     sections.append(_render_kpi_cards(cards, primary))
-    sections.append(_render_executive_card(exec_text, primary, accent))
+    sections.append(_render_cmo(_cmo(bid, v24, organic, periods, ads_extras)))
     sections.append(_render_website_traffic_table(v24))
     sections.append(_render_acquisition(v24, primary, accent))
     sections.append(_render_advertising(v24, primary, accent,
                                           ads_brief=_read_ads_brief(bid, as_of),
-                                          ads_extras=_read_ads_extras(bid, as_of)))
+                                          ads_extras=ads_extras))
     sections.append(_render_website_pages(v24))
     sections.append(_render_seo(seo, seo_kw, primary, bid))
     sections.append(_render_geo(bid, primary))
@@ -1182,7 +1183,6 @@ def _render_html(bid: str, v24: dict, organic: Dict[str, Any],
     if stories_html:
         sections.append(stories_html)
     sections.append(_render_worked_attention(v24, primary))
-    sections.append(_render_actions(v24, bid, primary, accent))
     sections.append(_render_targets(v24, primary, accent, bid))
     sections.append(_render_data_missing(v24, organic, seo, primary))
     body = "\n".join(sections)
@@ -1216,7 +1216,7 @@ def _wrap_html(facts: dict, periods: Dict[str, str],
     sections = ctx.get("sections") or []
     section_titles = [
         ("KPI", "Top numbers"),
-        ("Executive", "This week"),
+        ("Executive", "Where we stand"),
         ("Traffic", "Website traffic"),
         ("Acquisition", "Where visitors came from"),
         ("Advertising", "Advertising"),
@@ -1496,6 +1496,22 @@ section.report-section p.lead {{
 .exec-card .exec-text {{
   font-size: 15px; color: var(--ink); line-height: 1.55;
 }}
+.cmo-card h3 {{ margin: 18px 0 6px; font-size: 15px; }}
+.cmo-card h4 {{ margin: 0 0 4px; font-size: 15px; }}
+.cmo-card .cmo-headline {{ font-size: 17px; }}
+.cmo-card.cmo-act {{ border-left: 4px solid #c0392b; }}
+.cmo-card.cmo-watch {{ border-left: 4px solid #d98e04; }}
+.cmo-card.cmo-good {{ border-left: 4px solid #2e8b57; }}
+.cmo-nums {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }}
+.cmo-num {{ border: 1px solid var(--line-soft); border-radius: 10px; padding: 10px 12px; }}
+.cmo-num-label {{ font-size: 12px; color: var(--ink); opacity: .7; }}
+.cmo-num-value {{ font-size: 20px; font-weight: 700; }}
+.cmo-num-vs, .cmo-num-note {{ font-size: 12px; opacity: .75; }}
+.cmo-decision {{ border: 1px solid var(--line-soft); border-radius: 10px; padding: 10px 14px; margin: 8px 0; }}
+.cmo-decision p {{ margin: 4px 0; font-size: 14px; }}
+.cmo-conf {{ opacity: .7; font-size: 12px !important; }}
+.cmo-cols {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }}
+.cmo-card ul {{ margin: 4px 0 0 18px; padding: 0; font-size: 14px; }}
 table.data {{
   width: 100%; border-collapse: collapse; margin: 8px 0 4px;
   font-variant-numeric: tabular-nums;
@@ -2093,6 +2109,122 @@ def _read_ads_extras(bid: str, as_of: Optional[str] = None) -> Optional[dict]:
             "guard_on": bool(settings.get("auto_pause")), "paused_now": len(ads_guard.guarded(entries))}
 
 
+# ── CMO brief: where we stand, what to decide, which way to go ──
+
+_ENQUIRY_COUNT_SINCE = "21 Oct"
+
+
+def _short_day(iso: str) -> str:
+    d = datetime.date.fromisoformat(iso)
+    return f"{d.day} {d.strftime('%b')}"
+
+
+def _cmo_facts(bid: str, v24: dict, periods: Dict[str, str], extras: Optional[dict], ads_brief: Any = None) -> dict:
+    """The week's real numbers, in the shape ``cmo_brief.build`` reads. Nothing is worked out here beyond sums."""
+    def kpi(label):
+        k = _extract_kpi(v24, label)
+        return {"cur": k.get("current"), "prev": k.get("previous")}
+
+    chans = [{"channel": c.get("channel"), "cur": c.get("current_sessions"), "prev": c.get("previous_sessions")}
+             for c in ((v24.get("sections") or {}).get("channel_mix") or {}).get("rows") or []]
+    camps, spend_cur, spend_prev, leads_cur = [], 0.0, 0.0, 0.0
+    for c in (v24.get("paid_media_v24") or {}).get("per_campaign") or []:
+        cur, prev, pr = c.get("current") or {}, c.get("previous") or {}, c.get("primary_result") or {}
+        spend_cur += float(cur.get("spend") or 0)
+        spend_prev += float(prev.get("spend") or 0)
+        if c.get("objective") == "OUTCOME_LEADS" and isinstance(pr.get("primary_value"), (int, float)):
+            leads_cur += float(pr["primary_value"])
+        camps.append({"name": c.get("campaign_name"), "objective": c.get("objective"), "spend": float(cur.get("spend") or 0),
+                      "prev_spend": float(prev.get("spend") or 0), "results": pr.get("primary_value"),
+                      "cost": pr.get("primary_cost_per_unit")})
+    has_paid = bool(camps)
+    ads = None
+    if extras:
+        t = extras.get("tracking") or {}
+        ads = {"budget": extras.get("budget"), "guard_on": bool(extras.get("guard_on")),
+               "paused_now": extras.get("paused_now") or 0,
+               "tracking": {"totals": t.get("totals") or {}, "ads": t.get("ads") or []}}
+    conv = kpi("Conversions")
+    return {
+        "brand": _brand_canonical(bid)["display_name"],
+        "week": {"current": f"{_short_day(periods['current_week_start'])} → {_short_day(periods['current_week_end'])}",
+                 "previous": f"{_short_day(periods['previous_week_start'])} → {_short_day(periods['previous_week_end'])}"},
+        "sessions": kpi("Sessions"), "engagement": kpi("Engagement rate"),
+        "enquiries": dict(conv, since=_ENQUIRY_COUNT_SINCE),
+        "channels": chans,
+        "paid": {"spend": {"cur": spend_cur if has_paid else None, "prev": spend_prev if has_paid else None},
+                 "leads": {"cur": leads_cur if has_paid else None, "prev": None}, "campaigns": camps},
+        "ads": ads, "bookings_linked": False, "targets": None,
+    }
+
+
+def _cmo(bid: str, v24: dict, organic: Any, periods: Dict[str, str], extras: Optional[dict], ads_brief: Any = None) -> dict:
+    from _lib import cmo_brief
+    return cmo_brief.build(_cmo_facts(bid, v24, periods, extras, ads_brief))
+
+
+def _render_cmo(cmo: dict) -> str:
+    v = cmo.get("verdict") or {}
+    nums = "".join(
+        f"<div class='cmo-num'><div class='cmo-num-label'>{_esc(n['label'])}</div><div class='cmo-num-value'>{_esc(n['value'])}</div>"
+        f"<div class='cmo-num-vs'>{_esc(n['vs'])}</div><div class='cmo-num-note'>{_esc(n.get('note') or '')}</div></div>"
+        for n in cmo.get("numbers") or [])
+    decisions = "".join(
+        f"<div class='cmo-decision'><h4>{_esc(d['decision'])}</h4>"
+        f"<p><strong>Recommendation:</strong> {_esc(d['recommendation'])}</p>"
+        f"<p><strong>Because:</strong> {_esc(d['because'])}</p>"
+        f"<p class='cmo-conf'>Confidence: {_esc(d['confidence'])}</p></div>"
+        for d in cmo.get("decisions") or [])
+
+    def ul(items):
+        if not items:
+            return "<p class='cmo-none'>Nothing to report.</p>"
+        return "<ul>" + "".join(f"<li>{_esc(i)}</li>" for i in items) + "</ul>"
+
+    lines = "".join(f"<p>{_esc(x)}</p>" for x in v.get("lines") or [])
+    risks_html = ("<h3>Risks</h3>" + ul(cmo.get("risks"))) if cmo.get("risks") else ""
+    gaps_html = ("<h3>What we cannot see yet</h3>" + ul(cmo.get("gaps"))) if cmo.get("gaps") else ""
+    none_decided = "<p class='cmo-none'>Nothing needs deciding this week.</p>"
+    return f"""
+<section id="sec-Executive" class="exec-card cmo-card cmo-{_esc(v.get('tone') or 'good')}">
+  <div class="section-eyebrow">{_esc((cmo.get('week') or {}).get('current') or 'This week')}</div>
+  <h2>Where we stand</h2>
+  <p class="exec-text cmo-headline"><strong>{_esc(v.get('headline'))}</strong></p>
+  {lines}
+  <div class="cmo-nums">{nums}</div>
+  <h3>Decisions for this week</h3>
+  {decisions or none_decided}
+  <div class="cmo-cols">
+    <div><h3>What is working</h3>{ul(cmo.get('working'))}</div>
+    <div><h3>What is not</h3>{ul(cmo.get('not_working'))}</div>
+  </div>
+  {risks_html}
+  {gaps_html}
+  <h3>Next week</h3>
+  {ul(cmo.get('next_week'))}
+</section>
+"""
+
+
+def _cmo_markdown(cmo: dict) -> List[str]:
+    v = cmo.get("verdict") or {}
+    L = ["## Where we stand", "", f"**{v.get('headline')}**", ""]
+    L += [f"{x}" for x in v.get("lines") or []]
+    L.append("")
+    for n in cmo.get("numbers") or []:
+        L.append(f"- **{n['label']}** — {n['value']} ({n['vs']})" + (f". {n['note']}" if n.get("note") else ""))
+    L += ["", "### Decisions for this week", ""]
+    for d in cmo.get("decisions") or []:
+        L += [f"**{d['decision']}**", f"- Recommendation: {d['recommendation']}", f"- Because: {d['because']}",
+              f"- Confidence: {d['confidence']}", ""]
+    for title, key in (("What is working", "working"), ("What is not", "not_working"), ("Risks", "risks"),
+                       ("What we cannot see yet", "gaps"), ("Next week", "next_week")):
+        items = cmo.get(key) or []
+        if items:
+            L += [f"### {title}", ""] + [f"- {i}" for i in items] + [""]
+    return L
+
+
 def _money0(x) -> str:
     if x is None:
         return "—"
@@ -2172,11 +2304,44 @@ def _ads_extras_lines(x: Optional[dict]) -> dict:
             f"{s.get('never_reach_site', 0)} ad(s) (lead forms and chats) never reach the site and are measured in Meta.")
     ch = x.get("changes") or []
     if ch:
+        out["changes_summary"] = _changes_summary(ch)
         out["changes"] = [f"{_CHANGE_LABEL.get(e.get('kind'), e.get('kind'))}: {e.get('ad_name') or e.get('ad_id')}"
                           + (f" ({e.get('before')} → {e.get('after')})" if e.get("kind", "").startswith(("rename_", "set_adset_budget")) else "")
-                          + (" (undone)" if e.get("undone_at") else "") for e in ch[-12:]]
+                          + (" (undone)" if e.get("undone_at") else "") for e in ch[-5:]]
         out["changes_total"] = len(ch)
     return out
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def _changes_summary(ch: List[dict]) -> List[str]:
+    """One short line per kind of change, so a week of renames does not bury the pauses."""
+    def of(*kinds):
+        return [e for e in ch if e.get("kind") in kinds]
+
+    def undone(es):
+        n = sum(1 for e in es if e.get("undone_at"))
+        return f" ({n} undone)" if n else ""
+
+    lines = []
+    ren = of("rename_campaign", "rename_adset", "rename_ad")
+    if ren:
+        parts = [_plural(len(of("rename_campaign")), "campaign", "campaigns"),
+                 _plural(len(of("rename_adset")), "ad set", "ad sets"), _plural(len(of("rename_ad")), "ad", "ads")]
+        parts = [p for p in parts if not p.startswith("0 ")]
+        lines.append(f"{_plural(len(ren), 'rename', 'renames')} ({', '.join(parts)}){undone(ren)}")
+    for kinds, one, many in ((("pause_adset",), "ad set paused by the hard stop", "ad sets paused by the hard stop"),
+                             (("pause_ad",), "ad paused", "ads paused"),
+                             (("set_end_date",), "end date set", "end dates set"),
+                             (("set_adset_budget",), "daily budget change", "daily budget changes"),
+                             (("set_url_tags",), "ad given UTM tags", "ads given UTM tags"),
+                             (("set_spend_cap",), "Meta spending limit change", "Meta spending limit changes")):
+        es = of(*kinds)
+        if es:
+            lines.append(f"{_plural(len(es), one, many)}{undone(es)}")
+    return lines
 
 
 def _render_ads_extras(x: Optional[dict]) -> str:
@@ -2215,14 +2380,15 @@ def _render_ads_extras(x: Optional[dict]) -> str:
     <p>{_esc(d.get('tracking'))}</p>
   </div>"""
     if d.get("changes"):
+        summary = "".join(f"<li>{_esc(c)}</li>" for c in d.get("changes_summary") or [])
         items = "".join(f"<li>{_esc(c)}</li>" for c in d["changes"])
-        more = d["changes_total"] - len(d["changes"])
-        tail = f"<p>and {more} more.</p>" if more > 0 else ""
         html += f"""
   <div class="ad-group">
     <h3>Changes made to the ads this week</h3>
     <p class="lead">Each is logged and can be put back from the Trends page.</p>
-    <ul>{items}</ul>{tail}
+    <ul>{summary}</ul>
+    <p>Latest:</p>
+    <ul>{items}</ul>
   </div>"""
     return html
 
@@ -2245,11 +2411,8 @@ def _ads_extras_markdown(x: Optional[dict]) -> List[str]:
         L += ["", str(d.get("tracking")), ""]
     if d.get("changes"):
         L += ["### Changes made to the ads this week", "Each is logged and can be put back from the Trends page.", ""]
-        L += [f"- {c}" for c in d["changes"]]
-        more = d["changes_total"] - len(d["changes"])
-        if more > 0:
-            L.append(f"- and {more} more.")
-        L.append("")
+        L += [f"- {c}" for c in d.get("changes_summary") or []]
+        L += ["", "Latest:"] + [f"- {c}" for c in d["changes"]] + [""]
     return L
 
 
@@ -3116,15 +3279,12 @@ def _render_markdown(bid: str, v24: dict, organic: Dict[str, Any],
     L.append(f"_{cur_label}_  ")
     L.append(f"_Compared with {prev_label}_")
     L.append("")
+    L.extend(_cmo_markdown(_cmo(bid, v24, organic, periods, _read_ads_extras(bid, as_of))))
     L.append("## This week at a glance")
     L.append("")
     for c in cards:
         L.append(f"- **{c['label']}** — {c['value']} "
                   f"(change vs last week: {c.get('change_text') or 'no comparison'})")
-    L.append("")
-    L.append("**What happened this week:**")
-    L.append("")
-    L.append(exec_text)
     L.append("")
     L.append("## Website traffic")
     L.append("")
@@ -3451,6 +3611,7 @@ def build_v36(bid: str, fmt: str = "markdown",
             "organic": organic,
             "seo": seo,
             "seo_keywords": seo_kw,
+            "cmo": _cmo(bid, v24, organic, periods, _read_ads_extras(bid, as_of)),
         },
     }
 

@@ -1,6 +1,8 @@
 import { ChevronDown } from 'lucide-react'
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchBrands, selectBrand, type BrandSocialLink } from '../lib/api'
+import { appPathname, routeOwnsBrandQuery } from '../lib/backNav'
 import { filterOperatingBrandIds } from '../lib/brands'
 import {
   readStoredScope,
@@ -9,6 +11,7 @@ import {
   writeStoredScope,
   type BrandScope,
 } from '../lib/brandScope'
+import { planBrandPick } from '../lib/brandRefresh'
 import { prettyBrand, toneFor, TONE_CLS, type BrandTone } from '../lib/brandTone'
 import { Tip } from './ui'
 
@@ -23,12 +26,14 @@ type BrandRow = {
 type BrandCtx = {
   brandId?: string
   brandLabel?: string
+  brandVersion: number
   brands: BrandRow[]
   busy: boolean
   setBrand: (id: string, label: string) => Promise<void>
 }
 
 const BrandContext = createContext<BrandCtx>({
+  brandVersion: 0,
   brands: [],
   busy: false,
   setBrand: async () => undefined,
@@ -55,13 +60,27 @@ export function useBrand() {
   return useContext(BrandContext)
 }
 
+/** Bumps after the header brand or All/one-brand scope changes. `BrandRefresh` remounts on it. */
+export function useBrandVersion() {
+  return useContext(BrandContext).brandVersion
+}
+
 export function useBrandScope() {
   return useContext(BrandScopeContext)
 }
 
+/** Remounts children when the header brand changes. The header itself stays mounted. */
+export function BrandRefresh({ children }: { children: ReactNode }) {
+  const brandVersion = useBrandVersion()
+  return <Fragment key={brandVersion}>{children}</Fragment>
+}
+
 export function BrandProvider({ children }: { children: ReactNode }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { pathname } = useLocation()
   const [brandId, setId] = useState<string>()
   const [brandLabel, setLabel] = useState<string>()
+  const [brandVersion, setBrandVersion] = useState(0)
   const [brands, setBrands] = useState<BrandRow[]>([])
   const [busy, setBusy] = useState(false)
   const [scope, setScope] = useState<BrandScope>('all')
@@ -81,48 +100,104 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           }))
           .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
         setBrands(rows)
-        const id = payload.active_brand_id || payload.default_brand_id || rows[0]?.id
-        setId(id)
-        setLabel(rows.find((row) => row.id === id)?.label || (id ? prettyBrand(id) : undefined))
+        let id = payload.active_brand_id || payload.default_brand_id || rows[0]?.id
         const orderedOperating = filterOperatingBrandIds(rows.map((r) => r.id))
+        const path = appPathname(window.location.pathname)
+        const queryScopeRaw = routeOwnsBrandQuery(path) ? '' : (searchParams.get('brand') || '').trim()
+        const preferredScope = queryScopeRaw || readStoredScope()
         if (!scopeInitialized.current) {
           scopeInitialized.current = true
-          const initial = resolveInitialScope(readStoredScope(), orderedOperating)
+          const initial = resolveInitialScope(preferredScope, orderedOperating)
           setScope(initial)
+          if (initial !== 'all' && initial !== id) {
+            id = initial
+            void selectBrand(initial)
+          }
+          // First paint is "All" before storage is read. Remount once so a
+          // restored brand is what the page fetches, without a browser reload.
+          if (initial !== 'all') setBrandVersion((v) => v + 1)
         }
+        setId(id)
+        setLabel(rows.find((row) => row.id === id)?.label || (id ? prettyBrand(id) : undefined))
       })
       .catch(() => setBrands([]))
   }, [])
 
   async function setBrand(id: string, label: string) {
-    if (id === brandId || busy) return
-    setBusy(true)
-    try {
-      await selectBrand(id)
-      setId(id)
-      setLabel(label)
-    } finally {
-      setBusy(false)
-    }
+    await setScopeBrand(id, label)
   }
 
   const operatingBrandIds = useMemo(() => filterOperatingBrandIds(brands.map((r) => r.id)), [brands])
 
   const brandIds = useMemo(() => scopeBrandIds(scope, operatingBrandIds), [scope, operatingBrandIds])
+  const scopeFromUrl = useRef(false)
+  const seenQueryScope = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!operatingBrandIds.length || routeOwnsBrandQuery(pathname)) return
+    const queryScopeRaw = (searchParams.get('brand') || '').trim()
+    // Follow ?brand= only when the address changes. A header pick changes
+    // scope first, and the stale address must not undo it before it syncs.
+    if (queryScopeRaw === seenQueryScope.current) return
+    seenQueryScope.current = queryScopeRaw
+    if (!queryScopeRaw) return
+    const queryScope = resolveInitialScope(queryScopeRaw, operatingBrandIds)
+    if (queryScope === scope) return
+    scopeFromUrl.current = true
+    writeStoredScope(queryScope)
+    setScope(queryScope)
+    if (queryScope !== 'all' && queryScope !== brandId) {
+      const row = brands.find((brand) => brand.id === queryScope)
+      if (row) void setBrand(row.id, row.label)
+    }
+  }, [operatingBrandIds, scope, searchParams, pathname, brandId, brands])
+
+  useEffect(() => {
+    if (!scopeInitialized.current || routeOwnsBrandQuery(pathname)) return
+    if (scopeFromUrl.current) {
+      scopeFromUrl.current = false
+      return
+    }
+    const wanted = scope === 'all' ? 'all' : scope
+    setSearchParams((prev) => {
+      if ((prev.get('brand') || '').trim() === wanted) return prev
+      const next = new URLSearchParams(prev)
+      next.set('brand', wanted)
+      return next
+    }, { replace: true })
+  }, [scope, pathname, setSearchParams])
 
   function setScopeAll() {
+    if (scope === 'all') return
     writeStoredScope('all')
     setScope('all')
+    setBrandVersion((v) => v + 1)
   }
 
   async function setScopeBrand(id: string, label: string) {
+    const plan = planBrandPick(brandId, scope === 'all', id)
+    if (plan === 'noop' || busy) return
+    // Select first so a failed POST leaves the previous brand on screen.
+    // Scope and the refresh key commit together, after the server has stored the pick.
+    if (plan === 'select') {
+      setBusy(true)
+      try {
+        await selectBrand(id)
+      } catch (err) {
+        setBusy(false)
+        throw err
+      }
+      setId(id)
+      setLabel(label)
+      setBusy(false)
+    }
     writeStoredScope(id)
     setScope(id)
-    await setBrand(id, label)
+    setBrandVersion((v) => v + 1)
   }
 
   return (
-    <BrandContext.Provider value={{ brandId, brandLabel, brands, busy, setBrand }}>
+    <BrandContext.Provider value={{ brandId, brandLabel, brandVersion, brands, busy, setBrand }}>
       <BrandScopeContext.Provider
         value={{
           scope,
@@ -159,8 +234,8 @@ export function BrandSwitch({ variant = 'bar' }: { variant?: 'bar' | 'inline' })
       setOpen(false)
       return
     }
-    await setScopeBrand(id, nextLabel)
     setOpen(false)
+    await setScopeBrand(id, nextLabel)
   }
 
   function pickAll() {

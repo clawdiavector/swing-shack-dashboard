@@ -1,0 +1,17 @@
+{
+  "id": "stick-product-post",
+  "brand_id": "stick",
+  "pack": "templates/product-post",
+  "archetype_id": "stick-product-post",
+  "post_type": "product_post",
+  "reference_size": {
+    "w": 1081,
+    "h": 1351
+  },
+  "measured_from": [
+    "references/ref-01.jpg",
+    "references/ref-02.jpg",
+    "references/ref-03.jpg"
+  ],
+  "vetted": true
+}

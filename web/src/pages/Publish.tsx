@@ -5,6 +5,7 @@ import { BrandChip } from '../components/BrandChip'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
+import { PublishNowButton } from '../components/posting/PublishNowButton'
 import '../fun.css'
 import { FunTile } from '../components/fun'
 import { burstAtPointer } from '../lib/confetti'
@@ -24,7 +25,7 @@ import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
 import { groupSandboxRowsByPostId, idempotencyKeysForGroup } from '../lib/publishPostGroup'
 import { postingChannelAbbrev } from '../lib/postingWeek'
-import { publishNowConfirmText } from '../lib/publishConfirm'
+import { publishNowConfirmText, publishNowSuccessText } from '../lib/publishConfirm'
 import { sandboxGoesOutIso, sandboxRowId, sandboxTitle } from '../lib/sandboxRow'
 import { formatStamp } from '../lib/stamp'
 
@@ -43,11 +44,10 @@ export function Publish() {
   function publishNowButton(postId: string, keys: string[], channels: string, title: string) {
     if (!keys.length) return undefined
     return (
-      <button
-        type="button"
+      <PublishNowButton
         disabled={publishingPostId === postId}
-        className="shrink-0 rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
-        data-testid={`publish-now-${postId}`}
+        className="shrink-0 rounded-full bg-ac px-3 py-1 text-left text-xs font-semibold text-bg disabled:opacity-40"
+        testId={`publish-now-${postId}`}
         onClick={(event) => {
           event.preventDefault()
           event.stopPropagation()
@@ -58,16 +58,14 @@ export function Publish() {
           void publishDispatchNow(keys)
             .then(({ data: body }) => {
               const err = body.errors?.join('; ') || body.error
-              setPublishNote(err ? String(err) : 'Sent. Off it goes!')
+              setPublishNote(err ? String(err) : publishNowSuccessText(body.publish_at))
               if (!err) burstAtPointer(70)
               loadPanelAndQueue()
             })
             .catch((e: unknown) => setPublishNote(e instanceof Error ? e.message : 'Publish failed'))
             .finally(() => setPublishingPostId(''))
         }}
-      >
-        Publish now
-      </button>
+      />
     )
   }
 

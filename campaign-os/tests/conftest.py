@@ -100,3 +100,22 @@ def cos_session(cos_app):
 def cos_anon_client(cos_app):
     """A deliberately unauthenticated client, for 401 assertions."""
     return cos_app.test_client(cos_anon=True)
+
+
+def pytest_runtest_setup(item):
+    """L7 learn purges _lib.* from sys.modules; refresh T5 imports before setup."""
+    fspath = str(getattr(item, "fspath", "") or "")
+    if "test_postiz_schedule_on_approve_20261026" not in fspath:
+        return
+    import importlib
+    import sys
+
+    poa = importlib.import_module("_lib.postiz_on_approve")
+    poa = importlib.reload(poa)
+    test_mod = sys.modules.get("tests.test_postiz_schedule_on_approve_20261026")
+    if test_mod is not None:
+        test_mod.postiz_on_approve = poa
+    ps = importlib.import_module("_lib.publish_sandbox")
+    ps = importlib.reload(ps)
+    if test_mod is not None:
+        test_mod.publish_sandbox = ps

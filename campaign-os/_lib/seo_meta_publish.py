@@ -48,6 +48,15 @@ LOG_FILE = "seo-publish-log.json"
 
 # Audit page name -> WordPress slug. The homepage is deliberately absent.
 PAGE_SLUGS = {"Membership": "membership", "Coaching": "coaching", "Club Fitting": "club-fitting"}
+PAGE_SLUGS_BY_BRAND = {
+    "swing-shack": PAGE_SLUGS,
+    "stick": {"Club Fitting": "club-fitting-at-stick", "Coaching": "coaching-at-stick"},
+}
+
+
+def page_slugs(brand: str | None) -> dict[str, str]:
+    """Audit page name -> WordPress slug for one brand's site (homepage excluded)."""
+    return PAGE_SLUGS_BY_BRAND.get(brand or "swing-shack", {})
 
 WpClient = Callable[..., dict]
 
@@ -70,6 +79,14 @@ _REJECT = re.compile(
     r"\b(stick|bag\s?drop)\b|https?:|www\.|@|\d{3}[\s-]?\d{3}|�",
     re.I,
 )
+# Same rules for Stick's text, where the other companies are Swing Shack and Bag Drop.
+_REJECT_STICK = re.compile(
+    _REJECT.pattern.replace(r"\b(stick|bag\s?drop)\b", r"\b(swing\s?shack|bag\s?drop)\b"), re.I
+)
+
+
+def _reject_for(brand: str | None) -> "re.Pattern[str]":
+    return _REJECT_STICK if brand == "stick" else _REJECT
 
 
 def _blocks(raw_html: str) -> list[str]:
@@ -86,7 +103,7 @@ def _blocks(raw_html: str) -> list[str]:
     return out
 
 
-def candidates(raw_html: str) -> list[str]:
+def candidates(raw_html: str, brand: str = "swing-shack") -> list[str]:
     """Every safe 120-160 character description the page's own whole sentences
     can make, one per starting sentence, best-first (page order)."""
     sentences: list[str] = []
@@ -102,20 +119,20 @@ def candidates(raw_html: str) -> list[str]:
             if len(text) > DESC_MAX:
                 break
             if len(text) >= DESC_MIN:
-                if not _REJECT.search(text) and text[-1] in ".!?" and text not in out:
+                if not _reject_for(brand).search(text) and text[-1] in ".!?" and text not in out:
                     out.append(text)
                 break
     return out
 
 
-def propose(raw_html: str, prefer: tuple[str, ...] = (), avoid: str = "") -> str | None:
+def propose(raw_html: str, prefer: tuple[str, ...] = (), avoid: str = "", brand: str = "swing-shack") -> str | None:
     """A 120-160 character description built from whole sentences of the page's
     own paragraphs, or None when no safe candidate exists. When `prefer` is
     given (brand and page names), the first safe candidate that mentions one of
     those terms wins; otherwise the first safe candidate does. `avoid` is the
     text already on the page, never proposed again."""
     terms = [t.lower() for t in prefer if t]
-    options = [c for c in candidates(raw_html) if c != (avoid or "").strip()]
+    options = [c for c in candidates(raw_html, brand) if c != (avoid or "").strip()]
     if not options:
         return None
     for text in options:
@@ -156,6 +173,31 @@ def current_description(page: dict) -> str:
     from_meta = meta.get(META_KEY) if isinstance(meta, dict) else None
     from_head = (page.get("yoast_head_json") or {}).get("description")
     return str(from_meta or from_head or "").strip()
+
+
+def page_field_writable(wp: WpClient, field: str = "meta_description") -> bool | None:
+    """Does WordPress let the REST API save this Yoast field on pages?
+
+    Yoast registers its fields as REST-writable for posts only. On pages a write is
+    accepted and silently dropped (found live 2026-10-23). True or False from
+    WordPress's own schema; None when it cannot be told, in which case callers go
+    ahead and rely on the read-back after writing.
+    """
+    key = FIELDS_META[field]["key"]
+    try:
+        r = wp("OPTIONS", "/pages")
+        props = (((r.get("data") or {}).get("schema") or {}).get("properties") or {}).get("meta", {}).get("properties")
+        if not isinstance(props, dict) or not props:
+            return None
+        return key in props
+    except Exception:  # noqa: BLE001
+        return None
+
+
+PAGE_UNWRITABLE_WHY = (
+    "WordPress does not let Campaign OS save Yoast fields on pages yet. "
+    "A small WordPress snippet makes the field writable; until then paste the text into Yoast by hand."
+)
 
 
 def fetch_page(wp: WpClient, slug: str) -> dict | None:
@@ -240,10 +282,15 @@ def run_auto(io: Any, brand: str, queue: dict | None, wp: WpClient, now: str, ru
         if item.get("status") != "draft" or item.get("publish_policy") != seo_fix_queue.PUBLISH_AUTO:
             continue
         page_name = item.get("page")
-        if item.get("type") not in seo_fix_queue.AUTO_PUBLISH_TYPES or page_name not in PAGE_SLUGS:
+        slugs = page_slugs(brand)
+        if item.get("type") not in seo_fix_queue.AUTO_PUBLISH_TYPES or page_name not in slugs:
             continue
 
-        page = fetch_page(wp, PAGE_SLUGS[page_name])
+        if page_field_writable(wp, "meta_description") is False:
+            summary["skipped"].append({"page": page_name, "why": PAGE_UNWRITABLE_WHY})
+            continue
+
+        page = fetch_page(wp, slugs[page_name])
         if not page:
             summary["skipped"].append({"page": page_name, "why": "page not found on the site"})
             continue
