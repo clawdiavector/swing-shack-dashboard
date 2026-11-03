@@ -227,3 +227,4 @@ campaign-os/tests/test_plan_action_script.py
 campaign-os/tests/test_bag_drop_weekly_deal_template.py
 campaign-os/tests/test_image_library_20261103.py
 campaign-os/tests/test_catalogue_drive_20261103.py
+campaign-os/tests/test_catalogue_backfill_20261103.py
