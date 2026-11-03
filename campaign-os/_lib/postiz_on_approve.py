@@ -19,6 +19,7 @@ from _lib.postiz_client import (
 )
 from _lib.publish_mode import is_live_mode
 from _lib import publish_live
+from _lib import zernio_client
 
 
 def is_enabled() -> bool:
@@ -123,6 +124,9 @@ def schedule_row_on_approve(row: dict[str, Any]) -> tuple[dict[str, Any], Option
     except ValueError as exc:
         return {}, str(exc)
 
+    if zernio_client.has_brand_key(brand_id):
+        return _schedule_on_zernio(row, brand_id, key)
+
     if not has_brand_key(brand_id):
         return {}, f"Postiz API key required for brand={brand_id!r} (no shared-key fallback)"
 
@@ -197,6 +201,69 @@ def schedule_row_on_approve(row: dict[str, Any]) -> tuple[dict[str, Any], Option
     return receipt, None
 
 
+def _zernio_image_url(row: dict[str, Any]) -> Optional[str]:
+    """A public HTTPS URL Zernio can fetch: the row's own https URL, else a copy of its file."""
+    url = str(row.get("image_url") or "").strip()
+    if url.startswith("https://"):
+        return url
+    from _lib.publish_image import resolve_queue_upload_path  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
+
+    try:
+        path = resolve_queue_upload_path(row)
+    except Exception:  # noqa: BLE001 - an unreadable composed file falls back to the raw path
+        path = None
+    if path is None:
+        raw = str(row.get("image_path") or "").strip()
+        path = Path(raw) if raw and Path(raw).is_file() else None
+    return zernio_client.public_media_url(path) if path is not None else None
+
+
+def _schedule_on_zernio(row: dict[str, Any], brand_id: str, key: str) -> tuple[dict[str, Any], Optional[str]]:
+    """Bag Drop: schedule on the brand's own Zernio account (Instagram + Facebook)."""
+    planned, date_err = _resolve_would_publish_at(row)
+    if date_err:
+        return {}, date_err
+    enriched = sandbox.refresh_queue_row_from_draft(dict(row))
+    caption = str(enriched.get("caption") or enriched.get("caption_preview") or "").strip()
+    if not caption:
+        return {}, "empty caption"
+    image_url = _zernio_image_url(enriched)
+    if not image_url:
+        return {}, "Zernio needs an image (no image on the row)"
+    platform = str(enriched.get("platform") or "instagram")
+    story = "story" in platform.lower() or str(enriched.get("format") or "").lower() == "story"
+    publish_date, _moved = scheduled_at_least(planned)
+    post, err = zernio_client.create_post(
+        brand_id=brand_id,
+        content=caption,
+        image_url=image_url,
+        publish_date=publish_date,
+        story=story,
+        idempotency_key=key,
+    )
+    if err or not post:
+        return {}, f"zernio create_post: {err}"
+    receipt = {
+        "schema": sandbox.RECEIPT_SCHEMA,
+        "mode": "live",
+        "inbox_item_id": enriched.get("inbox_item_id"),
+        "brand_id": brand_id,
+        "channel": "zernio",
+        "platform": platform,
+        "idempotency_key": key,
+        "human_approved_at": enriched.get("human_approved_at"),
+        "dispatched_at": sandbox._utc_now_iso(),  # noqa: SLF001
+        "zernio_post_id": str(post["_id"]),
+        "caption_preview": caption[:120],
+        "would_publish_at": planned,
+        # Same field as Postiz so un-approve applies the same "too late to cancel" rule.
+        "postiz_scheduled_at": publish_date,
+    }
+    sandbox._append_jsonl(sandbox._receipts_path(), receipt)  # noqa: SLF001
+    return receipt, None
+
+
 def clear_postiz_on_unapprove(idempotency_key: str) -> tuple[dict[str, Any], Optional[str]]:
     """Delete a future schedule-on-approve Postiz post and drop that receipt only."""
     key = str(idempotency_key or "").strip()
@@ -213,8 +280,20 @@ def clear_postiz_on_unapprove(idempotency_key: str) -> tuple[dict[str, Any], Opt
     if action == "noop":
         return {"cleared_postiz": False, "kept_receipt": True}, None
 
-    postiz_id = str(rec.get("postiz_post_id") or "").strip()
     brand_id = str(rec.get("brand_id") or "")
+    zernio_id = str(rec.get("zernio_post_id") or "").strip()
+    if zernio_id:
+        if not (is_live_mode() and zernio_client.has_brand_key(brand_id)):
+            return {"cleared_postiz": False, "kept_receipt": True}, None
+        _data, zerr = zernio_client.unpublish_post(zernio_id, brand_id=brand_id)
+        if zerr:
+            return {}, f"zernio unpublish: {zerr}"
+        path = sandbox._receipts_path()  # noqa: SLF001
+        rows = sandbox._read_jsonl(path)  # noqa: SLF001
+        sandbox._rewrite_jsonl(path, [r for r in rows if str(r.get("idempotency_key") or "") != key])  # noqa: SLF001
+        return {"removed_receipt": True, "zernio_post_id": zernio_id}, None
+
+    postiz_id = str(rec.get("postiz_post_id") or "").strip()
     if not (postiz_id and is_live_mode() and has_brand_key(brand_id)):
         return {"cleared_postiz": False, "kept_receipt": True}, None
 
