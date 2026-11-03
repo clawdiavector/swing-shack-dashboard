@@ -48725,6 +48725,16 @@ def review_packs_view(pack_id):
         return _rp_error(e)
 
 
+@app.route("/api/jobs/review-packs/<pack_id>/news", methods=["GET"])
+def review_packs_news(pack_id):
+    """What the client did since ?since=<time>: counts and plain text for the Mac watcher. Sends nothing."""
+    from _lib import review_pack as rp
+    try:
+        return jsonify({"ok": True, **rp.news(pack_id, request.args.get("since") or "")}), 200
+    except ValueError as e:
+        return _rp_error(e)
+
+
 @app.route("/api/jobs/review-packs/<pack_id>", methods=["DELETE"])
 def review_packs_delete(pack_id):
     """Delete a pack for good. Refused (409) once she has answered it, unless ?force=1."""

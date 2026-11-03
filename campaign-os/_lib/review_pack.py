@@ -430,6 +430,45 @@ def public_view(pack_id: str, token: str) -> dict[str, Any]:
             "decisions": v["decisions"], "comments": v["comments"], "uploads": uploads}
 
 
+def news(pack_id: str, since: str = "") -> dict[str, Any]:
+    """What the client did after `since` (an ISO time from an earlier call's `now`), as counts and
+    plain text for the Mac watcher to send. Our own replies are not news. Sends nothing itself."""
+    v = view(pack_id)
+    since = (since or "").strip()
+    titles = {i["id"]: i.get("title") or i["id"] for i in v["pack"]["items"]}
+
+    def fresh(row: dict[str, Any], key: str = "at") -> bool:
+        return str(row.get(key) or "") > since
+
+    decided = [(titles.get(k, k), r) for k, r in v["decisions"].items() if isinstance(r, dict) and fresh(r)]
+    comments = [c for rows in v["comments"].values() for c in rows if c.get("role") == "client" and fresh(c)]
+    uploads = [u for u in v["uploads"] if fresh(u)]
+    counts = {
+        "approved": sum(1 for _, r in decided if r.get("state") == "approve"),
+        "rejected": sum(1 for _, r in decided if r.get("state") == "reject"),
+        "held": sum(1 for _, r in decided if r.get("state") == "hold"),
+        "picked": sum(1 for _, r in decided if r.get("state") == "pending" and r.get("choice")),
+        "comments": len(comments),
+        "uploads": len(uploads),
+    }
+    empty = not any(counts.values())
+    lines: list[str] = []
+    if not empty:
+        client = v["pack"].get("client") or "The client"
+        lines.append(f"{client} on \"{v['pack']['title']}\":")
+        words = {"approve": "approved", "reject": "rejected", "hold": "put on hold", "pending": "picked a design for"}
+        for title, r in sorted(decided, key=lambda t: t[1].get("at", "")):
+            lines.append(f"- {r.get('by', 'someone')} {words.get(r.get('state'), r.get('state'))} {title}"
+                         + (f" (design {r['choice']})" if r.get("choice") else ""))
+        for c in comments:
+            tag = f", {c['tag']}" if c.get("tag") and c["tag"] != "general" else ""
+            lines.append(f"- {c.get('who', 'someone')} commented on {titles.get(c.get('item'), 'the pack')}{tag}: {c.get('text', '')[:140]}")
+        for u in uploads:
+            lines.append(f"- {u.get('who', 'someone')} uploaded a photo to {titles.get(u.get('item'), 'the pack')}")
+    return {"pack_id": pack_id, "since": since, "now": _now(), "empty": empty, "counts": counts,
+            "text": "\n".join(lines)}
+
+
 def has_activity(pack_id: str) -> bool:
     """True once the CLIENT has answered: a decision, a comment of hers or an upload.
     Our own replies do not count."""
