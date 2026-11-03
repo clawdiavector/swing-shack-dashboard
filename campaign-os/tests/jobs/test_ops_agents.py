@@ -278,6 +278,13 @@ def test_heartbeat_accepts_agent_id_and_completed():
     assert ops_agents_mod.normalise_heartbeat({"id": "cos-scout", "status": "error"})["status"] == "FAILED"
 
 
+
+def test_heartbeat_running_is_not_failed():
+    from _lib import ops_agents as ops_agents_mod
+
+    for raw in ("running", "started", "in_progress"):
+        assert ops_agents_mod.normalise_heartbeat({"id": "cos-scout", "status": raw})["status"] == "OK"
+
 def test_enqueue_appends_queue_row(job_app, tmp_path):
     client, _, tmp_path = job_app
     client.post(
