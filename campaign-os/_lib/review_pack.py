@@ -430,10 +430,28 @@ def public_view(pack_id: str, token: str) -> dict[str, Any]:
             "decisions": v["decisions"], "comments": v["comments"], "uploads": uploads}
 
 
-def delete_pack(pack_id: str) -> bool:
+def has_activity(pack_id: str) -> bool:
+    """True once the CLIENT has answered: a decision, a comment of hers or an upload.
+    Our own replies do not count."""
     d = _pack_dir(pack_id)
     if d is None or not d.is_dir():
         return False
+    if _read_json(d / "decisions.json", {}):
+        return True
+    if any(r.get("role") == "client" for r in _read_rows(d / "comments.jsonl")):
+        return True
+    return bool(_read_rows(d / "uploads.jsonl"))
+
+
+def delete_pack(pack_id: str, *, force: bool = False) -> bool:
+    """Delete a pack for good. False if it is not there. A pack the client has already
+    answered is refused (ValueError) unless force: deleting is final."""
+    d = _pack_dir(pack_id)
+    if d is None or not d.is_dir():
+        return False
+    if not force and has_activity(pack_id):
+        raise ValueError("She has already answered this pack (a decision, a comment or an upload). "
+                         "Deleting is final. Add force to delete it anyway.")
     shutil.rmtree(d)
     return True
 
