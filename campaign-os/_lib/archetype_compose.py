@@ -624,12 +624,16 @@ def vendor_slug(name: str) -> str:
 
 
 def _paste_vendor_logo(base, brand_id: str, fields: dict[str, str], zone: dict[str, Any]) -> None:
-    """Paste the maker's logo for fields['vendor_name'] from the brand's logos/vendors/ folder."""
+    """Paste the maker's logo for fields['vendor_name'] from the brand's logos/vendors/ folder.
+
+    A zone may name another field with `vendor_field` (e.g. `vendor_name_2` for a second maker).
+    """
     from _lib.brand_overlay import _resolve_brand_relative
 
-    name = str(fields.get("vendor_name") or "").strip()
+    field = str(zone.get("vendor_field") or "vendor_name")
+    name = str(fields.get(field) or "").strip()
     if not name:
-        raise ComposeError("missing vendor_name")
+        raise ComposeError(f"missing {field}")
     path = _resolve_brand_relative(brand_id, f"logos/vendors/{vendor_slug(name)}.png")
     if path is None:
         raise ComposeError(f"no vendor logo for {name!r} (logos/vendors/{vendor_slug(name)}.png)")
