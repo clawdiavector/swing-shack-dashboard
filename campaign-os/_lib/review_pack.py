@@ -416,6 +416,22 @@ def view(pack_id: str) -> dict[str, Any]:
             "uploads": _read_rows(d / "uploads.jsonl")}
 
 
+PALETTE = ["#f2994a", "#56ccf2", "#bb6bd9", "#6fcf97", "#eb5757", "#f2c94c", "#4f9cf0", "#e07bb0", "#27ae9a", "#a5a5f5"]
+
+
+def colour_of(pack_id: str, who: str) -> str:
+    """One colour per person per pack, kept so they keep it. 'Yolanda ' and 'yolanda' are one person."""
+    d = _pack_dir(pack_id)
+    key = " ".join(str(who or "someone").lower().split())
+    if d is None or not d.is_dir():
+        return PALETTE[0]
+    people = _read_json(d / "people.json", {})
+    if key not in people:
+        people[key] = len(people)
+        _write_json(d / "people.json", people)
+    return PALETTE[people[key] % len(PALETTE)]
+
+
 def public_view(pack_id: str, token: str) -> dict[str, Any]:
     """What the page needs, with links that carry her token."""
     v = view(pack_id)
@@ -424,10 +440,13 @@ def public_view(pack_id: str, token: str) -> dict[str, Any]:
     for it in v["pack"]["items"]:
         items.append({**{k: it[k] for k in ("id", "title", "kind", "caption", "channels", "when", "audience", "note", "version")},
                       "images": [f"{base}/image/{it['id']}/{i}" for i in range(len(it["images"]))]})
-    uploads = [{**u, "url": f"{base}/file/{u['file']}"} for u in v["uploads"]]
+    uploads = [{**u, "url": f"{base}/file/{u['file']}", "colour": colour_of(pack_id, u.get("who", ""))} for u in v["uploads"]]
+    comments = {k: [{**c, "colour": colour_of(pack_id, c.get("who", ""))} for c in rows] for k, rows in v["comments"].items()}
+    decisions = {k: ({**r, "colour": colour_of(pack_id, r.get("by", ""))} if isinstance(r, dict) else r)
+                 for k, r in v["decisions"].items()}
     return {"pack": {"title": v["pack"]["title"], "client": v["pack"].get("client", ""),
                      "theme": v["pack"].get("theme", {}), "notice": v["pack"].get("notice", ""), "items": items},
-            "decisions": v["decisions"], "comments": v["comments"], "uploads": uploads}
+            "decisions": decisions, "comments": comments, "uploads": uploads}
 
 
 def news(pack_id: str, since: str = "") -> dict[str, Any]:
@@ -562,7 +581,7 @@ document.addEventListener("keydown",e=>{if($("lb").hidden)return;if(e.key==="Esc
 function say(t){$("status").textContent=t;if(t)setTimeout(()=>{if($("status").textContent===t)$("status").textContent=""},4000)}
 async function post(path,body){const r=await fetch(BASE+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Something went wrong");return j}
 function threadHTML(box,item){box.textContent="";const list=D.comments[item]||[];if(!list.length)box.append(el("p","sub","No comments yet."));
- list.forEach(c=>{const d=el("div","cm "+c.role);d.append(el("small","",c.who+(c.tag&&c.tag!=="general"?"  ·  "+c.tag:"")+"  ·  "+(c.at||"").slice(0,16).replace("T"," ")),el("p","",c.text));box.append(d)})}
+ list.forEach(c=>{const d=el("div","cm "+c.role);if(c.colour)d.style.borderLeft="5px solid "+c.colour;const nm=el("small","",c.who+(c.tag&&c.tag!=="general"?"  ·  "+c.tag:"")+"  ·  "+(c.at||"").slice(0,16).replace("T"," "));if(c.colour)nm.style.color=c.colour;d.append(nm,el("p","",c.text));box.append(d)})}
 function composer(item,box){const w=el("div","compose");const ta=document.createElement("textarea");ta.placeholder="Write a comment";ta.setAttribute("aria-label","Comment");
  const sel=document.createElement("select");sel.setAttribute("aria-label","What kind of comment");[["general","General"],["copy edit","Copy edit (the words)"],["design edit","Design edit (the picture)"]].forEach(([v,t])=>{const o=el("option","",t);o.value=v;sel.append(o)});
  const b=el("button","send","Send");b.type="button";b.disabled=true;ta.oninput=()=>{b.disabled=!ta.value.trim()};
