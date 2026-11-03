@@ -29,6 +29,11 @@ list. Every file still waits as `needs-check` until a person approves it. Ask ag
 4. **Check and save.** `image_scout_cli.py fetch --brand <brand> --images <images folder>`. The gate rejects
    non-images and anything under 800px; files under 1500px are noted for the faithful Topaz upscale.
    Saved files are named `SKU__front.<ext>` and sit on the photo map as `needs-check`.
+   The original is also filed once in the shared catalogue (`_shared/catalogue/`), and a
+   product the other shop already has comes from there, not a second download. Afterwards
+   run `campaign-os/scripts/sync_catalogue.py to-upload`, put those files in Drive
+   `Catalogue/<maker>/`, then `sync_catalogue.py link`. A photo can only be approved once its
+   maker's `rights.status` is `cleared` in `_system/image-sources.json`.
 5. **Look at them.** `scripts/photo_contact_sheet.py --brand <brand> --out sheet.png`, then view it. Page
    titles lie (Callaway). Confirm each picture is the model its label says.
 6. **Tell Christelle** what was found, what is blocked, and what cannot be found online (the shot list).

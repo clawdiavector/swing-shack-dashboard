@@ -22,7 +22,7 @@ rotation (heads, shafts, putters, wedges, combos) needs no designer redraw.
 - `headline`: the offer, `20% OFF`. One line.
 - `deal_detail`: up to three lines split with `|`, `PUTTERS|THIS WEEK`. Keep each line to about
   20 characters: a longer line shrinks the whole detail block.
-- `vendor_name`, `vendor_name_2` (maker layouts only): file `logos/vendors/<slug>.png`. Only
+- `vendor_name`, `vendor_name_2` (maker layouts only): file `_shared/maker-logos/<slug>.png`. Only
   `srixon` and `mizuno` exist so far; both are needed or the render refuses.
 
 ## Known gaps

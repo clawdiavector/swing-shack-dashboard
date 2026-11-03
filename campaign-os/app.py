@@ -6927,7 +6927,12 @@ def photos_review_set():
     file = str(body.get("file") or "")
     if status not in pm.STATUSES or not file:
         return jsonify({"ok": False, "error": "file and a valid status required"}), 400
-    if not pm.set_status(brand_id, file, status, "dashboard"):
+    from _lib.image_library import RightsNotCleared
+    try:
+        found = pm.set_status(brand_id, file, status, "dashboard")
+    except RightsNotCleared as e:
+        return jsonify({"ok": False, "error": str(e)}), 409
+    if not found:
         return jsonify({"ok": False, "error": "no such photo on the map"}), 404
     return jsonify({"ok": True, "file": file, "status": status})
 

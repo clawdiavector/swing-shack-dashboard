@@ -1,0 +1,92 @@
+{
+ "note": "Swing Shack's own logos, from her official versions (closed box both sides, PR #259). Every template uses swing-shack-logo-white.png.",
+ "logos": [
+  {
+   "file": "swing-shack-logo-white.png",
+   "what": "full lockup, white",
+   "background": "dark",
+   "source": "official versions (PR #259, 2026-10-28)",
+   "status": "official"
+  },
+  {
+   "file": "swing-shack-logo-dark.png",
+   "what": "full lockup, dark grey",
+   "background": "light",
+   "source": "official versions (PR #259, 2026-10-28)",
+   "status": "official"
+  },
+  {
+   "file": "swing-shack-icon-white.png",
+   "what": "icon only, white",
+   "background": "dark",
+   "source": "branding document (2026-10-14)",
+   "status": "official"
+  },
+  {
+   "file": "swing-shack-icon-dark.png",
+   "what": "icon only, dark grey",
+   "background": "light",
+   "source": "branding document (2026-10-14)",
+   "status": "official"
+  },
+  {
+   "file": "swing-shack-tee-white.png",
+   "what": "tee mark, white",
+   "background": "dark",
+   "source": "branding document (2026-10-14)",
+   "status": "official"
+  },
+  {
+   "file": "swing-shack-tee-dark.png",
+   "what": "tee mark, dark grey",
+   "background": "light",
+   "source": "branding document (2026-10-14)",
+   "status": "official"
+  }
+ ],
+ "copies": [
+  {
+   "file": "../logo.png",
+   "what": "same file as swing-shack-logo-white.png, kept for code that looks for <brand>/logo.png",
+   "status": "official"
+  }
+ ],
+ "masters": {
+  "folder": "master/",
+  "drive": "Swing Shack Drive Brand/Logos (1zUpn7EC0WZdrFHtufTyfsUV5P4knnW0B): every designer file (SVG, PDF, PNG 1x/2x, hi-res PNG up to 5761px)",
+  "source": "designer's Graphics pack (logos dated 2024-02-14, hi-res 2025-05-19), from Christelle 2026-11-03",
+  "files": [
+   {
+    "file": "master/full_logo_light.svg",
+    "what": "full lockup, white",
+    "status": "official"
+   },
+   {
+    "file": "master/full_logo_dark.svg",
+    "what": "full lockup, dark grey",
+    "status": "official"
+   },
+   {
+    "file": "master/icon1_light.svg",
+    "what": "icon: tee + S in brackets, white",
+    "status": "official"
+   },
+   {
+    "file": "master/icon1_dark.svg",
+    "what": "icon: tee + S in brackets, dark grey",
+    "status": "official"
+   },
+   {
+    "file": "master/icon2_light.svg",
+    "what": "icon: tee in brackets, white",
+    "status": "official"
+   },
+   {
+    "file": "master/icon2_dark.svg",
+    "what": "icon: tee in brackets, dark grey",
+    "status": "official"
+   }
+  ],
+  "note": "Vector masters: scale these for any size instead of enlarging a PNG. All have the closed box (checked 2026-11-03)."
+ }
+}

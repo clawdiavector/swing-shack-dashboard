@@ -52,7 +52,7 @@
       },
       "kind": "image",
       "source": "asset",
-      "asset": "templates/discount-code/assets/logo-white.png",
+      "asset": "logos/swing-shack-logo-white.png",
       "fit": "aspect_fit",
       "align": "center",
       "valign": "middle"
@@ -240,7 +240,7 @@
         },
         "kind": "image",
         "source": "asset",
-        "asset": "templates/discount-code/assets/logo-white.png",
+        "asset": "logos/swing-shack-logo-white.png",
         "fit": "aspect_fit",
         "align": "center",
         "valign": "middle"
