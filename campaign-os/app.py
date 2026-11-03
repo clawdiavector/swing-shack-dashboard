@@ -48725,6 +48725,20 @@ def review_packs_view(pack_id):
         return _rp_error(e)
 
 
+@app.route("/api/jobs/review-packs/<pack_id>", methods=["DELETE"])
+def review_packs_delete(pack_id):
+    """Delete a pack for good. Refused (409) once she has answered it, unless ?force=1."""
+    from _lib import review_pack as rp
+    force = str(request.args.get("force") or "") in ("1", "true")
+    try:
+        gone = rp.delete_pack(pack_id, force=force)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 409
+    if not gone:
+        return jsonify({"ok": False, "error": "that pack is not there"}), 404
+    return jsonify({"ok": True, "deleted": pack_id}), 200
+
+
 @app.route("/api/jobs/review-packs/<pack_id>/items/<item_id>/image", methods=["POST"])
 def review_packs_add_image(pack_id, item_id):
     from _lib import review_pack as rp

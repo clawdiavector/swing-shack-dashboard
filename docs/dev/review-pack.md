@@ -30,6 +30,7 @@ GET  /api/jobs/review-packs/<id>                    decisions, comments (both si
 POST /api/jobs/review-packs/<id>/reply              {item, text, tag, who}  (shows to her as "us")
 GET  /api/jobs/review-packs/<id>/file/<name>        one of her uploads (bearer)
 GET  /api/jobs/review-packs/                        list
+DELETE /api/jobs/review-packs/<id>                  delete for good (409 once she has answered it; ?force=1 overrides)
 ```
 
 `kind` is `single`, `choice` (A/B/C, needs 2 or 3 pictures), `carousel` or `note`.
@@ -50,4 +51,4 @@ GET  /api/jobs/review-packs/                        list
 ## Not built yet
 
 A page on our side listing packs and live decisions (today: the API above), email or
-Telegram pings when she acts, an Afrikaans page, a pack delete button.
+Telegram pings when she acts, an Afrikaans page.
