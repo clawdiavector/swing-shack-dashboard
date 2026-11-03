@@ -48709,7 +48709,8 @@ def review_packs_create():
     body = request.get_json(silent=True) or {}
     try:
         pack = rp.create_pack(str(body.get("title") or ""), body.get("items") or [],
-                              client=str(body.get("client") or ""), theme=body.get("theme"))
+                              client=str(body.get("client") or ""), theme=body.get("theme"),
+                              notice=str(body.get("notice") or ""))
     except ValueError as e:
         return _rp_error(e)
     return jsonify({"ok": True, "pack_id": pack["id"], "items": [i["id"] for i in pack["items"]]}), 200

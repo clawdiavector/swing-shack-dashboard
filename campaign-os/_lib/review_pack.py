@@ -136,7 +136,7 @@ def read_token(serializer: Any, token: str, *, max_age: int = MAX_AGE) -> dict[s
 
 
 def create_pack(title: str, items: list[dict[str, Any]], *, client: str = "",
-                theme: dict[str, Any] | None = None) -> dict[str, Any]:
+                theme: dict[str, Any] | None = None, notice: str = "") -> dict[str, Any]:
     title = (title or "").strip()
     if not title:
         raise ValueError("a pack needs a title")
@@ -170,7 +170,8 @@ def create_pack(title: str, items: list[dict[str, Any]], *, client: str = "",
         })
     pack_id = f"{_slug(title, 'pack')[:30].strip('-') or 'pack'}-{secrets.token_hex(3)}"
     pack = {"id": pack_id, "title": title[:200], "client": (client or "").strip()[:60],
-            "created": _now(), "theme": _clean_theme(theme), "items": clean}
+            "created": _now(), "theme": _clean_theme(theme),
+            "notice": str(notice or "").strip()[:800], "items": clean}
     _write_json(_pack_dir(pack_id) / "pack.json", pack)
     return pack
 
@@ -425,7 +426,7 @@ def public_view(pack_id: str, token: str) -> dict[str, Any]:
                       "images": [f"{base}/image/{it['id']}/{i}" for i in range(len(it["images"]))]})
     uploads = [{**u, "url": f"{base}/file/{u['file']}"} for u in v["uploads"]]
     return {"pack": {"title": v["pack"]["title"], "client": v["pack"].get("client", ""),
-                     "theme": v["pack"].get("theme", {}), "items": items},
+                     "theme": v["pack"].get("theme", {}), "notice": v["pack"].get("notice", ""), "items": items},
             "decisions": v["decisions"], "comments": v["comments"], "uploads": uploads}
 
 
@@ -485,6 +486,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 </style></head><body>
 <div class="wrap">
 <header><h1 id="ttl"></h1><p class="lead" id="intro"></p></header>
+<aside class="card" id="notice" hidden style="border-left:6px solid var(--accent)"></aside>
 <div id="items" class="wrap"></div>
 <section class="card" id="week"></section>
 </div>
@@ -531,11 +533,12 @@ function paint(){let done=0;D.pack.items.forEach(it=>{const d=D.decisions[it.id]
 async function act(item,state,choice){try{const j=await post("/act",{item,state:state||undefined,choice:choice||undefined});D.decisions[item]=j.decision;paint();say(state?LBL[state]+" saved":"Option "+choice+" picked")}catch(e){say(e.message)}}
 function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name+": ":"";$("ttl").textContent="";$("ttl").append(document.createTextNode(parts),el("span","",P.title));
  $("intro").textContent="Look at each post, then choose Approve, Reject or Hold. Leave a comment on anything, and upload your own photo where you have one. Your answers save as you go.";
+ if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
  const box=$("items");P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
   const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m));const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);c.append(h);
   if(it.images.length){const one=it.images.length===1;const g=el("div","grid"+(one?" one":"")+(it.kind==="choice"&&it.images.length>1?" choice":""));it.images.forEach((src,i)=>{const cell=el("div","cell");const im=new Image();im.src=src;im.alt=it.title;im.onclick=()=>openLB(it.images,i,it.title);
     if(it.kind==="choice"&&it.images.length>1){const L="ABC"[i];const o=el("button","opt");o.type="button";o.setAttribute("aria-label","Pick design option "+L);o.dataset.ch=it.id;o.dataset.v=L;o.setAttribute("aria-pressed","false");o.append(im,el("b","","Option "+L));o.onclick=()=>act(it.id,null,L);im.onclick=null;cell.append(o)}else cell.append(im);
-    const z=el("button","zoom","⤢");z.type="button";z.setAttribute("aria-label","View full screen");z.onclick=()=>openLB(it.images,i,it.title);cell.append(z);g.append(cell)});c.append(g)}
+    if(it.kind==="choice"&&it.images.length>1){const z=el("button","zoom","⤢");z.type="button";z.setAttribute("aria-label","View full screen");z.onclick=()=>openLB(it.images,i,it.title);cell.append(z)}g.append(cell)});c.append(g)}
   if(it.caption)c.append(el("div","cap",it.caption));if(it.note)c.append(el("p","meta",it.note));
   const r=el("div","row");["approve","reject","hold"].forEach(s=>{const b=el("button","pill "+s,LBL[s]);b.type="button";b.dataset.st=it.id;b.dataset.v=s;b.setAttribute("aria-pressed","false");b.onclick=()=>{const cur=D.decisions[it.id];act(it.id,s,cur&&cur.choice)};r.append(b)});c.append(r);
   const t=el("div","thread");t.append(el("h3","","Comments"));const tb=el("div");tb.dataset.th=it.id;t.append(tb,composer(it.id,tb));c.append(t);
