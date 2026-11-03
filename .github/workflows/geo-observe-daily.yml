@@ -1,4 +1,4 @@
-name: GEO watchlist check (08:00 SAST)
+name: GEO watchlist check (07:47 SAST)
 
 # Asks each brand's GEO watchlist a few questions a day (gpt-4o-mini with web search),
 # so the whole list is covered about once a week. One brand per request: each request
@@ -7,8 +7,8 @@ name: GEO watchlist check (08:00 SAST)
 
 on:
   schedule:
-    # 06:00 UTC = 08:00 SAST. GitHub Actions cron uses UTC.
-    - cron: "0 6 * * *"
+    # 05:47 UTC = 07:47 SAST. GitHub Actions cron uses UTC.
+    - cron: "47 5 * * *"
   workflow_dispatch:  # manual trigger for testing
 
 jobs:
