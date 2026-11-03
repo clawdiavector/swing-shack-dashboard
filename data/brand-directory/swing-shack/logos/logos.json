@@ -1,0 +1,54 @@
+{
+ "note": "Swing Shack's own logos, from her official versions (closed box both sides, PR #259). Every template uses swing-shack-logo-white.png.",
+ "logos": [
+  {
+   "file": "swing-shack-logo-white.png",
+   "what": "full lockup, white",
+   "background": "dark",
+   "source": "official versions (PR #259, 2026-10-28)",
+   "status": "official"
+  },
+  {
+   "file": "swing-shack-logo-dark.png",
+   "what": "full lockup, dark grey",
+   "background": "light",
+   "source": "official versions (PR #259, 2026-10-28)",
+   "status": "official"
+  },
+  {
+   "file": "swing-shack-icon-white.png",
+   "what": "icon only, white",
+   "background": "dark",
+   "source": "branding document (2026-10-14)",
+   "status": "official"
+  },
+  {
+   "file": "swing-shack-icon-dark.png",
+   "what": "icon only, dark grey",
+   "background": "light",
+   "source": "branding document (2026-10-14)",
+   "status": "official"
+  },
+  {
+   "file": "swing-shack-tee-white.png",
+   "what": "tee mark, white",
+   "background": "dark",
+   "source": "branding document (2026-10-14)",
+   "status": "official"
+  },
+  {
+   "file": "swing-shack-tee-dark.png",
+   "what": "tee mark, dark grey",
+   "background": "light",
+   "source": "branding document (2026-10-14)",
+   "status": "official"
+  }
+ ],
+ "copies": [
+  {
+   "file": "../logo.png",
+   "what": "same file as swing-shack-logo-white.png, kept for code that looks for <brand>/logo.png",
+   "status": "official"
+  }
+ ]
+}

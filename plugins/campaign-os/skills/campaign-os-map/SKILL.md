@@ -56,13 +56,22 @@ photos and golden renders under `templates/<name>/`.
 
 **Stick retail templates (PR #201):** `stick-product-post` (maker stack: maker logo,
 product name, AVAILABLE @ stick, cut-out on the navy fade; needs
-`logos/vendors/<maker>.png`) and `stick-venue-post` (partner plate: full photo, navy
+`_shared/maker-logos/<maker>.png`) and `stick-venue-post` (partner plate: full photo, navy
 plate with the partner's logo @ stick). `stick-photo-band-post` shows the stick logo
 twice when there's no partner logo; avoid it until fixed. The flat-navy offer card is
 still not templated. `campaign-os-template` measures new ones from reference images.
 
 **Campaigns, spotlights, carousels, heroes, badge posts, posts for later:** see the
 `campaign-os-spotlight` skill.
+
+## Where every image and logo lives
+
+`data/brand-directory/_system/IMAGES.md` is the one-page map: own photos on Drive,
+brand logos in `<brand>/logos/` (+ `logos.json`), maker logos once in
+`_shared/maker-logos/`, official maker images in the shared catalogue
+`_shared/catalogue/` (index in git, pictures not), rights per maker in
+`_system/image-sources.json`. `_lib/image_library.py` resolves them; a sourced photo
+cannot be approved until its maker's rights are `cleared`.
 
 ## Brand imagery — canonical Drive roots
 

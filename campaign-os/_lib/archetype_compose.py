@@ -616,27 +616,26 @@ def _paste_contained(base, im, box: tuple[int, int, int, int], zone: dict[str, A
 
 
 def vendor_slug(name: str) -> str:
-    """'L.A.B. Golf' -> 'lab-golf', 'RIPIT' -> 'ripit'. File: <brand>/logos/vendors/<slug>.png."""
-    import re
+    """'L.A.B. Golf' -> 'lab-golf', 'RIPIT' -> 'ripit'. File: _shared/maker-logos/<slug>.png."""
+    from _lib.image_library import slug
 
-    s = re.sub(r"[^a-z0-9]+", "-", str(name or "").lower().replace(".", "")).strip("-")
-    return s
+    return slug(name)
 
 
 def _paste_vendor_logo(base, brand_id: str, fields: dict[str, str], zone: dict[str, Any]) -> None:
-    """Paste the maker's logo for fields['vendor_name'] from the brand's logos/vendors/ folder.
+    """Paste the maker's logo for fields['vendor_name'] from _shared/maker-logos/ (one set for every brand).
 
     A zone may name another field with `vendor_field` (e.g. `vendor_name_2` for a second maker).
     """
-    from _lib.brand_overlay import _resolve_brand_relative
+    from _lib.image_library import maker_logo_path
 
     field = str(zone.get("vendor_field") or "vendor_name")
     name = str(fields.get(field) or "").strip()
     if not name:
         raise ComposeError(f"missing {field}")
-    path = _resolve_brand_relative(brand_id, f"logos/vendors/{vendor_slug(name)}.png")
+    path = maker_logo_path(brand_id, name)
     if path is None:
-        raise ComposeError(f"no vendor logo for {name!r} (logos/vendors/{vendor_slug(name)}.png)")
+        raise ComposeError(f"no vendor logo for {name!r} (_shared/maker-logos/{vendor_slug(name)}.png)")
     logo = _load_image(path)
     if logo is None:
         raise ComposeError(f"unreadable vendor logo for {name!r}")

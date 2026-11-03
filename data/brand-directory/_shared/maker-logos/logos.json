@@ -1,0 +1,33 @@
+{
+ "note": "Makers' logos, one set for every brand. File name is the maker's name in lower case with dashes (L.A.B. Golf -> lab-golf.png). Save the maker's own header logo from their site as a transparent PNG.",
+ "logos": [
+  {
+   "file": "callaway.png",
+   "what": "Callaway wordmark",
+   "background": "any (tinted by the template)",
+   "source": "callawaygolf.com header logo (2026-10-23)",
+   "status": "official"
+  },
+  {
+   "file": "ripit.png",
+   "what": "RIPIT wordmark",
+   "background": "any (tinted by the template)",
+   "source": "maker's site header logo (2026-10-23)",
+   "status": "official"
+  },
+  {
+   "file": "takomo.png",
+   "what": "Takomo wordmark",
+   "background": "any (tinted by the template)",
+   "source": "takomogolf.com header logo (2026-10-23)",
+   "status": "official"
+  },
+  {
+   "file": "vice.png",
+   "what": "Vice Golf wordmark",
+   "background": "any (tinted by the template)",
+   "source": "vicegolf.com header logo (2026-10-23)",
+   "status": "official"
+  }
+ ]
+}

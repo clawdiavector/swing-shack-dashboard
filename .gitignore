@@ -35,6 +35,10 @@ credentials/**
 # from Drive, so git never needed these.
 data/brand-directory/*/images/**
 
+# The shared catalogue of maker images: the index (catalogue.json) is in git, the
+# pictures are the makers' and stay out of it. See data/brand-directory/_system/IMAGES.md.
+data/brand-directory/_shared/catalogue/images/
+
 # Rendered and generated output. These grow with every week's posts and every
 # Krea lab round -- 42 MB of lab renders and the week's composed posts were
 # already stageable -- and none of it is an input: render_post.py recreates

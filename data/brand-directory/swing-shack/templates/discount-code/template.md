@@ -31,6 +31,6 @@ No GBP — stacked nine-line layout does not read in 4:3.
 
 ## Assets
 
-- `assets/logo-white.png` — lockup extracted from story ref (full SHACK tee)
+- `logos/swing-shack-logo-white.png` — lockup extracted from story ref (full SHACK tee)
 - `references/ref-01.jpg`, `ref-02.jpg` — Content Bank sources
 - `golden/compare-*.jpg` — reference vs render sheets

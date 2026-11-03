@@ -34,9 +34,10 @@ def _md5(p: Path) -> str:
     return hashlib.md5(p.read_bytes()).hexdigest()
 
 
-def _png(w: int = 1200, h: int = 1200, colour=(200, 30, 30)) -> bytes:
+def _png(w: int = 1200, h: int = 1200) -> bytes:
+    """Noise, so the file is as heavy as a real product shot and passes the scout's size gate."""
     buf = io.BytesIO()
-    Image.new("RGB", (w, h), colour).save(buf, format="PNG")
+    Image.effect_noise((w, h), 64).convert("RGB").save(buf, format="PNG")
     return buf.getvalue()
 
 
