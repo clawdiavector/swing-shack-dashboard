@@ -48661,7 +48661,7 @@ def review_pack_comment(token):
                              role="client", tag=str(body.get("tag") or "general"))
     except ValueError as e:
         return _rp_error(e)
-    return jsonify({"ok": True, "comment": row}), 200
+    return jsonify({"ok": True, "comment": {**row, "colour": rp.colour_of(share["pack"], row.get("who", ""))}}), 200
 
 
 @app.route("/review-pack/<token>/upload", methods=["POST"])

@@ -50,6 +50,7 @@ false. That Mac step is Kyle's; it is not wired yet.
   ours, and upload. They can also act (approve, comment, upload). There is no view-only link yet.
 - Mint one link per person with `/share {who}` so their name is on what they do. Links last 30 days
   and are scoped to one pack.
+- **Colours:** each person's comments, decisions and uploads carry their own colour (a bar and their name), kept per pack in `people.json`. 'Yolanda' and 'yolanda ' are one person; ten colours before any repeat.
 - **Our side** (the API above) needs the job token. No login page lists packs yet.
 
 ## Safety notes
