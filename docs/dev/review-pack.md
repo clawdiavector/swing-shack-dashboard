@@ -31,10 +31,26 @@ POST /api/jobs/review-packs/<id>/reply              {item, text, tag, who}  (sho
 GET  /api/jobs/review-packs/<id>/file/<name>        one of her uploads (bearer)
 GET  /api/jobs/review-packs/                        list
 DELETE /api/jobs/review-packs/<id>                  delete for good (409 once she has answered it; ?force=1 overrides)
+GET  /api/jobs/review-packs/<id>/news?since=<time>   what she did after <time>: counts + plain text, empty when nothing; sends nothing
 ```
 
 `kind` is `single`, `choice` (A/B/C, needs 2 or 3 pictures), `carousel` or `note`.
 `theme` is optional: `{name, ink, bg, accent, gradient:[3 hex colours]}`.
+
+## Telling us when she answers
+
+`/news` is the same shape as the morning message: plain `text` plus `counts`, nothing sent by the
+app. Keep the `now` from each reply and pass it as `since` next time, so each answer is reported
+once. The Mac watcher (15-minute poll, no agent) calls it and sends Telegram only when `empty` is
+false. That Mac step is Kyle's; it is not wired yet.
+
+## Who can see what
+
+- **Anyone holding a pack link** sees everything on that pack: every decision, comment of hers and
+  ours, and upload. They can also act (approve, comment, upload). There is no view-only link yet.
+- Mint one link per person with `/share {who}` so their name is on what they do. Links last 30 days
+  and are scoped to one pack.
+- **Our side** (the API above) needs the job token. No login page lists packs yet.
 
 ## Safety notes
 
