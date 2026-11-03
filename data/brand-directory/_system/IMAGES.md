@@ -7,6 +7,8 @@ else, stop and use this table.
 |---|---|---|---|
 | Our own photos (products, venue, services, video) | Each brand's Google Drive folder. Staff drop files in `Inbox`; the Photos page (Today > Photos) names and files them | No (Drive is the master; the app pulls a copy) | Staff, then Claude moves them |
 | A brand's own logos | `data/brand-directory/<brand>/logos/`, listed in `logos/logos.json` | Yes | Christelle, from the designer's files |
+| The designer's original logo files (SVG, PDF, hi-res PNG) | Each brand's Drive `Brand/Logos` folder; vector copies in `<brand>/logos/master/` | SVGs yes | Christelle |
+| Venue photos (bays, lounge, shop floor, fitting area, outside) | Each brand's Drive `Location/<area>/`, named `date__area__what__nn.jpg` | No | Staff via Inbox, or Claude |
 | Makers' logos (Callaway, Vice, RIPIT, Takomo…) | `data/brand-directory/_shared/maker-logos/<maker>.png`, one set for every brand | Yes | The maker's own header logo, transparent PNG |
 | Official maker images (catalogue / sourced) | Drive **Catalogue** folder ([open](https://drive.google.com/drive/folders/1Aj6BzbUFVvpmG3g-fpQuHc0l-xBxIX9R)), one subfolder per maker, beside Stick and Swing Shack. Local copy: `data/brand-directory/_shared/catalogue/images/<maker>/`; `catalogue.json` says what each is, where it came from, which brand photos use it and its Drive id | Index yes, pictures no | The image scout (`image-scout` skill) |
 | Where to find each maker's images, and whether we may use them | `data/brand-directory/_system/image-sources.json` (`rights` per maker) | Yes | Christelle records the OK |
