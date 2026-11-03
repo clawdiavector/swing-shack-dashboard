@@ -30,6 +30,17 @@ MAKERS = ["callaway", "ripit", "takomo", "vice"]
 REGISTER_FIELDS = {"file", "what", "background", "source", "status"}
 
 
+def _fresh():
+    """The modules the code under test will import right now.
+
+    Some older tests purge _lib.* from sys.modules mid-run, so the copies imported at the top of
+    this file can be stale: patching them would leave the real code pointing at the real data/."""
+    import importlib
+
+    return (importlib.import_module("_lib.image_library"), importlib.import_module("_lib.image_scout"),
+            importlib.import_module("_lib.photo_map"))
+
+
 def _md5(p: Path) -> str:
     return hashlib.md5(p.read_bytes()).hexdigest()
 
@@ -123,6 +134,7 @@ def test_add_to_catalogue_saves_once(tmp_path: Path):
 
 
 def test_scout_fetch_files_the_image_in_the_catalogue(tmp_path: Path, monkeypatch):
+    il, image_scout, pm = _fresh()
     cat, images, products = tmp_path / "cat", tmp_path / "images", tmp_path / "products"
     products.mkdir()
     monkeypatch.setattr(il, "CATALOGUE", cat)
@@ -166,6 +178,7 @@ def test_maker_found_from_image_address():
 
 
 def test_sourced_photo_waits_for_cleared_rights(tmp_path: Path, monkeypatch):
+    il, _, pm = _fresh()
     monkeypatch.setattr(pm, "_map_path", lambda b: tmp_path / "photo-map.json")
     monkeypatch.setattr(il, "rights_for", lambda maker: {"Vessel": "cleared"}.get(maker, "unknown"))
     pm.add_entry("stick", "Products/CW001__front.png", "CW001", "Chrome Tour", "front", source="official-site",
