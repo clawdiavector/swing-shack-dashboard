@@ -22,6 +22,7 @@ import {
   type TodayPanel,
 } from '../lib/api'
 import { publishIntro } from '../lib/auditWording'
+import { countTiles, useFourCounts } from '../lib/fourCounts'
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
 import { groupSandboxRowsByPostId, idempotencyKeysForGroup } from '../lib/publishPostGroup'
@@ -32,8 +33,8 @@ import { formatStamp } from '../lib/stamp'
 
 export function Publish() {
   const { isAll, brandIds, scope } = useBrandScope()
-  const [data, setData] = useState<TodayPanel | null>(null)
-  const [counts, setCounts] = useState<TodayCounts | null>(null)
+  const [, setData] = useState<TodayPanel | null>(null)
+  const [, setCounts] = useState<TodayCounts | null>(null)
   const [publishMode, setPublishMode] = useState<PublishMode | null>(null)
   const [sandbox, setSandbox] = useState<SandboxQueueItem[]>([])
   const [sandboxTotal, setSandboxTotal] = useState(0)
@@ -175,8 +176,9 @@ export function Publish() {
     loadPanelAndQueue()
   }, [isAll, brandIds, scope])
 
+  const four = useFourCounts(isAll || scope === 'all' ? '' : scope)
   const next = sandbox[0]
-  const nextTitle = next ? sandboxTitle(next) : counts?.approved ? 'Queue from the shelf' : 'Nothing queued yet'
+  const nextTitle = next ? sandboxTitle(next) : four?.scheduled ? 'Queue from the shelf' : 'Nothing queued yet'
   const nextMeta = next
     ? `${next.platform || 'post'} · ${next.brand_id || 'brand'}${next.created_at ? ` · ${formatStamp(next.created_at)}` : ''}`
     : 'Approve on Review, shelf it, then queue here — still sandbox only.'
@@ -220,32 +222,9 @@ export function Publish() {
       </p>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <FunTile
-          label="Approved"
-          value={counts?.approved ?? '—'}
-          hint="Ready, not live"
-          tone="blue"
-          stamp={data?.ts}
-          stampKind="as_of"
-        />
-        <FunTile
-          label="Sandbox queued"
-          value={sandboxTotal || '—'}
-          hint="Pending rows"
-          tone="gold"
-          stamp={data?.ts}
-          stampKind="as_of"
-        />
-        <FunTile
-          to="/results"
-          label="Shipped"
-          value={counts?.published ?? '—'}
-          hint="Already live"
-          tone="green"
-          dots={counts?.published != null ? { on: Math.min(counts.published, 7) } : undefined}
-          stamp={data?.ts}
-          stampKind="as_of"
-        />
+        {countTiles(four, ['to_approve', 'scheduled', 'sent_this_week']).map((t) => (
+          <FunTile key={t.key} to={t.to} label={t.label} value={t.value} hint={t.hint} tone={t.tone} />
+        ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(380px,1fr)]">

@@ -9,13 +9,13 @@ import {
   Type,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { useBrand } from '../components/BrandSwitch'
+import { useState } from 'react'
+import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import '../fun.css'
 import { FunTile } from '../components/fun'
 import { FilterChips, HeroPanel, PageIntro } from '../components/chrome'
 import { Button, ClassicLink, IconTile } from '../components/ui'
-import { fetchToday, type TodayPanel } from '../lib/api'
+import { countTiles, useFourCounts } from '../lib/fourCounts'
 
 const TOOLS: {
   id: string
@@ -50,16 +50,9 @@ const TOOLS: {
 
 export function Create() {
   const { brandId } = useBrand()
-  const [data, setData] = useState<TodayPanel | null>(null)
+  const { isAll } = useBrandScope()
+  const four = useFourCounts(isAll ? '' : brandId || '')
   const [mode, setMode] = useState('all')
-
-  useEffect(() => {
-    fetchToday(brandId)
-      .then(setData)
-      .catch(() => setData(null))
-  }, [brandId])
-
-  const drafts = data?.counts?.draft ?? 0
   const shown = mode === 'all' ? TOOLS : TOOLS.filter((t) => t.mode === mode)
 
   return (
@@ -72,20 +65,9 @@ export function Create() {
       </PageIntro>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <FunTile
-          to="/review"
-          label="Drafts"
-          value={data ? drafts : '—'}
-          hint="In studio, not reviewed"
-          tone="gold"
-        />
-        <FunTile
-          to="/review"
-          label="Waiting"
-          value={data ? (data.counts?.review ?? 0) : '—'}
-          hint="Already in inbox"
-          tone="violet"
-        />
+        {countTiles(four, ['to_approve', 'scheduled']).map((t) => (
+          <FunTile key={t.key} to={t.to} label={t.label} value={t.value} hint={t.hint} tone={t.tone} />
+        ))}
         <FunTile
           to="/create/copy?tab=library"
           label="Library"
