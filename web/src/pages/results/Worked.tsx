@@ -14,7 +14,7 @@ import {
   type LearnSummary,
 } from '../../lib/api'
 import { formatStamp } from '../../lib/stamp'
-import { pageLabel, trafficSentence } from '../../lib/trafficSummary'
+import { matchSentence, pageLabel, spikeSentence, trafficSentence } from '../../lib/trafficSummary'
 import { bestPostSentence, learnSentence, postFormat, postWeekday } from '../../lib/workedSummary'
 
 // Recipes, CTAs and Patterns were cut: they read flat, portfolio-wide files with stale dates.
@@ -302,10 +302,54 @@ export function Worked() {
               </ul>
             </div>
           ) : null}
-          <p className="text-xs text-tx3">
-            We can&apos;t yet say which post sent visitors. Google Analytics gives us weekly totals, not daily ones, so
-            there is nothing to line up with post dates.
-          </p>
+          {traffic?._meta?.ga4_daily_window ? (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-tx">Posts followed by a jump in visits</h3>
+              {traffic.matches?.length ? (
+                <ul className="space-y-2">
+                  {traffic.matches.slice(0, 5).map((m, i) => (
+                    <li key={i} className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm">
+                      <p className="font-medium text-tx">{matchSentence(m)}</p>
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-tx3">
+                        <Badge tone="mute">{String(m.confidence || 'low')} confidence</Badge>
+                        <span className="line-clamp-1">{String(m.post_caption_excerpt || 'Post')}</span>
+                        {m.post_permalink ? (
+                          <a href={String(m.post_permalink)} className="text-ac underline" target="_blank" rel="noreferrer">
+                            Open on Instagram
+                          </a>
+                        ) : null}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-tx3">
+                  No day in the last 30 had enough extra visits to count as a jump after a post.
+                </p>
+              )}
+              {traffic.unmatched_spikes?.length ? (
+                <>
+                  <h3 className="font-semibold text-tx">Jumps with no post behind them</h3>
+                  <ul className="space-y-2">
+                    {traffic.unmatched_spikes.slice(0, 3).map((m, i) => (
+                      <li key={i} className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm text-tx2">
+                        {spikeSentence(m)}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+              <p className="text-xs text-tx3">
+                This is timing only. A jump the day of or after a post is a good hint, not proof. Ads, emails and word of
+                mouth also bring visitors.
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-tx3">
+              We can&apos;t yet say which post sent visitors. Daily visit numbers from Google Analytics start arriving
+              after the next overnight update.
+            </p>
+          )}
           <div className="rounded-2xl border border-white/10 p-4 text-sm">
             <h3 className="font-semibold text-tx">Paid ads</h3>
             <p className="mt-1 text-tx2">

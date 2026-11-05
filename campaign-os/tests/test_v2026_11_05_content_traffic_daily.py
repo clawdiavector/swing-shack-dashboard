@@ -115,5 +115,32 @@ class CorrelateTests(unittest.TestCase):
         self.assertEqual(out["matches"][0]["date"], "2026-10-15")
 
 
+class EndpointWiringTests(unittest.TestCase):
+    def _run(self, ga4):
+        from unittest import mock
+
+        posts = [_post("2026-10-15T08:00:00+0000")]
+        with mock.patch.object(ic, "_resolve_json", return_value=ga4), mock.patch.object(
+            ic, "_load_ig_posts", return_value=(posts, "test")
+        ):
+            return ic.get_content_traffic_correlations(brand_id="swing-shack", days=30)
+
+    def test_daily_data_produces_matches(self):
+        ga4 = {
+            "data_window": "2026-10-28 to 2026-11-04",
+            "total_sessions": 800,
+            "pages": [],
+            "daily_sessions": _days("2026-10-01", [40] * 14 + [120] + [40] * 15),
+        }
+        out = self._run(ga4)
+        self.assertEqual(len(out["matches"]), 1)
+        self.assertEqual(out["_meta"]["reason"], "")
+
+    def test_without_daily_data_it_keeps_the_weekly_answer(self):
+        out = self._run({"data_window": "w", "total_sessions": 800, "pages": []})
+        self.assertEqual(out["matches"], [])
+        self.assertIn("daily", out["_meta"]["reason"].lower())
+
+
 if __name__ == "__main__":
     unittest.main()

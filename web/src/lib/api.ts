@@ -1147,6 +1147,7 @@ export type ContentTrafficCorrelation = {
     reason?: string
     ga4_total_sessions?: number
     ga4_window?: string
+    ga4_daily_window?: string
     top_pages?: { path?: string; sessions?: number; engagement?: string }[]
   }
 }
