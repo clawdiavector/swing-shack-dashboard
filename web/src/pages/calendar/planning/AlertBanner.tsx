@@ -11,11 +11,21 @@ import {
 } from '../../../lib/calendarAlerts'
 import { EventTypeIcon } from '../../../components/EventTypeIcon'
 import { alertMoreLine } from '../../../lib/auditWording'
+import { splitAlerts } from '../../../lib/shorterToday'
 import { planFromEvent } from '../../../lib/plan'
 
 /** The loud one: approved dates that are close and have no plan or content.
  *  Shown at the top of Today and Plan. Says nothing when all is ready. */
-export function AlertBanner({ brandId = '', refreshKey = 0 }: { brandId?: string; refreshKey?: number }) {
+export function AlertBanner({
+  brandId = '',
+  refreshKey = 0,
+  limit,
+}: {
+  brandId?: string
+  refreshKey?: number
+  /** Show only the soonest few, with a link to Plan for the rest (Today). */
+  limit?: number
+}) {
   const [alerts, setAlerts] = useState<CalendarAlert[]>([])
   const [busy, setBusy] = useState<string | null>(null)
   const [done, setDone] = useState<Record<string, string>>({})
@@ -67,7 +77,7 @@ export function AlertBanner({ brandId = '', refreshKey = 0 }: { brandId?: string
         </p>
       ) : null}
       <ul className="space-y-2">
-        {alerts.map((a) => (
+        {splitAlerts(alerts, limit).shown.map((a) => (
           <li
             key={`${a.brand_id}:${a.event_key}`}
             data-testid="alert-row"
@@ -109,6 +119,11 @@ export function AlertBanner({ brandId = '', refreshKey = 0 }: { brandId?: string
           </li>
         ))}
       </ul>
+      {splitAlerts(alerts, limit).more ? (
+        <Link to="/calendar/lanes" className="inline-block text-xs font-semibold text-ac hover:underline">
+          and {splitAlerts(alerts, limit).more} more in Plan
+        </Link>
+      ) : null}
     </section>
   )
 }

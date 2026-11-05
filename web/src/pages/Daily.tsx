@@ -1,59 +1,20 @@
-import {
-  CheckCircle2,
-  ChevronRight,
-  Inbox,
-  MapPin,
-  Megaphone,
-  Rocket,
-  Share2,
-  Sparkles,
-  Sun,
-} from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { GbpTodayCard } from '../components/GbpTodayCard'
+import { Megaphone, Sun } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import '../fun.css'
-import { DeskRing, FunTile, Mascot } from '../components/fun'
+import { FunTile, Mascot } from '../components/fun'
 import { burstConfetti } from '../lib/confetti'
-import { Link } from 'react-router-dom'
-import { BrandChip } from '../components/BrandChip'
 import { BrandSwitch, useBrand, useBrandScope } from '../components/BrandSwitch'
-import { DailyBrandSocials } from '../components/DailyBrandSocials'
 import { MailToday } from '../components/MailToday'
 import { MomentsToday } from '../components/MomentsToday'
-import { StoryReposts } from '../components/StoryReposts'
+import { NextToApprove } from '../components/NextToApprove'
 import { AlertBanner } from './calendar/planning/AlertBanner'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
-import { HeroPanel, PageIntro } from '../components/chrome'
-import { InsightPostThumb, insightPostThumbSrc } from '../components/InsightPostThumb'
-import { workedPostTip } from '../lib/auditWording'
-import { countTiles, deskLine, shipLine, useFourCounts } from '../lib/fourCounts'
-import { Badge, Button, IconTile, QueueItem, Tip } from '../components/ui'
-import {
-  fetchInbox,
-  fetchLayers,
-  fetchLearn,
-  fetchToday,
-  fetchTopPosts,
-  fetchVisualLibrary,
-  inboxChannelLabel,
-  inboxGoesOutIso,
-  inboxItemThumbUrl,
-  inboxMediaTag,
-  reviewPiecePath,
-  resolveAssetUrl,
-  type InboxItem,
-  type InsightPost,
-  type LayerEntry,
-  type LayersPayload,
-  type LearnSummary,
-  type TodayPanel,
-} from '../lib/api'
+import { PageIntro } from '../components/chrome'
+import { countTiles, deskLine, useFourCounts } from '../lib/fourCounts'
+import { fetchInbox, fetchToday, type InboxItem, type TodayPanel } from '../lib/api'
 import { isCandidateItem } from '../lib/inboxCandidates'
-import { reviewType } from '../lib/reviewType'
-import type { BriefAction } from '../lib/api'
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
-import { formatStamp } from '../lib/stamp'
 
 function greeting() {
   const h = new Date().getHours()
@@ -62,123 +23,28 @@ function greeting() {
   return 'Good evening'
 }
 
-function briefLabel(a: BriefAction) {
-  const act = a.action || ''
-  if (act === 'create_brief') return 'Write brief'
-  if (act === 'review_brief') return 'Review brief'
-  if (act === 'view_brief') return 'Brief ready'
-  if (act.startsWith('watch_or_ignore:')) {
-    return (act.split(':')[1] || '').toUpperCase() === 'WATCH' ? 'Watching' : 'Parked'
-  }
-  return 'Brief'
-}
-
-function briefTone(a: BriefAction): 'gold' | 'green' | 'mute' {
-  const act = a.action || ''
-  if (act === 'create_brief' || act === 'review_brief') return 'gold'
-  if (act === 'view_brief') return 'green'
-  return 'mute'
-}
-
-function briefTip(a: BriefAction) {
-  const act = a.action || ''
-  if (act === 'create_brief') return 'This date cleared the gate and has no brief yet.'
-  if (act === 'review_brief') {
-    const rev =
-      a.brief_revision != null ? ` Revision ${a.brief_revision}.` : ''
-    return `A draft brief is waiting on your read.${rev}`
-  }
-  if (act === 'view_brief') return 'The brief for this date is written.'
-  if (act.startsWith('watch_or_ignore:')) return 'On the watchlist — not worth a brief yet.'
-  return 'Brief opportunity on the calendar.'
-}
-
-function layerOf(layers: LayersPayload | null, id: string): LayerEntry {
-  return (layers?.layers || {})[id] || {}
-}
-
-function morningTitle(opts: {
-  layers: LayersPayload | null
-  learn: LearnSummary | null
-  best?: InsightPost
-  stale: number
-  pending: number
-}): string {
-  const l7 = layerOf(opts.layers, 'L7')
-  const { stale, pending } = opts
-  const winners = opts.learn?.headline?.winners ?? l7.winners ?? 0
-  if (stale > 0) {
-    return stale === 1
-      ? 'One piece has sat too long. That’s the call this morning.'
-      : `${stale} pieces have sat too long. That’s the call this morning.`
-  }
-  if (opts.best?.verdict === 'Top performer' && opts.best.caption_excerpt) {
-    return `A post is beating the average. Repeat that shape.`
-  }
-  if (winners > 0) {
-    return `${winners} winning recipe${winners === 1 ? '' : 's'} from last week — spend against those.`
-  }
-  if (pending > 0) {
-    return `${pending} decisions still need a yes or no.`
-  }
-  if ((l7.verdict || '').toUpperCase() === 'NEVER') {
-    return 'Learn hasn’t scored last week. We don’t yet know what worked.'
-  }
-  return 'Desk is quiet. Open Studio if you want a new draft.'
-}
-
-function mergeLayersPayloads(parts: LayersPayload[]): LayersPayload {
-  const merged: Record<string, LayerEntry> = {}
-  for (const part of parts) {
-    for (const [key, entry] of Object.entries(part.layers || {})) {
-      const prev = merged[key] || {}
-      const next: LayerEntry = { ...prev }
-      for (const [field, val] of Object.entries(entry)) {
-        if (typeof val === 'number' && typeof prev[field as keyof LayerEntry] === 'number') {
-          ;(next as Record<string, number>)[field] = (prev[field as keyof LayerEntry] as number) + val
-        } else if (prev[field as keyof LayerEntry] == null) {
-          ;(next as Record<string, unknown>)[field] = val
-        }
-      }
-      merged[key] = next
-    }
-  }
-  return { ok: true, layers: merged }
-}
-
+// The shorter Today (5 Nov 2026): counts, the soonest dates, the next drafts, Herman's ideas
+// and two moments. Stories, What worked, socials and shortcuts live on their own tabs, so this
+// page no longer loads ops layers, top posts, learn or the visual library.
 export function Daily() {
-  const { brandId: focusBrandId, brandLabel, brands: brandRows } = useBrand()
+  const { brandId: focusBrandId, brandLabel } = useBrand()
   const { isAll, brandIds, scope } = useBrandScope()
   // The four counts every page shows (Scheduled and Sent come from the shelf and send queue).
   const four = useFourCounts(isAll ? '' : focusBrandId || '')
   const [data, setData] = useState<TodayPanel | null>(null)
-  const [layers, setLayers] = useState<LayersPayload | null>(null)
-  const [learn, setLearn] = useState<LearnSummary | null>(null)
-  const [posts, setPosts] = useState<InsightPost[]>([])
-  const [libraryThumbs, setLibraryThumbs] = useState<Array<{ key: string; src: string }>>([])
   const [inboxItems, setInboxItems] = useState<InboxItem[] | null>(null)
   const [error, setError] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
-  // The counts below come from the inbox rows. If that fetch fails, show '—' and say so,
-  // never a 0 that reads as an empty desk.
-  const [inboxFailed, setInboxFailed] = useState(false)
 
   function load() {
+    // Inbox rows stay null if a brand fails, so the counts show '—', never a 0 that reads as an empty desk.
     setInboxItems(null)
-    setInboxFailed(false)
     const runAll = async () => {
       setFailures([])
       // Sequential fan-outs (plan §3.5) — at most one 3-brand wave at a time.
       const todayFan = await fanOutPayloads(brandIds, (bid) => fetchToday(bid))
-      const layersFan = await fanOutPayloads(brandIds, (bid) => fetchLayers(bid))
-      const postsFan = await fanOutPayloads(brandIds, (bid) => fetchTopPosts(bid))
       const inboxFan = await fanOutPayloads(brandIds, (bid) => fetchInbox('pending', bid))
-      setFailures([
-        ...todayFan.failures,
-        ...layersFan.failures,
-        ...postsFan.failures,
-        ...inboxFan.failures,
-      ])
+      setFailures([...todayFan.failures, ...inboxFan.failures])
       const counts = sumCounts(todayFan.payloads.map((p) => p.payload.counts))
       const cards = todayFan.payloads.flatMap((p) => p.payload.cards || [])
       setData({
@@ -187,9 +53,6 @@ export function Daily() {
         cards,
         ts: todayFan.payloads[0]?.payload.ts,
       })
-      setLayers(mergeLayersPayloads(layersFan.payloads.map((p) => p.payload)))
-      const allPosts = postsFan.payloads.flatMap((p) => p.payload.posts || [])
-      setPosts(allPosts)
       const inboxMerged = inboxFan.payloads.flatMap(({ brandId: bid, payload }) =>
         (payload.items || []).map((item) => ({
           ...item,
@@ -197,9 +60,7 @@ export function Daily() {
         })),
       )
       inboxMerged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
-      // A brand whose inbox failed would be counted as empty, so withhold the counts.
-      if (inboxFan.failures.length > 0) setInboxFailed(true)
-      else setInboxItems(inboxMerged)
+      if (inboxFan.failures.length === 0) setInboxItems(inboxMerged)
     }
 
     if (isAll) {
@@ -209,82 +70,27 @@ export function Daily() {
       fetchToday(brand)
         .then(setData)
         .catch((err: Error) => setError(err.message))
-      fetchLayers(brand)
-        .then(setLayers)
-        .catch(() => setLayers(null))
-      fetchTopPosts(brand)
-        .then((payload) => {
-          setPosts(payload.posts || [])
-        })
-        .catch(() => {
-          setPosts([])
-        })
       fetchInbox('pending', brand)
         .then((payload) => setInboxItems(payload.items || []))
-        .catch((err: Error) => {
-          setInboxFailed(true)
-          setError(err.message || 'The inbox did not load.')
-        })
+        .catch((err: Error) => setError(err.message || 'The inbox did not load.'))
     }
-    fetchLearn()
-      .then(setLearn)
-      .catch(() => setLearn(null))
   }
-
-  // Six thumbnails are all Today shows, so ask for eight rows instead of the 200-image roster.
-  // Waits for the brand so it does not fetch twice (once as the default, once as the real brand).
-  useEffect(() => {
-    if (!focusBrandId) return
-    let live = true
-    fetchVisualLibrary(focusBrandId, 8)
-      .then((payload) => {
-        if (!live) return
-        const rows = (payload.images || []) as Array<{
-          filename?: string
-          url?: string
-          thumbnail_data_url?: string
-        }>
-        const thumbs: Array<{ key: string; src: string }> = []
-        for (const row of rows) {
-          const src =
-            (row.thumbnail_data_url && String(row.thumbnail_data_url)) ||
-            resolveAssetUrl(row.url)
-          if (!src) continue
-          thumbs.push({ key: row.filename || src, src })
-          if (thumbs.length >= 6) break
-        }
-        setLibraryThumbs(thumbs)
-      })
-      .catch(() => {
-        if (live) setLibraryThumbs([])
-      })
-    return () => {
-      live = false
-    }
-  }, [focusBrandId])
 
   useEffect(() => {
     load()
   }, [isAll, brandIds, scope, focusBrandId])
 
   // Counted from the same rows Inbox and Approve drafts list, so the numbers
-  // here match the pages they open. The ops layer counts are not per brand
-  // and were summed once per brand on "All brands".
+  // here match the pages they open.
   const candidatesWaiting = inboxItems ? inboxItems.filter(isCandidateItem).length : null
   const draftRows = (inboxItems || []).filter((i) => (i.type || '').toLowerCase() === 'draft_asset')
   const draftsWaiting = inboxItems ? draftRows.length : null
-  const staleCandidates = (inboxItems || []).filter(
-    (i) => isCandidateItem(i) && i.sla_state === 'stale',
-  ).length
-  const staleDrafts = draftRows.filter((i) => i.sla_state === 'stale').length
-  const scheduledCount = four?.scheduled ?? 0
-  // Built from the same inbox rows as the cards above, so the line never disagrees with them.
   const summary =
     data && inboxItems
       ? deskLine({
           to_approve: draftsWaiting || 0,
           dates_to_decide: candidatesWaiting || 0,
-          scheduled: scheduledCount,
+          scheduled: four?.scheduled ?? 0,
           sent_this_week: four?.sent_this_week ?? 0,
         })
       : data?.summary || ''
@@ -303,81 +109,7 @@ export function Daily() {
     }
     if (!seen) burstConfetti(window.innerWidth / 2, window.innerHeight / 3, 140)
   }, [deskClear])
-  const mascotLine =
-    data && inboxItems
-      ? waitingTotal === 0
-        ? 'Desk is clear. Go get a coffee!'
-        : waitingTotal <= 3
-          ? `Just ${waitingTotal} to go. Easy.`
-          : `${waitingTotal} things want a yes or no. You've got this!`
-      : 'Warming up…'
-  const tickerItems = (inboxItems || []).slice(0, 7)
-  const igWorkedPosts = posts.slice(0, 3)
-  const igWithImmediateThumb = igWorkedPosts.filter((p) => Boolean(insightPostThumbSrc(p)))
-  const igWithPermalinkOnly = igWorkedPosts.filter(
-    (p) => !insightPostThumbSrc(p) && Boolean(p.permalink),
-  )
-  const libraryFillCount = Math.max(
-    0,
-    3 - igWithImmediateThumb.length - igWithPermalinkOnly.length,
-  )
-  const workedLibraryThumbs = libraryThumbs.slice(0, libraryFillCount)
-  const workedMixedCaption =
-    (igWithImmediateThumb.length > 0 || igWithPermalinkOnly.length > 0) &&
-    workedLibraryThumbs.length > 0
   const asOf = data?.ts
-  const best = posts[0]
-  const l3 = layerOf(layers, 'L3')
-  const briefActions = (data?.brief_actions?.actions || []).slice(0, 4)
-  const socialRows = useMemo(() => {
-    const byId = new Map(brandRows.map((row) => [row.id, row]))
-    return brandIds.map((id) => {
-      const row = byId.get(id)
-      return {
-        brandId: id,
-        brandLabel: row?.label || id,
-        socials: row?.socials || [],
-      }
-    })
-  }, [brandRows, brandIds])
-  const calls = useMemo(() => {
-    const rows: { label: string; value: string; to: string }[] = []
-    if (staleDrafts > 0) {
-      rows.push({
-        label: 'Going stale',
-        value: `${staleDrafts} draft${staleDrafts === 1 ? ' has' : 's have'} waited too long for a yes or no.`,
-        to: '/review',
-      })
-    }
-    if (staleCandidates > 0) {
-      rows.push({
-        label: 'Going stale',
-        value: `${staleCandidates} date${staleCandidates === 1 ? '' : 's'} in Inbox ${staleCandidates === 1 ? 'has' : 'have'} waited too long.`,
-        to: '/inbox',
-      })
-    }
-    if (!staleDrafts && !staleCandidates && (draftsWaiting || candidatesWaiting)) {
-      rows.push({
-        label: 'Waiting on a call',
-        value: `${draftsWaiting || 0} draft${draftsWaiting === 1 ? '' : 's'} to approve, ${candidatesWaiting || 0} date${candidatesWaiting === 1 ? '' : 's'} to decide.`,
-        to: draftsWaiting ? '/review' : '/inbox',
-      })
-    }
-    rows.push({
-      label: 'Going out',
-      value: four ? shipLine(four) : 'Counting…',
-      to: '/shelf',
-    })
-    const quiet = Boolean(layers) && ((l3.never ?? 0) > 0 || (l3.reporting ?? 0) === 0)
-    if (quiet) {
-      rows.push({
-        label: 'Interpret',
-        value: 'Scout / interpret hasn’t checked in. No fresh opportunities this morning.',
-        to: '/calendar/lanes',
-      })
-    }
-    return rows.slice(0, 4)
-  }, [layers, l3, four, staleDrafts, staleCandidates, draftsWaiting, candidatesWaiting])
 
   return (
     <div className="space-y-6">
@@ -405,12 +137,6 @@ export function Daily() {
       >
         {summary || 'Pulling together today’s decisions…'}
       </PageIntro>
-
-      <AlertBanner brandId={isAll ? '' : focusBrandId || ''} />
-
-      <MailToday brandId={isAll ? undefined : focusBrandId} />
-
-      <MomentsToday brandLabel={isAll ? undefined : brandLabel} brandId={isAll ? undefined : focusBrandId} />
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />
 
@@ -451,222 +177,15 @@ export function Daily() {
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(380px,1fr)]">
-        <HeroPanel
-          icon={Rocket}
-          kicker="Do this right now"
-          title={
-            data && inboxItems
-              ? morningTitle({
-                  layers,
-                  learn,
-                  best,
-                  stale: staleDrafts + staleCandidates,
-                  pending: (draftsWaiting || 0) + (candidatesWaiting || 0),
-                })
-              : inboxFailed
-                ? 'Today’s counts did not load.'
-                : 'Setting out today’s desk…'
-          }
-          meta={asOf ? `As of ${formatStamp(asOf)}` : undefined}
-          art={
-            <div className="fun-art">
-              <Mascot tone={waitingTotal === 0 && inboxItems ? 'green' : 'gold'} />
-              <span className="fun-bubble">{mascotLine}</span>
-              {data && inboxItems ? (
-                <DeskRing ready={scheduledCount} waiting={waitingTotal} />
-              ) : null}
-            </div>
-          }
-          extra={
-            <div className="border-t border-bd pt-4">
-              <p className="mb-2 text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">
-                What needs a call
-              </p>
-              <ul className="space-y-2">
-                {calls.map((row, i) => (
-                  <li key={row.label}>
-                    <Link
-                      to={row.to}
-                      title={`Open ${row.label}: ${row.value}`}
-                      className="glass flex items-start gap-2 rounded-xl border-[1.5px] border-white/10 px-3 py-2 hover:border-ac/40"
-                    >
-                      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-yel/15 text-[13px] font-bold text-yel">
-                        {i + 1}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-[12px] font-semibold tracking-wide text-tx3 uppercase">
-                          {row.label}
-                        </span>
-                        <span className="block text-sm leading-snug font-medium">{row.value}</span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              {briefActions.length ? (
-                <div className="mt-4 border-t border-bd pt-3">
-                  <p className="mb-2 text-[12px] font-semibold tracking-wide text-tx3 uppercase">
-                    Briefs waiting
-                  </p>
-                  <ul className="flex flex-wrap gap-2">
-                    {briefActions.map((a, i) => (
-                      <li key={a.event_key || a.name || i}>
-                        <Tip text={briefTip(a)}>
-                          <span className="glass-pill inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5">
-                            <Badge tone={briefTone(a)}>{briefLabel(a)}</Badge>
-                            <span className="text-sm font-medium text-tx2">{a.name || a.event_key}</span>
-                          </span>
-                        </Tip>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-          }
-        >
-          <Button to="/review" icon={Inbox} tip="Open the review inbox and work the queue.">
-            Clear my desk
-          </Button>
-          <Button to="/create" icon={Sparkles} tone="ghost" tip="Open Studio to start a new draft.">
-            Go to studio
-          </Button>
-        </HeroPanel>
+      {/* Shorter Today (5 Nov 2026): the soonest dates, the next drafts, Herman's ideas closed,
+          two moments. Stories, What worked, socials and shortcuts live on their own tabs. */}
+      <AlertBanner brandId={isAll ? '' : focusBrandId || ''} limit={3} />
 
-        <section>
-          <div className="mb-3 flex items-end justify-between">
-            <h2 className="font-display text-xl font-semibold">Today ticker</h2>
-            <Tip text="See every piece waiting on you.">
-            <Link
-              to="/inbox"
-              title="See every candidate waiting on you."
-              className="inline-flex items-center gap-0.5 text-sm font-semibold text-ac"
-            >
-              All candidates
-              <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
-            </Link>
-            </Tip>
-          </div>
-          <ul className="fun-ticker space-y-2">
-            {tickerItems.map((item) => {
-              const thumb = inboxItemThumbUrl(item)
-              const media = inboxMediaTag(item)
-              const channel = inboxChannelLabel(item)
-              const goesOut = inboxGoesOutIso(item)
-              const t = (item.type || '').toLowerCase()
-              const dest =
-                t === 'draft_asset'
-                  ? reviewPiecePath(item.id, item.brand_id)
-                  : t === 'calendar_candidate' || t === 'proposal'
-                    ? '/inbox'
-                    : reviewPiecePath(item.id, item.brand_id)
-              return (
-              <QueueItem
-                key={item.id}
-                to={dest}
-                badge={item.sla_state === 'stale' ? 'stale' : media.label}
-                tone={item.sla_state === 'stale' ? 'gold' : media.tone}
-                channelBadge={channel || undefined}
-                title={item.title || item.summary || item.id}
-                meta={[reviewType(item.type).label].filter(Boolean).join(' · ')}
-                footer={isAll ? <BrandChip brandId={item.brand_id} show /> : undefined}
-                stamp={goesOut || item.created_at}
-                stampKind={goesOut ? 'goes_out' : 'created'}
-                dateOnly={Boolean(goesOut)}
-                thumb={thumb || undefined}
-                thumbAlt={item.title || item.id}
-              />
-              )
-            })}
-            {inboxItems && tickerItems.length === 0 ? (
-              <li className="fun-empty">
-                <Mascot tone="blue" />
-                <span>All caught up. Fancy making something new? Studio is that way.</span>
-              </li>
-            ) : null}
-            {inboxItems === null && !error ? (
-              <>
-                <li className="h-16 animate-pulse rounded-2xl bg-bg3" />
-                <li className="h-16 animate-pulse rounded-2xl bg-bg3" />
-                <li className="h-16 animate-pulse rounded-2xl bg-bg3" />
-              </>
-            ) : null}
-          </ul>
-          {igWorkedPosts.length || workedLibraryThumbs.length ? (
-            <div className="mt-4">
-              <p className="mb-2 text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">
-                What worked
-                {workedMixedCaption ? (
-                  <span className="ml-2 font-normal normal-case tracking-normal text-tx3">
-                    Instagram + visual library
-                  </span>
-                ) : workedLibraryThumbs.length && !igWorkedPosts.length ? (
-                  <span className="ml-2 font-normal normal-case tracking-normal text-tx3">
-                    Visual library
-                  </span>
-                ) : null}
-              </p>
-              <ul className="flex flex-wrap gap-2">
-                {igWorkedPosts.map((p, i) => {
-                  const key = p.id || String(i)
-                  const to = p.id
-                    ? `/results/worked?tab=posts&post=${encodeURIComponent(p.id)}`
-                    : '/results/worked?tab=posts'
-                  return (
-                    <li key={key}>
-                      <Tip
-                        text={workedPostTip({ verdict: p.verdict, engagementRate: p.engagementRate, caption: p.caption_excerpt })}
-                      >
-                        <Link
-                          to={to}
-                          aria-label={`Open this ${(p.verdict || 'recent').toLowerCase()} post in Results`}
-                          className="block rounded-xl border border-bd hover:border-ac/40"
-                        >
-                          <InsightPostThumb post={p} thumbKey={key} />
-                        </Link>
-                      </Tip>
-                    </li>
-                  )
-                })}
-                {workedLibraryThumbs.map((row) => (
-                  <li key={`lib-${row.key}`}>
-                    <Tip text="Visual library photo — open the library in Studio.">
-                      <Link
-                        to="/create/images?tab=library"
-                        aria-label="Open the visual library"
-                        className="block overflow-hidden rounded-xl border border-bd hover:border-ac/40"
-                      >
-                        <img
-                          src={row.src}
-                          alt=""
-                          loading="lazy"
-                          className="h-16 w-16 object-cover"
-                        />
-                      </Link>
-                    </Tip>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </section>
-      </div>
+      <NextToApprove items={draftRows} total={draftsWaiting || 0} onDone={load} />
 
-      <StoryReposts brandIds={isAll ? undefined : brandIds} />
+      <MailToday brandId={isAll ? undefined : focusBrandId} />
 
-      <DailyBrandSocials rows={socialRows} />
-
-      {scope !== 'all' ? <GbpTodayCard brandId={scope} /> : null}
-      <section>
-        <h2 className="mb-3 font-display text-xl font-semibold">Shortcuts</h2>
-        <div className="fun-shortcuts grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <IconTile to="/publish/socials" icon={Share2} label="Socials" hint="What’s live for this brand" />
-          <IconTile to="/publish/gbp" icon={MapPin} label="GBP" hint="Google Business Profile" />
-          <IconTile to="/create/post" icon={Sparkles} label="Build a post" hint="Jump straight into studio" />
-          <IconTile to="/results/week" icon={CheckCircle2} label="This week" hint="Weekly report" />
-        </div>
-      </section>
+      <MomentsToday brandLabel={isAll ? undefined : brandLabel} brandId={isAll ? undefined : focusBrandId} />
     </div>
   )
 }
