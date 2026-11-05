@@ -10,6 +10,7 @@ import {
   type CalendarAlert,
 } from '../../../lib/calendarAlerts'
 import { EventTypeIcon } from '../../../components/EventTypeIcon'
+import { alertMoreLine } from '../../../lib/auditWording'
 import { planFromEvent } from '../../../lib/plan'
 
 /** The loud one: approved dates that are close and have no plan or content.
@@ -60,6 +61,11 @@ export function AlertBanner({ brandId = '', refreshKey = 0 }: { brandId?: string
         <Siren className={`h-5 w-5 ${loud ? 'motion-safe:animate-pulse' : ''}`} />
         {alertHeadline(alerts)}
       </p>
+      {alertMoreLine(alerts) ? (
+        <p data-testid="alert-more" className="-mt-2 text-xs font-semibold text-tx2">
+          {alertMoreLine(alerts)}
+        </p>
+      ) : null}
       <ul className="space-y-2">
         {alerts.map((a) => (
           <li

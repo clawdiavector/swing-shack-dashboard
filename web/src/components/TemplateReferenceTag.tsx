@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { resolveAssetUrl } from '../lib/api'
+import { templateTagText } from '../lib/auditWording'
 import { Badge } from './ui'
 
 export type TemplateMeta = {
@@ -144,7 +145,7 @@ export function TemplateReferenceTag({
     return (
       <span title={meta?.template_name || label}>
         <Badge tone="blue">
-          <span className="truncate">Tpl · {label}</span>
+          <span className="truncate">{templateTagText(label)}</span>
         </Badge>
       </span>
     )
@@ -164,7 +165,7 @@ export function TemplateReferenceTag({
         className="inline-flex max-w-full"
       >
         <Badge tone="blue">
-          <span className="truncate">Tpl · {label}</span>
+          <span className="truncate">{templateTagText(label)}</span>
         </Badge>
       </button>
       <TemplateReferenceModal

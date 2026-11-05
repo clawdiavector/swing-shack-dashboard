@@ -25,6 +25,7 @@ import { AlertBanner } from './calendar/planning/AlertBanner'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { InsightPostThumb, insightPostThumbSrc } from '../components/InsightPostThumb'
+import { workedPostTip } from '../lib/auditWording'
 import { Badge, Button, IconTile, QueueItem, Tip } from '../components/ui'
 import {
   fetchInbox,
@@ -645,7 +646,7 @@ export function Daily() {
                   return (
                     <li key={key}>
                       <Tip
-                        text={`${p.verdict || 'Recent post'}${p.engagementRate != null ? ` · ${p.engagementRate.toFixed(2)}% engagement` : ''} — open it in Results.`}
+                        text={workedPostTip({ verdict: p.verdict, engagementRate: p.engagementRate, caption: p.caption_excerpt })}
                       >
                         <Link
                           to={to}
