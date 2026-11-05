@@ -431,6 +431,7 @@ def _calendar_record_angle(record: dict[str, Any]) -> str | None:
 
 
 def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[dict[str, Any]]:
+    from _lib.brand_place import far_from_brand  # noqa: PLC0415
     from _lib.marketing_calendar import (  # noqa: PLC0415
         VALID_BRAND_IDS,
         canonical_records,
@@ -486,6 +487,11 @@ def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[di
                     "meta_slim": meta_slim,
                     "render_mode": render_mode_for_record(record),
                     "post_type": str(record.get("post_type") or "") or None,
+                    # Set in another province than the brand (Stick was offered a JHB event as local).
+                    "far_from_brand": far_from_brand(
+                        brand_id,
+                        " ".join(str(record.get(k) or "") for k in ("title", "venue", "location", "city")),
+                    ),
                 },
             })
     return out
