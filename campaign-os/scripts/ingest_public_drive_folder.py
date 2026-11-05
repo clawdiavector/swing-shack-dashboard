@@ -31,6 +31,9 @@ from _lib.visual_dna_query import tag_directory  # noqa: E402
 #   stick        306 images  Location/{In Store Photos for walkthrough,Photos of iron sets}, Other, Products, Services
 #   swing-shack  136 images  Products, Services, Swing Shack RAW, Others
 #
+# Stick also reads its Shot List (BRAND_EXTRA_SOURCES below): 560 images by line,
+# filed under images/Shot List/.
+#
 # A third id, 1FYeac0rVLezYFcS_02Yqsn7fOw1ecghd, appears in
 # tests/test_google_drive_public.py as SERVICES_FOLDER_ID. It is NOT a third
 # root: it is Stick's own Services subfolder (all 34 of its images are a strict
@@ -43,6 +46,22 @@ BRAND_PUBLIC_ROOTS = {
 
 # Back-compat for callers that imported the old single-brand constant.
 STICK_PUBLIC_ROOT = BRAND_PUBLIC_ROOTS["stick"]
+
+# Folders a brand owns outside its root, read where they live and filed under
+# images/<label>/ (Christelle, 2026-11-05). Stick's Shot List belongs to
+# info@stickgolf.co.za; copying its ~6 GB into the Five Friday root would fill that
+# Drive and drift from new shots. Never put a brand root or the catalogue here.
+BRAND_EXTRA_SOURCES = {
+    "stick": {"Shot List": "11VFWJOrRi6B3MYjCB78Qew4QXe1D7NSx"},
+}
+
+
+def brand_sources(brand: str) -> list[tuple[str, str]]:
+    """[(folder label, Drive id)] to ingest for a brand: its root first (label ""), then extras."""
+    root = BRAND_PUBLIC_ROOTS.get(brand)
+    if not root:
+        return []
+    return [("", root)] + list(BRAND_EXTRA_SOURCES.get(brand, {}).items())
 
 
 def _manifest_key(folder: str, name: str) -> str:
@@ -83,6 +102,7 @@ def run_ingest(
     dry_run: bool = False,
     repo_root: Path | None = None,
     data_dir: Path | None = None,
+    folder_prefix: str = "",
 ) -> dict:
     # data_dir names the directory that CONTAINS brand-directory/. Locally that
     # is <repo>/data; on Railway it is the volume at $DATA_DIR, which the app
@@ -102,6 +122,12 @@ def run_ingest(
     known_md5 = _existing_md5s(manifest)
 
     all_entries = gd.list_public_folder(folder_id)
+    prefix = folder_prefix.strip("/")
+    if prefix:
+        all_entries = [
+            {**e, "folder": f"{prefix}/{e['folder']}".rstrip("/") if e.get("folder") else prefix}
+            for e in all_entries
+        ]
     images = [e for e in all_entries if gd.is_public_drive_image(e)]
     skipped_non_image = [e for e in all_entries if not gd.is_public_drive_image(e)]
 
@@ -264,23 +290,27 @@ def main() -> int:
 
     # Never fall back to another brand's root: that silently files one brand's
     # imagery under the other, and md5 dedupe is per-brand so nothing catches it.
-    folder_id = args.folder_id or BRAND_PUBLIC_ROOTS.get(args.brand)
-    if not folder_id:
+    sources = [("", args.folder_id)] if args.folder_id else brand_sources(args.brand)
+    if not sources:
         parser.error(
             f"no canonical Drive root for brand {args.brand!r}. "
             f"Known: {', '.join(sorted(BRAND_PUBLIC_ROOTS))}. "
             f"Pass --folder-id explicitly to ingest something else."
         )
 
-    summary = run_ingest(
-        args.brand,
-        folder_id,
-        limit=args.limit,
-        dry_run=args.dry_run,
-        data_dir=Path(args.data_dir) if args.data_dir else None,
-    )
-    print(json.dumps(summary, indent=2))
-    return 1 if summary.get("download_errors") else 0
+    failed = False
+    for prefix, folder_id in sources:
+        summary = run_ingest(
+            args.brand,
+            folder_id,
+            limit=args.limit,
+            dry_run=args.dry_run,
+            data_dir=Path(args.data_dir) if args.data_dir else None,
+            folder_prefix=prefix,
+        )
+        print(json.dumps(summary, indent=2))
+        failed = failed or bool(summary.get("download_errors"))
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

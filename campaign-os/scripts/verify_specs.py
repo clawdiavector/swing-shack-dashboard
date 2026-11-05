@@ -462,7 +462,10 @@ def _drive_roots():
     if not roots:
         return FAIL, "no BRAND_PUBLIC_ROOTS table; --folder-id falls back to one brand's root"
     rows, bad = [], []
-    for brand, fid in sorted(roots.items()):
+    extras = getattr(mod, "BRAND_EXTRA_SOURCES", None) or {}
+    listed = sorted(roots.items()) + [(f"{b}:{label}", fid) for b, src in sorted(extras.items())
+                                      for label, fid in src.items()]
+    for brand, fid in listed:
         try:
             entries = gd.list_public_folder(fid)
         except Exception as e:  # noqa: BLE001
@@ -512,6 +515,8 @@ def _drive_map_names_roots():
         "stick-location-subset": _DRIVE_STICK_LOCATION_SUBSET_ID,
     }
     required.update({f"ingest:{brand}": fid for brand, fid in roots.items()})
+    for brand, src in (getattr(mod, "BRAND_EXTRA_SOURCES", None) or {}).items():
+        required.update({f"extra:{brand}:{label}": fid for label, fid in src.items()})
     missing = [f"{name} {fid}" for name, fid in sorted(required.items()) if fid not in text]
     if missing:
         return FAIL, "campaign-os-map omits " + "; ".join(missing)
