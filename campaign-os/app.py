@@ -48584,7 +48584,7 @@ def review_pack_page(token):
     share = _rp_share(token)
     if not share:
         return rp.render_bad_link_page(), 404, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
-    page = rp.render_page(rp.public_view(share["pack"], token), token=token)
+    page = rp.render_page(rp.public_view(share["pack"], token, share["who"]), token=token)
     return page, 200, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
 
 
@@ -48594,7 +48594,7 @@ def review_pack_data(token):
     share = _rp_share(token)
     if not share:
         return jsonify(_RP_GONE), 404
-    resp = jsonify(rp.public_view(share["pack"], token))
+    resp = jsonify(rp.public_view(share["pack"], token, share["who"]))
     resp.headers.update(_RP_HEADERS)
     return resp
 
@@ -48650,6 +48650,22 @@ def review_pack_act(token):
     except ValueError as e:
         return _rp_error(e)
     return jsonify({"ok": True, "decision": row}), 200
+
+
+@app.route("/review-pack/<token>/done", methods=["POST"])
+def review_pack_done(token):
+    """She says she has finished. Recorded as a note for us; nothing is scheduled or sent."""
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    if _review_pack_limited(token, "done", _REVIEW_PACK_LIMIT_PER_MIN):
+        return jsonify(_RP_SLOW), 429
+    try:
+        row = rp.mark_done(share["pack"], share["who"])
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "done": row}), 200
 
 
 @app.route("/review-pack/<token>/comment", methods=["POST"])

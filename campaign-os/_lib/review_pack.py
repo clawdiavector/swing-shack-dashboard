@@ -416,6 +416,25 @@ def view(pack_id: str) -> dict[str, Any]:
             "uploads": _read_rows(d / "uploads.jsonl")}
 
 
+def mark_done(pack_id: str, who: str) -> dict[str, Any]:
+    """She says she has finished. A note for us and nothing more: it schedules and sends nothing.
+    Pressing it again just updates the time, so it is news again."""
+    _pack_or_raise(pack_id)
+    d = _pack_dir(pack_id)
+    key = " ".join(str(who or "someone").lower().split())
+    rows = _read_json(d / "done.json", {})
+    row = {"by": (who or "someone").strip()[:40], "at": _now()}
+    rows[key] = row
+    _write_json(d / "done.json", rows)
+    return row
+
+
+def _done_rows(pack_id: str) -> dict[str, dict[str, Any]]:
+    d = _pack_dir(pack_id)
+    rows = _read_json(d / "done.json", {}) if d is not None else {}
+    return {k: r for k, r in rows.items() if isinstance(r, dict)}
+
+
 PALETTE = ["#f2994a", "#56ccf2", "#bb6bd9", "#6fcf97", "#eb5757", "#f2c94c", "#4f9cf0", "#e07bb0", "#27ae9a", "#a5a5f5"]
 
 
@@ -432,7 +451,7 @@ def colour_of(pack_id: str, who: str) -> str:
     return PALETTE[people[key] % len(PALETTE)]
 
 
-def public_view(pack_id: str, token: str) -> dict[str, Any]:
+def public_view(pack_id: str, token: str, who: str = "") -> dict[str, Any]:
     """What the page needs, with links that carry her token."""
     v = view(pack_id)
     base = f"/review-pack/{token}"
@@ -444,9 +463,12 @@ def public_view(pack_id: str, token: str) -> dict[str, Any]:
     comments = {k: [{**c, "colour": colour_of(pack_id, c.get("who", ""))} for c in rows] for k, rows in v["comments"].items()}
     decisions = {k: ({**r, "colour": colour_of(pack_id, r.get("by", ""))} if isinstance(r, dict) else r)
                  for k, r in v["decisions"].items()}
+    me = " ".join(str(who or "").lower().split())
+    done = [{**r, "colour": colour_of(pack_id, r.get("by", "")), "mine": bool(me) and k == me}
+            for k, r in sorted(_done_rows(pack_id).items(), key=lambda kv: kv[1].get("at", ""))]
     return {"pack": {"title": v["pack"]["title"], "client": v["pack"].get("client", ""),
                      "theme": v["pack"].get("theme", {}), "notice": v["pack"].get("notice", ""), "items": items},
-            "decisions": decisions, "comments": comments, "uploads": uploads}
+            "decisions": decisions, "comments": comments, "uploads": uploads, "done": done}
 
 
 def news(pack_id: str, since: str = "") -> dict[str, Any]:
@@ -470,7 +492,8 @@ def news(pack_id: str, since: str = "") -> dict[str, Any]:
         "comments": len(comments),
         "uploads": len(uploads),
     }
-    empty = not any(counts.values())
+    done_now = [r for r in sorted(_done_rows(pack_id).values(), key=lambda r: r.get("at", "")) if fresh(r)]
+    empty = not any(counts.values()) and not done_now
     lines: list[str] = []
     if not empty:
         client = v["pack"].get("client") or "The client"
@@ -484,8 +507,10 @@ def news(pack_id: str, since: str = "") -> dict[str, Any]:
             lines.append(f"- {c.get('who', 'someone')} commented on {titles.get(c.get('item'), 'the pack')}{tag}: {c.get('text', '')[:140]}")
         for u in uploads:
             lines.append(f"- {u.get('who', 'someone')} uploaded a photo to {titles.get(u.get('item'), 'the pack')}")
+        for r in done_now:
+            lines.append(f"- {r.get('by', 'someone')} says they are done")
     return {"pack_id": pack_id, "since": since, "now": _now(), "empty": empty, "counts": counts,
-            "text": "\n".join(lines)}
+            "done": [r.get("by", "someone") for r in done_now], "text": "\n".join(lines)}
 
 
 def has_activity(pack_id: str) -> bool:
@@ -494,7 +519,7 @@ def has_activity(pack_id: str) -> bool:
     d = _pack_dir(pack_id)
     if d is None or not d.is_dir():
         return False
-    if _read_json(d / "decisions.json", {}):
+    if _read_json(d / "decisions.json", {}) or _read_json(d / "done.json", {}):
         return True
     if any(r.get("role") == "client" for r in _read_rows(d / "comments.jsonl")):
         return True
@@ -553,7 +578,10 @@ textarea{flex:1 1 240px;min-height:52px;resize:vertical}
 .up{border:2px dashed var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .up label.chk{display:flex;gap:8px;align-items:flex-start;font-size:14px}
 .ups{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}.ups img{width:100%;border-radius:8px;aspect-ratio:1;object-fit:cover;cursor:zoom-in}
-.bar{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;z-index:5}
+.nextb{font:inherit;font-weight:800;border:2px solid var(--bg);background:transparent;color:var(--bg);border-radius:999px;padding:6px 16px;min-height:40px;cursor:pointer}#progress{font-weight:800}
+#finish:focus,.card:focus{outline:none}
+[hidden]{display:none!important}
+.bar{flex-wrap:wrap;position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;z-index:5}
 .lb{position:fixed;inset:0;background:rgba(8,10,22,.95);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}.lb[hidden]{display:none}
 .lb img{max-width:min(96vw,1100px);max-height:86vh;border-radius:8px}
 .lbb{position:absolute;border:0;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font:inherit;font-weight:800;cursor:pointer;padding:10px 18px}
@@ -565,8 +593,9 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 <aside class="card" id="notice" hidden style="border-left:6px solid var(--accent)"></aside>
 <div id="items" class="wrap"></div>
 <section class="card" id="week"></section>
+<section class="card" id="finish" tabindex="-1"></section>
 </div>
-<div class="bar"><span id="progress"></span><span id="status" aria-live="polite"></span></div>
+<div class="bar"><span id="progress"></span><button id="nextb" class="nextb" type="button">Next post</button><span id="status" aria-live="polite"></span></div>
 <div id="lb" class="lb" hidden role="dialog" aria-modal="true" aria-label="Full screen picture"><button id="lbx" class="lbb" type="button">Close</button><button id="lbp" class="lbb" type="button" aria-label="Previous">&lsaquo;</button><img id="lbi" alt=""><button id="lbn" class="lbb" type="button" aria-label="Next">&rsaquo;</button><div id="lbc"></div></div>
 <script type="application/json" id="boot">__DATA__</script>
 <script>
@@ -599,18 +628,30 @@ function uploadBox(item,onDone){const u=el("div","up");u.append(el("b","","Add y
   try{const r=await fetch(BASE+"/upload",{method:"POST",body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Upload failed");out.textContent=j.uploads.length+" saved.";f.value="";await refresh()}catch(e){out.textContent=e.message}finally{b.disabled=false}};
  u.append(f,s,lab,b,out);return u}
 function uploadsGrid(item){const g=el("div","ups");const mine=D.uploads.filter(x=>x.item===item);mine.forEach((x,i)=>{const im=new Image();im.src=x.url;im.alt=x.original_name;im.title=x.source||x.original_name;im.onclick=()=>openLB(mine.map(y=>y.url),i,"Your photo");g.append(im)});return mine.length?g:null}
-function paint(){let done=0;D.pack.items.forEach(it=>{const d=D.decisions[it.id];const b=document.querySelector('[data-badge="'+it.id+'"]');
+let SURE=false;
+function paintFinish(done,total,first){SURE=false;$("progress").textContent=done+" of "+total+" answered";
+ const nb=$("nextb");nb.textContent=first?"Next post":"Finish";nb.onclick=()=>{const t=first?document.querySelector('section[data-id="'+first+'"]'):$("finish");if(t){t.scrollIntoView({behavior:"smooth",block:"start"});t.focus({preventScroll:true})}};
+ const f=$("finish");f.textContent="";const mine=(D.done||[]).find(x=>x.mine);const others=(D.done||[]).filter(x=>!x.mine);
+ f.append(el("h2","","All finished?"));
+ if(mine)f.append(el("p","sub","Thank you. We have your answers and will take it from here. You can still change anything, and tap again if you add more later."));
+ else f.append(el("p","sub",done<total?(total-done)+" of "+total+" posts still have no answer. Answer them, or tell us you are done and we will take it as it is.":"Every post has an answer. Tell us when you are happy for us to take it from here."));
+ others.forEach(x=>{const p=el("p","meta",x.by+" is done");if(x.colour)p.style.color=x.colour;f.append(p)});
+ const b=el("button","send",mine?"Done. Tell us again":"I'm done");b.type="button";
+ b.onclick=async()=>{if(!mine&&done<total&&!SURE){SURE=true;b.textContent="Send anyway ("+(total-done)+" unanswered)";return}
+  b.disabled=true;try{const j=await post("/done",{});D.done=(D.done||[]).filter(x=>!x.mine);D.done.push({by:j.done.by,at:j.done.at,mine:true,colour:"#7c38f8"});paint();say("Thank you, we have it")}catch(e){say(e.message);b.disabled=false}};
+ f.append(b)}
+function paint(){let done=0,total=0,first=null;D.pack.items.forEach(it=>{const ans=!!D.decisions[it.id]&&D.decisions[it.id].state!=="pending";if(it.kind!=="note"){total++;if(ans)done++;else if(!first)first=it.id}const d=D.decisions[it.id];const b=document.querySelector('[data-badge="'+it.id+'"]');
   if(b){const pend=d&&d.state==="pending";b.className="badge"+(d&&!pend?" "+d.state:"");b.textContent=d?(pend?"Option "+d.choice+" picked. Now Approve, Reject or Hold":LBL[d.state]+(d.choice?" · option "+d.choice:"")):"Waiting for you"}
   document.querySelectorAll('[data-st="'+it.id+'"]').forEach(x=>x.setAttribute("aria-pressed",String(!!d&&d.state===x.dataset.v)));
   document.querySelectorAll('[data-ch="'+it.id+'"]').forEach(x=>x.setAttribute("aria-pressed",String(!!d&&d.choice===x.dataset.v)));
   const t=document.querySelector('[data-th="'+it.id+'"]');if(t)threadHTML(t,it.id);
-  const g=document.querySelector('[data-ug="'+it.id+'"]');if(g){g.textContent="";const u=uploadsGrid(it.id);if(u)g.append(u)};if(d&&d.state!=="pending")done++});
- $("progress").textContent=done+" of "+D.pack.items.length+" decided"}
+  const g=document.querySelector('[data-ug="'+it.id+'"]');if(g){g.textContent="";const u=uploadsGrid(it.id);if(u)g.append(u)}});
+ paintFinish(done,total,first)}
 async function act(item,state,choice){try{const j=await post("/act",{item,state:state||undefined,choice:choice||undefined});D.decisions[item]=j.decision;paint();say(state?LBL[state]+" saved":"Option "+choice+" picked")}catch(e){say(e.message)}}
 function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name+": ":"";$("ttl").textContent="";$("ttl").append(document.createTextNode(parts),el("span","",P.title));
- $("intro").textContent="Look at each post, then choose Approve, Reject or Hold. Leave a comment on anything, and upload your own photo where you have one. Your answers save as you go.";
+ $("intro").textContent="Look at each post, then choose Approve, Reject or Hold. Leave a comment on anything, and upload your own photo where you have one. Your answers save as you go. When you have been through them all, press I'm done at the bottom.";
  if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
- const box=$("items");P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
+ const box=$("items");P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
   const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m));const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);c.append(h);
   if(it.images.length){const one=it.images.length===1;const g=el("div","grid"+(one?" one":"")+(it.kind==="choice"&&it.images.length>1?" choice":""));it.images.forEach((src,i)=>{const cell=el("div","cell");const im=new Image();im.src=src;im.alt=it.title;im.onclick=()=>openLB(it.images,i,it.title);
     if(it.kind==="choice"&&it.images.length>1){const L="ABC"[i];const o=el("button","opt");o.type="button";o.setAttribute("aria-label","Pick design option "+L);o.dataset.ch=it.id;o.dataset.v=L;o.setAttribute("aria-pressed","false");o.append(im,el("b","","Option "+L));o.onclick=()=>act(it.id,null,L);im.onclick=null;cell.append(o)}else cell.append(im);
@@ -621,7 +662,7 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
   const ug=el("div");ug.dataset.ug=it.id;c.append(uploadBox(it.id),ug);box.append(c)});
  const w=$("week");w.append(el("h2","","Your own photos for the week"),el("p","sub","Not tied to one post? Add them here."),uploadBox(""));const wg=el("div");wg.dataset.ug="";w.append(wg);
  const wt=el("div","thread");wt.append(el("h3","","General comments"));const wb=el("div");wb.dataset.th="";wt.append(wb,composer("",wb));w.append(wt);paint();const g0=document.querySelector('[data-ug=""]');if(g0){const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}
-async function refresh(){try{const r=await fetch(BASE+"/data",{cache:"no-store"});if(!r.ok)return;const j=await r.json();D.decisions=j.decisions;D.comments=j.comments;D.uploads=j.uploads;paint();const g0=document.querySelector('[data-ug=""]');if(g0){g0.textContent="";const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}catch(e){}}
+async function refresh(){try{const r=await fetch(BASE+"/data",{cache:"no-store"});if(!r.ok)return;const j=await r.json();D.decisions=j.decisions;D.comments=j.comments;D.uploads=j.uploads;D.done=j.done||[];paint();const g0=document.querySelector('[data-ug=""]');if(g0){g0.textContent="";const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}catch(e){}}
 build();setInterval(()=>{if(!document.hidden)refresh()},20000);
 </script></body></html>"""
 

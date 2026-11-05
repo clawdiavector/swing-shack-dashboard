@@ -13,6 +13,8 @@ lasts 30 days. The client opens `/review-pack/<token>` with no login and can, pe
 
 - pick a design (A, B or C), which does **not** approve the post;
 - **Approve / Reject / Hold**;
+- see "6 of 20 answered" at the bottom with a **Next post** button that jumps to the first unanswered one;
+- press **I'm done** at the end (a note for us, see below);
 - comment, tagged *general*, *copy edit* or *design edit*;
 - upload her own photos (images only, up to 20 per go, 10 MB each), with where it came from
   and a permission tick.
@@ -43,6 +45,15 @@ GET  /api/jobs/review-packs/<id>/news?since=<time>   what she did after <time>: 
 app. Keep the `now` from each reply and pass it as `since` next time, so each answer is reported
 once. The Mac watcher (15-minute poll, no agent) calls it and sends Telegram only when `empty` is
 false. That Mac step is Kyle's; it is not wired yet.
+
+## "I'm done"
+
+`POST /review-pack/<token>/done` records that this person has finished (`done.json`, one row per person,
+pressing again just updates the time). It is a note for us and nothing more: nothing is scheduled or
+sent. It shows in `/news` as `done: ["Chantalle"]` and a line "Chantalle says they are done", so the
+watcher can ping. It counts as the client having answered, so deleting the pack is refused. If posts
+still have no answer the button asks once more ("Send anyway") before recording. Notes (`kind: note`)
+are not counted in "answered".
 
 ## Who can see what
 
