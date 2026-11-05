@@ -685,11 +685,24 @@ def plan_step_entries(steps: list[dict[str, Any]], brand_id: str) -> list[dict[s
     return out
 
 
+def _campaign_when(plan: dict[str, Any]) -> str:
+    """When the campaign's posts and stories run; the plan's event date when it has none."""
+    days = sorted(
+        str(it.get("due") or "")[:10]
+        for it in plan.get("items") or []
+        if isinstance(it, dict) and it.get("kind") in ("post", "story")
+        and it.get("status") != "removed" and it.get("due")
+    )
+    if not days:
+        return _when(plan.get("event_date"))
+    return _when(days[0]) if days[0] == days[-1] else f"{_when(days[0])} to {_when(days[-1])}"
+
+
 def campaign_list(plans: list[dict[str, Any]]) -> list[dict[str, Any]]:
     live = [p for p in plans if p.get("status") not in ("superseded", "archived")]
     live.sort(key=lambda p: str(p.get("event_date") or ""))
     return [{"plan_id": p.get("plan_id"), "title": p.get("event_name") or "Untitled campaign",
-             "event_date": p.get("event_date"), "when": _when(p.get("event_date")), "status": p.get("status")}
+             "event_date": p.get("event_date"), "when": _campaign_when(p), "status": p.get("status")}
             for p in live]
 
 

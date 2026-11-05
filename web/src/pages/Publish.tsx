@@ -21,6 +21,7 @@ import {
   type TodayCounts,
   type TodayPanel,
 } from '../lib/api'
+import { publishIntro } from '../lib/auditWording'
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
 import { groupSandboxRowsByPostId, idempotencyKeysForGroup } from '../lib/publishPostGroup'
@@ -209,7 +210,7 @@ export function Publish() {
           </div>
         }
       >
-        Sandbox publish queue — image, caption, platform. Approve on Review does not publish live.
+        {publishIntro(publishMode?.mode)}
       </PageIntro>
 
       <PartialBrandLoadStrip failures={failures} onRetry={loadPanelAndQueue} />

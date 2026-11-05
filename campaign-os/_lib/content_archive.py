@@ -550,6 +550,40 @@ def _published_items_has_asset(asset_id: str) -> bool:
     return False
 
 
+def published_asset_ids(campaigns: dict[str, Any] | None = None) -> set[str]:
+    """Every asset id that has shipped, read once (``draft_is_published`` for a whole list)."""
+    ids: set[str] = set()
+    from _lib.post_links import INDEX_NAME, _load_index  # noqa: PLC0415
+
+    path = Path(_data_dir()) / INDEX_NAME
+    if path.is_file():
+        for aid, link in (_load_index(path).get("by_asset_id") or {}).items():
+            if isinstance(link, dict) and link.get("published_at"):
+                ids.add(str(aid))
+    path = Path(_data_dir()) / "published-items.json"
+    if path.is_file():
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            doc = {}
+        rows = doc.get("published") if isinstance(doc, dict) else None
+        for it in rows if isinstance(rows, list) else []:
+            if not isinstance(it, dict):
+                continue
+            for key in ("asset_id", "assetId", "id", "item_id", "publish_id", "publishId"):
+                if it.get(key):
+                    ids.add(str(it[key]))
+    for campaign in (campaigns or {}).values():
+        assets = campaign.get("assets") if isinstance(campaign, dict) else None
+        for aid, asset in (assets or {}).items() if isinstance(assets, dict) else []:
+            if not isinstance(asset, dict):
+                continue
+            status = str(asset.get("approvalStatus") or asset.get("publishStatus") or "").lower()
+            if status == "published":
+                ids.add(str(aid))
+    return ids
+
+
 def draft_is_published(asset_id: str) -> bool:
     """True when this draft asset has already shipped (must never be purged)."""
     link = _meta_post_link(asset_id)

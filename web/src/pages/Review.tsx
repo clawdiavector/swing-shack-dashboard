@@ -192,7 +192,7 @@ function ReviewInbox({
   const atImageCap = Boolean(imageCap?.at_cap)
   const regenerateTip = atImageCap
     ? `Daily image cap reached for ${firstDraftBrand || 'brand'}`
-    : 'Queue a new draft photo with a corrective note (P4 API — not the image router).'
+    : 'Make a new draft photo, with a note on what to fix.'
 
   async function runDraftAction(run: () => Promise<boolean>) {
     setDraftBusy(true)

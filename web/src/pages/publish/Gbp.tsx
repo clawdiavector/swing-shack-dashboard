@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useBrand, useBrandScope } from '../../components/BrandSwitch'
 import { PageIntro } from '../../components/chrome'
 import {
+  gbpPausedSince,
   nextStep,
   postStage,
   problemWords,
@@ -25,6 +26,7 @@ import {
   fetchGbpSuggestions,
   fetchGmbDrafts,
   fetchGmbSearchTerms,
+  fetchJobsStatus,
   previewGbpDailyPlan,
   scheduleGmbDraft,
   unapproveGmbDraft,
@@ -92,6 +94,18 @@ export function Gbp() {
   useEffect(() => {
     loadDrafts()
   }, [loadDrafts])
+
+  // The daily send can be switched off (GitHub cron, audit 3 Nov 2026): then say so, not "one a day".
+  const [pausedSince, setPausedSince] = useState('')
+  useEffect(() => {
+    if (allBrands) {
+      setPausedSince('')
+      return
+    }
+    fetchJobsStatus()
+      .then((s) => setPausedSince(gbpPausedSince(s, scopeBrand)))
+      .catch(() => setPausedSince(''))
+  }, [allBrands, scopeBrand])
 
   useEffect(() => {
     fetchGmbSearchTerms(scopeBrand).then(setSearchTerms).catch(() => setSearchTerms(null))
@@ -293,7 +307,7 @@ export function Gbp() {
       </PageIntro>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-2xl text-sm">{loaded ? nextStep(counts, firstGoesOut) : 'Loading your posts...'}</p>
+        <p className="max-w-2xl text-sm">{loaded ? nextStep(counts, firstGoesOut, pausedSince) : 'Loading your posts...'}</p>
         <button type="button" className={primaryBtn} onClick={() => setTab('new')}>
           + New post
         </button>

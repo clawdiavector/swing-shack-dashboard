@@ -569,6 +569,10 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
     if not isinstance(campaigns, dict):
         campaigns = {}
     out: list[dict[str, Any]] = []
+    # A draft that already went out is not waiting for a yes (Titleist, Takomo: audit 5 Nov 2026).
+    from _lib.content_archive import published_asset_ids  # noqa: PLC0415
+
+    shipped = published_asset_ids(campaigns)
     buckets = {
         "pending": inbox.get("pending") or [],
         "approved": inbox.get("approved") or [],
@@ -582,6 +586,8 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 continue
             cid = str(row.get("campaignId") or "")
             aid = str(row.get("assetId") or "")
+            if bucket_name == "pending" and aid in shipped:
+                continue
             brand_id = str(row.get("brand") or brand or "")
             ts = row.get("updatedAt")
             item_status = bucket_name if bucket_name != "pending" else "pending"
