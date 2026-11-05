@@ -652,6 +652,9 @@ export type JobScheduleObject = {
 
 export type JobEntry = {
   name?: string
+  /** The freshest file this job writes, and whether "OK" hides old data (jobs/data_freshness.py). */
+  data?: { file?: string; newest_at?: string; age_days?: number } | null
+  data_stale?: boolean
   verdict?: string
   criticality?: string
   brand_mode?: string
