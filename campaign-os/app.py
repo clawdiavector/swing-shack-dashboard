@@ -18875,6 +18875,23 @@ def weekly_report_share():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@app.route('/api/counts', methods=['GET'])
+def four_counts_route():
+    """GET /api/counts?brand=<id|all> — To approve, Dates to decide, Scheduled, Sent this week."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import four_counts as _four_counts
+
+        brand = (request.args.get("brand") or "all").strip()
+        return jsonify({"ok": True, **_four_counts.counts(brand)}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("four_counts failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/today/panel', methods=['GET'])
 def today_panel():
     brief, status = _intel('morning_brief')
