@@ -79,8 +79,8 @@ export type CleanMonth = {
 export const VIEWS: { id: CleanView; label: string; hint: string }[] = [
   {
     id: 'scheduled',
-    label: 'Scheduled',
-    hint: 'Approved and set to go out on these days. Nothing to do.',
+    label: 'Approved',
+    hint: 'Approved for these days, including posts that already went out. Nothing to do.',
   },
   {
     id: 'approval',
