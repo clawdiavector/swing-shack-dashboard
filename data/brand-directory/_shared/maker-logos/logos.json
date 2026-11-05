@@ -42,6 +42,13 @@
    "background": "any (tinted by the template)",
    "source": "from bag-drop/logos/vendors (commit debfc040)",
    "status": "official"
+  },
+  {
+   "file": "psycho-bunny.png",
+   "what": "Psycho Bunny wordmark with the skull-and-crossbones bunny, one colour (white and pink knocked out)",
+   "background": "any (tinted by the template)",
+   "source": "psychobunny.com header logo, logo-2025.svg (2026-11-05)",
+   "status": "official"
   }
  ]
 }
