@@ -42,7 +42,21 @@ from _lib.visual_dna_query import tag_directory  # noqa: E402
 BRAND_PUBLIC_ROOTS = {
     "stick": "1k5icaxY3AKBD9z2-oIO6i42PUnq1gYUG",
     "swing-shack": "1n9pHD6hwr7oEfRBAGBriRrsqv_I-qGge",
+    # "Bagdrop" (Five Friday), link-viewable since 2026-11-05: webp edits (own
+    # club cut-outs), New Logo, and Generic Bagdrop, which is skipped below.
+    "bag-drop": "1bBToPcp6xKchcATcyrmIEpbXnUVVaOnc",
 }
+
+# Folders inside a root that are never ingested. Generic Bagdrop holds club images
+# saved from other websites (Amazon, demo shops, retailers), which are not cleared
+# to use (Christelle, 2026-11-05); the scout fetches maker-site images instead.
+BRAND_SKIP_FOLDERS = {
+    "bag-drop": ("Generic Bagdrop",),
+}
+
+
+def skipped_folders(brand: str) -> tuple[str, ...]:
+    return BRAND_SKIP_FOLDERS.get(brand, ())
 
 # Back-compat for callers that imported the old single-brand constant.
 STICK_PUBLIC_ROOT = BRAND_PUBLIC_ROOTS["stick"]
@@ -147,6 +161,13 @@ def run_ingest(
     known_md5 = _existing_md5s(manifest)
 
     all_entries = gd.list_public_folder(folder_id)
+    skip = skipped_folders(brand)
+    skipped_folder = [
+        e for e in all_entries
+        if any((e.get("folder") or "") == f or (e.get("folder") or "").startswith(f + "/") for f in skip)
+    ]
+    if skipped_folder:
+        all_entries = [e for e in all_entries if e not in skipped_folder]
     prefix = folder_prefix.strip("/")
     if prefix:
         all_entries = [
@@ -297,6 +318,7 @@ def run_ingest(
         "downloaded": len(downloaded),
         "skipped_dedupe": len(skipped_dedupe),
         "skipped_non_image": len(skipped_non_image),
+        "skipped_folder": len(skipped_folder),
         "download_errors": download_errors,
         "re_dissected": re_dissected,
         "dissect_errors": dissect_errors,
