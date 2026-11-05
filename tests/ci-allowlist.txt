@@ -229,3 +229,4 @@ campaign-os/tests/test_image_library_20261103.py
 campaign-os/tests/test_catalogue_drive_20261103.py
 campaign-os/tests/test_catalogue_backfill_20261103.py
 campaign-os/tests/test_zernio_bag_drop_on_approve.py
+campaign-os/tests/test_stick_shot_list_source_20261105.py
