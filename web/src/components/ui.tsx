@@ -86,10 +86,13 @@ export function Tip({
 export function ClassicLink({
   href,
   label,
+  text = 'Open in Classic',
   tip: tipProp,
 }: {
   href: string
   label: string
+  /** Visible link text. Give it when two links sit side by side. */
+  text?: string
   /** Custom bubble text, or `false` to render a plain link (no Tip). */
   tip?: string | false
 }) {
@@ -99,7 +102,7 @@ export function ClassicLink({
       href={href}
       className="inline-flex items-center gap-1 text-sm font-semibold text-ac hover:text-yel"
     >
-      Open in Classic
+      {text}
       <ExternalLink className="h-3.5 w-3.5" strokeWidth={2.5} />
     </a>
   )
