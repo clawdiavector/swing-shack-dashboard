@@ -1,4 +1,5 @@
 """Image scout: quality gate, size-parameter stripping, saving with provenance."""
+import importlib
 import io
 import os
 import tempfile
@@ -24,6 +25,12 @@ class ScoutTests(unittest.TestCase):
     def setUp(self):
         self.brand = "sc-" + next(tempfile._get_candidate_names())
         self.dir = Path(tempfile.mkdtemp(prefix="cos-scout-imgs-"))
+        # fetch files originals in the shared catalogue; keep that in a temp folder too.
+        # Import here, not at the top: another test purges _lib.* from sys.modules.
+        il = importlib.import_module("_lib.image_library")
+        patcher = mock.patch.object(il, "CATALOGUE", Path(tempfile.mkdtemp(prefix="cos-scout-cat-")))
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_size_parameters_are_dropped_but_the_version_stays(self):
         u = "https://x.com/cdn/shop/files/a.png?v=12&width=533&crop=center"
