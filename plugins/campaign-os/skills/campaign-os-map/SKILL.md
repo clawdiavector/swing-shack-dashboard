@@ -95,6 +95,7 @@ logos and other non-images were not counted):
 | Ingest root, stick | `1k5icaxY3AKBD9z2-oIO6i42PUnq1gYUG` | 306 images, all inside the parent. `Products` 182, `Other` 54, `Services` 34, `Location/In Store Photos for walkthrough` 24 (HEIC), `Location/Photos of iron sets` 12. |
 | Ingest root, swing-shack | `1n9pHD6hwr7oEfRBAGBriRrsqv_I-qGge` | 136 images, all inside the parent. Zero files shared with Stick. `Products` 66, `Services` 54, `Swing Shack RAW` 14, `Others` 2. |
 | Extra source, stick: Shot List | `11VFWJOrRi6B3MYjCB78Qew4QXe1D7NSx` | Owned by info@stickgolf.co.za, outside the parent. 560 own product photos by line (Golf Balls 153, Putters 81, Takomo 68, Bags/Vessel 48, Mileseey 46, Vice 38, ...) + 116 videos. Read where it lives (`BRAND_EXTRA_SOURCES`), filed under `images/Shot List/<line>/`; never copied into the root (2026-11-05). |
+| Ingest root, bag-drop | `1bBToPcp6xKchcATcyrmIEpbXnUVVaOnc` | "Bagdrop", owned by fivefridaymarketing, outside the parent; link-viewable since 2026-11-05. `webp edits` 185 own club cut-outs (one folder per listing, e.g. `qi35 max 10.5`), `New Logo` 6. `Generic Bagdrop` (77 images saved from other websites, not cleared) is skipped by `BRAND_SKIP_FOLDERS`. |
 
 `drive.map_names_roots` in `scripts/verify_specs.py` fails if this skill drops
 any of those three ids, or drops an id that `BRAND_PUBLIC_ROOTS` still has.
