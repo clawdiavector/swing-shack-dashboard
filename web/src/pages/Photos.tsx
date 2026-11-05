@@ -2,6 +2,7 @@ import { Camera } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBrandScope } from '../components/BrandSwitch'
+import { PickBrand } from '../components/PickBrand'
 import { PageIntro } from '../components/chrome'
 import { Badge } from '../components/ui'
 import { FILTER_QUERY, PHOTO_QUERY, photoFilterFromQuery } from '../lib/backNav'
@@ -688,9 +689,7 @@ export function Photos() {
       </PageIntro>
 
       {!brand || isAll ? (
-        <div className="glass rounded-2xl border border-white/10 p-6 text-tx2">
-          Pick one brand at the top first. Photos are kept per brand.
-        </div>
+        <PickBrand message="Photos are kept per brand. Which one?" />
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2">
