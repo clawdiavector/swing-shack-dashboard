@@ -35,7 +35,7 @@ export function BackButton({ onClick }: { onClick: () => void }) {
         aria-label="Back"
       >
         <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
-        Back
+        <span className="hidden sm:inline">Back</span>
       </button>
     </Tip>
   )
