@@ -77,6 +77,14 @@ class ScoutTests(unittest.TestCase):
             sc.fetch(self.brand, row, self.dir)
         self.assertFalse(pm.load(self.brand)[0]["exact_build"])
 
+    def test_fetch_leaves_the_real_catalogue_alone(self):
+        real = Path(__file__).resolve().parents[2] / "data" / "brand-directory" / "_shared" / "catalogue" / "catalogue.json"
+        before = real.read_bytes() if real.exists() else None
+        row = sc.add(self.brand, "TS005", "Y", "https://t.com/p5", "https://t.com/i5.png")
+        with mock.patch.object(sc, "_get", return_value={"status": 200, "type": "image/png", "data": png(1200, 1200)}):
+            self.assertTrue(sc.fetch(self.brand, row, self.dir)["ok"])
+        self.assertEqual(real.read_bytes() if real.exists() else None, before)
+
 
 if __name__ == "__main__":
     unittest.main()
