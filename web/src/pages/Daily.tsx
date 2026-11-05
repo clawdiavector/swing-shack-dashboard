@@ -432,9 +432,11 @@ export function Daily() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {countTiles(
-          four && inboxItems
-            ? { ...four, to_approve: draftsWaiting || 0, dates_to_decide: candidatesWaiting || 0 }
-            : null,
+          // The inbox numbers show as soon as the page has them; Scheduled and Sent follow.
+          {
+            ...(four ?? {}),
+            ...(inboxItems ? { to_approve: draftsWaiting || 0, dates_to_decide: candidatesWaiting || 0 } : {}),
+          },
         ).map((t) => (
           <FunTile
             key={t.key}

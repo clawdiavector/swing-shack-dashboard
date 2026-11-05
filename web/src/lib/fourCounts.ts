@@ -19,8 +19,9 @@ const TILES: Record<CountKey, { label: string; hint: string; to: string; tone: '
 
 const ORDER: CountKey[] = ['to_approve', 'dates_to_decide', 'scheduled', 'sent_this_week']
 
-export function countTiles(c: FourCounts | null, keys: CountKey[] = ORDER) {
-  return keys.map((k) => ({ key: k, ...TILES[k], value: c ? c[k] : ('—' as const) }))
+/** The tiles, in order; a number not known yet (still loading, or failed) shows a dash. */
+export function countTiles(c: Partial<FourCounts> | null, keys: CountKey[] = ORDER) {
+  return keys.map((k) => ({ key: k, ...TILES[k], value: c?.[k] ?? ('—' as const) }))
 }
 
 const n = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
