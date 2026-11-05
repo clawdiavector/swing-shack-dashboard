@@ -245,10 +245,9 @@ def test_fetch_layers_passes_brand_in_sources():
     repo_root = CAMPAIGN_OS.parent
     api_ts = (repo_root / "web" / "src" / "lib" / "api.ts").read_text(encoding="utf-8")
     ops_tsx = (repo_root / "web" / "src" / "pages" / "Ops.tsx").read_text(encoding="utf-8")
-    daily_tsx = (repo_root / "web" / "src" / "pages" / "Daily.tsx").read_text(encoding="utf-8")
+    # Today no longer loads ops layers, so Daily.tsx is not part of this check.
     assert "fetchLayers(brand" in api_ts or "fetchLayers(brand?" in api_ts
     assert "fetchLayers(scopeBrand" in ops_tsx
-    assert "fetchLayers(brand)" in daily_tsx
 
 
 def test_build_layers_pure_function():
