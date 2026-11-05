@@ -1,21 +1,21 @@
 import { Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../../components/chrome'
 import { Badge, ClassicLink } from '../../components/ui'
 import {
-  fetchAdCorrelation,
   fetchContentTrafficCorrelation,
   fetchLearn,
   fetchTopPosts,
-  type AdCorrelation,
   type ContentTrafficCorrelation,
   type InsightPost,
   type InsightsPosts,
   type LearnSummary,
 } from '../../lib/api'
 import { formatStamp } from '../../lib/stamp'
+import { pageLabel, trafficSentence } from '../../lib/trafficSummary'
+import { bestPostSentence, learnSentence, postFormat, postWeekday } from '../../lib/workedSummary'
 
 // Recipes, CTAs and Patterns were cut: they read flat, portfolio-wide files with stale dates.
 // They are still in Classic learnings until they are brand-scoped and dated.
@@ -64,14 +64,6 @@ function verdictTone(verdict: string): 'green' | 'gold' | 'red' | 'mute' {
   return 'mute'
 }
 
-// One line under the Learn verdict so "LATE" reads as a status, not a score.
-const LEARN_VERDICT_HELP: Record<string, string> = {
-  OK: 'Enough scored winners to build recipes from.',
-  LATE: 'Samples are in, but no recipe is ready yet. Not enough winners to call a pattern.',
-  FAILED: 'The latest proposal gate failed.',
-  NEVER: 'No samples yet.',
-}
-
 function resolveTab(raw: string | null): WorkedTab {
   if (raw === 'traffic') return raw
   return 'posts'
@@ -97,7 +89,6 @@ export function Worked() {
   const [postsMeta, setPostsMeta] = useState<InsightsPosts['_meta'] | undefined>()
   const [learnSummary, setLearnSummary] = useState<LearnSummary | null>(null)
   const [traffic, setTraffic] = useState<ContentTrafficCorrelation | null>(null)
-  const [ads, setAds] = useState<AdCorrelation | null>(null)
   const [postsErr, setPostsErr] = useState('')
   const [trafficErr, setTrafficErr] = useState('')
   const rowRefs = useRef<Record<string, HTMLLIElement | null>>({})
@@ -132,9 +123,6 @@ export function Worked() {
         setTraffic(null)
         setTrafficErr(e.message || 'GET /api/insights/content-traffic-correlation failed')
       })
-    fetchAdCorrelation()
-      .then(setAds)
-      .catch(() => setAds(null))
   }, [brandId])
 
   useEffect(() => {
@@ -170,21 +158,16 @@ export function Worked() {
       {postsErr ? <p className="text-sm text-red">{postsErr}</p> : null}
       {trafficErr && tab === 'traffic' ? <p className="text-sm text-red">{trafficErr}</p> : null}
 
+      {tab === 'posts' && posts?.length ? (
+        <p className="text-base font-medium text-tx">{bestPostSentence(posts, postsMeta?.average_engagement)}</p>
+      ) : null}
+
       {learnSummary?.headline ? (
         <div className="glass rounded-2xl border border-white/10 p-4 text-sm">
-          <p className="font-semibold text-tx">
-            Learn summary: {learnSummary.headline.verdict || '—'}
-          </p>
-          <p className="mt-1 text-tx2">
-            {learnSummary.headline.winners ?? 0} winners · {learnSummary.headline.recipes ?? 0} recipes ·{' '}
-            {learnSummary.headline.samples ?? 0} samples
-          </p>
-          {LEARN_VERDICT_HELP[learnSummary.headline.verdict ?? ''] ? (
-            <p className="mt-1 text-xs text-tx3">{LEARN_VERDICT_HELP[learnSummary.headline.verdict ?? '']}</p>
-          ) : null}
+          <p className="font-semibold text-tx">{learnSentence(learnSummary.headline)}</p>
           <p className="mt-2 text-xs text-tx3">
-            <span className="font-semibold">Portfolio-wide</span> — from /api/ops/learn/summary (not brand-scoped).
-            {learnSummary.generated_at ? ` As of ${formatStamp(learnSummary.generated_at)}.` : ''}
+            Covers all brands, not just {brandLabel || brandId}.
+            {learnSummary.generated_at ? ` Updated ${formatStamp(learnSummary.generated_at)}.` : ''}
           </p>
         </div>
       ) : null}
@@ -257,6 +240,7 @@ export function Worked() {
                       <p className="line-clamp-2 font-medium text-tx">{post.caption_excerpt || 'Post with no caption saved'}</p>
                       {brandLabel ? <p className="mt-0.5 text-xs text-tx3">{brandLabel}</p> : null}
                       <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-tx3">
+                        <Badge tone="mute">{postFormat(post.media_type)}</Badge>
                         {post.verdict ? <Badge tone={verdictTone(post.verdict)}>{post.verdict}</Badge> : null}
                         {rate != null ? (
                           <span>
@@ -265,7 +249,11 @@ export function Worked() {
                           </span>
                         ) : null}
                         {reactions ? <span>{reactions}</span> : null}
-                        {post.timestamp ? <span>{formatStamp(post.timestamp)}</span> : null}
+                        {post.timestamp ? (
+                          <span>
+                            {postWeekday(post.timestamp)} {formatStamp(post.timestamp)}
+                          </span>
+                        ) : null}
                       </p>
                       {post.permalink ? (
                         <a href={post.permalink} className="mt-2 inline-block text-xs text-ac underline" target="_blank" rel="noreferrer">
@@ -291,54 +279,50 @@ export function Worked() {
 
       {tab === 'traffic' ? (
         <div className="space-y-6">
-          <p className="text-xs text-tx3">
-            Content ↔ traffic uses brand delegation via <code className="text-xs">brand_id={brandId}</code>.
-          </p>
-          {traffic ? (
-            <>
-              {renderGenericList(traffic.matches, 'No content-traffic matches in this window.')}
-              {traffic.unmatched_spikes?.length ? (
-                <div>
-                  <h3 className="mb-2 font-semibold text-tx">Unmatched spikes</h3>
-                  {renderGenericList(traffic.unmatched_spikes, '')}
-                </div>
-              ) : null}
-            </>
+          {traffic?._meta?.ga4_total_sessions != null ? (
+            <p className="text-base font-medium text-tx">
+              {trafficSentence(traffic._meta.ga4_total_sessions, traffic._meta.ga4_window)}
+            </p>
           ) : null}
-          {ads ? (
-            <div className="rounded-2xl border border-white/10 p-4 text-sm">
-              <h3 className="font-semibold text-tx">Paid media correlation</h3>
-              {!ads.configured ? (
-                <p className="mt-2 text-tx2">
-                  Ads are not configured yet. Wire Google Ads / Meta exports so this card can join spend with GA4.
-                </p>
-              ) : (
-                <p className="mt-2 text-tx2">{ads.combined_summary || 'Configured — see Classic for full detail.'}</p>
-              )}
+          {traffic?._meta?.top_pages?.length ? (
+            <div>
+              <h3 className="mb-2 font-semibold text-tx">Where visitors went</h3>
+              <ul className="space-y-2">
+                {traffic._meta.top_pages.slice(0, 5).map((pg) => (
+                  <li
+                    key={pg.path}
+                    className="glass flex items-baseline justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm"
+                  >
+                    <span className="min-w-0 truncate font-medium text-tx">{pageLabel(pg.path)}</span>
+                    <span className="shrink-0 text-xs text-tx3">
+                      {pg.sessions} visits{pg.engagement ? ` · ${pg.engagement} stayed engaged` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
+          <p className="text-xs text-tx3">
+            We can&apos;t yet say which post sent visitors. Google Analytics gives us weekly totals, not daily ones, so
+            there is nothing to line up with post dates.
+          </p>
+          <div className="rounded-2xl border border-white/10 p-4 text-sm">
+            <h3 className="font-semibold text-tx">Paid ads</h3>
+            <p className="mt-1 text-tx2">
+              Ad spend and results for each brand are on the Trends page, with this month&apos;s budget and what to do
+              next.
+            </p>
+            <Link to="/results/trends" className="mt-2 inline-block text-sm font-semibold text-ac hover:text-yel">
+              See ad results
+            </Link>
+          </div>
         </div>
       ) : null}
 
       <div className="flex flex-wrap gap-4">
-        <ClassicLink href="/?page=insights" label="Classic insights" />
-        <ClassicLink href="/?page=learning" label="Classic learnings" />
+        <ClassicLink href="/?page=insights" label="Classic insights" text="Full insights" />
+        <ClassicLink href="/?page=learning" label="Classic learnings" text="Full learnings" />
       </div>
     </div>
-  )
-}
-
-function renderGenericList(items: unknown[] | undefined, empty: string) {
-  if (!items?.length) {
-    return empty ? <p className="text-sm text-tx3">{empty}</p> : null
-  }
-  return (
-    <ul className="space-y-2">
-      {items.map((item, i) => (
-        <li key={i} className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm text-tx">
-          {typeof item === 'string' ? item : JSON.stringify(item, null, 2)}
-        </li>
-      ))}
-    </ul>
   )
 }
