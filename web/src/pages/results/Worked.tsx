@@ -16,6 +16,7 @@ import {
   type LearnSummary,
 } from '../../lib/api'
 import { formatStamp } from '../../lib/stamp'
+import { bestPostSentence, learnSentence, postFormat, postWeekday } from '../../lib/workedSummary'
 
 // Recipes, CTAs and Patterns were cut: they read flat, portfolio-wide files with stale dates.
 // They are still in Classic learnings until they are brand-scoped and dated.
@@ -62,14 +63,6 @@ function verdictTone(verdict: string): 'green' | 'gold' | 'red' | 'mute' {
   if (verdict === 'Below average') return 'gold'
   if (verdict === 'Underperformer') return 'red'
   return 'mute'
-}
-
-// One line under the Learn verdict so "LATE" reads as a status, not a score.
-const LEARN_VERDICT_HELP: Record<string, string> = {
-  OK: 'Enough scored winners to build recipes from.',
-  LATE: 'Samples are in, but no recipe is ready yet. Not enough winners to call a pattern.',
-  FAILED: 'The latest proposal gate failed.',
-  NEVER: 'No samples yet.',
 }
 
 function resolveTab(raw: string | null): WorkedTab {
@@ -170,21 +163,16 @@ export function Worked() {
       {postsErr ? <p className="text-sm text-red">{postsErr}</p> : null}
       {trafficErr && tab === 'traffic' ? <p className="text-sm text-red">{trafficErr}</p> : null}
 
+      {tab === 'posts' && posts?.length ? (
+        <p className="text-base font-medium text-tx">{bestPostSentence(posts, postsMeta?.average_engagement)}</p>
+      ) : null}
+
       {learnSummary?.headline ? (
         <div className="glass rounded-2xl border border-white/10 p-4 text-sm">
-          <p className="font-semibold text-tx">
-            Learn summary: {learnSummary.headline.verdict || '—'}
-          </p>
-          <p className="mt-1 text-tx2">
-            {learnSummary.headline.winners ?? 0} winners · {learnSummary.headline.recipes ?? 0} recipes ·{' '}
-            {learnSummary.headline.samples ?? 0} samples
-          </p>
-          {LEARN_VERDICT_HELP[learnSummary.headline.verdict ?? ''] ? (
-            <p className="mt-1 text-xs text-tx3">{LEARN_VERDICT_HELP[learnSummary.headline.verdict ?? '']}</p>
-          ) : null}
+          <p className="font-semibold text-tx">{learnSentence(learnSummary.headline)}</p>
           <p className="mt-2 text-xs text-tx3">
-            <span className="font-semibold">Portfolio-wide</span> — from /api/ops/learn/summary (not brand-scoped).
-            {learnSummary.generated_at ? ` As of ${formatStamp(learnSummary.generated_at)}.` : ''}
+            Covers all brands, not just {brandLabel || brandId}.
+            {learnSummary.generated_at ? ` Updated ${formatStamp(learnSummary.generated_at)}.` : ''}
           </p>
         </div>
       ) : null}
@@ -257,6 +245,7 @@ export function Worked() {
                       <p className="line-clamp-2 font-medium text-tx">{post.caption_excerpt || 'Post with no caption saved'}</p>
                       {brandLabel ? <p className="mt-0.5 text-xs text-tx3">{brandLabel}</p> : null}
                       <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-tx3">
+                        <Badge tone="mute">{postFormat(post.media_type)}</Badge>
                         {post.verdict ? <Badge tone={verdictTone(post.verdict)}>{post.verdict}</Badge> : null}
                         {rate != null ? (
                           <span>
@@ -265,7 +254,11 @@ export function Worked() {
                           </span>
                         ) : null}
                         {reactions ? <span>{reactions}</span> : null}
-                        {post.timestamp ? <span>{formatStamp(post.timestamp)}</span> : null}
+                        {post.timestamp ? (
+                          <span>
+                            {postWeekday(post.timestamp)} {formatStamp(post.timestamp)}
+                          </span>
+                        ) : null}
                       </p>
                       {post.permalink ? (
                         <a href={post.permalink} className="mt-2 inline-block text-xs text-ac underline" target="_blank" rel="noreferrer">
@@ -321,8 +314,8 @@ export function Worked() {
       ) : null}
 
       <div className="flex flex-wrap gap-4">
-        <ClassicLink href="/?page=insights" label="Classic insights" />
-        <ClassicLink href="/?page=learning" label="Classic learnings" />
+        <ClassicLink href="/?page=insights" label="Classic insights" text="Full insights" />
+        <ClassicLink href="/?page=learning" label="Classic learnings" text="Full learnings" />
       </div>
     </div>
   )
