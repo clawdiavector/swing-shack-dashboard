@@ -1142,7 +1142,13 @@ export type ContentTrafficCorrelation = {
   ok?: boolean
   matches?: ContentTrafficMatch[]
   unmatched_spikes?: ContentTrafficMatch[]
-  _meta?: { fetched_at?: string; reason?: string }
+  _meta?: {
+    fetched_at?: string
+    reason?: string
+    ga4_total_sessions?: number
+    ga4_window?: string
+    top_pages?: { path?: string; sessions?: number; engagement?: string }[]
+  }
 }
 
 export function fetchContentTrafficCorrelation(brand: string, days = 30) {
