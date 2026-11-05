@@ -48803,6 +48803,17 @@ def review_packs_delete(pack_id):
     return jsonify({"ok": True, "deleted": pack_id}), 200
 
 
+@app.route("/api/jobs/review-packs/<pack_id>/items", methods=["POST"])
+def review_packs_add_item(pack_id):
+    """Add one more post to a pack that is already live. Same links, answers untouched."""
+    from _lib import review_pack as rp
+    try:
+        item = rp.add_item(pack_id, request.get_json(silent=True) or {})
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "item_id": item["id"]}), 200
+
+
 @app.route("/api/jobs/review-packs/<pack_id>/items/<item_id>/image", methods=["POST"])
 def review_packs_add_image(pack_id, item_id):
     from _lib import review_pack as rp

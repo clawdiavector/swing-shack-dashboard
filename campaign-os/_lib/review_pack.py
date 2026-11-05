@@ -135,6 +135,40 @@ def read_token(serializer: Any, token: str, *, max_age: int = MAX_AGE) -> dict[s
 # ── packs ───────────────────────────────────────────────────────────────────
 
 
+def _clean_item(raw: Any) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        raise ValueError("each item must be an object")
+    name = str(raw.get("title") or "").strip()
+    if not name:
+        raise ValueError("each item needs a title")
+    item_id = _slug(raw.get("id") or name)
+    if not _ITEM_ID.match(item_id):
+        raise ValueError(f"'{item_id}' is not a usable item id")
+    kind = str(raw.get("kind") or "single")
+    if kind not in KINDS:
+        raise ValueError(f"kind must be one of {', '.join(KINDS)}")
+    return {
+        "id": item_id, "title": name[:200], "kind": kind,
+        "caption": str(raw.get("caption") or "")[:4000],
+        "channels": str(raw.get("channels") or "")[:200],
+        "when": str(raw.get("when") or "")[:120],
+        "audience": str(raw.get("audience") or "")[:60],
+        "note": str(raw.get("note") or "")[:600],
+        "version": 1, "images": [],
+    }
+
+
+def add_item(pack_id: str, raw: dict[str, Any]) -> dict[str, Any]:
+    """Add one more post to the end of a pack that already exists. Links and answers stay as they are."""
+    pack = _pack_or_raise(pack_id)
+    item = _clean_item(raw)
+    if any(i["id"] == item["id"] for i in pack["items"]):
+        raise ValueError(f"this pack already has a post called '{item['id']}'")
+    pack["items"].append(item)
+    _write_json(_pack_dir(pack_id) / "pack.json", pack)
+    return item
+
+
 def create_pack(title: str, items: list[dict[str, Any]], *, client: str = "",
                 theme: dict[str, Any] | None = None, notice: str = "") -> dict[str, Any]:
     title = (title or "").strip()
@@ -145,29 +179,11 @@ def create_pack(title: str, items: list[dict[str, Any]], *, client: str = "",
     clean: list[dict[str, Any]] = []
     seen: set[str] = set()
     for raw in items:
-        if not isinstance(raw, dict):
-            raise ValueError("each item must be an object")
-        name = str(raw.get("title") or "").strip()
-        if not name:
-            raise ValueError("each item needs a title")
-        item_id = _slug(raw.get("id") or name)
-        if not _ITEM_ID.match(item_id):
-            raise ValueError(f"'{item_id}' is not a usable item id")
-        if item_id in seen:
-            raise ValueError(f"two items share the id '{item_id}'")
-        seen.add(item_id)
-        kind = str(raw.get("kind") or "single")
-        if kind not in KINDS:
-            raise ValueError(f"kind must be one of {', '.join(KINDS)}")
-        clean.append({
-            "id": item_id, "title": name[:200], "kind": kind,
-            "caption": str(raw.get("caption") or "")[:4000],
-            "channels": str(raw.get("channels") or "")[:200],
-            "when": str(raw.get("when") or "")[:120],
-            "audience": str(raw.get("audience") or "")[:60],
-            "note": str(raw.get("note") or "")[:600],
-            "version": 1, "images": [],
-        })
+        item = _clean_item(raw)
+        if item["id"] in seen:
+            raise ValueError(f"two items share the id '{item['id']}'")
+        seen.add(item["id"])
+        clean.append(item)
     pack_id = f"{_slug(title, 'pack')[:30].strip('-') or 'pack'}-{secrets.token_hex(3)}"
     pack = {"id": pack_id, "title": title[:200], "client": (client or "").strip()[:60],
             "created": _now(), "theme": _clean_theme(theme),
@@ -662,7 +678,7 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
   const ug=el("div");ug.dataset.ug=it.id;c.append(uploadBox(it.id),ug);box.append(c)});
  const w=$("week");w.append(el("h2","","Your own photos for the week"),el("p","sub","Not tied to one post? Add them here."),uploadBox(""));const wg=el("div");wg.dataset.ug="";w.append(wg);
  const wt=el("div","thread");wt.append(el("h3","","General comments"));const wb=el("div");wb.dataset.th="";wt.append(wb,composer("",wb));w.append(wt);paint();const g0=document.querySelector('[data-ug=""]');if(g0){const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}
-async function refresh(){try{const r=await fetch(BASE+"/data",{cache:"no-store"});if(!r.ok)return;const j=await r.json();D.decisions=j.decisions;D.comments=j.comments;D.uploads=j.uploads;D.done=j.done||[];paint();const g0=document.querySelector('[data-ug=""]');if(g0){g0.textContent="";const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}catch(e){}}
+async function refresh(){try{const r=await fetch(BASE+"/data",{cache:"no-store"});if(!r.ok)return;const j=await r.json();D.decisions=j.decisions;D.comments=j.comments;if(j.pack&&j.pack.items.length!==D.pack.items.length){if(![...document.querySelectorAll("textarea")].some(t=>t.value.trim())){location.reload();return}say("A new post was added. Reload the page to see it.");return}D.uploads=j.uploads;D.done=j.done||[];paint();const g0=document.querySelector('[data-ug=""]');if(g0){g0.textContent="";const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}catch(e){}}
 build();setInterval(()=>{if(!document.hidden)refresh()},20000);
 </script></body></html>"""
 

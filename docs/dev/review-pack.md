@@ -26,6 +26,7 @@ lasts 30 days. The client opens `/review-pack/<token>` with no login and can, pe
 
 ```
 POST /api/jobs/review-packs                         {title, client, theme, items:[{id,title,kind,caption,channels,when,audience,note}]}
+POST /api/jobs/review-packs/<id>/items                {id,title,kind,caption,channels,when,audience,note}  add a post to a live pack (same links, answers untouched)
 POST /api/jobs/review-packs/<id>/items/<item>/image  multipart "file"   (?replace=1 swaps the pictures and clears that item's decision)
 POST /api/jobs/review-packs/<id>/share              {who}  -> share_url
 GET  /api/jobs/review-packs/<id>                    decisions, comments (both sides), uploads
