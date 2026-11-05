@@ -2,6 +2,7 @@ import { ChevronDown, ChevronUp, Layers, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBrandScope } from '../components/BrandSwitch'
+import { PickBrand } from '../components/PickBrand'
 import { FilterChips, PageIntro } from '../components/chrome'
 import { TemplateReferenceTag, templateMetaFromRecord } from '../components/TemplateReferenceTag'
 import { Badge, ClassicLink, QueueItem, QueueItemThumb, Tip } from '../components/ui'
@@ -535,9 +536,7 @@ export function Library() {
       </PageIntro>
 
       {isAll ? (
-        <p className="rounded-2xl border border-yel/40 bg-yel/10 px-4 py-3 text-sm text-yel">
-          Select a single brand to load the library shelves.
-        </p>
+        <PickBrand message="The library is kept per brand. Which one?" />
       ) : null}
 
       {error ? (
