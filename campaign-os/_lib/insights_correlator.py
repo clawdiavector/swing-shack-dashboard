@@ -192,6 +192,9 @@ def _spike_pct(value: float, baseline: float) -> float:
 SPIKE_LIFT_PCT = 40.0
 MIN_EXTRA_SESSIONS = 20
 MIN_DAYS_OF_DATA = 14
+NEIGHBOUR_DAYS = 7
+MIN_NEIGHBOURS = 6
+MIN_SIDE = 3
 
 
 def _median(values: list[float]) -> float:
@@ -238,6 +241,22 @@ def _correlate_posts_with_daily(posts: list[dict[str, Any]], daily: list[dict[st
         posts_by_day.setdefault(_sast_date(dt), []).append(p)
 
     def _baseline(exclude: set[str]) -> float:
+        """Usual day around the ones in `exclude`. A jump has to beat the usual level on
+        BOTH sides (median of the NEIGHBOUR_DAYS before and after, higher one wins), so
+        the edge of a plateau or a level drop is not read as a spike. Falls back to the
+        near days together, then to all days, when there are too few."""
+        refs = [_date.fromisoformat(d) for d in exclude if d in series]
+        if refs:
+            first, last = min(refs), max(refs)
+            before = [v for d, v in series.items()
+                      if d not in exclude and first - timedelta(days=NEIGHBOUR_DAYS) <= _date.fromisoformat(d) < first]
+            after = [v for d, v in series.items()
+                     if d not in exclude and last < _date.fromisoformat(d) <= last + timedelta(days=NEIGHBOUR_DAYS)]
+            if len(before) >= MIN_SIDE and len(after) >= MIN_SIDE:
+                return max(_median(before), _median(after))
+            near = before + after
+            if len(near) >= MIN_NEIGHBOURS:
+                return _median(near)
         return _median([v for d, v in series.items() if d not in exclude])
 
     def _is_spike(value: int, base: float) -> bool:

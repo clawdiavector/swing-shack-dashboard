@@ -241,7 +241,7 @@ def _apply_stale_fallback(existing: dict, reason: str) -> dict:
 
 def _add_daily(payload: dict, property_id: str, bearer: str) -> None:
     """Add visits per day for the last DAILY_DAYS days. Never fails the job."""
-    end = date.today()
+    end = date.today() - timedelta(days=1)  # today is still in progress
     start = end - timedelta(days=DAILY_DAYS)
     body = {
         "dateRanges": [{"startDate": start.isoformat(), "endDate": end.isoformat()}],
