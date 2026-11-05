@@ -30,3 +30,31 @@ export function trafficSentence(sessions?: number | null, window?: string | null
   if (!label) return `Your website had ${visits} in the latest week.`
   return `Your website had ${visits} between ${label.replace(' to ', ' and ')}.`
 }
+
+export type DaySpike = {
+  date?: unknown
+  ga4_sessions_on_day?: unknown
+  ga4_sessions_baseline?: unknown
+  lift_pct?: unknown
+}
+
+export function dayLabel(iso?: unknown): string {
+  if (typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return ''
+  const d = new Date(`${iso}T12:00:00Z`)
+  const wd = d.toLocaleDateString('en-ZA', { weekday: 'short', timeZone: 'UTC' })
+  return `${wd} ${shortDate(iso)}`
+}
+
+function times(lift: number): string {
+  return lift >= 100 ? `${Math.round(lift / 100 + 1)}× as many` : `${Math.round(lift)}% more`
+}
+
+export function matchSentence(m: DaySpike): string {
+  const day = dayLabel(m.date)
+  const lift = Number(m.lift_pct)
+  return `${day}: ${m.ga4_sessions_on_day} visits, against about ${m.ga4_sessions_baseline} on a usual day (${times(lift)}).`
+}
+
+export function spikeSentence(m: DaySpike): string {
+  return `${dayLabel(m.date)}: ${m.ga4_sessions_on_day} visits, against about ${m.ga4_sessions_baseline} usually. We posted nothing that day or the day before.`
+}

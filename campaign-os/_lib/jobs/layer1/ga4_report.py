@@ -14,6 +14,7 @@ JOB_NAME = "ga4_report"
 
 OUTPUT = "ga4-metrics.json"
 REPORT_TIMEOUT = 20
+DAILY_DAYS = 30
 
 
 def _brand_env_key(brand: str | None) -> str:
@@ -125,6 +126,25 @@ def _parse_rows(report: dict) -> list[dict[str, Any]]:
     return rows
 
 
+def _parse_daily(report: dict) -> list[dict[str, Any]]:
+    """GA4 `date` report -> [{date: 'YYYY-MM-DD', sessions: int}] oldest first."""
+    out: list[dict[str, Any]] = []
+    for row in report.get("rows") or []:
+        dims = row.get("dimensionValues") or []
+        metrics = row.get("metricValues") or []
+        raw = (dims[0].get("value") if dims else "") or ""
+        if len(raw) != 8 or not raw.isdigit():
+            continue
+        out.append(
+            {
+                "date": f"{raw[:4]}-{raw[4:6]}-{raw[6:]}",
+                "sessions": int((metrics[0].get("value") if metrics else 0) or 0),
+            }
+        )
+    out.sort(key=lambda r: r["date"])
+    return out
+
+
 def _aggregate_pages(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_path: dict[str, dict[str, float]] = {}
     for row in rows:
@@ -219,6 +239,27 @@ def _apply_stale_fallback(existing: dict, reason: str) -> dict:
     return existing
 
 
+def _add_daily(payload: dict, property_id: str, bearer: str) -> None:
+    """Add visits per day for the last DAILY_DAYS days. Never fails the job."""
+    end = date.today()
+    start = end - timedelta(days=DAILY_DAYS)
+    body = {
+        "dateRanges": [{"startDate": start.isoformat(), "endDate": end.isoformat()}],
+        "dimensions": [{"name": "date"}],
+        "metrics": [{"name": "sessions"}],
+        "limit": DAILY_DAYS + 5,
+    }
+    try:
+        report = _run_ga4_report(property_id, bearer, body)
+        if report.get("error"):
+            raise RuntimeError(json.dumps(report["error"])[:200])
+        payload["daily_sessions"] = _parse_daily(report)
+        payload["daily_window"] = f"{start.isoformat()} to {end.isoformat()}"
+    except Exception as exc:  # the weekly numbers are still good; keep them
+        payload["daily_sessions"] = []
+        payload["daily_error"] = str(exc)[:200]
+
+
 def run(*, brand: str | None = None) -> dict:
     """Fetch GA4 metrics and write ga4-metrics.json."""
     io = io_for_job(JOB_NAME, brand)
@@ -253,6 +294,7 @@ def run(*, brand: str | None = None) -> dict:
             raise RuntimeError(json.dumps(report["error"])[:200])
         rows = _parse_rows(report)
         payload = _build_payload(rows, property_id, start_str, end_str)
+        _add_daily(payload, property_id, bearer)
         io.write(OUTPUT, payload)
         return {"ok": True, "rows": payload["total_sessions"]}
     except Exception as exc:
