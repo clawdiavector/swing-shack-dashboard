@@ -1844,6 +1844,7 @@ def visual_dna_scrape_and_dissect(brand_id):
         if scripts_dir not in _sys.path:
             _sys.path.insert(0, scripts_dir)
         from ingest_public_drive_folder import (  # noqa: PLC0415
+            BRAND_EXTRA_SOURCES,
             BRAND_PUBLIC_ROOTS,
             run_ingest,
         )
@@ -1873,6 +1874,21 @@ def visual_dna_scrape_and_dissect(brand_id):
             dry_run=bool(body.get("dry_run")),
             data_dir=data_dir,
         )
+        # The brand's other folders (Stick's Shot List) come along unless one folder was asked for.
+        if not body.get("folder_id"):
+            summary["sources"] = []
+            for label, extra_id in BRAND_EXTRA_SOURCES.get(brand_id, {}).items():
+                extra = run_ingest(
+                    brand_id,
+                    extra_id,
+                    limit=body.get("limit"),
+                    dry_run=bool(body.get("dry_run")),
+                    data_dir=data_dir,
+                    folder_prefix=label,
+                )
+                summary["sources"].append({"label": label, "folder_id": extra_id, **extra})
+                summary["downloaded"] += extra.get("downloaded", 0)
+                summary["download_errors"] = summary.get("download_errors", []) + extra.get("download_errors", [])
         summary["ok"] = not summary.get("download_errors")
         summary["target"] = target
         summary["data_dir"] = str(data_dir)

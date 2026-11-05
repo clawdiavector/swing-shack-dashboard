@@ -94,6 +94,7 @@ logos and other non-images were not counted):
 | Parent. The share link. Not an ingest root. | `1-zxzR3aYVgfIgLGF-nHHssM_N6zunGOL` | 442 images. Set equals the union of the two children. |
 | Ingest root, stick | `1k5icaxY3AKBD9z2-oIO6i42PUnq1gYUG` | 306 images, all inside the parent. `Products` 182, `Other` 54, `Services` 34, `Location/In Store Photos for walkthrough` 24 (HEIC), `Location/Photos of iron sets` 12. |
 | Ingest root, swing-shack | `1n9pHD6hwr7oEfRBAGBriRrsqv_I-qGge` | 136 images, all inside the parent. Zero files shared with Stick. `Products` 66, `Services` 54, `Swing Shack RAW` 14, `Others` 2. |
+| Extra source, stick: Shot List | `11VFWJOrRi6B3MYjCB78Qew4QXe1D7NSx` | Owned by info@stickgolf.co.za, outside the parent. 560 own product photos by line (Golf Balls 153, Putters 81, Takomo 68, Bags/Vessel 48, Mileseey 46, Vice 38, ...) + 116 videos. Read where it lives (`BRAND_EXTRA_SOURCES`), filed under `images/Shot List/<line>/`; never copied into the root (2026-11-05). |
 
 `drive.map_names_roots` in `scripts/verify_specs.py` fails if this skill drops
 any of those three ids, or drops an id that `BRAND_PUBLIC_ROOTS` still has.
