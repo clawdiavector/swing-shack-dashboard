@@ -26,6 +26,7 @@ import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { InsightPostThumb, insightPostThumbSrc } from '../components/InsightPostThumb'
 import { workedPostTip } from '../lib/auditWording'
+import { countTiles, deskLine, shipLine, useFourCounts } from '../lib/fourCounts'
 import { Badge, Button, IconTile, QueueItem, Tip } from '../components/ui'
 import {
   fetchInbox,
@@ -148,6 +149,8 @@ function mergeLayersPayloads(parts: LayersPayload[]): LayersPayload {
 export function Daily() {
   const { brandId: focusBrandId, brandLabel, brands: brandRows } = useBrand()
   const { isAll, brandIds, scope } = useBrandScope()
+  // The four counts every page shows (Scheduled and Sent come from the shelf and send queue).
+  const four = useFourCounts(isAll ? '' : focusBrandId || '')
   const [data, setData] = useState<TodayPanel | null>(null)
   const [layers, setLayers] = useState<LayersPayload | null>(null)
   const [learn, setLearn] = useState<LearnSummary | null>(null)
@@ -264,7 +267,6 @@ export function Daily() {
     load()
   }, [isAll, brandIds, scope, focusBrandId])
 
-  const counts = data?.counts
   // Counted from the same rows Inbox and Approve drafts list, so the numbers
   // here match the pages they open. The ops layer counts are not per brand
   // and were summed once per brand on "All brands".
@@ -275,11 +277,16 @@ export function Daily() {
     (i) => isCandidateItem(i) && i.sla_state === 'stale',
   ).length
   const staleDrafts = draftRows.filter((i) => i.sla_state === 'stale').length
-  const approvedReady = counts?.approved ?? 0
+  const scheduledCount = four?.scheduled ?? 0
   // Built from the same inbox rows as the cards above, so the line never disagrees with them.
   const summary =
     data && inboxItems
-      ? `${draftsWaiting} draft${draftsWaiting === 1 ? '' : 's'} to approve. ${candidatesWaiting} date${candidatesWaiting === 1 ? '' : 's'} to decide in Inbox. ${approvedReady} ready to publish.`
+      ? deskLine({
+          to_approve: draftsWaiting || 0,
+          dates_to_decide: candidatesWaiting || 0,
+          scheduled: scheduledCount,
+          sent_this_week: four?.sent_this_week ?? 0,
+        })
       : data?.summary || ''
   const waitingTotal = (draftsWaiting || 0) + (candidatesWaiting || 0)
   const deskClear = Boolean(data && inboxItems && waitingTotal === 0)
@@ -321,7 +328,6 @@ export function Daily() {
   const asOf = data?.ts
   const best = posts[0]
   const l3 = layerOf(layers, 'L3')
-  const l6 = layerOf(layers, 'L6')
   const briefActions = (data?.brief_actions?.actions || []).slice(0, 4)
   const socialRows = useMemo(() => {
     const byId = new Map(brandRows.map((row) => [row.id, row]))
@@ -357,18 +363,10 @@ export function Daily() {
         to: draftsWaiting ? '/review' : '/inbox',
       })
     }
-    const queued = l6.queue_approved_ready
-    const approved = counts?.approved ?? 0
-    let ship = 'Nothing approved is queued to go live.'
-    if (queued != null && queued > 0) {
-      ship = `${queued} approved and sitting in the publish queue.`
-    } else if (approved > 0) {
-      ship = `${approved} approved, not yet sitting in the publish queue.`
-    }
     rows.push({
-      label: 'Ready to ship',
-      value: ship,
-      to: '/publish',
+      label: 'Going out',
+      value: four ? shipLine(four) : 'Counting…',
+      to: '/shelf',
     })
     const quiet = Boolean(layers) && ((l3.never ?? 0) > 0 || (l3.reporting ?? 0) === 0)
     if (quiet) {
@@ -379,7 +377,7 @@ export function Daily() {
       })
     }
     return rows.slice(0, 4)
-  }, [layers, l3, l6, counts, staleDrafts, staleCandidates, draftsWaiting, candidatesWaiting])
+  }, [layers, l3, four, staleDrafts, staleCandidates, draftsWaiting, candidatesWaiting])
 
   return (
     <div className="space-y-6">
@@ -432,53 +430,25 @@ export function Daily() {
         </div>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <FunTile
-          to="/inbox"
-          label="Candidates"
-          value={candidatesWaiting ?? '—'}
-          hint="Lodge or book moments"
-          tone="gold"
-          stamp={asOf}
-          stampKind="as_of"
-        />
-        <FunTile
-          to="/review"
-          label="Drafts waiting"
-          value={draftsWaiting ?? '—'}
-          hint="Approve draft-ready posts"
-          tone="violet"
-          stamp={asOf}
-          stampKind="as_of"
-        />
-        <FunTile
-          to="/shelf"
-          label="Today"
-          value={data ? (counts?.scheduled ?? 0) : '—'}
-          hint="Scheduled to go live"
-          tone="blue"
-          stamp={asOf}
-          stampKind="as_of"
-        />
-        <FunTile
-          to="/publish"
-          label="Ready"
-          value={data ? (counts?.approved ?? 0) : '—'}
-          hint="Approved · queued to ship"
-          tone="green"
-          stamp={asOf}
-          stampKind="as_of"
-        />
-        <FunTile
-          to="/results"
-          label="This week"
-          value={data ? (counts?.published ?? 0) : '—'}
-          hint="Shipped · outcomes in Results"
-          tone="green"
-          dots={data ? { on: Math.min(counts?.published ?? 0, 7) } : undefined}
-          stamp={asOf}
-          stampKind="as_of"
-        />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {countTiles(
+          // The inbox numbers show as soon as the page has them; Scheduled and Sent follow.
+          {
+            ...(four ?? {}),
+            ...(inboxItems ? { to_approve: draftsWaiting || 0, dates_to_decide: candidatesWaiting || 0 } : {}),
+          },
+        ).map((t) => (
+          <FunTile
+            key={t.key}
+            to={t.to}
+            label={t.label}
+            value={t.value}
+            hint={t.hint}
+            tone={t.tone}
+            stamp={asOf}
+            stampKind="as_of"
+          />
+        ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(380px,1fr)]">
@@ -504,7 +474,7 @@ export function Daily() {
               <Mascot tone={waitingTotal === 0 && inboxItems ? 'green' : 'gold'} />
               <span className="fun-bubble">{mascotLine}</span>
               {data && inboxItems ? (
-                <DeskRing ready={approvedReady} waiting={waitingTotal} />
+                <DeskRing ready={scheduledCount} waiting={waitingTotal} />
               ) : null}
             </div>
           }

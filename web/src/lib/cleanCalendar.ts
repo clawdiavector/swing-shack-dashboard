@@ -157,6 +157,12 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Pr
   }
 }
 
+/** The line under an empty list: "loading" until this month's data is in, then "nothing here". */
+export function monthListNote(data: { month?: string } | null, month: string, shown: number): string {
+  if (!data || data.month !== month) return 'Loading this month…'
+  return shown === 0 ? 'Nothing here this month.' : ''
+}
+
 const base = (brand: string) => `/api/clean-calendar/${encodeURIComponent(brand)}`
 
 export const fetchCleanMonth = (brand: string, month: string) =>
