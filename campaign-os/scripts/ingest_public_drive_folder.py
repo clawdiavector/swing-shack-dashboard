@@ -64,6 +64,31 @@ def brand_sources(brand: str) -> list[tuple[str, str]]:
     return [("", root)] + list(BRAND_EXTRA_SOURCES.get(brand, {}).items())
 
 
+# iPhone photos arrive as HEIC, which browsers and the dissector cannot open unless
+# pillow-heif is installed. They are filed as JPEG instead (Christelle, 2026-11-05);
+# the original stays on Drive. Long edge capped at 4000px, quality 90.
+_HEIC_SUFFIXES = {".heic", ".heif"}
+
+
+def _is_heic(name: str) -> bool:
+    return Path(name).suffix.lower() in _HEIC_SUFFIXES
+
+
+def _heic_to_jpeg(src: Path) -> Path:
+    """Write src as a .jpg beside it, delete the HEIC, return the .jpg path."""
+    import pillow_heif
+    from PIL import Image, ImageOps
+
+    pillow_heif.register_heif_opener()
+    dst = src.with_suffix(".jpg")
+    with Image.open(src) as im:
+        im = ImageOps.exif_transpose(im).convert("RGB")
+        im.thumbnail((4000, 4000))
+        im.save(dst, "JPEG", quality=90, optimize=True)
+    src.unlink()
+    return dst
+
+
 def _manifest_key(folder: str, name: str) -> str:
     folder = (folder or "").strip("/")
     return f"{folder}/{name}" if folder else name
@@ -160,6 +185,11 @@ def run_ingest(
             downloaded.append(key)
             continue
 
+        # A HEIC filed earlier now lives as its .jpg.
+        if _is_heic(name) and dest.with_suffix(".jpg").exists():
+            skipped_dedupe.append(key)
+            continue
+
         if dest.exists() and dest.stat().st_size > 0:
             md5 = hashlib.md5(dest.read_bytes()).hexdigest()
             if md5.lower() in known_md5:
@@ -173,6 +203,15 @@ def run_ingest(
                 skipped_dedupe.append(key)
                 continue
             known_md5.add(md5.lower())
+            row = {}
+            if _is_heic(name):
+                # A file the reader cannot open is kept as it came, not lost.
+                try:
+                    dest = _heic_to_jpeg(dest)
+                    key = _manifest_key(folder, dest.name)
+                    row["converted_from"] = name
+                except Exception as exc:  # noqa: BLE001
+                    row["convert_error"] = str(exc)
             manifest["images"][key] = {
                 "drive_id": entry["id"],
                 "size": str(dest.stat().st_size),
@@ -180,6 +219,7 @@ def run_ingest(
                 "modified": None,
                 "folder": folder,
                 "ingested": time.time(),
+                **row,
             }
             downloaded.append(key)
             new_for_dissect.append(dest)
@@ -269,6 +309,51 @@ def run_ingest(
     }
 
 
+def convert_existing_heic(
+    brand: str,
+    *,
+    repo_root: Path | None = None,
+    data_dir: Path | None = None,
+) -> dict:
+    """Convert HEIC files already on disk to JPEG, move their manifest rows and re-dissect them."""
+    root = repo_root or REPO_ROOT
+    base = Path(data_dir) if data_dir else (root / "data")
+    brand_dir = base / "brand-directory" / brand
+    images_root = brand_dir / "images"
+    manifest_path = brand_dir / "ingest-manifest.json"
+    bible_path = brand_dir / "bible-visual.json"
+    bible = bible_path if bible_path.exists() else None
+    manifest = _load_manifest(manifest_path, brand) if manifest_path.exists() else {"images": {}}
+    images = manifest.setdefault("images", {})
+
+    converted: list[str] = []
+    errors: list[dict] = []
+    for src in sorted(p for p in images_root.rglob("*") if p.is_file() and _is_heic(p.name)):
+        old_key = src.relative_to(images_root).as_posix()
+        try:
+            dst = _heic_to_jpeg(src)
+        except Exception as exc:  # noqa: BLE001
+            errors.append({"file": old_key, "error": str(exc)})
+            continue
+        new_key = dst.relative_to(images_root).as_posix()
+        row = images.pop(old_key, None)
+        if row is not None:
+            row["size"] = str(dst.stat().st_size)
+            row["converted_from"] = src.name
+            images[new_key] = row
+        try:
+            dna = dissect(dst, bible)
+            (dst.parent / f"{dst.stem}.visual-dna.json").write_text(json.dumps(dna, indent=2))
+        except Exception as exc:  # noqa: BLE001
+            errors.append({"file": new_key, "error": f"dissect: {exc}"})
+        converted.append(new_key)
+
+    if converted:
+        manifest_path.write_text(json.dumps(manifest, indent=2))
+        tag_directory(brand, base_dir=base / "brand-directory")
+    return {"brand": brand, "converted": converted, "errors": errors}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Ingest public Google Drive folder")
     parser.add_argument("--brand", required=True)
@@ -286,7 +371,19 @@ def main() -> int:
              "On Railway pass $DATA_DIR (/data/campaign-os) so the ingest fills "
              "the volume, which the image routes resolve before the repo copy.",
     )
+    parser.add_argument(
+        "--convert-existing-heic",
+        action="store_true",
+        help="Convert HEIC files already on disk to JPEG and re-dissect them, then stop.",
+    )
     args = parser.parse_args()
+
+    if args.convert_existing_heic:
+        got = convert_existing_heic(
+            args.brand, data_dir=Path(args.data_dir) if args.data_dir else None
+        )
+        print(json.dumps({**got, "converted": len(got["converted"])}, indent=2))
+        return 1 if got["errors"] else 0
 
     # Never fall back to another brand's root: that silently files one brand's
     # imagery under the other, and md5 dedupe is per-brand so nothing catches it.
