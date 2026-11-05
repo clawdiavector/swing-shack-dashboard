@@ -122,33 +122,34 @@ export function Shell() {
       </aside>
 
       <div className="flex min-h-dvh flex-col pb-20 lg:h-dvh lg:min-h-0 lg:overflow-visible lg:pb-0">
-        <header className="glass sticky top-0 z-30 flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 md:px-6">
-          <div className="flex items-center gap-3">
+        <header className="glass sticky top-0 z-30 flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 py-3 md:px-6">
+          {/* min-w-0 lets this side shrink on a phone instead of pushing the brand switch off screen. */}
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <BackButton onClick={goBack} />
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-bg lg:hidden">
+            <span className="hidden h-8 w-8 shrink-0 place-items-center rounded-lg bg-bg sm:grid lg:hidden">
               <svg viewBox="0 0 32 32" className="h-6 w-6" fill="none">
                 <path d="M10 26V6" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
                 <path d="M10 8L22 11L10 14Z" fill="#fbbf24" />
                 <circle cx="10" cy="27" r="1.5" fill="#34d399" />
               </svg>
             </span>
-            <div>
-              <p className="font-display text-base font-semibold lg:hidden">Campaign OS</p>
+            <div className="min-w-0">
+              <p className="truncate font-display text-base font-semibold lg:hidden">Campaign OS</p>
               <p className="hidden text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase lg:block">
                 {tool
                   ? `${parentLabel(tool.from)} · ${tool.label}`
                   : `${current?.label || 'Tool'} · ${KICKER_SUBPAGES[loc.pathname] ?? current?.hint ?? 'inside the desk'}`}
               </p>
-              <p className="text-[13px] text-tx3">{formatStamp()}</p>
+              <p className="hidden text-[13px] text-tx3 sm:block">{formatStamp()}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={toggleTheme}
               title={theme === 'play' ? 'Switch to the classic dark desk' : 'Switch to the playful look'}
               aria-label={theme === 'play' ? 'Switch to the classic dark desk' : 'Switch to the playful look'}
-              className="glass-pill rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-tx2 hover:text-tx"
+              className="glass-pill hidden rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-tx2 hover:text-tx sm:inline-flex"
             >
               {theme === 'play' ? 'Classic' : 'Playful'}
             </button>
