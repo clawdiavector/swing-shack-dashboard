@@ -868,7 +868,7 @@ def comments_by_key(brand_id: str) -> dict[str, list[dict[str, Any]]]:
 _VIEWS = (
     ("approval", "Needs your OK", "Ready posts waiting for a yes. Read it, look at the picture, then choose."),
     ("ideas", "Ideas", "Ideas only, nothing made yet. Approve one and the post gets made, then comes back under Needs your OK."),
-    ("scheduled", "Scheduled", "Already approved and set to go out on these days. Comment if something should change."),
+    ("scheduled", "Approved", "Approved for these days, including posts that already went out. Comment if something should change."),
 )
 
 _LABELS = {"approve": "Approve", "comment": "Comment", "reject": "Reject"}
