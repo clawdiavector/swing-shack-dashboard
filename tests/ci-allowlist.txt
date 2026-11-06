@@ -232,4 +232,6 @@ campaign-os/tests/test_zernio_bag_drop_on_approve.py
 campaign-os/tests/test_stick_shot_list_source_20261105.py
 campaign-os/tests/test_ingest_heic_to_jpeg_20261105.py
 campaign-os/tests/test_bag_drop_drive_root_20261105.py
+campaign-os/tests/test_brand_lane_readers_20261106.py
+campaign-os/tests/test_job_data_stale_20261105.py
 campaign-os/tests/test_bag_drop_everywhere_20261106.py

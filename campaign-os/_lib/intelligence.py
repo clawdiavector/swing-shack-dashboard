@@ -39,6 +39,35 @@ def _runtime_data_file(name: str) -> str:
     return os.path.join(DATA_DIR, name)
 
 
+def _brand_data_file(name: str, brand: Optional[str] = None) -> str:
+    """Path for a data file, using the brand's own copy for per-brand job outputs.
+
+    Since 18 Sep 2026 per-brand jobs write DATA_DIR/brands/<brand>/<name>; the flat
+    DATA_DIR/<name> froze that day. Order: runtime brand file, bundled brand file,
+    then (default brand only) the flat runtime/bundled file. Another brand never
+    falls back to the shared file, so it reads nothing rather than the wrong brand.
+    """
+    try:
+        from .brand_data_paths import PER_BRAND_L1_OUTPUTS, _default_brand_id
+    except ImportError:  # loaded as a top-level module (_lib on sys.path)
+        from brand_data_paths import PER_BRAND_L1_OUTPUTS, _default_brand_id
+
+    if name not in PER_BRAND_L1_OUTPUTS:
+        return _runtime_data_file(name)
+    default = _default_brand_id()
+    bid = brand or get_request_brand() or default
+    runtime_dir = os.environ.get("DATA_DIR") or DATA_DIR
+    cand = os.path.join(runtime_dir, "brands", bid, name)
+    if os.path.exists(cand):
+        return cand
+    bundled = os.path.join(DATA_DIR, "brands", bid, name)
+    if os.path.exists(bundled):
+        return bundled
+    if bid == default:
+        return _runtime_data_file(name)
+    return cand
+
+
 def _now_iso() -> str:
     return datetime.datetime.utcnow().isoformat() + "Z"
 
@@ -54,7 +83,7 @@ def _read_json(path: str) -> Optional[Any]:
 def _json_as_of(filename: str, data: Optional[Any] = None) -> Optional[str]:
     """Best-effort timestamp for when a Layer 1 data file was last fetched."""
     if data is None:
-        data = _read_json(_runtime_data_file(filename))
+        data = _read_json(_brand_data_file(filename))
     if isinstance(data, dict):
         for key in ("fetched_at", "updated", "generated", "last_updated", "run_at", "ts"):
             val = data.get(key)
@@ -320,13 +349,13 @@ def morning_brief() -> Dict[str, Any]:
                 })
 
     # Pull top recommendations from runtime data (brand-scoped).
-    scores = _read_json(_runtime_data_file("recommendation-scores.json")) or {}
+    scores = _read_json(_brand_data_file("recommendation-scores.json")) or {}
     do_first_raw = scores.get("do_first") if isinstance(scores, dict) else []
     do_first = _brand_scoped_reco_entries(
         do_first_raw if isinstance(do_first_raw, list) else [],
         scoped_brand,
     )
-    missed = _read_json(_runtime_data_file("missed-opportunities.json")) or {}
+    missed = _read_json(_brand_data_file("missed-opportunities.json")) or {}
     missed_list = missed.get("opportunities", []) if isinstance(missed, dict) else []
     missed_list = _brand_scoped_reco_entries(
         missed_list if isinstance(missed_list, list) else [],
@@ -335,7 +364,7 @@ def morning_brief() -> Dict[str, Any]:
     high_impact_missed = [m for m in missed_list if isinstance(m, dict) and m.get("severity") == "high"][:3]
 
     # Quick wins from SEO
-    seo = _read_json(os.path.join(DATA_DIR, "seo-rankings.json")) or {}
+    seo = _read_json(_brand_data_file("seo-rankings.json")) or {}
     quick_wins = seo.get("quick_wins", [])[:3] if isinstance(seo, dict) else []
 
     # Today's content ideas — drop stale (>14 days old or used) so the
@@ -779,7 +808,7 @@ def review_inbox() -> Dict[str, Any]:
 
 def hooks_view() -> Dict[str, Any]:
     """Hook bank — watched and worked + formulas + recent + by kind."""
-    hb = _read_json(_runtime_data_file("hook-bank.json")) or {}
+    hb = _read_json(_brand_data_file("hook-bank.json")) or {}
     if not isinstance(hb, dict):
         return {"ok": False, "error": "hook-bank.json unreadable"}
     ob = hb.get("output_buckets", {}) if isinstance(hb.get("output_buckets"), dict) else {}
@@ -910,11 +939,11 @@ def _load_meme_knowledge_voices() -> Dict[str, List[str]]:
 
 def performance_view() -> Dict[str, Any]:
     """Instagram + GA4 + GBP + SEO performance with explanatory insights."""
-    ig = _read_json(_runtime_data_file("ig-analytics.json")) or {}
-    ga4 = _read_json(_runtime_data_file("ga4-metrics.json")) or {}
-    seo = _read_json(_runtime_data_file("seo-audit.json")) or {}
-    seo_rank = _read_json(_runtime_data_file("seo-rankings.json")) or {}
-    website = _read_json(_runtime_data_file("website-insights.json")) or {}
+    ig = _read_json(_brand_data_file("ig-analytics.json")) or {}
+    ga4 = _read_json(_brand_data_file("ga4-metrics.json")) or {}
+    seo = _read_json(_brand_data_file("seo-audit.json")) or {}
+    seo_rank = _read_json(_brand_data_file("seo-rankings.json")) or {}
+    website = _read_json(_brand_data_file("website-insights.json")) or {}
     ab = _read_json(_runtime_data_file("ab-tests.json")) or {}
     gmb = _read_json(_runtime_data_file("gbp-input.json")) or {}
 
@@ -1051,7 +1080,7 @@ def learning_view() -> Dict[str, Any]:
     endpoint so the client renderers stay unchanged.
     """
     rep = _read_json(_runtime_data_file("weekly-learnings.json")) or {}
-    rec = _read_json(_runtime_data_file("recommendation-outcomes.json")) or {}
+    rec = _read_json(_brand_data_file("recommendation-outcomes.json")) or {}
     trend = _read_json(_runtime_data_file("trend-delta.json")) or {}
     cta = _read_json(_runtime_data_file("cta-performance.json")) or {}
     fail = _read_json(_runtime_data_file("failure-patterns.json")) or {}
@@ -1861,7 +1890,7 @@ def generate_captions(
         base_caption = (asset.get("caption") or asset.get("text") or "")
 
     if not base_caption:
-        hb = _read_json(os.path.join(DATA_DIR, "hook-bank.json")) or {}
+        hb = _read_json(_brand_data_file("hook-bank.json")) or {}
         buckets = hb.get("output_buckets", {}) if isinstance(hb.get("output_buckets"), dict) else {}
         for bname in ("proven_and_trending", "proven_only", "trending_to_test"):
             for h in (buckets.get(bname) or []):
@@ -2185,12 +2214,12 @@ def trend_catcher() -> Dict[str, Any]:
 
 def opportunities_view() -> Dict[str, Any]:
     ideas = _read_json(_runtime_data_file("content-ideas.json")) or {}
-    missed = _read_json(_runtime_data_file("missed-opportunities.json")) or {}
+    missed = _read_json(_brand_data_file("missed-opportunities.json")) or {}
     upsell = _read_json(os.path.join(DATA_DIR, "upsell-opportunities.json")) or {}
     bundle = _read_json(os.path.join(DATA_DIR, "bundle-opportunities.json")) or {}
     land = _read_json(os.path.join(DATA_DIR, "landing-page-fixes.json")) or {}
     cap = _read_json(os.path.join(DATA_DIR, "lead-capture-fixes.json")) or {}
-    funnel = _read_json(os.path.join(DATA_DIR, "funnel-leaks.json")) or {}
+    funnel = _read_json(_brand_data_file("funnel-leaks.json")) or {}
     return {
         "ok": True,
         "ts": _now_iso(),
@@ -2515,10 +2544,10 @@ def universal_search(q: str, limit: int = 30) -> Dict[str, Any]:
 def explain_performance() -> Dict[str, Any]:
     """Generate natural-language insights from performance data."""
     insights = []
-    ig = _read_json(os.path.join(DATA_DIR, "ig-analytics.json")) or {}
-    seo = _read_json(os.path.join(DATA_DIR, "seo-rankings.json")) or {}
-    ga4 = _read_json(os.path.join(DATA_DIR, "ga4-metrics.json")) or {}
-    rec = _read_json(os.path.join(DATA_DIR, "recommendation-outcomes.json")) or {}
+    ig = _read_json(_brand_data_file("ig-analytics.json")) or {}
+    seo = _read_json(_brand_data_file("seo-rankings.json")) or {}
+    ga4 = _read_json(_brand_data_file("ga4-metrics.json")) or {}
+    rec = _read_json(_brand_data_file("recommendation-outcomes.json")) or {}
     win = rec.get("best_recommendation") if isinstance(rec, dict) else None
 
     posts = ig.get("posts", []) if isinstance(ig, dict) else []
@@ -2796,6 +2825,16 @@ def _filter_fresh_ideas(items: Any, days: int = 14) -> list:
 
 
 def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
+    """Weekly report for one brand: its per-brand data files are read for `brand`."""
+    token = _REQUEST_BRAND_ID.set(brand) if brand else None
+    try:
+        return _weekly_report_impl(brand)
+    finally:
+        if token is not None:
+            _REQUEST_BRAND_ID.reset(token)
+
+
+def _weekly_report_impl(brand: Optional[str] = None) -> Dict[str, Any]:
     """Aggregate everything that happened in the last 7 days into a single
     'weekly marketing report' payload. Mirrors the structure of the weekly
     markdown report that `weekly_reporter` writes, but JSON so the Insights
@@ -2918,7 +2957,7 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
             hook_counts[hid] = hook_counts.get(hid, 0) + 1
     top_hooks = sorted(hook_counts.items(), key=lambda x: -x[1])[:5]
 
-    hook_bank = _read_json(os.path.join(DATA_DIR, "hook-bank.json")) or {}
+    hook_bank = _read_json(_brand_data_file("hook-bank.json")) or {}
     hook_lookup = {}
     # v2026-08-04: read BOTH old schema keys (defense) AND new output_buckets.* keys
     old_buckets = ("proven_and_trending", "trending_but_unproven", "watched")
@@ -2964,7 +3003,7 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
     all_hb_hook_ids: set = set()
 
     # ── 5c. Hook match: published hook_ids vs IG-analytics hook_ids ───
-    ig = _read_json(os.path.join(DATA_DIR, "ig-analytics.json")) or {}
+    ig = _read_json(_brand_data_file("ig-analytics.json")) or {}
     ig_posts = ig.get("posts", []) if isinstance(ig, dict) else []
     if not isinstance(ig_posts, list):
         ig_posts = []
@@ -3012,7 +3051,7 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
     top_ctas_rich = [{"cta": cta, "uses": cnt} for cta, cnt in top_ctas]
 
     # ── 7. SEO movers ────────────────────────────────────────────────
-    seo = _read_json(os.path.join(DATA_DIR, "seo-rankings.json")) or {}
+    seo = _read_json(_brand_data_file("seo-rankings.json")) or {}
     keywords = seo.get("keywords", []) if isinstance(seo, dict) else []
     if not isinstance(keywords, list):
         keywords = []
@@ -3091,7 +3130,7 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
     }
 
     # ── 10. NEW — GA4 cross-cut ──────────────────────────────────────
-    ga4 = _read_json(os.path.join(DATA_DIR, "ga4-metrics.json")) or {}
+    ga4 = _read_json(_brand_data_file("ga4-metrics.json")) or {}
     ga4_summary = {
         "total_sessions": ga4.get("total_sessions"),
         "pages_count": len(ga4.get("pages", []) if isinstance(ga4.get("pages"), list) else []),
@@ -3149,7 +3188,7 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
     # This is the source of truth for the IG reach / engagement / top
     # post claims in the weekly report. ig-analytics.json can't get
     # these because its legacy sync doesn't write reach.
-    igb = _read_json(os.path.join(DATA_DIR, "ig-business-analytics.json")) or {}
+    igb = _read_json(_brand_data_file("ig-business-analytics.json")) or {}
     igb_window_totals = igb.get("window_totals") if isinstance(igb, dict) else None
     igb_daily_reach = igb.get("daily_reach") if isinstance(igb, dict) else None
     igb_top_post = igb.get("top_post") if isinstance(igb, dict) else None
@@ -3585,7 +3624,7 @@ def _interpret_weekly_report(
     # The OLD claim generator looked for `rising_keywords` (snake_case);
     # we now point at `rising` and gracefully fall back if old shape lingers.
     try:
-        seo_full_path = os.path.join(DATA_DIR, "seo-rankings.json")
+        seo_full_path = _brand_data_file("seo-rankings.json")
         seo_full = _read_json(seo_full_path) if os.path.exists(seo_full_path) else None
         if isinstance(seo_full, dict):
             # Accept both shapes — old `rising_keywords`, new `rising`.
@@ -3684,7 +3723,7 @@ def _interpret_weekly_report(
     # envelope. So we read top-level keys (organic, traffic, domainAuthority,
     # backlinks, refDomains) instead of drilling into `content[0].text`.
     try:
-        domain_path = os.path.join(DATA_DIR, "ubersuggest-domain.json")
+        domain_path = _brand_data_file("ubersuggest-domain.json")
         domain_data = _read_json(domain_path) if os.path.exists(domain_path) else None
         if isinstance(domain_data, dict):
             sources_used.append("ubersuggest-domain.json")
@@ -3727,7 +3766,7 @@ def _interpret_weekly_report(
     # competitor by keyword overlap — useful for "who's actually competing
     # with us in ZA search" framing in the report.
     try:
-        comp_path = os.path.join(DATA_DIR, "ubersuggest-competitors.json")
+        comp_path = _brand_data_file("ubersuggest-competitors.json")
         comp_data = _read_json(comp_path) if os.path.exists(comp_path) else None
         if isinstance(comp_data, dict):
             comps = comp_data.get("competitors") or []
@@ -3750,7 +3789,7 @@ def _interpret_weekly_report(
                 our_da = None
                 try:
                     our_domain_data = _read_json(
-                        os.path.join(DATA_DIR, "ubersuggest-domain.json")
+                        _brand_data_file("ubersuggest-domain.json")
                     ) or {}
                     our_da = our_domain_data.get("domainAuthority")
                 except Exception:
@@ -3811,7 +3850,7 @@ def _interpret_weekly_report(
     # visible "what's still unmeasurable" claim to drive the next sprint.
     try:
         roi_path = _runtime_data_file("roi-truth.json")
-        booking_path = _runtime_data_file("booking-events.json")
+        booking_path = _brand_data_file("booking-events.json")
         roi = _read_json(roi_path) if os.path.exists(roi_path) else None
         bookings = _read_json(booking_path) if os.path.exists(booking_path) else None
         if isinstance(roi, dict):
@@ -3960,7 +3999,7 @@ def _interpret_weekly_report(
     # This is the layer that answers "which post type actually moves people
     # to /bookings/?" - bridging content engagement with site intent.
     try:
-        ca_path = _runtime_data_file("conversion-attribution.json")
+        ca_path = _brand_data_file("conversion-attribution.json")
         if os.path.exists(ca_path):
             ca = _read_json(ca_path) or {}
             if isinstance(ca, dict):
@@ -4240,7 +4279,7 @@ def _interpret_weekly_report(
     # time-windowed attribution (people don't click-through instantly)
     # and historical theme-combo performance.
     try:
-        pcs_path = _runtime_data_file("post-conversion-score.json")
+        pcs_path = _brand_data_file("post-conversion-score.json")
         if os.path.exists(pcs_path):
             pcs = _read_json(pcs_path) or {}
             if isinstance(pcs, dict):
