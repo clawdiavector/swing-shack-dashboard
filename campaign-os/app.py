@@ -2065,6 +2065,30 @@ def image_portal_submit():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+def _brand_image_thumb(brand_id, src, w):
+    """A cached JPEG of `src` no wider than `w` (64-1600 px), or None if it can't be made.
+
+    Kept under DATA_DIR/thumbs/<brand>/<w>/ and rebuilt when the photo is newer.
+    """
+    from pathlib import Path as _P
+    import hashlib
+    w = max(64, min(int(w), 1600))
+    out = _P(DATA_DIR) / 'thumbs' / brand_id / str(w) / (hashlib.md5(str(src).encode('utf-8')).hexdigest() + '.jpg')
+    try:
+        if not out.exists() or out.stat().st_mtime < src.stat().st_mtime:
+            from PIL import Image, ImageOps
+            out.parent.mkdir(parents=True, exist_ok=True)
+            with Image.open(src) as im:
+                im = ImageOps.exif_transpose(im).convert('RGB')
+                im.thumbnail((w, w * 4))
+                tmp = out.with_suffix('.tmp')
+                im.save(tmp, 'JPEG', quality=82)
+            os.replace(tmp, out)
+        return out
+    except Exception:
+        return None
+
+
 @app.route('/brand-images/<brand_id>/<path:filename>', methods=['GET'])
 def brand_image_serve(brand_id, filename):
     """GET /brand-images/<brand>/ — serve a brand-directory image.
@@ -2114,6 +2138,12 @@ def brand_image_serve(brand_id, filename):
         except ValueError:
             return jsonify({"error": "path traversal denied"}), 403
         if target.exists() and target.is_file():
+            # ?w=N: a small cached preview for the library grid instead of the full photo.
+            w = request.args.get('w', type=int)
+            if w and target.suffix.lower() in _VL_IMAGE_EXTS:
+                thumb = _brand_image_thumb(brand_id, target, w)
+                if thumb is not None:
+                    return send_from_directory(str(thumb.parent), thumb.name)
             return send_from_directory(str(target.parent), target.name)
 
     for root in _brand_directory_roots():
@@ -2370,6 +2400,9 @@ def visual_library_images(brand_id):
             # WITHOUT firing a doomed network request.
             _has_thumb = bool(dna.get("thumbnail_b64"))
             _on_disk = _image_on_disk(fn)
+            # Live-disk photos carry no inline thumbnail; point the grid at a small preview.
+            _live_thumb = (None if _has_thumb or not (_P(DATA_DIR) / 'brand-directory' / brand_id / 'images' / fn).is_file()
+                           else f"/brand-images/{brand_id}/{_quote(fn)}?w=480")
             _image_missing = (not _has_thumb) and (not _on_disk)
             entry = {
                 "filename": fn,
@@ -2398,7 +2431,7 @@ def visual_library_images(brand_id):
                 # Inline thumbnail (data URL) so the grid works on Railway without the
                 # actual jpg files. The images dir is gitignored; thumbnails are embedded
                 # in each DNA JSON at build time.
-                "thumbnail_data_url": (f"data:image/jpeg;base64,{dna['thumbnail_b64']}" if dna.get("thumbnail_b64") else None),
+                "thumbnail_data_url": (f"data:image/jpeg;base64,{dna['thumbnail_b64']}" if dna.get("thumbnail_b64") else _live_thumb),
                 "thumbnail_w": dna.get("thumbnail_w"),
                 "thumbnail_h": dna.get("thumbnail_h"),
                 # Searchable blob (lowercase) for client-side text matching
