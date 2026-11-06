@@ -248,7 +248,7 @@ def _gap(
 def decide(brand_id: str, item_id: str, *, record: dict[str, Any] | None = None) -> VisualDecision:
     """Pure trust decision for a calendar moment (no network, no generation)."""
     cal = _calendar_record(brand_id, item_id, record)
-    ctx = _moment_context(brand_id, item_id, cal)
+    ctx = _moment_context(brand_id, item_id, cal) if cal else _moment_context(brand_id, item_id)
     post_type = _post_type_for_label(cal, ctx)
 
     if not item_id.startswith("calendar_candidate:"):

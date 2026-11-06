@@ -156,7 +156,9 @@ def select_archetype_explained(
     """Return (archetype, how) with how in pinned, rule, default, none."""
     doc = load_archetypes_doc(brand_id)
     selection = doc.get("selection") if isinstance(doc.get("selection"), dict) else {}
-    ctx = _overlay_moment_context(_moment_context(brand_id, item_id, record), record)
+    # The record saves a full calendar load; without one the call is the two-argument form.
+    base = _moment_context(brand_id, item_id) if record is None else _moment_context(brand_id, item_id, record)
+    ctx = _overlay_moment_context(base, record)
     archetypes = doc.get("archetypes") or []
     pinned = str(ctx.get("template_id") or "")
     if pinned:
