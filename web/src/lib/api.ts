@@ -68,6 +68,8 @@ export type InboxItem = {
     asset_id?: string
     platform?: string
     primary_channel?: string
+    /** Scout suggestion set in another province than the brand (campaign-os/_lib/brand_place.py). */
+    far_from_brand?: { place?: string; home?: string } | null
     /** IG + FB targets for this draft (display + publish queue). */
     publish_targets?: string[]
     channels_available?: string[]

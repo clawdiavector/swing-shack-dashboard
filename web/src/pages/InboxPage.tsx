@@ -14,6 +14,7 @@ import {
   inboxEdit,
   type InboxItem,
 } from '../lib/api'
+import { farAwayLabel } from '../lib/brandPlace'
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import {
   candidateSourceTag,
@@ -26,6 +27,8 @@ import {
 import { sumCounts } from '../lib/mergeCounts'
 import { useLoadGate } from '../lib/useLoadGate'
 import { formatStamp } from '../lib/stamp'
+
+const BRAND_NAME: Record<string, string> = { stick: 'Stick', 'swing-shack': 'Swing Shack', 'bag-drop': 'Bag Drop' }
 import { RENDER_MODE_LABELS, renderModeOf } from '../lib/postingWeek'
 
 function sourceLabel(tag: string): string {
@@ -99,6 +102,11 @@ function CandidateCard({
           <h3 className="font-display text-base font-semibold text-tx line-clamp-2">
             {item.title?.trim() ?? ''}
           </h3>
+          {farAwayLabel(item.meta, BRAND_NAME[item.brand_id || '']) ? (
+            <p className="mt-1">
+              <Badge tone="gold">{farAwayLabel(item.meta, BRAND_NAME[item.brand_id || ''])}</Badge>
+            </p>
+          ) : null}
           {pillar ? (
             <p className="mt-1 text-xs text-tx3 line-clamp-1">{pillar}</p>
           ) : null}
