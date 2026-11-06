@@ -61,6 +61,13 @@ def _mirror_path() -> Path:
 
 
 def _load_brands_registry() -> dict[str, Any]:
+    # Read for every post's channels; once per board build (Scheduled list, This week).
+    from _lib.board_cache import cached  # noqa: PLC0415
+
+    return cached(("brands_registry", str(_data_dir())), _read_brands_registry)
+
+
+def _read_brands_registry() -> dict[str, Any]:
     path = _data_dir() / "brands.json"
     if path.is_file():
         try:
