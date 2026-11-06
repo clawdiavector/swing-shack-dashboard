@@ -23,6 +23,15 @@ def _archetypes_path(brand_id: str) -> Path | None:
 
 
 def load_archetypes_doc(brand_id: str) -> dict[str, Any]:
+    # Read for every post's layout check; once per board build (Scheduled list, This week).
+    import os
+
+    from _lib.board_cache import cached  # noqa: PLC0415
+
+    return cached(("archetypes", brand_id, os.environ.get("DATA_DIR", "")), lambda: _read_archetypes_doc(brand_id))
+
+
+def _read_archetypes_doc(brand_id: str) -> dict[str, Any]:
     path = _archetypes_path(brand_id)
     if path is None:
         return {}

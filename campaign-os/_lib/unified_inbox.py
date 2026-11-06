@@ -319,12 +319,14 @@ def _write_campaign_data(data: dict[str, Any]) -> None:
 @contextmanager
 def _board_reads():
     """Shared reads for one read-only board build (Scheduled list, This week): the drafts
-    folder and campaign-data.json once, instead of once or twice per post (6 Nov 2026)."""
+    folder, campaign-data.json, brands.json and the layouts file once, instead of once or
+    more per post (6 Nov 2026)."""
+    from _lib.board_cache import board_cache  # noqa: PLC0415
     from _lib.jobs.layer5.draft_assets import sidecar_lookup  # noqa: PLC0415
 
     token = _BOARD_CAMPAIGN_DATA.set(_load_campaign_data())
     try:
-        with sidecar_lookup():
+        with sidecar_lookup(), board_cache():
             yield
     finally:
         _BOARD_CAMPAIGN_DATA.reset(token)
