@@ -2195,6 +2195,55 @@ def asset_serve(filename):
     return jsonify({"error": "not found", "filename": filename}), 404
 
 
+_VL_IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.webp')
+
+
+def _visual_library_index(brand_id):
+    """The brand's Visual Library index, or None when it has no photos at all.
+
+    The bundled visual-dna-index.json, plus every photo the Drive ingest scanned
+    onto the live disk (DATA_DIR/brand-directory/<brand>/images/<folder>/). The
+    live index has no by_filename list of its own, so those are found by their
+    .visual-dna.json files and keyed by their path under images/.
+    """
+    from pathlib import Path as _P
+    bundled_dir = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id
+    idx = {}
+    index_path = bundled_dir / 'visual-dna-index.json'
+    if index_path.exists():
+        try:
+            idx = json.loads(index_path.read_text())
+        except Exception:
+            idx = {}
+    by_fn = dict(idx.get('by_filename') or {})
+    bundled_names = {_P(k).name for k in by_fn}
+    live = _P(DATA_DIR) / 'brand-directory' / brand_id / 'images'
+    if live.is_dir() and live.resolve() != (bundled_dir / 'images').resolve():
+        for dna_p in sorted(live.rglob('*.visual-dna.json')):
+            stem = dna_p.name[:-len('.visual-dna.json')]
+            img = next((c for c in sorted(dna_p.parent.glob(glob.escape(stem) + '.*'))
+                        if c.suffix.lower() in _VL_IMAGE_EXTS), None)
+            if img is None or img.name in bundled_names:
+                continue
+            by_fn.setdefault(img.relative_to(live).as_posix(), {'dna_path': str(dna_p), 'score': 0})
+    if not index_path.exists() and not by_fn:
+        return None
+    idx = dict(idx)
+    idx['by_filename'] = by_fn
+    idx['image_count'] = len(by_fn)
+    return idx
+
+
+def _visual_library_brand_ids():
+    """Every brand with a bundled index or a live images folder, sorted."""
+    from pathlib import Path as _P
+    ids = set()
+    for root in (_P(BUNDLED_DATA_DIR) / 'brand-directory', _P(DATA_DIR) / 'brand-directory'):
+        if root.is_dir():
+            ids.update(p.name for p in root.iterdir() if p.is_dir() and p.name != '_system')
+    return sorted(ids)
+
+
 @app.route('/api/visual-library/<brand_id>/images', methods=['GET'])
 def visual_library_images(brand_id):
     """GET /api/visual-library/<brand>/images — full image roster with DNA preview.
@@ -2212,10 +2261,10 @@ def visual_library_images(brand_id):
     try:
         from pathlib import Path as _P
         import re, base64 as _b64
-        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
-        if not index_path.exists():
+        from urllib.parse import quote as _quote
+        idx = _visual_library_index(brand_id)
+        if idx is None:
             return jsonify({"error": f"no visual-dna index for {brand_id}"}), 404
-        idx = json.loads(index_path.read_text())
         by_filename = idx.get("by_filename", {})
 
         product_filter = request.args.get("product", "").strip()
@@ -2252,6 +2301,8 @@ def visual_library_images(brand_id):
             """True iff `filename` resolves under ANY brand directory on disk."""
             # Primary location: the requested brand
             if (images_dir / filename).exists():
+                return True
+            if (_P(DATA_DIR) / 'brand-directory' / brand_id / 'images' / filename).is_file():
                 return True
             # Sibling brands (orphan DNA fallback path)
             stem = _P(filename).name  # strip any path prefix safely
@@ -2322,7 +2373,7 @@ def visual_library_images(brand_id):
             _image_missing = (not _has_thumb) and (not _on_disk)
             entry = {
                 "filename": fn,
-                "url": (None if _image_missing else f"/brand-images/{brand_id}/{fn}"),
+                "url": (None if _image_missing else f"/brand-images/{brand_id}/{_quote(fn)}"),
                 "image_missing": _image_missing,
                 "dna_url": f"/brand-images/{brand_id}/{fn.replace('.jpg', '.visual-dna.json').replace('.jpeg', '.visual-dna.json').replace('.png', '.visual-dna.json')}",
                 "score": round(score, 3),
@@ -2392,10 +2443,9 @@ def visual_library_stats(brand_id):
     try:
         from pathlib import Path as _P
         from collections import Counter
-        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
-        if not index_path.exists():
+        idx = _visual_library_index(brand_id)
+        if idx is None:
             return jsonify({"error": f"no visual-dna index for {brand_id}"}), 404
-        idx = json.loads(index_path.read_text())
         by_filename = idx.get("by_filename", {})
 
         product_counts = Counter()
@@ -2474,6 +2524,7 @@ def visual_library_search():
     """
     try:
         from pathlib import Path as _P
+        from urllib.parse import quote
         q = (request.args.get('q') or '').strip()
         if len(q) < 2:
             return jsonify({"ok": False, "error": "q must be 2+ chars", "results": [], "count": 0}), 400
@@ -2495,20 +2546,16 @@ def visual_library_search():
 
         # Decide which brands to search
         if brand_filter and brand_filter != 'all':
-            brand_dirs = [brand_root / brand_filter] if (brand_root / brand_filter).is_dir() else []
+            brand_dirs = [brand_root / brand_filter]
         else:
-            brand_dirs = sorted([p for p in brand_root.iterdir() if p.is_dir()])
+            brand_dirs = [brand_root / b for b in _visual_library_brand_ids()]
 
         results = []
         seen = set()
         for brand_dir in brand_dirs:
             bid = brand_dir.name
-            idx_path = brand_dir / 'visual-dna-index.json'
-            if not idx_path.exists():
-                continue
-            try:
-                idx = json.loads(idx_path.read_text())
-            except Exception:
+            idx = _visual_library_index(bid)
+            if idx is None:
                 continue
             # Canonical images dir relative to BUNDLED_DATA_DIR — same fallback
             # strategy used by /api/visual-library/<brand>/images.
@@ -2619,8 +2666,8 @@ def visual_library_search():
                 results.append({
                     'brand': bid,
                     'filename': fn,
-                    'url': f"/brand-images/{bid}/{fn}",
-                    'thumbnail_url': f"/brand-images/{bid}/{fn}",
+                    'url': f"/brand-images/{bid}/{quote(fn)}",
+                    'thumbnail_url': f"/brand-images/{bid}/{quote(fn)}",
                     'score': round(score, 3),
                     'products': prod_names[:5],
                     'ocr_snippet': ocr_text[:140],
@@ -2651,14 +2698,9 @@ def visual_library_brands():
         if not brand_root.exists():
             return jsonify({'brands': []})
         out = []
-        for brand_dir in sorted([p for p in brand_root.iterdir() if p.is_dir()]):
-            bid = brand_dir.name
-            idx_path = brand_dir / 'visual-dna-index.json'
-            if not idx_path.exists():
-                continue
-            try:
-                idx = json.loads(idx_path.read_text())
-            except Exception:
+        for bid in _visual_library_brand_ids():
+            idx = _visual_library_index(bid)
+            if idx is None:
                 continue
             by_fn = idx.get('by_filename', {}) or {}
             out.append({
@@ -10281,8 +10323,8 @@ def visual_library_image_detail(brand_id, filename):
                 break
         else:
             dna_filename = filename + ".visual-dna.json"
-        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
-        idx = json.loads(index_path.read_text())
+        from urllib.parse import quote
+        idx = _visual_library_index(brand_id) or {}
         meta = idx.get("by_filename", {}).get(filename)
         if not meta:
             return jsonify({"error": f"image {filename} not in index"}), 404
@@ -10293,7 +10335,7 @@ def visual_library_image_detail(brand_id, filename):
         return jsonify({
             "brand": brand_id,
             "filename": filename,
-            "image_url": f"/brand-images/{brand_id}/{filename}",
+            "image_url": "/brand-images/%s/%s" % (brand_id, quote(filename)),
             "score": meta.get("score"),
             "dna": dna,
         })
