@@ -50,6 +50,8 @@ LAYER1_JOB_NAMES: tuple[str, ...] = (
 _ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
 _SS_ONLY = ("swing-shack",)
 _SS_AND_STICK = ("swing-shack", "stick")
+# Jobs that fit an online store as well as the venues (SEO, site audit, GEO).
+_ALL_THREE = _ALL_ACTIVE_BRANDS
 
 
 def layer1_specs() -> list[JobSpec]:
@@ -108,7 +110,7 @@ def layer1_specs() -> list[JobSpec]:
                 "ubersuggest-backlinks.json",
             ),
             brand_mode="per_brand",
-            brands=_SS_AND_STICK,
+            brands=_ALL_THREE,
             requires_integrations=("ubersuggest",),
         ),
         JobSpec(
@@ -135,7 +137,7 @@ def layer1_specs() -> list[JobSpec]:
             retries=2,
             writes=("seo-audit.json", "geo-audit.json", "seo-fix-queue.json", "seo-publish-log.json"),
             brand_mode="per_brand",
-            brands=_SS_AND_STICK,
+            brands=_ALL_THREE,
             requires_integrations=("ubersuggest",),
         ),
         JobSpec(
@@ -149,7 +151,7 @@ def layer1_specs() -> list[JobSpec]:
             credentials=("OPENAI_API_KEY",),
             writes=("geo-observe-cursor.json",),
             brand_mode="per_brand",
-            brands=_SS_AND_STICK,
+            brands=_ALL_THREE,
         ),
         JobSpec(
             name="competitor_tracker",

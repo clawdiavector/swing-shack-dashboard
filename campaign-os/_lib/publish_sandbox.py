@@ -20,7 +20,7 @@ QUEUE_SCHEMA = "campaign-os/publish-queue-item/v1"
 INTENDED_CHANNELS_FALLBACK: dict[str, list[str]] = {
     "swing-shack": ["instagram", "facebook", "gbp"],
     "stick": ["instagram", "facebook"],
-    "bag-drop": [],
+    "bag-drop": ["instagram", "facebook"],
 }
 
 # Match L5 compose_post_for_channels — social feed channels only (GBP is separate).

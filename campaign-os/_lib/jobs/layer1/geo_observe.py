@@ -40,7 +40,14 @@ def run(*, brand: str | None = None) -> dict[str, Any]:
     from ... import geo_runner  # noqa: PLC0415
 
     io = io_for_job(JOB_NAME, brand)
-    watchlist = [w for w in geo_runner._load_watchlist(brand) if str(w.get("query") or "").strip()]
+    rows = geo_runner._load_watchlist(brand)
+    if not rows:
+        # A brand nobody has opened on the GEO page yet has no watchlist file. The page
+        # seeds it from its defaults, so do the same here (Bag Drop, 2026-11-06).
+        from ... import geo_routes  # noqa: PLC0415
+
+        rows = geo_routes._load_watchlist(brand)
+    watchlist = [w for w in rows if str(w.get("query") or "").strip()]
     if not watchlist:
         return {"ok": True, "rows": 0, "asked": [], "failed": [], "note": f"no GEO watchlist for {brand}"}
 
