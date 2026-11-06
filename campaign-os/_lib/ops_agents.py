@@ -104,6 +104,9 @@ def _coerce_status(raw: Any) -> str:
         return value
     if value in {"COMPLETED", "COMPLETE", "DONE", "SUCCESS", "PASS"}:
         return "OK"
+    # An agent that reports it has started is alive, not failed.
+    if value in {"RUNNING", "STARTED", "IN_PROGRESS", "WORKING"}:
+        return "OK"
     return "FAILED"
 
 
