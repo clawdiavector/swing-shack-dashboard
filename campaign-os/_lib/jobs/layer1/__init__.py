@@ -22,6 +22,7 @@ from . import (
     post_conversion_score,
     reddit_trends,
     seo_rankings,
+    shopify_stock,
     site_audit,
     social_ingest,
     windsor_refresh,
@@ -45,6 +46,7 @@ LAYER1_JOB_NAMES: tuple[str, ...] = (
     "insights_reco",
     "social_ingest",
     "geo_observe",
+    "shopify_stock",
 )
 
 _ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
@@ -126,6 +128,19 @@ def layer1_specs() -> list[JobSpec]:
             brand_mode="per_brand",
             brands=_SS_AND_STICK,
             requires_integrations=("ga4",),
+        ),
+        JobSpec(
+            # The Bag Drop's stock list, read from its Shopify store (2026-11-06).
+            name="shopify_stock",
+            fn=shopify_stock.run,
+            every_seconds=86400,
+            timeout_seconds=120,
+            best_effort=True,
+            criticality="LOW",
+            retries=1,
+            writes=(shopify_stock.OUTPUT,),
+            brand_mode="per_brand",
+            brands=("bag-drop",),
         ),
         JobSpec(
             name="site_audit",
