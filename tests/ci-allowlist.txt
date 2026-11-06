@@ -234,3 +234,4 @@ campaign-os/tests/test_ingest_heic_to_jpeg_20261105.py
 campaign-os/tests/test_bag_drop_drive_root_20261105.py
 campaign-os/tests/test_bag_drop_everywhere_20261106.py
 campaign-os/tests/test_bag_drop_story_ideas_20261106.py
+campaign-os/tests/test_bag_drop_shopify_stock_20261106.py
