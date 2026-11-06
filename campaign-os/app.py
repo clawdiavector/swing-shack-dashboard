@@ -2287,6 +2287,8 @@ def visual_library_images(brand_id):
       min_score — only images with brand-alignment score >= N (0.0-1.0)
       sort      — score | filename | modified (default score desc)
       limit     — cap results (default 200)
+      folder    — only photos in this folder or under it (e.g. "Shot List/Bags")
+      offset    — skip this many matching photos ("Load more")
     """
     try:
         from pathlib import Path as _P
@@ -2301,6 +2303,18 @@ def visual_library_images(brand_id):
         min_score = float(request.args.get("min_score", "0") or "0")
         sort_by = request.args.get("sort", "score")
         limit = min(int(request.args.get("limit", "200") or "200"), 500)
+        folder = request.args.get("folder", "").strip().strip("/")
+        try:
+            offset = max(int(request.args.get("offset", "0") or "0"), 0)
+        except ValueError:
+            offset = 0
+        # Every folder (and each parent) with how many photos sit in it or under it.
+        from collections import Counter as _Counter
+        folder_counts = _Counter()
+        for _fn in by_filename:
+            _parts = _fn.split("/")[:-1]
+            for _i in range(1, len(_parts) + 1):
+                folder_counts["/".join(_parts[:_i])] += 1
 
         # Canonical images dir relative to BUNDLED_DATA_DIR — used for both jpg and DNA JSON
         images_dir = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images'
@@ -2344,6 +2358,8 @@ def visual_library_images(brand_id):
 
         out = []
         for fn, meta in by_filename.items():
+            if folder and not fn.startswith(folder + "/"):
+                continue
             dna_p = _resolve_dna(meta.get("dna_path", ""), fn)
             if dna_p is None:
                 continue
@@ -2453,11 +2469,16 @@ def visual_library_images(brand_id):
             out.sort(key=lambda x: x["filename"].lower())
         elif sort_by == "modified":
             out.sort(key=lambda x: x["filename"].lower(), reverse=True)
-        out = out[:limit]
+        total_matching = len(out)
+        out = out[offset:offset + limit]
         return jsonify({
             "brand": brand_id,
             "total": len(out),
-            "filters": {"product": product_filter, "min_score": min_score, "sort": sort_by},
+            "total_matching": total_matching,
+            "offset": offset,
+            "has_more": offset + len(out) < total_matching,
+            "folders": [{"path": f, "count": c} for f, c in sorted(folder_counts.items(), key=lambda x: x[0].lower())],
+            "filters": {"product": product_filter, "min_score": min_score, "sort": sort_by, "folder": folder},
             "products_available": sorted(set(p for e in out for p in e["products"])),
             "images": out,
         })

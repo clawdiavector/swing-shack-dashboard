@@ -208,6 +208,13 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
+      <h3 data-help="Show only photos from one Drive folder, including its sub-folders (e.g. Shot List, or Shot List/Bags/Vessel). The number is how many photos sit in it." data-help-title="Folder">Folder</h3>
+      <select id="folder" style="width: 100%; padding: 8px; background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;">
+        <option value="">All folders</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
       <h3 data-help="Sort order applied to the image grid. Brand alignment score (default, highest first) shows the most on-brand material. Filename (A→Z) is for hunting a specific file you already know. Recently modified is for picking up the freshest renders from the Generate panel." data-help-title="Sort">Sort</h3>
       <select id="sort" style="width: 100%; padding: 8px; background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;">
         <option value="score">Brand alignment score</option>
@@ -311,6 +318,11 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="grid" id="grid"></div>
+
+    <div id="load-more-wrap" style="display:none; text-align:center; margin: 16px 0;">
+      <button id="load-more" type="button" style="background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 10px 20px; font-size: 13px; cursor: pointer;">Load more</button>
+      <div id="load-more-count" style="font-size: 12px; color: var(--muted); margin-top: 6px;"></div>
+    </div>
 
     <div class="empty" id="empty" style="display:none;">No images match current filters.</div>
   </main>
@@ -457,7 +469,7 @@ const API = {
 let state = {
   images: [],
   stats: {},
-  filters: { product: '', min_score: 0, sort: 'score', luminance: 'all' },
+  filters: { product: '', min_score: 0, sort: 'score', luminance: 'all', folder: '' },
 };
 
 // ── Load page engagement hero ───────────────────────────────────────────
@@ -1009,6 +1021,13 @@ document.getElementById('sort').addEventListener('change', (e) => {
   runGrid();
 });
 
+document.getElementById('folder').addEventListener('change', (e) => {
+  state.filters.folder = e.target.value;
+  runGrid();
+});
+
+document.getElementById('load-more').addEventListener('click', () => runGrid(true));
+
 // ── Generate image (live gpt-image-1) ──────────────────────────
 async function runGenerate() {
   // Read from BOTH prompt slots (sidebar + main) so duplicate-id copy/paste
@@ -1125,6 +1144,7 @@ async function loadBrands() {
     sel.addEventListener('change', async (e) => {
       STATE.brand = e.target.value;
       STATE.q = '';
+      state.filters.folder = '';
       document.getElementById('img-search-input').value = '';
       renderChromeForBrand();
       syncBrandToUrl();
@@ -1162,11 +1182,34 @@ function attachSearch() {
 }
 
 // ── Unified grid loader (search + filters) ──────────────────────────────
-async function runGrid() {
+// Fill the Folder picker from the brand's folder list, keeping the current choice.
+function renderFolderOptions(folders) {
+  const sel = document.getElementById('folder');
+  if (!sel || !Array.isArray(folders)) return;
+  const opts = ['<option value="">All folders</option>'].concat(folders.map(f => {
+    const depth = f.path.split('/').length - 1;
+    const label = '\u00a0\u00a0'.repeat(depth) + f.path.split('/').pop() + ' (' + f.count + ')';
+    return `<option value="${f.path.replace(/"/g, '&quot;')}">${label}</option>`;
+  }));
+  sel.innerHTML = opts.join('');
+  sel.value = state.filters.folder || '';
+}
+
+// append=true is "Load more": fetch the next page and add it under the photos already shown.
+async function runGrid(append = false) {
   const grid = document.getElementById('grid');
-  grid.innerHTML = '<div class="loading" style="grid-column: 1/-1;"><div class="spinner"></div>Loading images…</div>';
+  const moreWrap = document.getElementById('load-more-wrap');
+  const moreBtn = document.getElementById('load-more');
+  if (append) {
+    moreBtn.disabled = true;
+    moreBtn.textContent = 'Loading…';
+  } else {
+    moreWrap.style.display = 'none';
+    grid.innerHTML = '<div class="loading" style="grid-column: 1/-1;"><div class="spinner"></div>Loading images…</div>';
+  }
 
   let images = [];
+  let page = null;
   if (STATE.q && STATE.q.length >= 2) {
     // Dedicated image search across all brands
     const params = { q: STATE.q, limit: 60 };
@@ -1202,9 +1245,25 @@ async function runGrid() {
     if (state.filters.min_score) params.min_score = state.filters.min_score;
     params.sort = state.filters.sort;
     if (state.filters.luminance !== 'all') params.lum = state.filters.luminance;
+    if (state.filters.folder) params.folder = state.filters.folder;
+    params.offset = append ? state.images.length : 0;
     const data = await API.images(params, STATE.brand);
-    images = (data.images || []).map(img => ({ ...img, _brand: STATE.brand }));
+    const fresh = (data.images || []).map(img => ({ ...img, _brand: STATE.brand }));
+    images = append ? state.images.concat(fresh) : fresh;
+    page = data;
+    renderFolderOptions(data.folders);
     document.getElementById('img-search-status').textContent = '';
+  }
+
+  // "Load more" shows only for the brand grid, when the server says more are waiting.
+  moreBtn.disabled = false;
+  moreBtn.textContent = 'Load more';
+  if (page && page.has_more) {
+    moreWrap.style.display = 'block';
+    document.getElementById('load-more-count').textContent =
+      `Showing ${images.length} of ${page.total_matching}`;
+  } else {
+    moreWrap.style.display = 'none';
   }
 
   state.images = images;
@@ -1254,7 +1313,7 @@ async function runGrid() {
     return `
       <div class="card" data-filename="${img.filename}" data-brand="${img._brand}">
         <div class="imgwrap">
-          <img src="${imgSrc}" alt="${img.filename}" data-palette="${paletteAttr}" data-fallback="1">
+          <img src="${imgSrc}" alt="${img.filename}" loading="lazy" data-palette="${paletteAttr}" data-fallback="1">
           <div class="score">${img.score || '—'}</div>
         </div>
         <div class="info">
