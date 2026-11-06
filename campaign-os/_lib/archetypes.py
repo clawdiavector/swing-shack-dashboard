@@ -23,6 +23,15 @@ def _archetypes_path(brand_id: str) -> Path | None:
 
 
 def load_archetypes_doc(brand_id: str) -> dict[str, Any]:
+    # Read for every post's layout check; once per board build (Scheduled list, This week).
+    import os
+
+    from _lib.board_cache import cached  # noqa: PLC0415
+
+    return cached(("archetypes", brand_id, os.environ.get("DATA_DIR", "")), lambda: _read_archetypes_doc(brand_id))
+
+
+def _read_archetypes_doc(brand_id: str) -> dict[str, Any]:
     path = _archetypes_path(brand_id)
     if path is None:
         return {}
@@ -47,7 +56,9 @@ def archetype_by_id(brand_id: str, archetype_id: str) -> dict[str, Any] | None:
     return None
 
 
-def _moment_context(brand_id: str, item_id: str) -> dict[str, Any]:
+def _moment_context(brand_id: str, item_id: str, record: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Selection context for a calendar moment. Pass the record when the caller has it:
+    looking it up loads the whole calendar (once per post on the Scheduled list)."""
     from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
 
     ctx: dict[str, Any] = {
@@ -63,9 +74,10 @@ def _moment_context(brand_id: str, item_id: str) -> dict[str, Any]:
     brand, cal_id = key.split(":", 1)
     if brand != brand_id:
         return ctx
-    for record in canonical_records(brand_id):
+    given = [record] if isinstance(record, dict) and record else None
+    for record in given or canonical_records(brand_id):
         rid = str(record.get("calendar_id") or record.get("event_key") or "")
-        if rid != cal_id:
+        if rid != cal_id and not given:
             continue
         pillars = record.get("pillars")
         if isinstance(pillars, list) and pillars:
@@ -153,7 +165,9 @@ def select_archetype_explained(
     """Return (archetype, how) with how in pinned, rule, default, none."""
     doc = load_archetypes_doc(brand_id)
     selection = doc.get("selection") if isinstance(doc.get("selection"), dict) else {}
-    ctx = _overlay_moment_context(_moment_context(brand_id, item_id), record)
+    # The record saves a full calendar load; without one the call is the two-argument form.
+    base = _moment_context(brand_id, item_id) if record is None else _moment_context(brand_id, item_id, record)
+    ctx = _overlay_moment_context(base, record)
     archetypes = doc.get("archetypes") or []
     pinned = str(ctx.get("template_id") or "")
     if pinned:

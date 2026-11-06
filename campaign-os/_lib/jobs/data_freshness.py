@@ -62,3 +62,25 @@ def is_data_stale(verdict: str, every_seconds: Optional[int], data: Optional[dic
         return False
     run_days = (every_seconds or 86400) / 86400.0
     return float(data.get("age_days") or 0) > max(RUNS_ALLOWED * run_days, FLOOR_DAYS)
+
+
+def job_data(spec: Any, data_dir: str | os.PathLike[str], brands: tuple[str, ...], *, now: Optional[datetime] = None) -> Optional[dict]:
+    """Data age for a job. Per-brand jobs are judged on brands/<brand>/ files (6 Nov 2026).
+
+    The flat files froze on 18 Sep when jobs moved to brand lanes, so reading them made
+    every per-brand job look 49 days stale. The stalest brand decides (its name is in
+    "brand"); with no brand files yet, the flat files still count.
+    """
+    writes = tuple(getattr(spec, "writes", ()) or ())
+    if getattr(spec, "brand_mode", None) != "per_brand" or not brands:
+        return newest_data(writes, data_dir, now=now)
+    from .brand_lanes import resolve_path
+
+    per_brand: list[dict] = []
+    for brand in brands:
+        found = newest_data(tuple(resolve_path(spec, rel, brand) for rel in writes), data_dir, now=now)
+        if found:
+            per_brand.append({**found, "brand": brand})
+    if not per_brand:
+        return newest_data(writes, data_dir, now=now)
+    return max(per_brand, key=lambda d: d["age_days"])
