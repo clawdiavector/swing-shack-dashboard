@@ -8,6 +8,13 @@ import { ageLabel, Take, type MomentsData } from './Moments'
 // dates that need preparing now. Shows nothing at all on a quiet day. Read only; nothing posts.
 
 const MAX_ITEMS = 3
+/** The shorter Today page shows two (5 Nov 2026). */
+const TODAY_ITEMS = 2
+
+/** "Act today" moments: never one marked not to joke about (politics, crime). */
+export function momentsForToday(live: MomentsData['live'], max = TODAY_ITEMS): NonNullable<MomentsData['live']> {
+  return (live ?? []).filter((l) => l.act_today && !l.skip_joke).slice(0, max)
+}
 
 export function MomentsToday({ brandLabel, brandId }: { brandLabel?: string; brandId?: string }) {
   const [data, setData] = useState<MomentsData | null>(null)
@@ -19,19 +26,23 @@ export function MomentsToday({ brandLabel, brandId }: { brandLabel?: string; bra
       .catch(() => setData(null))
   }, [])
 
-  return data ? <MomentsTodayView data={data} brandLabel={brandLabel} brandId={brandId} /> : null
+  return data ? (
+    <MomentsTodayView data={data} brandLabel={brandLabel} brandId={brandId} max={TODAY_ITEMS} />
+  ) : null
 }
 
 export function MomentsTodayView({
   data,
   brandLabel,
   brandId,
+  max = MAX_ITEMS,
 }: {
   data: MomentsData
   brandLabel?: string
   brandId?: string
+  max?: number
 }) {
-  const hot = (data.live ?? []).filter((l) => l.act_today).slice(0, MAX_ITEMS)
+  const hot = momentsForToday(data.live, max)
   const prep = (data.upcoming ?? []).filter((u) => u.status === 'prepare now')
   if (hot.length === 0 && prep.length === 0) return null
 

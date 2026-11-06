@@ -133,14 +133,15 @@ function MailHead({ m }: { m: MailItem }) {
   )
 }
 
-function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
+export function IdeaCard({ m, run }: { m: MailItem; run: Run }) {
   const [brand, setBrand] = useState(m.brand || '')
   const [date, setDate] = useState(m.date || '')
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [version, setVersion] = useState(0)
   const [writing, setWriting] = useState(false)
-  const [showIdea, setShowIdea] = useState(true)
+  // Closed until asked: open, each built-out idea took most of the Today page.
+  const [showIdea, setShowIdea] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const ready = Boolean(brand && date)
