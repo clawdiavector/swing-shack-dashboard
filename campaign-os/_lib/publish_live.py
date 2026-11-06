@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
-from _lib import post_links
+from _lib import post_links, post_spacing
 from _lib import publish_sandbox as sandbox
 from _lib.brand_validate import validate_brand_id
 from _lib.postiz_client import (
@@ -21,6 +21,13 @@ from _lib.postiz_client import (
 from _lib.publish_image import resolve_queue_upload_path
 
 _log = logging.getLogger(__name__)
+
+
+def _post_of(row: dict[str, Any]) -> str:
+    """The post a queue row belongs to, so its IG and FB rows share one send time."""
+    from _lib.unified_inbox import asset_id_from_queue_row  # noqa: PLC0415
+
+    return str(row.get("asset_id") or asset_id_from_queue_row(row) or row.get("idempotency_key") or "")
 
 
 def _integration_for_platform(integrations: list[dict[str, Any]], platform: str) -> Optional[str]:
@@ -286,6 +293,12 @@ def dispatch_pending(
     updated_rows: list[dict[str, Any]] = []
     target_keys = {str(t.get("idempotency_key") or "") for t in targets}
     integrations_cache: dict[str, list[dict[str, Any]]] = {}
+    # Posts of one brand sent together get their own times, a gap apart (audit, 3 Nov 2026).
+    # An automatic send also waits a gap after what the brand already sent today.
+    send_plan = post_spacing.spaced_times(
+        [(str(t.get("brand_id") or ""), _post_of(t)) for t in targets],
+        last_today=None if forced else post_spacing.last_sent_today(sandbox._receipt_index().values()),
+    )
 
     for row in rows:
         if row.get("status") != "pending":
@@ -299,10 +312,10 @@ def dispatch_pending(
             continue
         enriched = next((t for t in targets if str(t.get("idempotency_key") or "") == key), row)
         enriched = sandbox.refresh_queue_row_from_draft(dict(enriched))
-        # Due or Publish-now: hand Postiz type=now. A past schedule date is what
-        # left Swing Shack posts in ERROR.
+        # Due or Publish-now: never a past date (that left Swing Shack posts in ERROR); the
+        # first post of a brand goes 5 minutes out, the rest of the send a gap apart.
         if key in forced or sandbox.row_is_due(str(enriched.get("would_publish_at") or "")):
-            enriched["would_publish_at"] = None
+            enriched["would_publish_at"] = send_plan.get((str(enriched.get("brand_id") or ""), _post_of(enriched)))
         row["caption_preview"] = enriched.get("caption_preview")
         row["image_url"] = enriched.get("image_url")
         platform = str(enriched.get("platform") or "instagram")
