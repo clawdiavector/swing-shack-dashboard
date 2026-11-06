@@ -48,3 +48,13 @@ jobs:
             -H "Content-Type: application/json" \
             -o /tmp/geo_stick.json
           python3 scripts/cos_job_summary.py print /tmp/geo_stick.json
+
+      - name: Bag Drop
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -m 300 -X POST "$BASE/api/jobs/run/geo_observe?brand=bag-drop" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/geo_bd.json
+          python3 scripts/cos_job_summary.py print /tmp/geo_bd.json

@@ -14612,11 +14612,23 @@ def _per_channel_prompts(idea: str, *, brand_id: str, voice: Optional[str], tone
     if not body_core.endswith("?") and not body_core.endswith("!"):
         body_core += "."
 
-    domain = "swingshack.co.za"
-    if brand_voice_tag == "stick":
-        domain = "sticksa.co.za"
-    elif brand_voice_tag == "bag-drop":
-        domain = "bagdropgolf.co.za"
+    from _lib.brand_scope import BRAND_DOMAINS as _domains
+    domain = _domains.get(brand_voice_tag, _domains["swing-shack"])
+
+    if brand_voice_tag != "swing-shack":
+        # The channel copy below is Swing Shack's (TrackMan, Westcliff, R250 first
+        # session). Stick and The Bag Drop got it word for word, with a made-up website.
+        # Until they have their own, give them the idea and their real website only.
+        return {
+            "instagram": {"name": body_core[:120], "caption": f"{base_hook}\n\n{body_core}\n\nLink in bio.",
+                          "cta": "Link in bio", "hashtags": []},
+            "facebook": {"name": body_core[:80], "caption": f"{body_core}\n\n{domain}", "cta": domain,
+                         "hashtags": []},
+            "x": {"name": body_core[:60], "caption": f"{body_core} {domain}", "cta": f"Read more → {domain}",
+                  "hashtags": []},
+            "tiktok": {"name": body_core[:60], "caption": f"{base_hook}\n\n{body_core}", "cta": "",
+                       "hashtags": []},
+        }
 
     per_channel = {
         # Google Business Profile (formerly Google My Business)
@@ -15394,7 +15406,8 @@ def stories_suggestion_route():
 
     from _lib import story_settings as ss
 
-    brands = [request.args['brand']] if request.args.get('brand') else ['swing-shack', 'stick']
+    from _lib.brand_scope import OPERATING_BRANDS as _ops
+    brands = [request.args['brand']] if request.args.get('brand') else list(_ops)
     day = datetime.now(ZoneInfo('Africa/Johannesburg')).date()
     out = []
     for b in brands:
@@ -26017,7 +26030,8 @@ def report_v1_brand(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
+    from _lib.brand_scope import OPERATING_BRANDS as _ops
+    if brand_id not in _ops:
         return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
     if _ri is None:
         return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
@@ -26050,8 +26064,9 @@ def report_v1_portfolio():
     days = int(request.args.get("days", 31))
     cookie = request.headers.get("Cookie", "")
     try:
+        from _lib.brand_scope import OPERATING_BRANDS as _ops
         reports = {bid: _ri.build_brand_report(bid, days, cookie=cookie)
-                   for bid in ("stick", "swing-shack")}
+                   for bid in _ops}
         if fmt == "json":
             return jsonify({"ok": True, "reports": reports}), 200
         html = _ri.render_portfolio_summary_html(reports)
@@ -29355,9 +29370,10 @@ def seo_refresh():
         # Resolve brand + domain (default swing-shack, support stick)
         brand = (request.get_json(silent=True) or {}).get("brand") or "swing-shack"
         brand = brand.strip().lower()
-        if brand not in ("swing-shack", "stick"):
+        from _lib.brand_scope import BRAND_DOMAINS as _domains
+        if brand not in _domains:
             return jsonify({"ok": False, "error": f"unsupported brand: {brand}"}), 400
-        domain = "stickgolf.co.za" if brand == "stick" else "swingshack.co.za"
+        domain = _domains[brand]
         # Per-brand output suffix
         if brand == "swing-shack":
             file_suffix = ""  # backwards-compat
@@ -53605,6 +53621,19 @@ _META_ADS_ACCOUNT_FOR_BRAND = {
     "swing-shack": "act_1024882912541604",
 }
 
+
+def _ads_brand_refusal(brand_id):
+    """None when the brand has a Meta ad account. Otherwise the response to send:
+    404 with a plain reason for one of our brands without an account (The Bag Drop,
+    2026-11-06), 400 for an unknown brand."""
+    if brand_id in _META_ADS_ACCOUNT_FOR_BRAND:
+        return None
+    from _lib.brand_scope import OPERATING_BRANDS as _ops
+    if brand_id in _ops:
+        return jsonify({"ok": False, "no_ad_account": True,
+                        "error": f"{brand_id} has no Meta ad account connected yet, so there are no ads to show."}), 404
+    return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+
 _META_ADS_ACCOUNT_NAME = {
     "act_2101557317059886": "Stick",
     "act_1024882912541604": "Swing Shack – Ad account",
@@ -54015,9 +54044,9 @@ def meta_ads_ingest(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     try:
         out = _v23_ingest_paid_media(brand_id,
                                        period_days=31, ytd=True)
@@ -54043,9 +54072,9 @@ def meta_ads_cache(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     period_days = request.args.get("period_days", 31, type=int)
     if period_days not in (7, 14, 28, 31, 90):
         period_days = 31
@@ -54186,9 +54215,9 @@ def meta_ads_campaign_adsets(brand_id, campaign_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     acc = _v23_resolve_ads_account(brand_id)
     token_label, token = _v23_resolve_ads_token(brand_id)
     if not acc or not token:
@@ -54227,9 +54256,9 @@ def meta_ads_adset_ads(brand_id, adset_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     acc = _v23_resolve_ads_account(brand_id)
     token_label, token = _v23_resolve_ads_token(brand_id)
     if not acc or not token:
@@ -54263,9 +54292,9 @@ def meta_ads_ad_insights(brand_id, ad_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     acc = _v23_resolve_ads_account(brand_id)
     _, token = _v23_resolve_ads_token(brand_id)
     if not acc or not token:
@@ -54678,8 +54707,9 @@ def meta_paid_media_audit():
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     brand = request.args.get("brand", "stick")
-    if brand not in ("stick", "swing-shack"):
-        return jsonify({"ok": False, "error": "brand must be stick or swing-shack"}), 400
+    _refusal = _ads_brand_refusal(brand)
+    if _refusal:
+        return _refusal
     acc = _v23_resolve_ads_account(brand)
     if not acc:
         return jsonify({"ok": False, "brand": brand,
@@ -54790,7 +54820,7 @@ def meta_paid_media_refresh():
     if period_days not in (7, 14, 28, 31, 90):
         period_days = 31
     out = {}
-    for brand_id in ("stick", "swing-shack"):
+    for brand_id in _META_ADS_ACCOUNT_FOR_BRAND:
         try:
             res = _v23_ingest_paid_media(brand_id, period_days,
                                             ytd=(period_days >= 31))
@@ -54810,7 +54840,7 @@ def meta_paid_media_refresh():
     # Copy canonical cache files into period-scoped caches so
     # /api/meta/ads/cache?period_days=7 hits a fresh 7-day cache.
     period_cache_paths = {}
-    for brand_id in ("stick", "swing-shack"):
+    for brand_id in _META_ADS_ACCOUNT_FOR_BRAND:
         canonical = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
         per = os.path.join(DATA_DIR, "paid-media",
                               f"{brand_id}__{period_days}d.json")
@@ -54849,9 +54879,9 @@ def meta_ads_brain(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     days = request.args.get("days", 31, type=int)
     if days not in (7, 14, 28, 31, 90):
         days = 31
@@ -54880,7 +54910,9 @@ def meta_ads_brain(brand_id):
 # by the ads_brief job (_lib/jobs/layer7/ads_brief.py); these routes only
 # read what it wrote.
 
-_ADS_BRIEF_BRANDS = ("stick", "swing-shack")
+# The brands with a Meta ad account; a new account in _META_ADS_ACCOUNT_FOR_BRAND switches
+# the brief, trends and research on for that brand.
+_ADS_BRIEF_BRANDS = tuple(_META_ADS_ACCOUNT_FOR_BRAND)
 
 
 def _ads_lane_load(brand_id, rel):
@@ -54932,9 +54964,9 @@ def meta_ads_brief(brand_id):
     """GET /api/meta/ads/brief/<brand_id>[?kind=daily|weekly] — latest brief as JSON."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     kind = "weekly" if request.args.get("kind") == "weekly" else "daily"
     brief = _ads_brief_load(brand_id, kind)
     if brief is None:
@@ -54947,9 +54979,9 @@ def meta_ads_history(brand_id):
     """GET /api/meta/ads/history/<brand_id> — weekly trends and the ads that worked."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     history = _ads_lane_load(brand_id, "ads-history/latest.json")
     if history is None:
         return jsonify({"ok": False, "error": "no history yet — run the ads_brief job"}), 404
@@ -54961,9 +54993,9 @@ def meta_ads_trends(brand_id):
     """GET /api/meta/ads/trends/<brand_id> — week-by-week totals and per-ad winners, from the last ads_brief run."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     latest = _ads_lane_load(brand_id, "ads-history/latest.json")
     if latest is None:
         return jsonify({"ok": False, "error": "no ads trends yet — run the ads_brief job"}), 404
@@ -54976,9 +55008,9 @@ def meta_ads_library(brand_id):
     """GET /api/meta/ads/library/<brand_id>[?refresh=1] — other advertisers' ads."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     library = _ads_library(brand_id, refresh=request.args.get("refresh") == "1")
     if library is None:
         return jsonify({"ok": False, "error": "not checked yet — add ?refresh=1"}), 404
@@ -54993,9 +55025,9 @@ def _ads_actions_ctx(brand_id):
     """(error_response, ctx) for the ads-actions routes."""
     if not _is_authed():
         return (jsonify({"ok": False, "error": "auth required"}), 401), None
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return (jsonify({"ok": False,
-                         "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400), None
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal, None
     _label, token = _v23_resolve_ads_token(brand_id)
     account_id = _v23_resolve_ads_account(brand_id)
     if not token or not account_id:
@@ -55058,8 +55090,9 @@ def meta_ads_guard(brand_id):
     """GET — the budget guard: on or off, the last hourly check (a dry run when off), and what it paused."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     return jsonify(_ads_guard_view(brand_id)), 200
 
 
@@ -55163,8 +55196,9 @@ def meta_ads_budget(brand_id):
     """GET — the monthly budget and where the month stands against it."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     return jsonify(_ads_budget_view(brand_id)), 200
 
 
@@ -55174,8 +55208,9 @@ def meta_ads_budget_set(brand_id):
     a "month" budget (the amount keeps its old field name). Changes nothing in Meta."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     raw = (request.get_json(silent=True) or {}).get("monthly_budget")
     try:
         amount = round(float(raw), 2)
@@ -55228,8 +55263,9 @@ def meta_ads_tracking(brand_id):
     """GET — per running ad: where it goes, what its UTMs say, what GA4 saw. From the last ads_brief run."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     data = _ads_lane_load(brand_id, "ads-tracking/latest.json")
     if data is None:
         return jsonify({"ok": False, "error": "no tracking check yet — run the ads_brief job"}), 404
