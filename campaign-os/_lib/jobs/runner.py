@@ -17,7 +17,7 @@ from .brand_lanes import (
     resolve_brands,
     skipped_brands,
 )
-from .data_freshness import is_data_stale, newest_data
+from .data_freshness import is_data_stale, newest_data_for_job
 from .errors import RETRYABLE, classify, fingerprint
 from .registry import JOBS
 from .descriptions import description_for
@@ -676,7 +676,7 @@ def build_status() -> dict:
         if brands:
             job_entry["brands"] = brands
         # "OK" only says the job ran; say so when the data it writes is still old.
-        data = newest_data(tuple(getattr(spec, "writes", ()) or ()), os.environ.get("DATA_DIR") or "data", now=now)
+        data = newest_data_for_job(spec, os.environ.get("DATA_DIR") or "data", now=now)
         if data:
             job_entry["data"] = data
             job_entry["data_stale"] = is_data_stale(verdict, getattr(spec, "every_seconds", None), data)

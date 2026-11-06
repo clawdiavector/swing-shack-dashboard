@@ -24,7 +24,6 @@ from . import (
     seo_rankings,
     site_audit,
     social_ingest,
-    windsor_refresh,
     youtube_trends,
 )
 
@@ -36,7 +35,6 @@ LAYER1_JOB_NAMES: tuple[str, ...] = (
     "ga4_report",
     "site_audit",
     "competitor_tracker",
-    "windsor_refresh",
     "gsc_report",
     "booking_truth",
     "insights_hooks",
@@ -48,7 +46,6 @@ LAYER1_JOB_NAMES: tuple[str, ...] = (
 )
 
 _ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
-_SS_ONLY = ("swing-shack",)
 _SS_AND_STICK = ("swing-shack", "stick")
 # Jobs that fit an online store as well as the venues (SEO, site audit, GEO).
 _ALL_THREE = _ALL_ACTIVE_BRANDS
@@ -166,22 +163,6 @@ def layer1_specs() -> list[JobSpec]:
             reads=("competitor-tracker.json",),
             brand_mode="per_brand",
             requires_integrations=("meta",),
-        ),
-        JobSpec(
-            name="windsor_refresh",
-            fn=windsor_refresh.run,
-            every_seconds=86400,
-            timeout_seconds=90,
-            best_effort=True,
-            criticality="MEDIUM",
-            retries=1,
-            credentials=("WINDSOR_API_KEY",),
-            writes=("meta-ads.json", "google-ads.json"),
-            reads=("ga4-metrics.json",),
-            upstream=("ga4_report",),
-            brand_mode="per_brand",
-            brands=_SS_ONLY,
-            requires_integrations=("windsor",),
         ),
         JobSpec(
             name="gsc_report",
@@ -343,7 +324,6 @@ def layer1_specs() -> list[JobSpec]:
                 "ga4_report",
                 "seo_rankings",
                 "site_audit",
-                "windsor_refresh",
                 "gsc_report",
                 "booking_truth",
             ),

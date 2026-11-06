@@ -19,8 +19,16 @@ from .freshness_heuristic import parse_ts, walk_timestamps
 RUNS_ALLOWED = 3
 FLOOR_DAYS = 2.0
 
+# Calendar post dates inside campaign-data.json are not "when the file was refreshed".
+_MTIME_ONLY_JSON = frozenset({"campaign-data.json"})
+
 
 def _newest_ms(path: Path) -> Optional[float]:
+    if path.name in _MTIME_ONLY_JSON:
+        try:
+            return os.path.getmtime(path) * 1000.0
+        except OSError:
+            return None
     try:
         parsed: Any = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -35,6 +43,40 @@ def _newest_ms(path: Path) -> Optional[float]:
         return os.path.getmtime(path) * 1000.0
     except OSError:
         return None
+
+
+def _effective_write_paths(spec, data_dir: str | os.PathLike[str]) -> tuple[str, ...]:
+    """Paths to score for stale-data — brand-resolved twins beat abandoned flat files."""
+    from .output_file import _allowed_writes
+
+    base = Path(data_dir)
+    allowed = [rel for rel in _allowed_writes(spec) if not rel.endswith("/")]
+    if getattr(spec, "brand_mode", None) != "per_brand":
+        return tuple(allowed)
+
+    shared = set(getattr(spec, "shared_writes", ()) or ())
+    flat_rels = [rel for rel in allowed if not rel.startswith("brands/")]
+    brand_rels = [rel for rel in allowed if rel.startswith("brands/")]
+
+    use: list[str] = []
+    for flat in flat_rels:
+        if flat in shared:
+            if (base / flat).is_file():
+                use.append(flat)
+            continue
+        twins = [b for b in brand_rels if b.rsplit("/", 1)[-1] == flat]
+        existing_twins = [b for b in twins if (base / b).is_file()]
+        if existing_twins:
+            use.extend(existing_twins)
+        elif (base / flat).is_file():
+            use.append(flat)
+    return tuple(use)
+
+
+def newest_data_for_job(spec, data_dir: str | os.PathLike[str], *, now: Optional[datetime] = None) -> Optional[dict]:
+    """Newest data timestamp for a job, using brand-resolved write paths when applicable."""
+    paths = _effective_write_paths(spec, data_dir)
+    return newest_data(paths, data_dir, now=now)
 
 
 def newest_data(writes: tuple[str, ...], data_dir: str | os.PathLike[str], *, now: Optional[datetime] = None) -> Optional[dict]:

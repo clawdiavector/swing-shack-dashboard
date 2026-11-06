@@ -419,6 +419,12 @@ def test_layer1_specs_registered():
         assert isinstance(spec.upstream, tuple)
 
 
+def test_windsor_refresh_not_registered():
+    from _lib.jobs.registry import JOBS
+
+    assert "windsor_refresh" not in JOBS
+
+
 def test_jobspec_reads_upstream_defaulted_on_meta():
     from _lib.jobs.registry import JOBS
 

@@ -23,7 +23,6 @@ def test_oneshot_cap_and_global(monkeypatch, tmp_path):
     ok, _ = check_brand_oneshot_submit("stick")
     assert ok
     record_brand_oneshot_submit("stick")
-    record_brand_image_submit("stick")
     ok2, reason = check_brand_oneshot_submit("stick")
     assert not ok2
     assert "cap" in reason.lower()
@@ -38,6 +37,19 @@ def test_krea_pixel_size_maps_to_4_5():
     assert normalize_krea_aspect("1024:1280") == "4:5"
     assert normalize_krea_aspect("4:5") == "4:5"
     assert normalize_krea_aspect("1024x1024") == "1:1"
+
+
+def test_default_image_caps_are_one_per_day(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("CAMPAIGN_OS_MAX_IMAGES_PER_DAY", raising=False)
+    monkeypatch.delenv("CAMPAIGN_OS_ONESHOT_MAX_PER_DAY", raising=False)
+    from _lib.image_submit_quota import DEFAULT_MAX_PER_DAY, DEFAULT_ONESHOT_MAX_PER_DAY
+    from _lib.image_submit_quota import max_images_per_day, oneshot_max_per_day
+
+    assert DEFAULT_MAX_PER_DAY == 1
+    assert DEFAULT_ONESHOT_MAX_PER_DAY == 1
+    assert max_images_per_day() == 1
+    assert oneshot_max_per_day() == 1
 
 
 def test_old_day_file_without_oneshot_key(monkeypatch, tmp_path):

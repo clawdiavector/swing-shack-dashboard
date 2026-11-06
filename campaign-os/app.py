@@ -13378,17 +13378,12 @@ def admin_secrets_sync():
 
     Body: { service: "meta-token" | "openai-api" | "openrouter-api" |
             "instagram-api-token" | "ubersuggest-api" | "google-analytics"
-            | "google-service-account" | "postiz-api-key" | "youtube-api"
-            | "windsor-api",
+            | "google-service-account" | "postiz-api-key" | "youtube-api",
             contents: <full JSON as a string OR object> }
 
     For 'meta-token' specifically, also sets META_APP_ID + META_ACCESS_TOKEN
     + META_INSTAGRAM_BUSINESS_ACCOUNT_ID in os.environ so Graph API works
     immediately.
-
-    For 'windsor-api' specifically, sets WINDSOR_API_KEY in os.environ so
-    the Windsor.ai paid-media connectors (facebook, google_ads, ...) work
-    immediately. Body shape: ``{"api_key": "<windsor-key>"}``.
     """
     try:
         body = request.get_json(force=True, silent=True) or {}
@@ -13664,16 +13659,7 @@ def admin_data_sync():
 
 @app.route('/api/admin/windsor-refresh', methods=['POST'])
 def admin_windsor_refresh():
-    """POST /api/admin/windsor-refresh - pull live Meta Ads + Google Ads now.
-
-    Runs fetch_windsor.py in-process. Reads WINDSOR_API_KEY from env or
-    credentials/windsor-api.json. Writes data/meta-ads.json and
-    data/google-ads.json on Railway's persistent /data/ volume so the next
-    weekly-report render sees real paid-media numbers.
-
-    Returns JSON with ok, files written, totals. On failure, ok=False with
-    the specific error (so the caller knows whether to fix creds vs network).
-    """
+    """Legacy admin hook — not advertised in ops UI; kept so old imports do not break."""
     try:
         from _lib import windsor_client as _w
         api_key = _w.read_api_key()
@@ -13681,7 +13667,7 @@ def admin_windsor_refresh():
             return jsonify({
                 "ok": False,
                 "error": "WINDSOR_API_KEY not configured",
-                "fix": "POST /api/admin/secrets-sync with {service: 'windsor-api', contents: '{\"api_key\":\"<your-key>\"}'}",
+                "fix": "Paid-media pull is retired; drop meta-ads.json / google-ads.json manually if needed.",
             }), 400
 
         # Import the fetcher builders + atomic writer from _lib (same code as
@@ -24689,7 +24675,7 @@ def _weekly_build_brain(metrics, cur, prev, today):
             )
         elif meta_ads_failed:
             tldr_bullets.append(
-                'Paid reach attempted but Windsor fetch failed - numbers stay at zero, not synthesised.'
+                'Paid reach fetch failed — numbers stay at zero, not synthesised.'
             )
         elif meta_ads_synth:
             tldr_bullets.append('Paid reach is synthesised (no live API) - numbers below are stale.')
@@ -24769,16 +24755,16 @@ def _weekly_build_brain(metrics, cur, prev, today):
                             + direction + '.'
                         )
         elif meta_ads_failed:
-            reach_bullets.append('Paid reach attempted but Windsor fetch failed.')
+            reach_bullets.append('Paid reach fetch failed — live paid numbers unavailable.')
             reach_bullets.append(esc_html(meta_ads_note))
-            reach_bullets.append('Until Windsor comes back, paid numbers stay at zero.')
+            reach_bullets.append('Paid numbers stay at zero until the next successful fetch.')
         elif meta_ads_synth:
             total_meta_spend = sum((c.get('spend') or 0) for c in (meta_ads.get('campaigns') or []))
             reach_bullets.append(
                 'All "ad" data is synthesised from organic IG (R'
                 + format(int(total_meta_spend), ',') + ' lifetime, stale).'
             )
-            reach_bullets.append('Connect Windsor.ai to get real paid-media numbers.')
+            reach_bullets.append('Live paid-media API not configured — numbers below are placeholders.')
         elif ga_live and not meta_ads_live:
             g_totals = (ga_weekly.get('totals') or {})
             g_spend_30 = g_totals.get('spend', 0) or 0
@@ -24824,7 +24810,7 @@ def _weekly_build_brain(metrics, cur, prev, today):
             else:
                 reach_conclusion = 'Paid quality is solid. Watch the conversion path next.'
         elif meta_ads_failed or meta_ads_synth:
-            reach_conclusion = 'No trustworthy paid numbers yet. Wire Windsor.'
+            reach_conclusion = 'No trustworthy paid numbers yet — treat paid cards as unavailable.'
         else:
             reach_conclusion = 'Reach is healthy on both surfaces.'
 
@@ -25082,7 +25068,7 @@ def _weekly_build_brain(metrics, cur, prev, today):
         # ── Section H: Gaps ──
         gaps_bullets = []
         if meta_ads_failed:
-            gaps_bullets.append('Windsor.ai fetch (last attempt failed)')
+            gaps_bullets.append('Paid media fetch (last attempt failed)')
         if not meta_ads_live and not meta_ads_failed and not meta_ads_synth:
             gaps_bullets.append('Meta Ads API')
         if not retarget_recs_list:
@@ -25705,7 +25691,7 @@ def _weekly_render_html(bid, data_bid=None):
 <section class="section">
   <h2>Google Ads this week</h2>
   <div class="highlight warning">
-    <strong>Google Ads not configured.</strong> Drop a <code>data/google-ads.json</code> file with the shape <code>{spend, impressions, clicks, conversions, local_actions, calls}</code> and the spend / CTR / CPC cards will fill in here. Or connect Windsor.ai via <code>/secrets-sync</code> (service=windsor-api) and the fetcher will populate this automatically.
+    <strong>Google Ads not configured.</strong> Drop a <code>data/google-ads.json</code> file with the shape <code>{spend, impressions, clicks, conversions, local_actions, calls}</code> and the spend / CTR / CPC cards will fill in here.
   </div>
 </section>'''
 
@@ -28113,52 +28099,8 @@ def _boot_load_persisted_secrets():
 
 
 def _boot_selfheal_windsor():
-    """If meta-ads.json is stale (synthesised note) but the Windsor key is
-    present, re-pull in a background thread so the first render after deploy
-    shows live data instead of the bundled synthesised fallback.
-
-    Runs only on the master process (i.e. direct `python app.py`, not every
-    gunicorn worker). Self-heal is best-effort: any failure is logged and
-    swallowed - the request path still works with whatever data is on disk.
-    """
-    try:
-        meta_path = os.path.join(DATA_DIR, 'meta-ads.json')
-        is_stale = False
-        if os.path.exists(meta_path):
-            with open(meta_path, 'r', encoding='utf-8') as f:
-                head = f.read(2000)
-            if 'Synthesised from IG post engagement' in head:
-                is_stale = True
-        # Also self-heal if the file is simply missing.
-        if not os.path.exists(meta_path):
-            is_stale = True
-        if not is_stale:
-            return
-        from _lib import windsor_client as _w
-        key = _w.read_api_key()
-        if not key:
-            _app_log.info('Boot self-heal: meta-ads.json is stale but no Windsor key on disk - skipping')
-            return
-        # Fire-and-forget background refresh. Use a thread so app.run()
-        # isn't blocked on the network call.
-        import threading
-
-        def _refresh():
-            try:
-                from _lib.windsor_fetcher import build_meta_ads, build_google_ads, _atomic_write
-                _app_log.info('Boot self-heal: pulling live Meta Ads from Windsor...')
-                meta = build_meta_ads(key)
-                ga = build_google_ads(key)
-                _atomic_write(os.path.join(DATA_DIR, 'meta-ads.json'), meta)
-                _atomic_write(os.path.join(DATA_DIR, 'google-ads.json'), ga)
-                _app_log.info('Boot self-heal: live Meta Ads written to %s', DATA_DIR)
-            except Exception as e:
-                _app_log.warning('Boot self-heal refresh failed: %s', e)
-
-        t = threading.Thread(target=_refresh, daemon=True, name='boot-selfheal-windsor')
-        t.start()
-    except Exception as e:
-        _app_log.warning('Boot self-heal dispatch failed: %s', e)
+    """Retired — paid-media self-heal is not run at boot (Windsor waived)."""
+    return
 
 
 from datetime import datetime as _job_boot_datetime, timezone as _job_boot_timezone

@@ -1225,6 +1225,7 @@ def _count_pending_rows(moment_items: list[tuple[tuple[str, str], list[tuple[dic
 # Row-local failures: skip the queue row; do not fail the whole draft_assets run.
 _ROW_SOFT_ERRORS = (
     "compose-only archetype requires caption draft first",
+    "caption pipeline returned no survivors",
 )
 
 
@@ -1736,6 +1737,9 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 if err:
                     stop_cap, stop_auth = _apply_stop_error(err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth)
                     skipped += 1
+                    if _is_row_soft_error(err):
+                        cap_row["status"] = "skipped"
+                        cap_row["note"] = str(err)[:240]
                     if stop_cap or stop_auth:
                         halted = True
                         skipped += _count_pending_rows(moment_items, idx)

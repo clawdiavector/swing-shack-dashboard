@@ -212,7 +212,7 @@ def load_create_stats() -> dict[str, Any]:
 
     image_submits_today: dict[str, int] = {}
     images_drafted_today: dict[str, int] = {}
-    max_images_per_day = 2
+    max_images_per_day = 1
     try:
         from _lib import image_submit_quota  # noqa: PLC0415
 
@@ -284,7 +284,7 @@ def brand_images_today(brand_id: str) -> dict[str, Any]:
     if not isinstance(drafted, dict):
         drafted = {}
     try:
-        cap = max(0, int(stats.get("max_images_per_day") or 2))
+        cap = max(0, int(stats.get("max_images_per_day") or 1))
     except (TypeError, ValueError):
         cap = 2
     try:
@@ -521,7 +521,7 @@ def build_layers(
         "near_cap": create_stats.get("near_cap", False),
         "image_submits_today": create_stats.get("image_submits_today", {}),
         "images_drafted_today": create_stats.get("images_drafted_today", {}),
-        "max_images_per_day": create_stats.get("max_images_per_day", 2),
+        "max_images_per_day": create_stats.get("max_images_per_day", 1),
         "inbox_href": create_stats.get("inbox_href", "/?page=review"),
     }
 

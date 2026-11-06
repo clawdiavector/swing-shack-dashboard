@@ -1,11 +1,5 @@
 """
-Test the boot-time Windsor self-heal.
-
-When the app boots on Railway and meta-ads.json is still the bundled
-synthesised file (or missing), the system should automatically re-pull from
-Windsor so the next render shows live data. This is the fix for the
-"report says Paid reach is synthesised" failure mode Christelle kept hitting
-after every deploy wiped the volume.
+Boot-time Windsor self-heal is retired (Windsor waived). Calls must no-op.
 """
 
 import importlib
@@ -14,7 +8,7 @@ import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -29,7 +23,6 @@ class BootSelfhealTests(unittest.TestCase):
         self.tmp = tempfile.mkdtemp()
         self.data_dir = os.path.join(self.tmp, 'data')
         os.makedirs(self.data_dir, exist_ok=True)
-        # Reset module so each test sees fresh DATA_DIR env.
         for mod in list(sys.modules):
             if mod == 'app' or mod.startswith('app.'):
                 del sys.modules[mod]
@@ -40,8 +33,7 @@ class BootSelfhealTests(unittest.TestCase):
         app_module.DATA_DIR = self.data_dir
         return app_module
 
-    def test_skips_when_data_is_fresh(self):
-        """Live meta-ads.json with no synthesised note -> no refresh fired."""
+    def test_selfheal_never_fires_even_when_data_is_fresh(self):
         live_payload = {
             "_meta": {"note": "Live Meta Ads data via Windsor.ai connector."},
             "campaigns": [{"spend": 100, "name": "real campaign"}],
@@ -51,17 +43,11 @@ class BootSelfhealTests(unittest.TestCase):
 
         app_module = self._import_app()
 
-        with patch('app._app_log') as mock_log, \
-             patch('threading.Thread') as mock_thread:
+        with patch('threading.Thread') as mock_thread:
             app_module._boot_selfheal_windsor()
             mock_thread.assert_not_called()
-            self.assertFalse(any(
-                'Boot self-heal' in str(call)
-                for call in mock_log.info.call_args_list
-            ))
 
-    def test_fires_when_data_is_synthesised(self):
-        """Synthesised note in meta-ads.json + Windsor key present -> fires thread."""
+    def test_selfheal_never_fires_when_data_is_synthesised(self):
         synth_payload = {
             "_meta": {"note": "Synthesised from IG post engagement. Replace with live API."},
             "campaigns": [{"spend": 1.5, "name": "fake"}],
@@ -71,45 +57,14 @@ class BootSelfhealTests(unittest.TestCase):
 
         app_module = self._import_app()
 
-        fake_key = 'd09f901081a7f2422abff2286b151a346062a3b56df162d0a30bbde248d3925f'
-        with patch('threading.Thread') as mock_thread, \
-             patch('app._app_log'), \
-             patch('_lib.windsor_client.read_api_key', return_value=fake_key), \
-             patch('_lib.windsor_fetcher.build_meta_ads', return_value={"_meta": {"note": "Live"}}), \
-             patch('_lib.windsor_fetcher.build_google_ads', return_value={"_meta": {"note": "Live"}}), \
-             patch('_lib.windsor_fetcher._atomic_write'):
+        with patch('threading.Thread') as mock_thread:
             app_module._boot_selfheal_windsor()
-            mock_thread.assert_called_once()
+            mock_thread.assert_not_called()
 
-    def test_fires_when_data_is_missing(self):
-        """meta-ads.json absent + Windsor key present -> fires thread."""
-        # Don't create meta-ads.json at all.
+    def test_selfheal_never_fires_when_data_is_missing(self):
         app_module = self._import_app()
 
-        fake_key = 'd09f901081a7f2422abff2286b151a346062a3b56df162d0a30bbde248d3925f'
-        with patch('threading.Thread') as mock_thread, \
-             patch('app._app_log'), \
-             patch('_lib.windsor_client.read_api_key', return_value=fake_key), \
-             patch('_lib.windsor_fetcher.build_meta_ads', return_value={"_meta": {"note": "Live"}}), \
-             patch('_lib.windsor_fetcher.build_google_ads', return_value={"_meta": {"note": "Live"}}), \
-             patch('_lib.windsor_fetcher._atomic_write'):
-            app_module._boot_selfheal_windsor()
-            mock_thread.assert_called_once()
-
-    def test_skips_when_no_windsor_key(self):
-        """Synthesised data + no Windsor key -> skip silently (no crash)."""
-        synth_payload = {
-            "_meta": {"note": "Synthesised from IG post engagement. Replace with live API."},
-            "campaigns": [{"spend": 1.5, "name": "fake"}],
-        }
-        with open(os.path.join(self.data_dir, 'meta-ads.json'), 'w') as f:
-            json.dump(synth_payload, f)
-
-        app_module = self._import_app()
-
-        with patch('threading.Thread') as mock_thread, \
-             patch('_lib.windsor_client.read_api_key', return_value=""), \
-             patch('app._app_log'):
+        with patch('threading.Thread') as mock_thread:
             app_module._boot_selfheal_windsor()
             mock_thread.assert_not_called()
 

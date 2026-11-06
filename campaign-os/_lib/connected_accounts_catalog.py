@@ -27,7 +27,6 @@ _KNOWN_PROVIDERS = frozenset(
 _JOB_BY_INTEGRATION: dict[str, tuple[str, ...]] = {
     "ga4": ("ga4_report",),
     "gsc": ("gsc_report",),
-    "windsor": ("windsor_refresh",),
     "youtube": ("youtube_trends",),
     "reddit": ("reddit_trends",),
     "golf_news": ("golf_news",),
@@ -40,7 +39,6 @@ _DATA_FILE_BY_INTEGRATION: dict[str, str] = {
     "ga4": "ga4-metrics.json",
     "gsc": "search-console.json",
     "meta": "ig-business-analytics.json",
-    "windsor": "meta-ads.json",
     "youtube": "youtube-trends.json",
     "reddit": "reddit-trends.json",
     "golf_news": "golf-news.json",
