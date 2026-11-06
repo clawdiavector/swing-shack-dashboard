@@ -235,3 +235,4 @@ campaign-os/tests/test_bag_drop_drive_root_20261105.py
 campaign-os/tests/test_visual_library_live_photos_20261106.py
 campaign-os/tests/test_visual_library_live_thumbs_20261106.py
 campaign-os/tests/test_visual_library_folders_paging_20261106.py
+campaign-os/tests/test_visual_library_os_look_20261106.py
