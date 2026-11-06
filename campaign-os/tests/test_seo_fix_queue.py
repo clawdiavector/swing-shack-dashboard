@@ -104,8 +104,9 @@ def test_resolved_history_is_capped():
     assert len(out["items"]) == q.MAX_RESOLVED_KEPT
 
 
-# Stick has its own page list since 2026-10-28 (site_audit.PAGES_BY_BRAND); Bag Drop does not.
-@pytest.mark.parametrize("brand", ["bag-drop", "", "swing-shack-typo"])
+# Stick has its own page list since 2026-10-28 (site_audit.PAGES_BY_BRAND), Bag Drop since
+# 2026-11-06 (PR #341, Christelle's OK to update this test). Unknown brands are still refused.
+@pytest.mark.parametrize("brand", ["", "swing-shack-typo"])
 def test_other_brands_are_refused(brand):
     with pytest.raises(ValueError):
         q.sync(brand, [f("missing_h1")], [], None, T1)

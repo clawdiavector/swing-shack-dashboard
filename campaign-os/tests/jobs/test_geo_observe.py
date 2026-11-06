@@ -71,7 +71,12 @@ def test_no_api_key_fails_plainly_and_asks_nothing(env, monkeypatch):
 
 
 def test_empty_watchlist_is_fine_and_asks_nothing(env, monkeypatch):
+    from _lib import geo_routes
+
     monkeypatch.setattr(geo_runner, "_load_watchlist", lambda brand: [])
+    # Since 2026-11-06 the job seeds a missing list from the GEO page's defaults (PR #341);
+    # with no defaults either, it still asks nothing.
+    monkeypatch.setattr(geo_routes, "_load_watchlist", lambda brand: [])
     out = job.run(brand="swing-shack")
     assert out["ok"] and out["rows"] == 0 and env == []
 
@@ -94,11 +99,12 @@ def test_every_question_is_reached_within_about_a_week():
     assert job.MAX_PER_RUN * 7 >= 28, "a daily run must be able to cover a 28-question watchlist in a week"
 
 
-def test_registered_as_a_daily_per_brand_job_for_swing_shack_and_stick():
+def test_registered_as_a_daily_per_brand_job_for_all_three_brands():
     from _lib.jobs.registry import JOBS
 
     spec = JOBS["geo_observe"]
-    assert spec.brand_mode == "per_brand" and set(spec.brands) == {"swing-shack", "stick"}
+    # Bag Drop added 2026-11-06 (PR #341, Christelle's OK to update this test).
+    assert spec.brand_mode == "per_brand" and set(spec.brands) == {"swing-shack", "stick", "bag-drop"}
     assert spec.every_seconds == 86400
     assert "OPENAI_API_KEY" in spec.credentials
     assert job.TIME_BUDGET_SECONDS + 60 < spec.timeout_seconds

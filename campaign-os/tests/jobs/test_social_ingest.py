@@ -39,10 +39,14 @@ def test_social_ingest_skips_without_meta_token(job_env, monkeypatch):
     assert result.get("status") == "SKIPPED" or result.get("skipped") is True
 
 
-def test_social_ingest_no_channels_skips(job_env, monkeypatch):
+def test_social_ingest_skips_a_brand_whose_page_is_not_set(job_env, monkeypatch):
+    # Bag Drop's Meta page and Instagram were connected 2026-10-30 and switched on in
+    # brands.json 2026-11-06 (PR #341, Christelle's OK to update this test). Without its
+    # page id the job still skips cleanly, naming what is missing.
     monkeypatch.setenv("META_SYSTEM_USER_TOKEN", "fake-token-for-test")
+    monkeypatch.delenv("META_PAGE_ID_BAG_DROP", raising=False)
     from _lib.jobs.layer1 import social_ingest as mod
 
     out = mod.run(brand="bag-drop")
     assert out.get("skipped") is True
-    assert "instagram" in (out.get("reason") or "")
+    assert "META_PAGE_ID_BAG_DROP" in (out.get("reason") or "")

@@ -17,12 +17,14 @@ def entry(view="scheduled", channels=("instagram",), fmt="feed", day="2026-11-03
     return {"view": view, "channels": list(channels), "format": fmt, "date": day, "making": making, "kind": kind}
 
 
-def test_target_is_twenty_for_stick_and_swing_shack_and_none_for_bag_drop():
+def test_target_is_twenty_for_stick_and_swing_shack_and_seventeen_for_bag_drop():
     for brand in ("stick", "swing-shack"):
         split = dt.target_for(brand)
         assert sum(split.values()) == 20
         assert split == {"ig_story": 9, "fb_story": 4, "ig_feed": 2, "fb_feed": 1, "reel": 1, "google": 1, "tiktok": 2}
-    assert dt.target_for("bag-drop") is None
+    # Bag Drop joined 2026-11-06 (PR #341, Christelle's OK to update this test): an online
+    # store on Instagram and Facebook, so no Google or TikTok slots.
+    assert dt.target_for("bag-drop") == {"ig_story": 9, "fb_story": 4, "ig_feed": 2, "fb_feed": 1, "reel": 1}
 
 
 def test_each_channel_of_a_post_fills_its_own_slot():
@@ -96,4 +98,5 @@ def test_month_view_has_a_target_for_every_day(monkeypatch):
     assert len(view["targets"]) == 30
     assert view["targets"]["2026-11-03"]["done"] == 1
     assert view["targets"]["2026-11-01"]["done"] == 0
-    assert cc.month_view("bag-drop", "2026-11", [], [])["targets"] == {}
+    # Bag Drop has a target since 2026-11-06 (PR #341, Christelle's OK to update this test).
+    assert len(cc.month_view("bag-drop", "2026-11", [], [])["targets"]) == 30
