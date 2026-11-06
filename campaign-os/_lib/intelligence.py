@@ -47,7 +47,10 @@ def _brand_data_file(name: str, brand: Optional[str] = None) -> str:
     then (default brand only) the flat runtime/bundled file. Another brand never
     falls back to the shared file, so it reads nothing rather than the wrong brand.
     """
-    from .brand_data_paths import PER_BRAND_L1_OUTPUTS, _default_brand_id
+    try:
+        from .brand_data_paths import PER_BRAND_L1_OUTPUTS, _default_brand_id
+    except ImportError:  # loaded as a top-level module (_lib on sys.path)
+        from brand_data_paths import PER_BRAND_L1_OUTPUTS, _default_brand_id
 
     if name not in PER_BRAND_L1_OUTPUTS:
         return _runtime_data_file(name)
