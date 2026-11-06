@@ -7,6 +7,8 @@ import os
 import re
 import traceback
 import uuid
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -862,10 +864,10 @@ def _moment_has_composed(brand_id: str, item_id: str) -> bool:
     return False
 
 
-def _sidecar_for_moment(item_id: str) -> dict[str, Any] | None:
+def _iter_moment_sidecars():
     draft_dir = _data_dir() / "draft-assets"
     if not draft_dir.is_dir():
-        return None
+        return
     for path in sorted(draft_dir.glob("*.json"), reverse=True):
         if path.name.endswith(".brief.json") or path.name.endswith(".qc.json") or path.name.startswith("_"):
             continue
@@ -873,7 +875,36 @@ def _sidecar_for_moment(item_id: str) -> dict[str, Any] | None:
             sidecar = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        if isinstance(sidecar, dict) and sidecar.get("source_inbox_item_id") == item_id:
+        if isinstance(sidecar, dict):
+            yield sidecar
+
+
+# Set by sidecar_lookup(): one read of the drafts folder shared by a whole board build.
+_SIDECAR_BY_ITEM: ContextVar[dict[str, dict[str, Any]] | None] = ContextVar("sidecar_by_item", default=None)
+
+
+@contextmanager
+def sidecar_lookup():
+    """Read the drafts folder once for everything inside the block (the Scheduled list
+    looked it up per post, reading every draft file per post; 6 Nov 2026)."""
+    by_item: dict[str, dict[str, Any]] = {}
+    for sidecar in _iter_moment_sidecars():
+        key = str(sidecar.get("source_inbox_item_id") or "")
+        if key and key not in by_item:  # same pick as the folder walk: newest name first
+            by_item[key] = sidecar
+    token = _SIDECAR_BY_ITEM.set(by_item)
+    try:
+        yield
+    finally:
+        _SIDECAR_BY_ITEM.reset(token)
+
+
+def _sidecar_for_moment(item_id: str) -> dict[str, Any] | None:
+    shared = _SIDECAR_BY_ITEM.get()
+    if shared is not None:
+        return shared.get(item_id)
+    for sidecar in _iter_moment_sidecars():
+        if sidecar.get("source_inbox_item_id") == item_id:
             return sidecar
     return None
 
