@@ -10,8 +10,8 @@ from typing import Any
 
 _LOCK = threading.Lock()
 SCHEMA = "campaign-os/image-submit-count/v1"
-DEFAULT_MAX_PER_DAY = 2
-DEFAULT_ONESHOT_MAX_PER_DAY = 5
+DEFAULT_MAX_PER_DAY = 1
+DEFAULT_ONESHOT_MAX_PER_DAY = 1
 
 
 def oneshot_max_per_day() -> int:

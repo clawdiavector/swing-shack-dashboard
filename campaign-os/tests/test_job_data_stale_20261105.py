@@ -56,3 +56,48 @@ def test_recent_data_or_a_job_already_in_trouble_is_not_flagged():
     assert df.is_data_stale("OK", 7 * 86400, {"age_days": 10}) is False  # weekly job, within 3 runs
     assert df.is_data_stale("LATE", 86400, {"age_days": 45}) is False  # already shown as a problem
     assert df.is_data_stale("OK", 86400, None) is False
+
+
+def test_brand_file_beats_stale_flat_legacy(tmp_path):
+    flat = tmp_path / "ga4-metrics.json"
+    flat.write_text('{"fetched_at": "2026-09-18T10:00:00Z"}', encoding="utf-8")
+    brand_dir = tmp_path / "brands" / "swing-shack"
+    brand_dir.mkdir(parents=True)
+    brand_file = brand_dir / "ga4-metrics.json"
+    brand_file.write_text('{"fetched_at": "2026-11-04T08:00:00Z"}', encoding="utf-8")
+    yesterday = datetime(2026, 11, 4, 8, 0, tzinfo=timezone.utc).timestamp()
+    os.utime(brand_file, (yesterday, yesterday))
+
+    from _lib.jobs.spec import JobSpec
+
+    def _noop() -> dict:
+        return {"ok": True}
+
+    spec = JobSpec(
+        name="ga4_report",
+        fn=_noop,
+        every_seconds=86400,
+        timeout_seconds=60,
+        writes=("ga4-metrics.json",),
+        brand_mode="per_brand",
+        brands=("swing-shack",),
+    )
+    data = df.newest_data_for_job(spec, tmp_path, now=NOW)
+    assert data is not None
+    assert data["file"] == "brands/swing-shack/ga4-metrics.json"
+    assert data["age_days"] == 1.0
+    assert df.is_data_stale("OK", 86400, data) is False
+
+
+def test_campaign_data_json_uses_mtime_not_post_dates(tmp_path):
+    path = tmp_path / "campaign-data.json"
+    path.write_text(
+        json.dumps({"posts": [{"published_at": "2026-06-04T12:00:00Z"}]}),
+        encoding="utf-8",
+    )
+    fresh = datetime(2026, 11, 4, 8, 0, tzinfo=timezone.utc).timestamp()
+    os.utime(path, (fresh, fresh))
+    data = df.newest_data(("campaign-data.json",), tmp_path, now=NOW)
+    assert data is not None
+    assert data["age_days"] == 1.0
+    assert df.is_data_stale("OK", 86400, data) is False
