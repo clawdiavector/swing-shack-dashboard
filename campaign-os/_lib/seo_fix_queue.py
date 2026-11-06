@@ -18,7 +18,7 @@ from typing import Any
 
 # Each brand here has its own page list in site_audit.PAGES_BY_BRAND. Do not add
 # a brand until it has one.
-QUEUE_BRANDS = ("swing-shack", "stick")
+QUEUE_BRANDS = ("swing-shack", "stick", "bag-drop")
 
 HOMEPAGE = "Homepage"
 MAX_RESOLVED_KEPT = 100
