@@ -143,11 +143,17 @@ def test_calendar_moment_drafts_include_bag_drop():
 
 # ── SEO, site audit, GEO ────────────────────────────────────────────────────
 
-def test_bag_drop_domain_resolves_without_an_env_var(monkeypatch):
-    monkeypatch.delenv("BRAND_DOMAIN_BAG_DROP", raising=False)
+def test_bag_drop_domain_comes_from_its_railway_setting(monkeypatch):
+    # Like Stick, a brand other than Swing Shack fails loud without BRAND_DOMAIN_<BRAND>
+    # (test_brand_lanes_p2b). Christelle chose the Railway setting, 2026-11-06.
     from _lib.jobs.layer1._io import resolve_brand_domain
 
+    monkeypatch.delenv("BRAND_DOMAIN_BAG_DROP", raising=False)
+    assert resolve_brand_domain("bag-drop") == (None, "BRAND_DOMAIN_BAG_DROP not set")
+    monkeypatch.setenv("BRAND_DOMAIN_BAG_DROP", "thebagdrop.co.za")
     assert resolve_brand_domain("bag-drop") == ("thebagdrop.co.za", None)
+    ub = _brands()["bag-drop"]["integration_scope"]["ubersuggest"]
+    assert "BRAND_DOMAIN_BAG_DROP" in ub["env"]
 
 
 def test_site_audit_has_bag_drop_store_pages():

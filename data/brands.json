@@ -159,7 +159,7 @@
         "ga4": {"applies": false, "config": {"domain": "thebagdrop.co.za"}, "na_reason": "thebagdrop.co.za (Shopify) has no Google Analytics access shared with Campaign OS yet."},
         "gsc": {"applies": false, "na_reason": "thebagdrop.co.za has no Search Console access shared with Campaign OS yet."},
         "windsor": {"applies": false, "na_reason": "No paid media account."},
-        "ubersuggest": {"applies": true, "env": ["UBERSUGGEST_ACCESS", "UBERSUGGEST_TOKEN_FILE"], "na_reason": null},
+        "ubersuggest": {"applies": true, "env": ["UBERSUGGEST_ACCESS", "UBERSUGGEST_TOKEN_FILE", "BRAND_DOMAIN_BAG_DROP"], "na_reason": null},
         "youtube": {"applies": false, "na_reason": "Public trend source."},
         "krea": {"applies": false, "na_reason": "Shared image-gen provider."},
         "google_drive": {"applies": true, "config": {"folder_name": "Bag Drop Brand Assets"}, "na_reason": null}

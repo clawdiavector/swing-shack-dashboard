@@ -42,10 +42,6 @@ def resolve_brand_domain(brand: str | None) -> tuple[str | None, str | None]:
         return host, None
     default_bid = _fallback_brand()
     if bid != default_bid:
-        from ...brand_scope import BRAND_DOMAINS  # noqa: PLC0415
-
-        if bid in BRAND_DOMAINS:
-            return BRAND_DOMAINS[bid], None
         return None, f"BRAND_DOMAIN_{safe} not set"
     legacy = os.environ.get("SWING_SHACK_DOMAIN", "swingshack.co.za").strip()
     if not legacy:
