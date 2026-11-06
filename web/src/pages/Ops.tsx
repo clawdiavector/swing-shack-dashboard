@@ -5,6 +5,7 @@ import { FilterChips, PageIntro } from '../components/chrome'
 import { Badge, Button, ClassicLink, Tip } from '../components/ui'
 import '../fun.css'
 import { FunTile } from '../components/fun'
+import { staleDataNote } from '../lib/jobDataStale'
 import {
   archiveCampaign,
   fetchAccounts,
@@ -108,6 +109,8 @@ function formatJobSchedule(schedule: JobEntry['schedule']): string | null {
 }
 
 function jobRowMeta(job: JobEntry, brandId: string) {
+  const stale = staleDataNote(job)
+  if (stale) return stale
   if (job.brand_mode === 'per_brand' && job.brands?.length) {
     const row = job.brands.find((b) => b.brand === brandId) || job.brands[0]
     if (row && row.applies === false) {
