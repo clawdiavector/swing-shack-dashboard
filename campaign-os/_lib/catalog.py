@@ -105,6 +105,7 @@ def _slot_raw(plan: dict[str, Any], item: dict[str, Any]) -> dict[str, Any]:
         "caption": _caption(plan, item),
         "channels": _channels(item)[:200],
         "when": _format_when(str(item.get("due") or "")),
+        "due": str(item.get("due") or "")[:10],
         "note": str(item.get("note") or "")[:600],
         "plan_item_id": item["item_id"],
     }
@@ -153,7 +154,7 @@ def _removed_ids(pack: dict[str, Any]) -> set[str]:
 
 
 def _same_slot(item: dict[str, Any], raw: dict[str, Any]) -> bool:
-    for key in ("title", "caption", "channels", "when", "note"):
+    for key in ("title", "caption", "channels", "when", "due", "note"):
         if str(item.get(key) or "") != str(raw.get(key) or ""):
             return False
     return True
@@ -202,7 +203,7 @@ def sync(brand_id: str, plan_id: str) -> dict[str, int]:
             rp.update_item_fields(
                 pack_id,
                 iid,
-                {k: raw[k] for k in ("title", "caption", "channels", "when", "note")},
+                {k: raw[k] for k in ("title", "caption", "channels", "when", "due", "note")},
             )
             updated += 1
 
@@ -572,3 +573,351 @@ def list_catalog_rows() -> list[dict[str, Any]]:
             }
         )
     return out
+
+
+# ── C6 month strip and drag ───────────────────────────────────────────────────
+
+MARK_DOT_COLOURS = {
+    "approve": "#0e7a4f",
+    "hold": "#d97706",
+    "reject": "#a3262f",
+    "unmarked": "#9ca3af",
+}
+
+REMAKE_BATCH_LIMIT = 4
+_REMAKE_DIR = "catalog-remakes"
+_FEEDBACK_NAME = "catalog-feedback.jsonl"
+
+
+def _mark_for_slot(pack_id: str, slot_id: str) -> str:
+    d = rp.view(pack_id)["decisions"].get(slot_id)
+    if not isinstance(d, dict):
+        return "unmarked"
+    state = d.get("state")
+    if state == "pending" or not state:
+        return "unmarked"
+    if state in MARK_DOT_COLOURS:
+        return str(state)
+    return "unmarked"
+
+
+def month_strip_view(pack_id: str) -> dict[str, Any]:
+    """Days in this campaign with dots coloured by Love it / Maybe / No."""
+    pack = rp.get_pack(pack_id)
+    if not pack or pack.get("kind") != "catalog":
+        return {"months": []}
+    brand_id, plan_id = _slot_brand_plan(pack)
+    plan = cp.get_plan(brand_id, plan_id) or {}
+    by_day: dict[str, list[dict[str, Any]]] = {}
+    for item in plan.get("items") or []:
+        if item.get("kind") not in _SLOT_KINDS or item.get("status") == "removed":
+            continue
+        due = str(item.get("due") or "")[:10]
+        if not due:
+            continue
+        mark = _mark_for_slot(pack_id, item["item_id"])
+        by_day.setdefault(due, []).append(
+            {"slot_id": item["item_id"], "mark": mark, "colour": MARK_DOT_COLOURS[mark]}
+        )
+    if not by_day:
+        return {"months": []}
+    days_sorted = sorted(by_day)
+    months_out: list[dict[str, Any]] = []
+    cur_key = ""
+    cur_month: dict[str, Any] | None = None
+    for iso in days_sorted:
+        try:
+            d = date.fromisoformat(iso)
+        except ValueError:
+            continue
+        key = f"{d.year}-{d.month:02d}"
+        if key != cur_key:
+            cur_key = key
+            cur_month = {
+                "year": d.year,
+                "month": d.month,
+                "label": d.strftime("%b %Y"),
+                "days": [],
+            }
+            months_out.append(cur_month)
+        assert cur_month is not None
+        cur_month["days"].append({"iso": iso, "dots": by_day[iso], "first_slot": by_day[iso][0]["slot_id"]})
+    return {"months": months_out}
+
+
+def staff_can_drag(*, staff: bool, session_user: dict[str, Any] | None, share_role: str | None) -> bool:
+    if not staff or share_role == "approver":
+        return False
+    if not session_user:
+        return False
+    from _lib import users
+
+    return users.can(session_user, "move")
+
+
+def move_slot_day(
+    pack_id: str,
+    item_id: str,
+    new_date: str,
+    who: str,
+    *,
+    calendar_move: Callable[[str, dict[str, Any], str], tuple[dict[str, Any], int]] | None = None,
+    plan_edit: Callable[..., dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Move a catalog slot to another day (calendar post or plan due)."""
+    pack = rp.get_pack(pack_id)
+    if not pack or pack.get("kind") != "catalog":
+        raise CatalogError("That is not a catalog pack.")
+    brand_id, plan_id = _slot_brand_plan(pack)
+    plan_item = _plan_item_for_slot(brand_id, plan_id, item_id)
+    if not plan_item:
+        raise CatalogError("That post is not in this plan.")
+    due = str(new_date or "")[:10]
+    if len(due) < 10:
+        raise CatalogError("Send the new day, like 2026-11-20.")
+    cid = str(plan_item.get("calendar_id") or "").strip()
+    if cid:
+        if calendar_move is None:
+            raise CatalogError("Calendar move is not available here.")
+        body = {"key": cid, "kind": "post", "date": due}
+        out, _code = calendar_move(brand_id, body, who)
+        if not out.get("ok"):
+            raise CatalogError(str(out.get("error") or out.get("message") or "Could not move it."))
+    else:
+        edit = plan_edit or (lambda b, p, i, patch, actor="operator": cp.edit_item(b, p, i, patch, actor=actor))
+        r = edit(brand_id, plan_id, item_id, {"due": due}, who)
+        if not r.get("ok"):
+            raise CatalogError(str(r.get("error") or "Could not change the date."))
+    sync(brand_id, plan_id)
+    return {"ok": True, "item_id": item_id, "due": due}
+
+
+# ── C7 remake from notes ──────────────────────────────────────────────────────
+
+
+def _remake_path(moment: str) -> Path:
+    safe = hashlib.sha256(moment.encode()).hexdigest()[:24]
+    return Path(os.environ.get("DATA_DIR", "/data/campaign-os")) / _REMAKE_DIR / f"{safe}.json"
+
+
+def write_remake_brief(moment: str, brief: dict[str, Any]) -> Path:
+    p = _remake_path(moment)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"moment": moment, "brief": brief, "at": rp._now()}  # noqa: SLF001
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
+    os.replace(tmp, p)
+    _append_generation_log(moment, brief)
+    return p
+
+
+def load_remake_brief_text(moment: str) -> str:
+    p = _remake_path(moment)
+    if not p.is_file():
+        return ""
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return ""
+    brief = data.get("brief") if isinstance(data, dict) else {}
+    if not isinstance(brief, dict):
+        return ""
+    return str(brief.get("prompt_text") or "").strip()[:8000]
+
+
+def _append_generation_log(moment: str, brief: dict[str, Any]) -> None:
+    root = Path(os.environ.get("DATA_DIR", "/data/campaign-os")) / _REMAKE_DIR
+    root.mkdir(parents=True, exist_ok=True)
+    row = {"at": rp._now(), "moment": moment, "catalog_remake": True, "brief": brief.get("prompt_text", "")[:2000]}
+    with (root / "generation.jsonl").open("a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def build_remake_brief(pack_id: str, slot_id: str, *, token: str = "") -> dict[str, Any]:
+    """Notes, Love-it lookalikes, and reference uploads for one slot."""
+    pack = rp.get_pack(pack_id)
+    if not pack:
+        raise CatalogError("That catalog is not there.")
+    v = rp.view(pack_id)
+    notes = [
+        c["text"]
+        for c in (v["comments"].get(slot_id) or [])
+        if c.get("role") == "client" and str(c.get("text") or "").strip()
+    ]
+    loved: list[dict[str, str]] = []
+    base = f"/review-pack/{token}" if token else ""
+    for it in pack.get("items") or []:
+        if it.get("kind") == "note" or it["id"] == slot_id:
+            continue
+        dec = v["decisions"].get(it["id"])
+        state = dec.get("state") if isinstance(dec, dict) else None
+        if state in ("hold", "reject"):
+            continue
+        if state != "approve" and not (it.get("images") and state in (None, "pending")):
+            continue
+        urls = []
+        if it.get("images") and base:
+            urls.append(f"{base}/image/{it['id']}/{len(it['images']) - 1}")
+        loved.append({"slot_id": it["id"], "caption": str(it.get("caption") or "")[:500], "picture_urls": urls})
+    refs = [
+        {"purpose": u.get("purpose"), "text": u.get("text"), "url": f"{base}/file/{u['file']}" if base and u.get("file") else ""}
+        for u in v["uploads"]
+        if u.get("item") == slot_id and u.get("purpose") in ("reference", "element")
+    ]
+    parts = []
+    if notes:
+        parts.append("Change requested: " + " | ".join(notes))
+    if loved:
+        parts.append("Match this look from Love it slots: " + json.dumps(loved, ensure_ascii=False))
+    if refs:
+        parts.append("Reference uploads: " + json.dumps(refs, ensure_ascii=False))
+    prompt_text = "\n".join(parts)
+    return {"notes": notes, "loved_look": loved, "reference_uploads": refs, "prompt_text": prompt_text}
+
+
+def remake_from_notes(
+    pack_id: str,
+    who: str,
+    *,
+    request_draft: Callable[..., dict[str, Any]] | None = None,
+    limit: int = REMAKE_BATCH_LIMIT,
+) -> dict[str, Any]:
+    """Queue remakes for Maybe/No slots. Love-it slots are not touched."""
+    pack = rp.get_pack(pack_id)
+    if not pack or pack.get("kind") != "catalog":
+        raise CatalogError("That is not a catalog pack.")
+    brand_id, plan_id = _slot_brand_plan(pack)
+    draft_fn = request_draft or cp.request_draft
+    injected = request_draft is not None
+    decisions = rp.view(pack_id)["decisions"]
+    waiting: list[dict[str, str]] = []
+    queued: list[str] = []
+    skipped_love: list[str] = []
+    for it in pack.get("items") or []:
+        if it.get("kind") == "note":
+            continue
+        iid = it["id"]
+        dec = decisions.get(iid)
+        state = dec.get("state") if isinstance(dec, dict) else None
+        if state == "approve":
+            skipped_love.append(iid)
+            continue
+        if state not in ("hold", "reject"):
+            continue
+        plan_item = _plan_item_for_slot(brand_id, plan_id, iid)
+        if not plan_item:
+            continue
+        cid = str(plan_item.get("calendar_id") or "").strip()
+        moment = f"calendar_candidate:{brand_id}:{cid}" if cid else f"plan_step:{brand_id}:{plan_id}:{iid}"
+        if not cid:
+            waiting.append({"item_id": iid, "error": "Put the plan on the calendar first, so the remake can be drafted."})
+            if not injected:
+                continue
+        if len(queued) >= limit:
+            waiting.append({"item_id": iid, "error": "Waiting for the next batch."})
+            continue
+        brief = build_remake_brief(pack_id, iid)
+        write_remake_brief(moment, brief)
+        r = draft_fn(brand_id, plan_id, iid, who)
+        if r.get("ok"):
+            queued.append(iid)
+        else:
+            waiting.append({"item_id": iid, "error": str(r.get("error") or "Could not queue the remake.")})
+    out: dict[str, Any] = {"ok": True, "queued": queued, "skipped_love": skipped_love, "waiting": waiting}
+    if waiting and queued:
+        out["more_waiting"] = True
+        out["message"] = f"{len(queued)} queued. Press again after you have checked them."
+    elif len(queued) >= limit and any(w.get("error", "").startswith("Waiting") for w in waiting):
+        out["more_waiting"] = True
+        out["message"] = "4 queued. Press again after you have checked them."
+    return out
+
+
+def show_remake_to_client(pack_id: str, item_id: str, who: str) -> dict[str, Any]:
+    """Christelle shows a remade picture to Herman; mark goes back to unmarked."""
+    pack = rp.get_pack(pack_id)
+    if not pack:
+        raise CatalogError("That catalog is not there.")
+    item = _item(pack, item_id)
+    meta = list(item.get("picture_meta") or [])
+    changed = False
+    for row in reversed(meta):
+        if row.get("remake") and row.get("shown_to_client") is False:
+            row["shown_to_client"] = True
+            row["shown_by"] = who
+            row["shown_at"] = rp._now()  # noqa: SLF001
+            changed = True
+            break
+    if not changed:
+        raise CatalogError("There is no remake waiting to show.")
+    rp.update_item_fields(pack_id, item_id, {"picture_meta": meta})
+    rp.clear_decision(pack_id, item_id)
+    return {"ok": True, "item_id": item_id}
+
+
+def show_all_remakes_to_client(pack_id: str, who: str) -> dict[str, Any]:
+    pack = rp.get_pack(pack_id)
+    if not pack:
+        raise CatalogError("That catalog is not there.")
+    shown = 0
+    for it in pack.get("items") or []:
+        if it.get("kind") == "note":
+            continue
+        meta = it.get("picture_meta") or []
+        if any(row.get("remake") and row.get("shown_to_client") is False for row in meta):
+            try:
+                show_remake_to_client(pack_id, it["id"], who)
+                shown += 1
+            except CatalogError:
+                pass
+    return {"ok": True, "shown": shown}
+
+
+def log_catalog_feedback(
+    brand_id: str,
+    pack_id: str,
+    plan_id: str,
+    item_id: str,
+    who: str,
+    mark: str,
+    note: str,
+    picture_url: str,
+) -> None:
+    root = Path(os.environ.get("DATA_DIR", "/data/campaign-os")) / "brands" / brand_id
+    root.mkdir(parents=True, exist_ok=True)
+    row = {
+        "at": rp._now(),  # noqa: SLF001
+        "pack_id": pack_id,
+        "plan_id": plan_id,
+        "item_id": item_id,
+        "who": (who or "")[:40],
+        "mark": mark,
+        "note": (note or "")[:2000],
+        "picture_url": (picture_url or "")[:500],
+    }
+    with (root / _FEEDBACK_NAME).open("a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def feedback_from_mark(pack_id: str, item_id: str, mark: str, who: str, *, token: str = "", note: str = "") -> None:
+    pack = rp.get_pack(pack_id)
+    if not pack or pack.get("kind") != "catalog":
+        return
+    brand_id, plan_id = _slot_brand_plan(pack)
+    base = f"/review-pack/{token}" if token else ""
+    pack_item = next((i for i in pack.get("items") or [] if i["id"] == item_id), None)
+    idx = max(0, len((pack_item or {}).get("images") or []) - 1)
+    url = f"{base}/image/{item_id}/{idx}" if base else ""
+    log_catalog_feedback(brand_id, pack_id, plan_id, item_id, who, mark, note, url)
+
+
+def client_picture_index(item: dict[str, Any], *, staff: bool) -> int:
+    images = item.get("images") or []
+    if not images:
+        return -1
+    if staff:
+        return len(images) - 1
+    meta = item.get("picture_meta") or []
+    if meta and meta[-1].get("remake") and meta[-1].get("shown_to_client") is False and len(images) > 1:
+        return len(images) - 2
+    return len(images) - 1
