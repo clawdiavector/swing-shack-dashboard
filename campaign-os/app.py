@@ -575,6 +575,28 @@ def api_me():
     return jsonify(payload), 200
 
 
+@app.route('/api/me/password', methods=['POST'])
+def api_me_password():
+    """A named login changes their own password. They must know the current one.
+    This never accepts another person's id. Resetting someone else stays on
+    /api/users/<id>/password, which only an admin (or the shared team password) can call."""
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    user = current_user()
+    if not user:
+        return jsonify({'ok': False, 'error': 'Sign in with your email to change your password.'}), 400
+    from _lib import users
+
+    body = request.get_json(silent=True) or {}
+    if not users.authenticate(str(user.get('email') or ''), str(body.get('current') or '')):
+        return jsonify({'ok': False, 'error': 'That is not your current password.'}), 400
+    try:
+        users.set_password(str(user['id']), str(body.get('password') or ''))
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+    return jsonify({'ok': True}), 200
+
+
 def _users_admin_forbid():
     """Logins are managed by Kyle's admin login, or by anyone signed in with the shared
     team password (so the first logins can be made right after a deploy, with no
