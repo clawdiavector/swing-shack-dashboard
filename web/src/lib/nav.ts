@@ -74,6 +74,14 @@ export const RAIL: RailItem[] = [
     ],
   },
   {
+    to: '/design',
+    label: 'Design',
+    hint: 'Taxonomy of Design',
+    icon: Palette,
+    match: ['/design'],
+    pages: [{ to: '/design', label: 'Taxonomy of Design' }],
+  },
+  {
     to: '/publish',
     label: 'Publish',
     hint: 'Scheduled and going live',
