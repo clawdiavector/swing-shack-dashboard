@@ -117,7 +117,9 @@ export function UsersSettings() {
   if (me && me.role !== 'admin') {
     return (
       <div className="mx-auto max-w-2xl p-6">
-        <PageIntro title="Logins" subtitle="Only Kyle can manage logins." />
+        <PageIntro here="/settings/users" title="Logins">
+          Only Kyle can manage logins.
+        </PageIntro>
         <p className="text-sm text-tx2">Ask Kyle or Christelle if you need access.</p>
       </div>
     )
@@ -125,10 +127,9 @@ export function UsersSettings() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 p-6">
-      <PageIntro
-        title="Logins"
-        subtitle="Named accounts for Campaign OS. Shared password still works until everyone has their own login."
-      />
+      <PageIntro here="/settings/users" title="Logins">
+        Named accounts for Campaign OS. The shared password still works until everyone has their own login.
+      </PageIntro>
       {err ? <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{err}</p> : null}
 
       <section className="glass space-y-3 rounded-2xl border border-white/10 p-4">

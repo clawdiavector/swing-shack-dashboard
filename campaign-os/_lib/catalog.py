@@ -683,6 +683,9 @@ def move_slot_day(
         out, _code = calendar_move(brand_id, body, who)
         if not out.get("ok"):
             raise CatalogError(str(out.get("error") or out.get("message") or "Could not move it."))
+        # Keep the plan step on the same day as its calendar entry, so the slot moves too.
+        edit = plan_edit or (lambda b, p, i, patch, actor="operator": cp.edit_item(b, p, i, patch, actor=actor))
+        edit(brand_id, plan_id, item_id, {"due": due}, who)
     else:
         edit = plan_edit or (lambda b, p, i, patch, actor="operator": cp.edit_item(b, p, i, patch, actor=actor))
         r = edit(brand_id, plan_id, item_id, {"due": due}, who)
@@ -822,7 +825,10 @@ def remake_from_notes(
         if r.get("ok"):
             queued.append(iid)
         else:
-            waiting.append({"item_id": iid, "error": str(r.get("error") or "Could not queue the remake.")})
+            err = str(r.get("error") or "Could not queue the remake.")
+            if err == "only a post step can be drafted":
+                err = "Stories are not drafted by the machine yet. Remake this one by hand, using the note."
+            waiting.append({"item_id": iid, "error": err})
     out: dict[str, Any] = {"ok": True, "queued": queued, "skipped_love": skipped_love, "waiting": waiting}
     if waiting and queued:
         out["more_waiting"] = True

@@ -752,6 +752,7 @@ def public_view(
             "campaign_summary": campaign_summary}
     if labels:
         out["labels"] = labels
+        out["intro"] = 'Look at each post, then choose Love it, Maybe or No. Maybe and No ask what should change. Leave a comment on anything, and upload a photo with a line saying what it is for. Your answers save as you go. When you are happy, press Approve the campaign. Nothing is posted until each post gets its own final yes.'
     if month_strip is not None:
         out["month_strip"] = month_strip
         out["can_drag"] = can_drag
@@ -998,13 +999,13 @@ async function act(item,state,choice){try{let body={item,state:state||undefined,
   const tag=state==="reject"?"general":"design edit";body={...body,note:note.trim(),tag}}
  const j=await post("/act",body);D.decisions[item]=j.decision;paint();say(state?LBL[state]+" saved":"Option "+choice+" picked")}catch(e){say(e.message)}}
 async function campaignYes(){if(!D.campaign_can_approve)return;const s=D.campaign_summary||{};const un=s.unmarked||0;
- if(un&&!UNMARKED_OK){UNMARKED_OK=true;say(un+" posts are not marked. Approve the campaign anyway? Unmarked posts are treated as Maybe.");return}
+ if(un&&!UNMARKED_OK){UNMARKED_OK=true;say((un===1?"1 post is":un+" posts are")+" not marked. Press Approve the campaign again to go ahead. Unmarked posts are treated as Maybe.");return}
  try{const j=await post("/campaign-approve",{confirm_unmarked:un>0});D.campaign_approved=j.campaign_approval;UNMARKED_OK=false;paintCampaign();say("Campaign approved")}catch(e){say(e.message)}}
 function paintCampaign(){document.querySelectorAll("[data-campaign-yes]").forEach(b=>{b.hidden=!D.campaign_can_approve||!!D.campaign_approved});const line=document.getElementById("campaignline");if(line&&D.campaign_summary)line.textContent=D.campaign_summary.line||"";if(D.campaign_approved&&line)line.textContent="Campaign approved by "+D.campaign_approved.by+"."}
 function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name+": ":"";$("ttl").textContent="";$("ttl").append(document.createTextNode(parts),el("span","",P.title));
  if(D.can_remake){const rb=el("button","send","Remake from notes");rb.type="button";rb.style.marginTop="10px";rb.onclick=async()=>{try{await remakeNotes()}catch(e){say(e.message)}};$("ttl").after(rb)}
  paintMonthStrip();
- $("intro").textContent="Look at each post, then choose Approve, Reject or Hold. Leave a comment on anything, and upload your own photo where you have one. Your answers save as you go. When you have been through them all, press I'm done at the bottom.";
+ $("intro").textContent=(D.intro||"Look at each post, then choose Approve, Reject or Hold. Leave a comment on anything, and upload your own photo where you have one. Your answers save as you go. When you have been through them all, press I'm done at the bottom.");
  if(D.catalog_line){const cl=$("catline");cl.hidden=false;cl.textContent=D.catalog_line}
  if(D.campaign_summary||D.campaign_approved){const cl=$("campaignline");cl.hidden=false;if(D.campaign_summary)cl.textContent=D.campaign_summary.line}
  document.querySelectorAll("[data-campaign-yes]").forEach(b=>{b.onclick=campaignYes});
@@ -1012,7 +1013,7 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
  if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
  const box=$("items");P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
   if(D.can_drag&&it.when){const chip=el("span","slot-chip",it.when);chip.draggable=true;chip.title="Drag to a day on the calendar strip";chip.ondragstart=e=>{DRAG_ITEM=it.id;e.dataTransfer.setData("text/plain",it.id)};hh.append(chip)}else{const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m))}
-  if(it.channels&&D.can_drag)hh.append(el("p","meta",it.channels));else if(!D.can_drag){const m2=[it.audience,it.channels].filter(Boolean).join("  ·  ");if(m2)hh.append(el("p","meta",m2))}
+  if(it.channels&&D.can_drag)hh.append(el("p","meta",it.channels));
   const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);if(D.staff)h.append(teamRemove(it));c.append(h);
   if(D.can_drag&&it.due){const mv=el("div","move-row");const inp=document.createElement("input");inp.type="date";inp.value=it.due;inp.setAttribute("aria-label","Move to day");const mb=el("button","pill","Move to…");mb.type="button";mb.onclick=async()=>{if(!inp.value)return;try{await post("/move-slot",{item:it.id,date:inp.value});say("Day updated");location.reload()}catch(e){say(e.message)}};mv.append(inp,mb);c.append(mv)}
   if(it.hidden_remake){const sb=el("button","pill","Show to Herman");sb.type="button";sb.onclick=()=>showRemake(it.id).catch(e=>say(e.message));c.append(sb)}

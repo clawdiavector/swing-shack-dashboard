@@ -91,3 +91,23 @@ def test_release_moment_refuses_catalog_hold(monkeypatch):
     out = publish_sandbox.release_moment(brand_id="stick", calendar_id="cal-held", dispatch=False)
     assert out["ok"] is False and out["code"] == "catalog_hold"
     assert "Maybe/No" in out["error"]
+
+
+def test_calendar_move_also_moves_the_catalog_slot(tmp_path, monkeypatch):
+    """Moving a placed post on the catalog moves its calendar entry AND the slot's day."""
+    from tests.test_catalog_c67_calendar_remake_20261109 import _catalog, BRAND, cp
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    plan, pack_id = _catalog(tmp_path, monkeypatch)
+    post = next(i for i in plan["items"] if i["kind"] == "post")
+    post["calendar_id"] = "cal-int-move"
+    cp._write_plan(plan)
+    out = cat.move_slot_day(pack_id, post["item_id"], "2026-11-28", "Christelle",
+                            calendar_move=lambda b, body, who: ({"ok": True}, 200))
+    assert out["ok"]
+    moved = next(i for i in cp.get_plan(BRAND, plan["plan_id"])["items"] if i["item_id"] == post["item_id"])
+    assert moved["due"] == "2026-11-28"
+    slot = next(i for i in rp.get_pack(pack_id)["items"] if i["id"] == post["item_id"])
+    assert slot["when"] == "Sat 28 Nov"
