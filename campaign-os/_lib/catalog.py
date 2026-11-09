@@ -212,7 +212,13 @@ def sync(brand_id: str, plan_id: str) -> dict[str, int]:
         title=_catalog_title(plan),
     )
     pics = refresh_pictures(brand_id, plan_id)
-    return {"added": added, "removed": removed, "updated": updated, **pics}
+    return {
+        "added": added,
+        "removed": removed,
+        "updated": updated,
+        "pictures_added": pics.get("pictures_added", 0),
+        "pictures_skipped": pics.get("pictures_skipped", 0),
+    }
 
 
 def _draft_caption(state: dict[str, Any]) -> str:
