@@ -248,10 +248,18 @@ def _is_authed():
     if not token:
         return False
     try:
-        _serializer.loads(token, max_age=SESSION_MAX_AGE)
-        return True
+        data = _serializer.loads(token, max_age=SESSION_MAX_AGE)
     except (BadSignature, SignatureExpired):
         return False
+    if isinstance(data, dict):
+        uid = data.get("uid")
+        if uid:
+            from _lib import users
+
+            user = users.get_user(str(uid))
+            if not user or user.get("disabled"):
+                return False
+    return True
 
 
 def _session_payload() -> dict | None:
@@ -309,11 +317,17 @@ def _user_forbid(action: str):
 
     if users.can(user, action):
         return None
+    messages = {
+        "move": "Your login cannot move dates. Ask Christelle or Kyle.",
+        "approve": "Your login can comment but not approve. Ask Christelle or Kyle.",
+        "campaign_approve": "Only an approver or editor can approve the campaign.",
+        "share": "Your login cannot share links.",
+    }
     return (
         jsonify(
             {
                 "ok": False,
-                "error": "Your login can comment but not approve. Ask Christelle or Kyle.",
+                "error": messages.get(action, "Your login cannot do that."),
             }
         ),
         403,
@@ -26571,20 +26585,7 @@ def _plan_import():
     return cp
 
 
-def _sync_runtime_data_dir():
-    """Tests flip DATA_DIR per case without re-importing modules."""
-    dd = os.environ.get("DATA_DIR") or "data"
-    try:
-        from _lib import campaign_brief as _cb
-
-        if _cb.DATA_DIR_DEFAULT != dd:
-            _cb.DATA_DIR_DEFAULT = dd
-    except Exception:
-        pass
-
-
 def _plan_guard(brand_id):
-    _sync_runtime_data_dir()
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in BRIEF_V1_BRAND_ALLOWED:
@@ -26785,7 +26786,7 @@ def plan_v1_approve(brand_id, plan_id):
     bad = _plan_guard(brand_id)
     if bad:
         return bad
-    denied = _user_forbid('campaign_approve')
+    denied = _user_forbid('approve')
     if denied:
         return denied
     body = request.get_json(silent=True) or {}
@@ -26874,6 +26875,9 @@ def plan_v1_reopen(brand_id, plan_id):
     bad = _plan_guard(brand_id)
     if bad:
         return bad
+    denied = _user_forbid('approve')
+    if denied:
+        return denied
     body = request.get_json(silent=True) or {}
     try:
         r = _plan_import().reopen_plan(brand_id, plan_id, _actor_name(body=body))
