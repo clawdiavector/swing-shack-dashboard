@@ -1,11 +1,12 @@
 """Campaign catalog: a review pack kept in sync with a plan's post and story steps."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from _lib import campaign_plan as cp
 from _lib import review_pack as rp
@@ -210,7 +211,109 @@ def sync(brand_id: str, plan_id: str) -> dict[str, int]:
         event_name=plan.get("event_name") or "",
         title=_catalog_title(plan),
     )
-    return {"added": added, "removed": removed, "updated": updated}
+    pics = refresh_pictures(brand_id, plan_id)
+    return {
+        "added": added,
+        "removed": removed,
+        "updated": updated,
+        "pictures_added": pics.get("pictures_added", 0),
+        "pictures_skipped": pics.get("pictures_skipped", 0),
+    }
+
+
+def _draft_caption(state: dict[str, Any]) -> str:
+    for key in ("caption", "body", "angle", "content"):
+        bit = str(state.get(key) or "").strip()
+        if bit:
+            return bit[:4000]
+    return ""
+
+
+def refresh_pictures(
+    brand_id: str,
+    plan_id: str,
+    *,
+    post_state: Callable[[str, str], dict[str, Any] | None] | None = None,
+    load_bytes: Callable[[str, str], bytes | None] | None = None,
+) -> dict[str, int]:
+    """Pull composed pictures from post state into catalog slots (feed, story, Google)."""
+    from _lib.feed_vertical_renders import (
+        FEED_RENDER_CHANNEL,
+        fit_for_channel_png,
+        fit_google_4x3,
+        _load_png_for_url,
+    )
+
+    if post_state is None:
+        from _lib.unified_inbox import post_state_for
+
+        post_state = post_state_for
+    if load_bytes is None:
+        load_bytes = _load_png_for_url
+
+    plan = cp.get_plan(brand_id, plan_id)
+    pack_id = catalog_for_plan(brand_id, plan_id)
+    if not plan or not pack_id:
+        return {"pictures_added": 0, "pictures_skipped": 0}
+
+    added = skipped = 0
+    for row in plan.get("items") or []:
+        if row.get("kind") not in _SLOT_KINDS:
+            continue
+        cid = str(row.get("calendar_id") or "").strip()
+        if not cid:
+            continue
+        st = post_state(brand_id, cid)
+        if not st:
+            continue
+        composed = st.get("composed") or {}
+        feed_url = str(composed.get(FEED_RENDER_CHANNEL) or composed.get("instagram") or "").strip()
+        if not feed_url:
+            continue
+        raw = load_bytes(brand_id, feed_url)
+        if not raw:
+            continue
+        content_hash = hashlib.sha256(raw).hexdigest()[:32]
+        pack = rp.get_pack(pack_id)
+        if not pack:
+            continue
+        slot = next((i for i in pack.get("items") or [] if i["id"] == row["item_id"]), None)
+        if not slot:
+            continue
+        already = content_hash in (slot.get("picture_hashes") or [])
+        if not already:
+            story_url = str(composed.get("instagram_story") or "").strip()
+            if story_url:
+                story_raw = load_bytes(brand_id, story_url)
+                if not story_raw:
+                    story_raw, _ = fit_for_channel_png(raw, "instagram_story")
+            else:
+                story_raw, _ = fit_for_channel_png(raw, "instagram_story")
+            google_raw, _ = fit_google_4x3(raw)
+            out = rp.add_catalog_picture(
+                pack_id,
+                row["item_id"],
+                raw,
+                source_url=feed_url,
+                content_hash=content_hash,
+                story_data=story_raw,
+                google_data=google_raw,
+            )
+            if out.get("skipped"):
+                skipped += 1
+            else:
+                added += 1
+        else:
+            skipped += 1
+        draft_cap = _draft_caption(st)
+        if draft_cap:
+            pack = rp.get_pack(pack_id) or pack
+            slot = next(i for i in pack["items"] if i["id"] == row["item_id"])
+            empty = not str(slot.get("caption") or "").strip()
+            auto = slot.get("caption_auto", True)
+            if empty or auto:
+                rp.update_item_fields(pack_id, row["item_id"], {"caption": draft_cap, "caption_auto": True})
+    return {"pictures_added": added, "pictures_skipped": skipped, "added": added}
 
 
 def counts(pack_id: str) -> dict[str, int]:
@@ -231,7 +334,12 @@ def catalog_header(pack: dict[str, Any]) -> str:
     whens = [str(i.get("when") or "").strip() for i in items if i.get("when")]
     dates = whens[0] if len(whens) == 1 else (f"{whens[0]} – {whens[-1]}" if whens else "")
     event = str(pack.get("event_name") or "").strip() or str(pack.get("title") or "").split("—")[0].strip()
-    bits = [f"Campaign: {event or 'this plan'}", f"{n} post" + ("" if n == 1 else "s")]
+    c = counts(pack["id"])
+    bits = [
+        f"Campaign: {event or 'this plan'}",
+        f"{n} post" + ("" if n == 1 else "s"),
+        f"{c['pictures']} with pictures",
+    ]
     if dates:
         bits.append(dates)
     return " · ".join(bits)

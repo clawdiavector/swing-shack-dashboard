@@ -683,7 +683,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
           </button>
           {catalogCounts ? (
             <span className="text-xs text-tx3" data-testid="plan-catalog-counts">
-              Catalog: {catalogCounts.posts} posts, {catalogCounts.pictures_yet} pictures yet
+              Catalog: {catalogCounts.posts} posts, {catalogCounts.pictures} with pictures
             </span>
           ) : null}
         </div>
