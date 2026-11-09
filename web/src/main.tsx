@@ -6,8 +6,10 @@ import './index.css'
 import './theme-play.css'
 import './a11y.css'
 import { applyTheme, readTheme } from './lib/theme'
+import { loadMe } from './lib/me'
 
 applyTheme(readTheme())
+void loadMe()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

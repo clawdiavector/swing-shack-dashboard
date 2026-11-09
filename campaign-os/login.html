@@ -73,7 +73,8 @@ label {
   margin-bottom: 6px;
   font-weight: 600;
 }
-input[type="password"] {
+input[type="password"],
+input[type="email"] {
   width: 100%;
   background: var(--panel-2);
   border: 1px solid var(--line);
@@ -85,12 +86,15 @@ input[type="password"] {
   transition: border-color 0.15s;
   font-family: inherit;
 }
-input[type="password"]:focus {
+input[type="password"]:focus,
+input[type="email"]:focus {
   border-color: var(--accent);
 }
-input[type="password"]::placeholder {
+input[type="password"]::placeholder,
+input[type="email"]::placeholder {
   color: #555a62;
 }
+.field-gap { margin-bottom: 14px; }
 button {
   width: 100%;
   background: var(--accent);
@@ -141,8 +145,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     <div class="subtitle">Sign in to continue</div>
     <div class="error" id="error"></div>
     <form id="login-form" method="post" action="/login">
+      <div class="field-gap">
+        <label for="email">Email (optional)</label>
+        <input type="email" id="email" name="email" placeholder="Your work email, or leave blank for shared password" autocomplete="username">
+      </div>
       <label for="pw">Password</label>
-      <input type="password" id="pw" name="password" placeholder="Enter shared password" autofocus required>
+      <input type="password" id="pw" name="password" placeholder="Your password or shared password" autofocus required>
       <button type="submit" id="submit-btn">Sign in</button>
     </form>
     <div class="brand">swing-shack-dashboard</div>
@@ -160,11 +168,15 @@ form.addEventListener('submit', async (e) => {
   btn.disabled = true;
   btn.textContent = 'Signing in...';
   const pw = document.getElementById('pw').value;
+  const email = document.getElementById('email').value.trim();
+  const body = email
+    ? 'email=' + encodeURIComponent(email) + '&password=' + encodeURIComponent(pw)
+    : 'password=' + encodeURIComponent(pw);
   try {
     const res = await fetch('/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'password=' + encodeURIComponent(pw),
+      body,
       credentials: 'same-origin'
     });
     if (res.ok || res.redirected) {
