@@ -232,8 +232,24 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
   )
 }
 
-function PostTile({ post, onOpen }: { post: TaxonomyPost; onOpen: () => void }) {
-  const pic = lead(post)
+type Format = 'all' | 'static' | 'story' | 'reel'
+
+const isStory = (x: TaxonomyPicture) => x.role === 'story'
+const FORMAT_PIC: Record<Format, (x: TaxonomyPicture) => boolean> = {
+  all: () => true,
+  static: (x) => !x.video && !isStory(x),
+  story: isStory,
+  reel: (x) => x.video,
+}
+/** The picture a tile leads with: the first one of the chosen format, else the post's first. */
+const leadFor = (p: TaxonomyPost, f: Format) => (p.pictures || []).find(FORMAT_PIC[f]) || lead(p)
+
+function PostTile({ post, onOpen, format = 'all' }: { post: TaxonomyPost; onOpen: () => void; format?: Format }) {
+  const pic = leadFor(post, format)
+  const kinds = [
+    post.pictures?.some(FORMAT_PIC.story) ? 'story' : '',
+    post.pictures?.some(FORMAT_PIC.reel) ? 'reel' : '',
+  ].filter(Boolean)
   return (
     <button
       type="button"
@@ -244,9 +260,9 @@ function PostTile({ post, onOpen }: { post: TaxonomyPost; onOpen: () => void }) 
       {pic ? (
         <Pic pic={pic} className="h-full w-full transition group-hover:scale-[1.03]" />
       ) : (
-        <div className="flex h-full w-full flex-col justify-between p-2 text-[11px] leading-snug text-tx3">
-          <span className="line-clamp-5">{post.title}</span>
-          <span>no picture</span>
+        <div className="flex h-full w-full flex-col justify-between bg-white/[0.03] p-2 text-[11px] leading-snug text-tx2">
+          <span className="line-clamp-6">{post.title}</span>
+          <span className="text-tx3">{post.date || 'no picture'}</span>
         </div>
       )}
       {pic?.video ? (
@@ -254,15 +270,56 @@ function PostTile({ post, onOpen }: { post: TaxonomyPost; onOpen: () => void }) 
           <Film className="h-3 w-3 text-white" />
         </span>
       ) : null}
-      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 pt-6 text-[10px] font-semibold text-white">
-        <span className="line-clamp-1 rounded bg-black/50 px-1">{post.style}</span>
-      </span>
+      {pic ? (
+        <span className="absolute inset-x-0 bottom-0 flex flex-wrap gap-1 bg-gradient-to-t from-black/80 to-transparent p-1.5 pt-6 text-[10px] font-semibold text-white">
+          {kinds.map((k) => (
+            <span key={k} className="rounded bg-ac px-1 uppercase text-bg">
+              {k}
+            </span>
+          ))}
+          <span className="line-clamp-1 rounded bg-black/50 px-1">
+            {pic.styles?.length ? pic.styles.join(' · ') : post.campaign || post.brand}
+          </span>
+        </span>
+      ) : null}
       {post.approval.status === 'approved' ? (
         <span className="absolute left-1.5 top-1.5 rounded-full bg-yel p-0.5">
           <Check className="h-3 w-3 text-bg" />
         </span>
       ) : null}
     </button>
+  )
+}
+
+function ShotGrid({ shots, onOpen, limit = 24 }: { shots: Shot[]; onOpen: (p: TaxonomyPost) => void; limit?: number }) {
+  const [more, setMore] = useState(false)
+  const rows = more ? shots : shots.slice(0, limit)
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+        {rows.map((sh) => (
+          <button
+            key={sh.pic.thumb}
+            type="button"
+            onClick={() => onOpen(sh.post)}
+            title={sh.post.title}
+            className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/10 bg-bg2 hover:border-ac/60"
+          >
+            <Pic pic={sh.pic} className="h-full w-full" />
+            {sh.pic.video ? (
+              <span className="absolute right-1.5 top-1.5 rounded-md bg-black/70 p-1">
+                <Film className="h-3 w-3 text-white" />
+              </span>
+            ) : null}
+          </button>
+        ))}
+      </div>
+      {!more && shots.length > limit ? (
+        <button type="button" onClick={() => setMore(true)} className="mt-3 text-sm font-semibold text-ac">
+          Show all {shots.length}
+        </button>
+      ) : null}
+    </>
   )
 }
 
@@ -315,7 +372,6 @@ function StyleDetail({
 }) {
   const posts = ctx.postsByStyle.get(style.id) || []
   const shots = ctx.shotsByStyle.get(style.id) || []
-  const withPics = posts.filter(pictured)
   const hero = shots[0]
   const method = style.method_id ? ctx.methodById.get(style.method_id) : undefined
   const [lb, setLb] = useState('')
@@ -422,28 +478,21 @@ function StyleDetail({
         </div>
       </div>
       <h3 className="mb-2 mt-6 text-sm font-semibold text-tx">
-        Posts in this style{' '}
+        Pictures in this style{' '}
         <span className="font-normal text-tx3">
-          · {posts.length} ({withPics.length} with a picture)
+          · {shots.length} in {posts.length} posts
         </span>
       </h3>
-      {posts.length ? (
+      {shots.length ? (
         <>
           <p className="mb-2 text-xs text-tx3">
-            Matched by the label the phase 0 index gave each post. The index guessed labels from file names, so check
-            before you approve.
+            Each picture is matched to a style by its own file name, so a post that holds several looks only lends this
+            style the picture that carries it.
           </p>
-          <PostGrid
-            posts={[
-              ...withPics.filter((p) => !p.reference_photo),
-              ...withPics.filter((p) => p.reference_photo),
-              ...posts.filter((p) => !pictured(p)),
-            ]}
-            onOpen={openPost}
-          />
+          <ShotGrid shots={shots} onOpen={openPost} />
         </>
       ) : (
-        <Missing>No post in the index carries this style's label.</Missing>
+        <Missing>No picture in the folders swept so far is named for this style.</Missing>
       )}
       {lb ? <Lightbox src={lb} onClose={() => setLb('')} /> : null}
     </Panel>
@@ -708,7 +757,8 @@ export function DesignTaxonomy() {
   const [q, setQ] = useState('')
   const [styleFilter, setStyleFilter] = useState('')
   const [onlyPics, setOnlyPics] = useState(true)
-  const [shown, setShown] = useState(120)
+  const [format, setFormat] = useState<Format>('all')
+  const [page, setPage] = useState(0)
 
   const load = useCallback(() => {
     fetchDesignTaxonomy()
@@ -766,13 +816,17 @@ export function DesignTaxonomy() {
         add(post, post?.pictures?.find((x) => x.thumb === pin.thumb))
       }
       const rest = posts
-        .filter(pictured)
+        .filter((post) => post.pictures?.some((x) => x.styles?.includes(sid)))
         .sort(
           (a, b) =>
             Number(!!a.reference_photo) - Number(!!b.reference_photo) ||
             (STATUS_RANK[a.status] ?? 4) - (STATUS_RANK[b.status] ?? 4),
         )
-      for (const p of rest) add(p, lead(p))
+      for (const post of rest) {
+        const mine = (post.pictures || []).filter((x) => x.styles?.includes(sid))
+        mine.sort((x, y) => Number(x.video) - Number(y.video))
+        for (const pic of mine) add(post, pic)
+      }
       shotsByStyle.set(sid, shots)
     }
     const typesByTemplate = new Map<string, TaxonomyType[]>()
@@ -806,12 +860,21 @@ export function DesignTaxonomy() {
     const needle = q.trim().toLowerCase()
     return allPosts.filter((p) => {
       if (onlyPics && !pictured(p)) return false
+      if (format !== 'all' && !p.pictures?.some(FORMAT_PIC[format])) return false
       if (styleFilter === 'none' && p.style_ids?.length) return false
       if (styleFilter && styleFilter !== 'none' && !p.style_ids?.includes(styleFilter)) return false
       if (needle && !`${p.title} ${p.campaign} ${p.style} ${p.status}`.toLowerCase().includes(needle)) return false
       return true
     })
-  }, [allPosts, q, styleFilter, onlyPics])
+  }, [allPosts, q, styleFilter, onlyPics, format])
+
+  const PAGE_SIZE = 96
+  const pageCount = Math.max(1, Math.ceil(posts.length / PAGE_SIZE))
+  const pagePosts = useMemo(
+    () => [...posts].sort((a, b) => Number(pictured(b)) - Number(pictured(a))).slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [posts, page],
+  )
+  useEffect(() => setPage(0), [q, styleFilter, onlyPics, format, brand, stack])
 
   const count = (k: SectionKey) =>
     ({ styles: styles.length, templates: templates.length, types: types.length, posts: allPosts.length, methods: methods.length })[k]
@@ -873,7 +936,7 @@ export function DesignTaxonomy() {
               value={q}
               onChange={(e) => {
                 setQ(e.target.value)
-                setShown(120)
+                setPage(0)
               }}
               placeholder="Search title, campaign, status"
               className="w-64 rounded-xl border border-white/15 bg-bg2 py-2 pl-9 pr-3 text-sm text-tx"
@@ -897,9 +960,24 @@ export function DesignTaxonomy() {
             <input type="checkbox" checked={onlyPics} onChange={(e) => setOnlyPics(e.target.checked)} />
             Only posts with a picture
           </label>
-          <span className="text-sm text-tx3">
-            {posts.length} of {allPosts.length}
-          </span>
+          <div className="flex gap-1" role="group" aria-label="Format">
+            {(
+              [
+                ['all', 'All formats'],
+                ['static', 'Static posts'],
+                ['story', 'Stories'],
+                ['reel', 'Reels'],
+              ] as [Format, string][]
+            ).map(([k, label]) => (
+              <button key={k} type="button" onClick={() => setFormat(k)} className={btn(format === k)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="w-full text-sm text-tx3">
+            {allPosts.length} posts in the index: {allPosts.filter(pictured).length} with a picture,{' '}
+            {allPosts.filter((p) => !pictured(p)).length} text-only (calendar rows, ideas). Showing {posts.length}.
+          </p>
         </div>
       ) : null}
 
@@ -1037,14 +1115,32 @@ export function DesignTaxonomy() {
       {ctx && section === 'posts' ? (
         <>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-            {posts.slice(0, shown).map((p) => (
-              <PostTile key={p.id} post={p} onOpen={() => openPost(p)} />
+            {pagePosts.map((p) => (
+              <PostTile key={p.id} post={p} format={format} onOpen={() => openPost(p)} />
             ))}
           </div>
-          {posts.length > shown ? (
-            <button type="button" onClick={() => setShown(shown + 240)} className="text-sm font-semibold text-ac">
-              Show more ({posts.length - shown} left)
-            </button>
+          {pageCount > 1 ? (
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} className={`${btn(false)} disabled:opacity-40`}>
+                Previous
+              </button>
+              {Array.from({ length: pageCount }, (_, i) => (
+                <button key={i} type="button" onClick={() => setPage(i)} className={btn(i === page)}>
+                  {i + 1}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={page >= pageCount - 1}
+                onClick={() => setPage(page + 1)}
+                className={`${btn(false)} disabled:opacity-40`}
+              >
+                Next
+              </button>
+              <span className="text-sm text-tx3">
+                {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, posts.length)} of {posts.length}
+              </span>
+            </div>
           ) : null}
           {!posts.length ? <p className="text-sm text-tx3">Nothing matches.</p> : null}
         </>

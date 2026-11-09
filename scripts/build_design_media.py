@@ -51,6 +51,61 @@ LABEL_TO_STYLES: dict[str, list[str]] = {
 }
 
 
+import re
+
+# One look per picture, read from its own file or folder name (first match wins).
+# A post in the index is a slot that can hold several looks, so style lives on
+# the picture, not on the post.
+PICTURE_STYLE_RULES: list[tuple[str, str]] = [
+    (r"[-_]snap[-_.]", "snap"),
+    (r"[-_]night[-_.]", "night"),
+    (r"/ss-bo-|swing-shack-bold-objects/", "bold-objects"),
+    (r"/ss-lo-", "lights-out"),
+    (r"[-_](fitting|coach|people)-labels?[-_.]|[-_]labels?[-_.]", "label"),
+    (r"spotlight-jordan|swing-shack-jordan-spotlight", "jordan-spotlight"),
+    (r"sim-?screen", "sim-screen"),
+    (r"neon", "neon-icon"),
+    (r"maker-stack", "maker-stack"),
+    (r"partner-plate", "partner-plate"),
+    (r"ideogram", "ideogram-balloons"),
+    (r"flat-?lay", "flat-lay"),
+    (r"text-card", "text-card"),
+    (r"black-studio", "black-studio"),
+    (r"on-bed|product-on-bed", "product-on-bed"),
+    (r"type-among", "type-among-product"),
+]
+
+
+def picture_style(where: str) -> list[str]:
+    low = where.lower()
+    for pat, sid in PICTURE_STYLE_RULES:
+        if re.search(pat, low):
+            return [sid]
+    return []
+
+
+# Sources the phase 0 index never swept. (folder, collection label, brand)
+EXTRA_SOURCES: list[tuple[str, str, str]] = [  # (folder, collection, brand); "folder::glob" limits the sweep
+    ("~/finder-workspace/repos/work/agent-control/handoffs/black-friday-20261102-swing-shack-lights-out::ss-lo-*", "Lights-out set (handoff)", "swing-shack"),
+    ("~/CampaignOSKnowledgeBase/CampaignOS/research/stick-retail-week-images-2026-10-23", "Stick retail week (wiki)", "stick"),
+    ("~/CampaignOSKnowledgeBase/CampaignOS/runbooks/stick-retail-templates-2026-10-23/images", "Stick retail templates (wiki)", "stick"),
+    ("~/CampaignOSKnowledgeBase/CampaignOS/runbooks/stick-editorial-shadow-and-caps-2026-11-02", "Stick editorial shadow and caps (wiki)", "stick"),
+    ("~/CampaignOSKnowledgeBase/CampaignOS/runbooks/black-friday-spotlight-posts-2026-10-26", "Black Friday spotlight posts (wiki)", "stick"),
+    ("~/CampaignOSKnowledgeBase/CampaignOS/runbooks/post-bank-2026-10-26", "Post bank (wiki)", "stick"),
+    ("~/CampaignOSKnowledgeBase/CampaignOS/experiments/post-animation", "Post animation experiments (wiki)", ""),
+    ("~/finder-workspace/repos/work/agent-control/handoffs/christelle-mail-20261103", "Stick hiring carousel (Christelle, mail)", "stick"),
+    ("~/finder-workspace/repos/work/agent-control/handoffs/stick-epic-earn-its-place-20261014", "Stick epic (handoff)", "stick"),
+    ("~/finder-workspace/repos/work/agent-control/handoffs/motion-reels-20261013", "Motion reels (handoff)", ""),
+    ("~/finder-workspace/repos/work/agent-control/handoffs/post-animation-methods-20261013", "Post animation methods (handoff)", ""),
+    ("~/finder-workspace/repos/work/agent-control/handoffs/post-animation-round2-20261014", "Post animation round 2 (handoff)", ""),
+]
+
+
+def _slot_key(path: Path) -> str:
+    stem = re.sub(r"__(feed|story|gbp|instagram|facebook|square)$|[-_](feed|story|gbp|instagram)$", "", path.stem)
+    return f"{path.parent}/{stem}"
+
+
 def _is_reference(paths: list[str]) -> bool:
     """A raw photo or Krea source that goes INTO a post, not a finished post."""
     for p in paths:
@@ -170,7 +225,16 @@ def build(index_path: Path, root: Path) -> dict:
                 where = str(src.relative_to(root))
             except ValueError:
                 where = raw
-            pics.append({"role": "reel" if video else role, "thumb": made[0], "mid": made[1], "video": video, "where": where})
+            pics.append(
+                {
+                    "role": "reel" if video else role,
+                    "thumb": made[0],
+                    "mid": made[1],
+                    "video": video,
+                    "where": where,
+                    "styles": picture_style(where),
+                }
+            )
         pics.sort(key=lambda x: (x["video"], _ROLE_RANK.get(x["role"], 1)))
         label = (p.get("style") or "").strip()
         if "snapback" in (p.get("title") or "").lower():
@@ -183,7 +247,8 @@ def build(index_path: Path, root: Path) -> dict:
             "title": p.get("title", ""),
             "status": p.get("status", ""),
             "style": label or "no style",
-            "style_ids": LABEL_TO_STYLES.get(label, []),
+            # styles come from the pictures themselves; the index label only counts for a post with no picture
+            "style_ids": sorted({sid for x in pics for sid in x["styles"]}) if pics else LABEL_TO_STYLES.get(label, []),
             "template_id": None,
             "reference_photo": bool(pics) and _is_reference([x["where"] for x in pics]),
             "caption": (p.get("caption") or "")[:280],
@@ -195,6 +260,68 @@ def build(index_path: Path, root: Path) -> dict:
             if all(x["video"] for x in pics):
                 stats["video_only"] += 1
         posts_out.append(row)
+
+    # Sources the index never swept: grouped into one row per slot (feed/story/gbp of the same piece).
+    known = {x["thumb"] for r in posts_out for x in r["pictures"]}
+    extra_rows = 0
+    for folder, collection, brand in EXTRA_SOURCES:
+        folder, _, pattern = folder.partition("::")
+        base = Path(folder).expanduser()
+        if not base.is_dir():
+            continue
+        slots: dict[str, list[Path]] = {}
+        for f in sorted(base.rglob(pattern or "*")):
+            if f.suffix.lower() in IMAGE_EXT | VIDEO_EXT and f.is_file() and ".git" not in f.parts:
+                slots.setdefault(_slot_key(f), []).append(f)
+        for key, files in slots.items():
+            pics = []
+            for f in files:
+                video = f.suffix.lower() in VIDEO_EXT
+                made = _make_from_video(f) if video else _make_from_image(f, want_mid=True)
+                if not made or made[0] in known:
+                    continue
+                known.add(made[0])
+                where = str(f)
+                for prefix in (str(Path("~/CampaignOSKnowledgeBase").expanduser()), str(root)):
+                    if where.startswith(prefix):
+                        where = where[len(prefix):].lstrip("/")
+                        break
+                pics.append(
+                    {
+                        "role": "reel" if video else _role(str(f), None),
+                        "thumb": made[0],
+                        "mid": made[1],
+                        "video": video,
+                        "where": where,
+                        "styles": picture_style(str(f)),
+                    }
+                )
+            if not pics:
+                continue
+            pics.sort(key=lambda x: (x["video"], _ROLE_RANK.get(x["role"], 1)))
+            extra_rows += 1
+            slot_name = Path(key).name
+            row_brand = brand or ("stick" if "stick" in key.lower() else "swing-shack" if "swing" in key.lower() else "")
+            posts_out.append(
+                {
+                    "id": f"extra-{extra_rows:04d}",
+                    "brand": row_brand,
+                    "campaign": collection,
+                    "date": "",
+                    "title": re.sub(r"[-_]+", " ", slot_name).strip(),
+                    "status": "in a wiki or handoff folder",
+                    "style": "no style",
+                    "style_ids": sorted({sid for x in pics for sid in x["styles"]}),
+                    "template_id": None,
+                    "reference_photo": _is_reference([x["where"] for x in pics]),
+                    "caption": "",
+                    "sources": ["wiki" if "wiki" in collection else "handoff"],
+                    "pictures": pics,
+                }
+            )
+            stats["posts"] += 1
+            stats["with_picture"] += 1
+    stats["extra_rows"] = extra_rows
 
     # Examples the seed names by file (e.g. img/ss-17-membership-snap__feed.jpg).
     # A post in the index is a slot that can hold several looks, so the pin keeps
