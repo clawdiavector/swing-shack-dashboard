@@ -2575,6 +2575,14 @@ export type TaxonomyMethod = {
   approval: TaxonomyApproval
 }
 
+export type TaxonomyPicture = {
+  role: string
+  thumb: string
+  mid: string | null
+  video: boolean
+  where: string
+}
+
 export type TaxonomyPost = {
   id: string
   brand: string
@@ -2582,12 +2590,26 @@ export type TaxonomyPost = {
   date: string
   title: string
   status: string
+  /** The label the phase 0 index carries, or "no style". */
   style: string
+  /** Seeded styles that label names. Empty means no style recorded. */
+  style_ids?: string[]
+  template_id?: string | null
+  /** A raw photo or source that goes into a post, not a finished post. */
+  reference_photo?: boolean
+  caption?: string
+  sources?: string[]
+  pictures?: TaxonomyPicture[]
   approval: TaxonomyApproval
+}
+
+export function designMediaUrl(name: string | null | undefined) {
+  return name ? `/api/design/media/${name}` : ''
 }
 
 export type TaxonomyTemplateRow = TemplateGalleryTemplate & {
   id: string
+  brand?: string
   approval: TaxonomyApproval
 }
 
@@ -2599,6 +2621,9 @@ export type TaxonomyPayload = {
   types?: TaxonomyType[]
   methods?: TaxonomyMethod[]
   posts?: TaxonomyPost[]
+  media_stats?: Record<string, number>
+  /** Pictures the seed names as examples of a style, by exact file. */
+  style_pins?: Record<string, { post: string; thumb: string; mid: string | null }[]>
   templates?: TaxonomyTemplateRow[]
   template_gallery?: { brand_bible?: TemplateGalleryPayload['brand_bible'] }
   error?: string

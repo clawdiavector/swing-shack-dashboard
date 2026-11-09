@@ -8087,6 +8087,20 @@ def design_taxonomy_get():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/design/media/<name>', methods=['GET'])
+def design_media(name):
+    """Small WebP copies of post images for the Taxonomy of Design page."""
+    import re as _re
+
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _re.fullmatch(r"[0-9a-f]{12}-[tm]\.webp", name or ""):
+        return jsonify({"error": "not found"}), 404
+    resp = send_from_directory(str(_design_taxonomy.media_dir()), name, mimetype="image/webp")
+    resp.headers["Cache-Control"] = "private, max-age=31536000, immutable"
+    return resp
+
+
 @app.route('/api/design/taxonomy/approve', methods=['POST'])
 def design_taxonomy_approve():
     if not _is_authed():

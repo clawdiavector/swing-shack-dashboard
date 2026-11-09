@@ -52,3 +52,30 @@ def test_approve_snap_records_actor_and_time(taxonomy_env):
     assert snap2["approval"]["status"] == "not_approved"
     assert snap2["approval"]["by"] is None
     assert snap2["approval"]["at"] is None
+
+
+def test_brand_folder_in_data_dir_does_not_hide_golden_renders(monkeypatch, tmp_path):
+    """A brand folder in DATA_DIR (feedback, calendar config) must not shadow the repo's template packs."""
+    (tmp_path / "brand-directory" / "swing-shack" / "feedback").mkdir(parents=True)
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("BUNDLED_DATA_DIR", str(CAMPAIGN_OS.parent / "data"))
+    tpl = next(t for t in dt.build_taxonomy()["templates"] if t["template_id"] == "ss-did-you-know")
+    assert any("golden/render-instagram.png" in u for u in tpl["preview_urls"])
+
+
+def test_posts_carry_pictures_and_pins(taxonomy_env):
+    del taxonomy_env
+    payload = dt.build_taxonomy()
+    assert len(payload["posts"]) > 1000
+    pictured = [p for p in payload["posts"] if p.get("pictures")]
+    assert pictured and all(pic["thumb"].endswith("-t.webp") for p in pictured[:50] for pic in p["pictures"])
+    assert payload["style_pins"]["snap"]
+    media = dt.media_dir()
+    assert all((media / pic["thumb"]).is_file() for p in pictured[:100] for pic in p["pictures"])
+
+
+def test_style_labels_only_map_when_the_label_names_a_style(taxonomy_env):
+    del taxonomy_env
+    posts = dt.build_taxonomy()["posts"]
+    assert not [p for p in posts if "snapback" in p["title"].lower() and "snap" in p["style_ids"]]
+    assert not [p for p in posts if p["style"].startswith("Poster collage") and p["style_ids"] == ["snap", "night"]]

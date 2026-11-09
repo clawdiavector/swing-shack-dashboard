@@ -30,6 +30,14 @@ def seed_path() -> Path:
     return _bundled_data_dir() / "design" / "taxonomy-seed.json"
 
 
+def media_dir() -> Path:
+    return _bundled_data_dir() / "design" / "media"
+
+
+def media_doc_path() -> Path:
+    return _bundled_data_dir() / "design" / "taxonomy-media.json"
+
+
 def approvals_path() -> Path:
     return _data_dir() / APPROVALS_BASENAME
 
@@ -126,6 +134,7 @@ def _templates_with_approval(brand_id: str, overlays: dict[str, dict[str, Any]])
             continue
         tid = str(tpl.get("template_id") or "")
         merged = dict(tpl)
+        merged["brand"] = brand_id
         merged["status"] = status_by_id.get(tid) or tpl.get("status")
         merged = _overlay_item(merged, overlays.get(tid))
         merged["id"] = tid
@@ -137,6 +146,7 @@ def _templates_with_approval(brand_id: str, overlays: dict[str, dict[str, Any]])
         if not tid or any(t.get("template_id") == tid or t.get("id") == tid for t in out):
             continue
         merged = dict(row)
+        merged["brand"] = brand_id
         merged["id"] = tid
         merged = _overlay_item(merged, overlays.get(tid))
         out.append(merged)
@@ -151,11 +161,17 @@ def build_taxonomy(*, brand: str | None = None) -> dict[str, Any]:
     styles = _section_rows(seed, "styles", approvals["styles"])
     types = _section_rows(seed, "types", approvals["types"])
     methods = _section_rows(seed, "methods", approvals["methods"])
-    posts = _section_rows(seed, "posts", approvals["posts"])
-    if brand:
-        posts = [p for p in posts if str(p.get("brand") or "") == brand_id]
+    media = _read_json(media_doc_path())
+    if media and isinstance(media.get("posts"), list):
+        # picture layer (scripts/build_design_media.py) replaces the capped seed list
+        posts = _section_rows({"posts": media["posts"]}, "posts", approvals["posts"])
+    else:
+        posts = _section_rows(seed, "posts", approvals["posts"])
+    # all brands: styles are shared across brands, so the page filters posts itself
 
-    templates = _templates_with_approval(brand_id, approvals["templates"])
+    templates: list[dict[str, Any]] = []
+    for bid in dict.fromkeys([brand_id, "swing-shack", "stick", "bag-drop"]):
+        templates.extend(_templates_with_approval(bid, approvals["templates"]))
 
     return {
         "schema_version": seed.get("schema_version", "taxonomy-seed-v1"),
@@ -164,6 +180,8 @@ def build_taxonomy(*, brand: str | None = None) -> dict[str, Any]:
         "types": types,
         "methods": methods,
         "posts": posts,
+        "media_stats": (media or {}).get("stats") or {},
+        "style_pins": (media or {}).get("style_pins") or {},
         "templates": templates,
         "template_gallery": {
             "brand_bible": (template_gallery.build_template_gallery(brand_id).get("brand_bible") or {})
