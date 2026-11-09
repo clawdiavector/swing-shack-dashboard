@@ -105,20 +105,18 @@ function PostRow({ post, rank, average }: { post: InsightPost; rank: number; ave
 export function WorkedLately() {
   const { brandId, brandLabel } = useBrand()
   const [result, setResult] = useState<InsightsPosts | null>(null)
-  // /api/insights/top-instagram-posts reads one shared Instagram store (Swing
-  // Shack's) whatever brand is asked for, so showing it under Stick or Bag Drop
-  // would put Swing Shack's posts on another company. Swing Shack only.
-  const isSwingShack = brandId === 'swing-shack'
-
+  // /api/insights/top-instagram-posts reads the brand's own Instagram file
+  // (brands/<brand>/ig-analytics.json) and returns no posts, with a reason, for a
+  // brand that has none, so another company's posts never show here.
   useEffect(() => {
-    if (!isSwingShack) return
+    if (!brandId) return
     fetchTopPosts(brandId, 3)
       .then(setResult)
       .catch(() => setResult({ ok: false, posts: [] }))
-  }, [brandId, isSwingShack])
+  }, [brandId])
 
-  const posts = isSwingShack ? (result?.posts ?? []) : []
-  const meta = isSwingShack ? result?._meta : undefined
+  const posts = result?.posts ?? []
+  const meta = result?._meta
   const age = daysAgo(meta?.fetched_at)
 
   return (
@@ -132,15 +130,10 @@ export function WorkedLately() {
         </Link>
       </p>
 
-      {!isSwingShack ? (
-        <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-          Instagram results are only tracked for Swing Shack right now{brandLabel ? `, not ${brandLabel}` : ''}. Switch the
-          brand to Swing Shack to see them.
-        </p>
-      ) : posts.length ? (
+      {posts.length ? (
         <>
           <p className="mb-2 text-xs text-tx3">
-            From the Swing Shack Instagram
+            From the {brandLabel || 'brand'} Instagram
             {meta?.total_scanned ? ` · ${meta.total_scanned} posts scanned` : ''}
             {meta?.average_engagement ? ` · average engagement ${meta.average_engagement}%` : ''}
             {meta?.fetched_at ? ` · data from ${dateOnly(meta.fetched_at)}` : ''}
@@ -154,7 +147,7 @@ export function WorkedLately() {
         </>
       ) : (
         <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-          No scored posts yet — open What worked, wait for interpret, or connect Instagram in Accounts.
+          {meta?.reason || 'No scored posts yet — open What worked, wait for interpret, or connect Instagram in Accounts.'}
         </p>
       )}
     </section>

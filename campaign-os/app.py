@@ -13187,10 +13187,12 @@ def insights_top_instagram_posts():
         from _lib import insights_correlator as _ic
         limit = min(int(request.args.get("limit", 8)), 25)
         bid = request.args.get("brand_id") or get_brand_id()
-        data_bid = resolve_data_brand(bid)
-        # The IG stores hold one account (@swingshack). Never show it under a
-        # brand whose own Instagram handle is a different account.
-        reason = _top_posts_brand_mismatch_reason(bid)
+        # A brand with its own Instagram file (brands/<brand>/ig-analytics.json)
+        # reads that. Otherwise the shared store holds one account (@swingshack):
+        # never show it under a brand whose own handle is a different account.
+        own_ig = _ic.brand_has_own_ig(bid)
+        data_bid = bid if own_ig else resolve_data_brand(bid)
+        reason = None if own_ig else _top_posts_brand_mismatch_reason(bid)
         if reason:
             return jsonify({
                 "ok": True,
