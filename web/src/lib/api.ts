@@ -2581,6 +2581,8 @@ export type TaxonomyPicture = {
   mid: string | null
   video: boolean
   where: string
+  /** Looks read from this picture's own file name. */
+  styles?: string[]
 }
 
 export type TaxonomyPost = {

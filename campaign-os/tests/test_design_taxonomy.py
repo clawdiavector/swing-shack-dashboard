@@ -79,3 +79,15 @@ def test_style_labels_only_map_when_the_label_names_a_style(taxonomy_env):
     posts = dt.build_taxonomy()["posts"]
     assert not [p for p in posts if "snapback" in p["title"].lower() and "snap" in p["style_ids"]]
     assert not [p for p in posts if p["style"].startswith("Poster collage") and p["style_ids"] == ["snap", "night"]]
+
+
+def test_style_is_read_per_picture_not_per_post(taxonomy_env):
+    """A post slot can hold several looks; Snap must only claim the pictures named for it."""
+    del taxonomy_env
+    posts = dt.build_taxonomy()["posts"]
+    for p in posts:
+        for pic in p.get("pictures", []):
+            if "snap" in (pic.get("styles") or []):
+                assert "-snap" in pic["where"].lower() or "_snap" in pic["where"].lower() or "/ss-" in pic["where"].lower()
+    assert any(p["id"].startswith("extra-") for p in posts)
+    assert any(pic["video"] for p in posts for pic in p.get("pictures", []))
