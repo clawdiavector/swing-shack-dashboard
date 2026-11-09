@@ -26888,6 +26888,20 @@ def plan_v1_reopen(brand_id, plan_id):
     return jsonify(r), (200 if r.get("ok") else 400)
 
 
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/catalog', methods=['POST'])
+def plan_v1_catalog(brand_id, plan_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import catalog as cat
+    try:
+        out = cat.ensure_for_plan(brand_id, plan_id)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    counts = cat.counts(out["pack_id"])
+    return jsonify({"ok": True, "pack_id": out["pack_id"], "url": f"/catalog/{out['pack_id']}", "counts": counts})
+
+
 @app.route('/api/brief/v1/<brand_id>/<brief_id>', methods=['GET'])
 def brief_v1_get(brand_id, brief_id):
     """GET /api/brief/v1/<brand_id>/<brief_id> — full Brief JSON."""
@@ -48932,6 +48946,33 @@ def _rp_share(token):
     return rp.read_token(_serializer, token)
 
 
+def _catalog_user_row() -> dict | None:
+    import importlib
+    try:
+        umod = importlib.import_module("_lib.users")
+    except ModuleNotFoundError:
+        return None
+    fn = getattr(umod, "current_user", None)
+    if not callable(fn):
+        return None
+    row = fn()
+    return row if isinstance(row, dict) else None
+
+
+def _catalog_actor_name() -> str:
+    row = _catalog_user_row()
+    if row and row.get("name"):
+        return str(row["name"]).strip()[:40]
+    return (request.headers.get("X-Actor-Display-Name") or request.environ.get("cos_actor_name") or "Team").strip()[:40]
+
+
+def _catalog_actor_uid() -> str:
+    row = _catalog_user_row()
+    if row and row.get("uid"):
+        return str(row["uid"]).strip()[:80]
+    return ""
+
+
 _RP_MIME = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
 
 
@@ -48943,6 +48984,56 @@ def _rp_send(path):
 
 _RP_GONE = {"ok": False, "error": "This link has expired. Ask for a new one."}
 _RP_SLOW = {"ok": False, "error": "That was a lot, quickly. Please wait a moment and try again."}
+
+
+@app.route("/catalog/<pack_id>", methods=["GET"])
+def catalog_page(pack_id):
+    if not _is_authed():
+        return redirect(url_for("login_page", next=request.path))
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+    pack = rp.get_pack(pack_id)
+    if not pack or pack.get("kind") != "catalog":
+        abort(404)
+    brand_id = str(pack.get("brand_id") or "")
+    plan_id = str(pack.get("plan_id") or "")
+    if brand_id and plan_id:
+        try:
+            cat.sync(brand_id, plan_id)
+        except ValueError:
+            pass
+    who = _catalog_actor_name()
+    uid = _catalog_actor_uid() or None
+    try:
+        token = rp.mint_token(_serializer, pack_id, who=who, uid=uid)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    return redirect(f"/review-pack/{token}")
+
+
+@app.route("/api/review-packs", methods=["GET"])
+def review_packs_session_list():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib import review_pack as rp
+    return jsonify({"ok": True, "packs": rp.list_packs()}), 200
+
+
+@app.route("/api/review-packs/<pack_id>/share", methods=["POST"])
+def review_packs_session_share(pack_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib import review_pack as rp
+    body = request.get_json(silent=True) or {}
+    who = str(body.get("who") or "Guest").strip()[:40] or "Guest"
+    try:
+        token = rp.mint_token(_serializer, pack_id, who=who)
+    except ValueError as e:
+        return _rp_error(e)
+    scheme = (request.headers.get('X-Forwarded-Proto') or request.scheme).split(',')[0].strip()
+    expires = _dt_cls.now(_tz.utc) + _td(seconds=rp.MAX_AGE)
+    return jsonify({"ok": True, "share_url": f"{scheme}://{request.host}/review-pack/{token}",
+                    "expires_at": expires.isoformat(), "who": who}), 200
 
 
 @app.route("/review-pack/<token>", methods=["GET"])

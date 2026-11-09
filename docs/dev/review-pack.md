@@ -77,6 +77,25 @@ are not counted in "answered".
   route whose path ends in a file extension.
 - Per-link rate limits on act, comment and upload on top of the app's general limiter.
 
+## Catalog (2026-11-09, slice c2-catalog)
+
+A **catalog** is a review pack tied to one campaign plan (`kind: "catalog"`). Each post and
+story step becomes a slot; shoot, boost and reminder steps are left out. Slots show
+**Picture to come** until a picture is added. The pack stays in sync with the plan; decisions,
+comments and uploads are never cleared by sync.
+
+**Our side (signed in):**
+
+```
+POST /api/plan/v1/<brand>/<plan_id>/catalog     ensure + sync → {pack_id, url, counts}
+GET  /catalog/<pack_id>                         sync, then redirect to /review-pack/<token> (staff mode on)
+GET  /api/review-packs                          list packs (id, title, kind, plan_id, brand, counts)
+POST /api/review-packs/<pack_id>/share          {who} → guest share_url (session; same shape as the job route)
+```
+
+Indexed at `DATA_DIR/review-packs/_catalog_index.json` (`brand:plan_id` → `pack_id`).
+Code: `campaign-os/_lib/catalog.py`, tests `campaign-os/tests/test_catalog_c2_catalog_20261109.py`.
+
 ## Not built yet
 
 A page on our side listing packs and live decisions (today: the API above), email or

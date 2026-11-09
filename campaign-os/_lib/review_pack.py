@@ -109,11 +109,19 @@ def _append_row(path: Path, row: dict[str, Any]) -> None:
 # ── the link ────────────────────────────────────────────────────────────────
 
 
-def mint_token(serializer: Any, pack_id: str, who: str = "Chantalle") -> str:
+def mint_token(serializer: Any, pack_id: str, who: str = "Chantalle", *, uid: str | None = None) -> str:
     """A signed link for ONE pack. It cannot open anything else."""
     if get_pack(pack_id) is None:
         raise NotFound("that pack is not there")
-    return serializer.dumps({"scope": SCOPE, "pack": pack_id, "who": (who or "Chantalle").strip()[:40], "v": 1})
+    payload: dict[str, Any] = {
+        "scope": SCOPE,
+        "pack": pack_id,
+        "who": (who or "Chantalle").strip()[:40],
+        "v": 1,
+    }
+    if uid:
+        payload["uid"] = str(uid).strip()[:80]
+    return serializer.dumps(payload)
 
 
 def read_token(serializer: Any, token: str, *, max_age: int = MAX_AGE) -> dict[str, str] | None:
@@ -129,7 +137,10 @@ def read_token(serializer: Any, token: str, *, max_age: int = MAX_AGE) -> dict[s
     pack_id = payload.get("pack")
     if get_pack(pack_id) is None:
         return None
-    return {"pack": pack_id, "who": str(payload.get("who") or "Chantalle")}
+    out: dict[str, str] = {"pack": pack_id, "who": str(payload.get("who") or "Chantalle")}
+    if payload.get("uid"):
+        out["uid"] = str(payload["uid"])
+    return out
 
 
 # ── packs ───────────────────────────────────────────────────────────────────
@@ -147,7 +158,7 @@ def _clean_item(raw: Any) -> dict[str, Any]:
     kind = str(raw.get("kind") or "single")
     if kind not in KINDS:
         raise ValueError(f"kind must be one of {', '.join(KINDS)}")
-    return {
+    out = {
         "id": item_id, "title": name[:200], "kind": kind,
         "caption": str(raw.get("caption") or "")[:4000],
         "channels": str(raw.get("channels") or "")[:200],
@@ -156,6 +167,9 @@ def _clean_item(raw: Any) -> dict[str, Any]:
         "note": str(raw.get("note") or "")[:600],
         "version": 1, "images": [],
     }
+    if raw.get("plan_item_id"):
+        out["plan_item_id"] = str(raw["plan_item_id"])[:80]
+    return out
 
 
 def add_item(pack_id: str, raw: dict[str, Any]) -> dict[str, Any]:
@@ -192,6 +206,47 @@ def create_pack(title: str, items: list[dict[str, Any]], *, client: str = "",
     return pack
 
 
+def create_empty_pack(title: str, *, client: str = "", extra: dict[str, Any] | None = None) -> dict[str, Any]:
+    """A pack with no items yet. Used when the catalog will fill slots on sync."""
+    title = (title or "").strip()
+    if not title:
+        raise ValueError("a pack needs a title")
+    pack_id = f"pack-{secrets.token_hex(4)}"
+    pack: dict[str, Any] = {
+        "id": pack_id,
+        "title": title[:200],
+        "client": (client or "").strip()[:60],
+        "created": _now(),
+        "theme": {},
+        "notice": "",
+        "items": [],
+    }
+    if extra:
+        pack.update(extra)
+    _write_json(_pack_dir(pack_id) / "pack.json", pack)
+    return pack
+
+
+def patch_pack(pack_id: str, **fields: Any) -> dict[str, Any]:
+    pack = _pack_or_raise(pack_id)
+    pack.update(fields)
+    _write_json(_pack_dir(pack_id) / "pack.json", pack)
+    return pack
+
+
+def update_item_fields(pack_id: str, item_id: str, fields: dict[str, Any]) -> dict[str, Any]:
+    """Change title, caption, channels, when or note. Never touches images or decisions."""
+    pack = _pack_or_raise(pack_id)
+    item = _item(pack, item_id)
+    limits = {"title": 200, "caption": 4000, "channels": 200, "when": 120, "note": 600, "audience": 60}
+    for key, val in fields.items():
+        if key not in limits:
+            continue
+        item[key] = str(val or "")[: limits[key]]
+    _write_json(_pack_dir(pack_id) / "pack.json", pack)
+    return item
+
+
 def _clean_theme(theme: dict[str, Any] | None) -> dict[str, Any]:
     theme = theme or {}
     colour = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -219,8 +274,16 @@ def list_packs() -> list[dict[str, Any]]:
         for d in sorted(_root().iterdir()):
             pack = get_pack(d.name)
             if pack:
-                out.append({"id": pack["id"], "title": pack["title"], "client": pack.get("client", ""),
-                            "items": len(pack["items"]), "created": pack.get("created", "")})
+                posts = len(pack.get("items") or [])
+                pictures = sum(1 for i in pack.get("items") or [] if i.get("images"))
+                out.append({
+                    "id": pack["id"], "title": pack["title"], "client": pack.get("client", ""),
+                    "items": posts, "created": pack.get("created", ""),
+                    "kind": pack.get("kind") or "single",
+                    "plan_id": pack.get("plan_id") or "",
+                    "brand": pack.get("brand_id") or "",
+                    "counts": {"posts": posts, "pictures": pictures, "pictures_yet": max(0, posts - pictures)},
+                })
     return out
 
 
@@ -535,9 +598,15 @@ def public_view(pack_id: str, token: str, who: str = "", staff: bool = False) ->
     me = " ".join(str(who or "").lower().split())
     done = [{**r, "colour": colour_of(pack_id, r.get("by", "")), "mine": bool(me) and k == me}
             for k, r in sorted(_done_rows(pack_id).items(), key=lambda kv: kv[1].get("at", ""))]
+    catalog_line = ""
+    if v["pack"].get("kind") == "catalog":
+        from _lib import catalog as _cat
+
+        catalog_line = _cat.catalog_header(v["pack"])
     out = {"pack": {"title": v["pack"]["title"], "client": v["pack"].get("client", ""),
                      "theme": v["pack"].get("theme", {}), "notice": v["pack"].get("notice", ""), "items": items},
-            "decisions": decisions, "comments": comments, "uploads": uploads, "done": done, "staff": False}
+            "decisions": decisions, "comments": comments, "uploads": uploads, "done": done, "staff": False,
+            "catalog_line": catalog_line}
     if staff:
         out["staff"] = True
         out["pack_id"] = pack_id
@@ -634,6 +703,8 @@ h1{font-size:clamp(28px,5vw,42px);line-height:1.1;margin:0;font-weight:900}h1 sp
 .meta{font-size:15px;color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}.grid.one{grid-template-columns:minmax(0,420px)}.grid.choice{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.grid.choice .zoom{top:6px;right:6px;width:34px;height:34px;font-size:16px}
 .cell{position:relative;min-width:0}.cell img{width:100%;display:block;border-radius:10px;background:var(--line);aspect-ratio:4/5;object-fit:cover;cursor:zoom-in}
+.pic.none{aspect-ratio:4/5;border-radius:10px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;text-align:center;padding:8px;min-height:120px}
+.catline{font-size:15px;color:var(--muted);margin:6px 0 0}
 .zoom{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(18,21,40,.78);color:#fff;font-size:19px;cursor:pointer}
 .opt{border:3px solid transparent;border-radius:14px;padding:5px;background:transparent;color:inherit;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:8px;text-align:left}
 .opt[aria-pressed=true]{border-color:var(--accent)}.opt b{font-size:18px}
@@ -665,7 +736,7 @@ button.rm{font:inherit;font-size:14px;font-weight:800;border:2px solid var(--no)
 button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 </style></head><body>
 <div class="wrap">
-<header><h1 id="ttl"></h1><p class="lead" id="intro"></p></header>
+<header><h1 id="ttl"></h1><p class="catline" id="catline" hidden></p><p class="lead" id="intro"></p></header>
 <aside class="card" id="notice" hidden style="border-left:6px solid var(--accent)"></aside>
 <div id="items" class="wrap"></div>
 <section class="card" id="week"></section>
@@ -733,12 +804,13 @@ function teamSection(){const s=el("section","card team");s.append(el("b","","Tea
 async function act(item,state,choice){try{const j=await post("/act",{item,state:state||undefined,choice:choice||undefined});D.decisions[item]=j.decision;paint();say(state?LBL[state]+" saved":"Option "+choice+" picked")}catch(e){say(e.message)}}
 function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name+": ":"";$("ttl").textContent="";$("ttl").append(document.createTextNode(parts),el("span","",P.title));
  $("intro").textContent="Look at each post, then choose Approve, Reject or Hold. Leave a comment on anything, and upload your own photo where you have one. Your answers save as you go. When you have been through them all, press I'm done at the bottom.";
+ if(D.catalog_line){const cl=$("catline");cl.hidden=false;cl.textContent=D.catalog_line}
  if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
  const box=$("items");P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
   const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m));const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);if(D.staff)h.append(teamRemove(it));c.append(h);
   if(it.images.length){const one=it.images.length===1;const g=el("div","grid"+(one?" one":"")+(it.kind==="choice"&&it.images.length>1?" choice":""));it.images.forEach((src,i)=>{const cell=el("div","cell");const im=new Image();im.src=src;im.alt=it.title;im.onclick=()=>openLB(it.images,i,it.title);
     if(it.kind==="choice"&&it.images.length>1){const L="ABC"[i];const o=el("button","opt");o.type="button";o.setAttribute("aria-label","Pick design option "+L);o.dataset.ch=it.id;o.dataset.v=L;o.setAttribute("aria-pressed","false");o.append(im,el("b","","Option "+L));o.onclick=()=>act(it.id,null,L);im.onclick=null;cell.append(o)}else cell.append(im);
-    if(it.kind==="choice"&&it.images.length>1){const z=el("button","zoom","⤢");z.type="button";z.setAttribute("aria-label","View full screen");z.onclick=()=>openLB(it.images,i,it.title);cell.append(z)}g.append(cell)});c.append(g)}
+    if(it.kind==="choice"&&it.images.length>1){const z=el("button","zoom","⤢");z.type="button";z.setAttribute("aria-label","View full screen");z.onclick=()=>openLB(it.images,i,it.title);cell.append(z)}g.append(cell)});c.append(g)}else{c.append(el("div","pic none","Picture to come"))}
   if(it.caption)c.append(el("div","cap",it.caption));if(it.note)c.append(el("p","meta",it.note));
   const r=el("div","row");["approve","reject","hold"].forEach(s=>{const b=el("button","pill "+s,LBL[s]);b.type="button";b.dataset.st=it.id;b.dataset.v=s;b.setAttribute("aria-pressed","false");b.onclick=()=>{const cur=D.decisions[it.id];act(it.id,s,cur&&cur.choice)};r.append(b)});c.append(r);
   const t=el("div","thread");t.append(el("h3","","Comments"));const tb=el("div");tb.dataset.th=it.id;t.append(tb,composer(it.id,tb));c.append(t);
