@@ -62,6 +62,46 @@ def _blur_fill(im: Any, target: float) -> Any:
     return bg
 
 
+_GOOGLE_SIZE = (1200, 900)
+_GOOGLE_ASPECT = 4 / 3
+
+
+def fit_google_4x3(src: Any) -> tuple[bytes, str | None]:
+    """Centre-crop or blur-fill to 4:3, then save 1200×900 JPEG. Never stretch."""
+    from PIL import Image  # noqa: PLC0415
+
+    if hasattr(src, "convert"):
+        im = src.convert("RGB")
+    else:
+        with Image.open(io.BytesIO(src)) as opened:
+            im = opened.convert("RGB")
+    w, h = im.size
+    aspect = w / h
+    note = None
+    if aspect + 0.005 < _GOOGLE_ASPECT:
+        nh = round(w / _GOOGLE_ASPECT)
+        top = max(0, (h - nh) // 2)
+        im = im.crop((0, top, w, min(h, top + nh)))
+    elif aspect - 0.005 > _GOOGLE_ASPECT:
+        im = _blur_fill(im, _GOOGLE_ASPECT)
+        # Light left-to-right grade on the fill so edges read as blur, not a flat crop.
+        w, h = im.size
+        graded = Image.new("RGB", (w, h))
+        sp, dp = im.load(), graded.load()
+        for y in range(h):
+            fade_l = 0.93 + 0.07 * (y / max(1, h - 1))
+            for x in range(w):
+                fade = fade_l * (0.95 + 0.05 * (x / max(1, w - 1)))
+                r, g, b = sp[x, y]
+                dp[x, y] = (min(255, int(r * fade)), min(255, int(g * fade)), min(255, int(b * fade)))
+        im = graded
+        note = "google: blur-filled wide source to 4:3"
+    im = im.resize(_GOOGLE_SIZE, Image.Resampling.LANCZOS)
+    buf = io.BytesIO()
+    im.save(buf, format="JPEG", quality=92)
+    return buf.getvalue(), note
+
+
 def fit_for_channel_png(src: Any, channel: str) -> tuple[bytes, str | None]:
     """Size a finished image for one channel. Returns (PNG bytes, note or None).
 

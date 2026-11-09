@@ -49057,7 +49057,8 @@ def review_pack_data(token):
 def review_pack_image(token, item, idx):
     from _lib import review_pack as rp
     share = _rp_share(token)
-    path = rp.image_path(share["pack"], item, idx) if share else None
+    size = str(request.args.get("size") or "feed").strip().lower()
+    path = rp.image_path(share["pack"], item, idx, size=size) if share else None
     if path is None:
         abort(404)
     resp = _rp_send(path)

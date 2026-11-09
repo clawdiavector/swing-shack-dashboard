@@ -240,9 +240,14 @@ def update_item_fields(pack_id: str, item_id: str, fields: dict[str, Any]) -> di
     item = _item(pack, item_id)
     limits = {"title": 200, "caption": 4000, "channels": 200, "when": 120, "note": 600, "audience": 60}
     for key, val in fields.items():
+        if key == "caption_auto":
+            item["caption_auto"] = bool(val)
+            continue
         if key not in limits:
             continue
         item[key] = str(val or "")[: limits[key]]
+        if key == "caption" and "caption_auto" not in fields:
+            item["caption_auto"] = False
     _write_json(_pack_dir(pack_id) / "pack.json", pack)
     return item
 
@@ -414,17 +419,78 @@ def add_item_image(pack_id: str, item_id: str, data: bytes, *, replace: bool = F
     return {"index": idx, "version": item["version"]}
 
 
-def image_path(pack_id: str, item_id: str, index: int) -> Path | None:
+def add_catalog_picture(
+    pack_id: str,
+    item_id: str,
+    feed_data: bytes,
+    *,
+    source_url: str,
+    content_hash: str,
+    story_data: bytes,
+    google_data: bytes,
+) -> dict[str, Any]:
+    """Add a composed feed picture and its story + Google renders. Bumps version, keeps history."""
+    pack = _pack_or_raise(pack_id)
+    item = _item(pack, item_id)
+    hashes = list(item.get("picture_hashes") or [])
+    if content_hash in hashes:
+        return {"skipped": True, "version": item.get("version", 1)}
+    _img, fmt = _check_image(feed_data, MAX_PACK_IMAGE_BYTES)
+    ext = {"JPEG": ".jpg", "PNG": ".png", "WEBP": ".webp"}[fmt.upper()]
+    item["version"] = int(item.get("version", 1)) + 1
+    idx = len(item.get("images") or [])
+    ver = item["version"]
+    feed_name = f"{item_id}-{idx}-v{ver}{ext}"
+    story_name = f"{item_id}-{idx}-v{ver}-story.png"
+    google_name = f"{item_id}-{idx}-v{ver}-google.jpg"
+    d = _pack_dir(pack_id)
+    assert d is not None
+    (d / "images").mkdir(parents=True, exist_ok=True)
+    (d / "images" / feed_name).write_bytes(feed_data)
+    (d / "images" / story_name).write_bytes(story_data)
+    (d / "images" / google_name).write_bytes(google_data)
+    item.setdefault("images", []).append(feed_name)
+    hashes.append(content_hash)
+    item["picture_hashes"] = hashes
+    meta = list(item.get("picture_meta") or [])
+    meta.append({"version": ver, "hash": content_hash, "source_url": str(source_url or "")[:500], "idx": idx})
+    item["picture_meta"] = meta
+    _write_json(d / "pack.json", pack)
+    decisions = _read_json(d / "decisions.json", {})
+    if decisions.pop(item_id, None) is not None:
+        _write_json(d / "decisions.json", decisions)
+    return {"index": idx, "version": ver, "skipped": False}
+
+
+def _feed_image_name(item: dict[str, Any], index: int) -> str | None:
+    try:
+        name = item["images"][int(index)]
+    except (IndexError, ValueError, TypeError, KeyError):
+        return None
+    return name if _IMAGE_NAME.match(name) else None
+
+
+def image_path(pack_id: str, item_id: str, index: int, *, size: str = "feed") -> Path | None:
     pack = get_pack(pack_id)
     if pack is None:
         return None
     try:
         item = _item(pack, item_id)
-        name = item["images"][int(index)]
-    except (NotFound, IndexError, ValueError, TypeError):
+        feed_name = _feed_image_name(item, index)
+    except NotFound:
         return None
-    if not _IMAGE_NAME.match(name):
+    if not feed_name:
         return None
+    size = (size or "feed").strip().lower()
+    if size == "feed":
+        name = feed_name
+    else:
+        base = re.sub(r"\.(jpe?g|png|webp)$", "", feed_name, flags=re.I)
+        name = f"{base}-story.png" if size == "story" else (
+            f"{base}-google.jpg" if size == "google" else ""
+        )
+        if not name:
+            return None
     p = _pack_dir(pack_id) / "images" / name
     return p if p.is_file() else None
 
@@ -589,8 +655,14 @@ def public_view(pack_id: str, token: str, who: str = "", staff: bool = False) ->
     base = f"/review-pack/{token}"
     items = []
     for it in v["pack"]["items"]:
+        urls = [f"{base}/image/{it['id']}/{i}" for i in range(len(it["images"]))]
+        latest = len(urls) - 1
+        size_urls = {}
+        if latest >= 0:
+            root = f"{base}/image/{it['id']}/{latest}"
+            size_urls = {"feed": root, "story": f"{root}?size=story", "google": f"{root}?size=google"}
         items.append({**{k: it[k] for k in ("id", "title", "kind", "caption", "channels", "when", "audience", "note", "version")},
-                      "images": [f"{base}/image/{it['id']}/{i}" for i in range(len(it["images"]))]})
+                      "images": urls, "size_urls": size_urls})
     uploads = [{**u, "url": f"{base}/file/{u['file']}", "colour": colour_of(pack_id, u.get("who", ""))} for u in v["uploads"]]
     comments = {k: [{**c, "colour": colour_of(pack_id, c.get("who", ""))} for c in rows] for k, rows in v["comments"].items()}
     decisions = {k: ({**r, "colour": colour_of(pack_id, r.get("by", ""))} if isinstance(r, dict) else r)
@@ -704,6 +776,9 @@ h1{font-size:clamp(28px,5vw,42px);line-height:1.1;margin:0;font-weight:900}h1 sp
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}.grid.one{grid-template-columns:minmax(0,420px)}.grid.choice{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.grid.choice .zoom{top:6px;right:6px;width:34px;height:34px;font-size:16px}
 .cell{position:relative;min-width:0}.cell img{width:100%;display:block;border-radius:10px;background:var(--line);aspect-ratio:4/5;object-fit:cover;cursor:zoom-in}
 .pic.none{aspect-ratio:4/5;border-radius:10px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;text-align:center;padding:8px;min-height:120px}
+.size-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}
+.size-tabs button.pill{font-size:14px;padding:6px 14px;min-height:40px}
+.earlier{margin:4px 0 0;font-size:13px;color:var(--muted)}
 .catline{font-size:15px;color:var(--muted);margin:6px 0 0}
 .zoom{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(18,21,40,.78);color:#fff;font-size:19px;cursor:pointer}
 .opt{border:3px solid transparent;border-radius:14px;padding:5px;background:transparent;color:inherit;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:8px;text-align:left}
@@ -748,7 +823,8 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 <script>
 const TOKEN="__TOKEN__",BASE="/review-pack/"+TOKEN;let D=JSON.parse(document.getElementById("boot").textContent);
 const $=id=>document.getElementById(id);const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e};
-const LBL={approve:"Approve",reject:"Reject",hold:"Hold"};let LB={l:[],i:0,t:""};
+const LBL={approve:"Approve",reject:"Reject",hold:"Hold"};let LB={l:[],i:0,t:""};const SIZE_PICK=new Map();
+function pickSize(item,key,img,urls){SIZE_PICK.set(item,key);document.querySelectorAll('[data-size-tab="'+item+'"]').forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===key)));if(img&&urls[key])img.src=urls[key]}
 function openLB(l,i,t){LB={l,i,t};showLB();$("lb").hidden=false;$("lbx").focus()}
 function showLB(){$("lbi").src=LB.l[LB.i];$("lbc").textContent=LB.t+(LB.l.length>1?"  ·  "+(LB.i+1)+" of "+LB.l.length:"");$("lbp").hidden=$("lbn").hidden=LB.l.length<2}
 function step(d){LB.i=(LB.i+d+LB.l.length)%LB.l.length;showLB()}
@@ -808,8 +884,12 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
  if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
  const box=$("items");P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
   const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m));const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);if(D.staff)h.append(teamRemove(it));c.append(h);
-  if(it.images.length){const one=it.images.length===1;const g=el("div","grid"+(one?" one":"")+(it.kind==="choice"&&it.images.length>1?" choice":""));it.images.forEach((src,i)=>{const cell=el("div","cell");const im=new Image();im.src=src;im.alt=it.title;im.onclick=()=>openLB(it.images,i,it.title);
-    if(it.kind==="choice"&&it.images.length>1){const L="ABC"[i];const o=el("button","opt");o.type="button";o.setAttribute("aria-label","Pick design option "+L);o.dataset.ch=it.id;o.dataset.v=L;o.setAttribute("aria-pressed","false");o.append(im,el("b","","Option "+L));o.onclick=()=>act(it.id,null,L);im.onclick=null;cell.append(o)}else cell.append(im);
+  if(it.images.length){const one=it.images.length===1;const g=el("div","grid"+(one?" one":"")+(it.kind==="choice"&&it.images.length>1?" choice":""));const latest=it.images.length-1;it.images.forEach((src,i)=>{const cell=el("div","cell");const im=new Image();const urls=it.size_urls||{};const isLatest=i===latest&&it.kind!=="choice";
+    im.src=(isLatest&&urls.feed)?urls.feed:src;im.alt=it.title;
+    if(it.kind==="choice"&&it.images.length>1){const L="ABC"[i];const o=el("button","opt");o.type="button";o.setAttribute("aria-label","Pick design option "+L);o.dataset.ch=it.id;o.dataset.v=L;o.setAttribute("aria-pressed","false");o.append(im,el("b","","Option "+L));o.onclick=()=>act(it.id,null,L);im.onclick=null;cell.append(o)}else{
+      if(isLatest&&urls.feed){const tabs=el("div","size-tabs");tabs.setAttribute("role","tablist");tabs.setAttribute("aria-label","Picture size");[["feed","Feed"],["story","Story"],["google","Google"]].forEach(([k,l])=>{const b=el("button","pill",l);b.type="button";b.dataset.sizeTab=it.id;b.dataset.k=k;b.setAttribute("role","tab");b.setAttribute("aria-pressed",String(k==="feed"));b.onclick=()=>pickSize(it.id,k,im,urls);tabs.append(b)});cell.append(tabs)}
+      if(!isLatest)cell.append(el("p","earlier","Earlier version"));
+      im.onclick=()=>{const pick=SIZE_PICK.get(it.id)||"feed";const lb=(isLatest&&urls[pick])?[urls.feed,urls.story,urls.google].filter(Boolean):it.images;const at=isLatest?["feed","story","google"].indexOf(pick):i;openLB(lb,Math.max(0,at),it.title)};cell.append(im)}
     if(it.kind==="choice"&&it.images.length>1){const z=el("button","zoom","⤢");z.type="button";z.setAttribute("aria-label","View full screen");z.onclick=()=>openLB(it.images,i,it.title);cell.append(z)}g.append(cell)});c.append(g)}else{c.append(el("div","pic none","Picture to come"))}
   if(it.caption)c.append(el("div","cap",it.caption));if(it.note)c.append(el("p","meta",it.note));
   const r=el("div","row");["approve","reject","hold"].forEach(s=>{const b=el("button","pill "+s,LBL[s]);b.type="button";b.dataset.st=it.id;b.dataset.v=s;b.setAttribute("aria-pressed","false");b.onclick=()=>{const cur=D.decisions[it.id];act(it.id,s,cur&&cur.choice)};r.append(b)});c.append(r);
