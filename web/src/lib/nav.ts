@@ -103,6 +103,7 @@ export const SETTINGS: RailItem = {
   match: ['/ops', '/other', '/brand', '/library', '/geo', '/desk', '/settings'],
   pages: [
     { to: '/ops', label: 'Ops' },
+    { to: '/settings/password', label: 'Password' },
     { to: '/settings/users', label: 'Logins' },
     { to: '/other', label: 'Everything else' },
   ],

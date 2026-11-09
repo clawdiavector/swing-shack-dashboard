@@ -71,7 +71,7 @@ if PRODUCTION_ENV_HINT and not _os.environ.get('CAMPAIGN_OS_SECRET', '').strip()
     )
 
 SESSION_COOKIE = 'cos_session'
-SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+SESSION_MAX_AGE = 60 * 60 * 24 * 365  # one year from sign-in
 # v2026-08-13: signed share-token TTL for the auth-optional markdown export.
 # 24 hours is enough for a same-day Slack/email share; longer than a day
 # invites stale-data sharing and stale links accumulating in docs.
@@ -572,7 +572,36 @@ def api_me():
             'role': user['role'],
             'brands': user.get('brands') or [],
         }
-    return jsonify(payload), 200
+    resp = make_response(jsonify(payload), 200)
+    # Opening the app calls this. Refresh the browser cookie so a sign-in
+    # already in progress picks up the one-year lifetime. The token itself
+    # still expires one year after it was issued.
+    token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        resp.set_cookie(SESSION_COOKIE, token, max_age=SESSION_MAX_AGE, httponly=True, samesite='Lax', path='/')
+    return resp
+
+
+@app.route('/api/me/password', methods=['POST'])
+def api_me_password():
+    """A named login changes their own password. They must know the current one.
+    This never accepts another person's id. Resetting someone else stays on
+    /api/users/<id>/password, which only an admin (or the shared team password) can call."""
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    user = current_user()
+    if not user:
+        return jsonify({'ok': False, 'error': 'Sign in with your email to change your password.'}), 400
+    from _lib import users
+
+    body = request.get_json(silent=True) or {}
+    if not users.authenticate(str(user.get('email') or ''), str(body.get('current') or '')):
+        return jsonify({'ok': False, 'error': 'That is not your current password.'}), 400
+    try:
+        users.set_password(str(user['id']), str(body.get('password') or ''))
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+    return jsonify({'ok': True}), 200
 
 
 def _users_admin_forbid():
@@ -587,7 +616,7 @@ def _users_admin_forbid():
     payload = _session_payload()
     if user is None and isinstance(payload, dict) and payload.get('authed') and not payload.get('uid'):
         return None
-    return jsonify({'ok': False, 'error': 'Only Kyle can manage logins.'}), 403
+    return jsonify({'ok': False, 'error': 'Only an admin can manage logins.'}), 403
 
 
 @app.route('/api/users', methods=['GET'])

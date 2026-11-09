@@ -118,9 +118,11 @@ export function UsersSettings() {
     return (
       <div className="mx-auto max-w-2xl p-6">
         <PageIntro here="/settings/users" title="Logins">
-          Only Kyle can manage logins.
+          Only an admin can manage logins.
         </PageIntro>
-        <p className="text-sm text-tx2">Ask Kyle or Christelle if you need access.</p>
+        <p className="text-sm text-tx2">
+          Change your own password from Password in the top bar.
+        </p>
       </div>
     )
   }
