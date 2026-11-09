@@ -8088,6 +8088,86 @@ def brand_template_gallery(brand_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+from _lib import design_taxonomy as _design_taxonomy  # noqa: E402
+
+
+def _taxonomy_actor() -> str:
+    user = current_user()
+    if user:
+        return str(user.get("name") or "").strip() or "Kyle"
+    auth = request.headers.get("Authorization", "")
+    if COS_JOB_TOKEN and auth.startswith("Bearer ") and auth[len("Bearer "):] == COS_JOB_TOKEN:
+        return "Kyle"
+    return _actor_name(default="Kyle")
+
+
+@app.route('/api/design/taxonomy', methods=['GET'])
+def design_taxonomy_get():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = (request.args.get("brand") or "").strip() or None
+    try:
+        payload = _design_taxonomy.build_taxonomy(brand=brand)
+        return jsonify({"ok": True, **payload}), 200
+    except FileNotFoundError as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    except Exception as e:
+        _app_log.exception("design_taxonomy_get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/design/media/<name>', methods=['GET'])
+def design_media(name):
+    """Small WebP copies of post images for the Taxonomy of Design page."""
+    import re as _re
+
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _re.fullmatch(r"[0-9a-f]{12}-[tm]\.webp", name or ""):
+        return jsonify({"error": "not found"}), 404
+    resp = send_from_directory(str(_design_taxonomy.media_dir()), name, mimetype="image/webp")
+    resp.headers["Cache-Control"] = "private, max-age=31536000, immutable"
+    return resp
+
+
+@app.route('/api/design/taxonomy/approve', methods=['POST'])
+def design_taxonomy_approve():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    section = str(body.get("section") or "").strip()
+    item_id = str(body.get("id") or "").strip()
+    try:
+        approval = _design_taxonomy.set_approval(
+            section, item_id, approve=True, actor=_taxonomy_actor()
+        )
+        return jsonify({"ok": True, "section": section, "id": item_id, "approval": approval}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("design_taxonomy_approve failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/design/taxonomy/unapprove', methods=['POST'])
+def design_taxonomy_unapprove():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    section = str(body.get("section") or "").strip()
+    item_id = str(body.get("id") or "").strip()
+    try:
+        approval = _design_taxonomy.set_approval(
+            section, item_id, approve=False, actor=_taxonomy_actor()
+        )
+        return jsonify({"ok": True, "section": section, "id": item_id, "approval": approval}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("design_taxonomy_unapprove failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 from _lib import library_shelf as _library_shelf  # noqa: E402
 
 

@@ -34,7 +34,7 @@ import { Photos } from './pages/Photos'
 import { Todo } from './pages/Todo'
 import { WeekBoard } from './pages/WeekBoard'
 import { Week } from './pages/results/Week'
-import { Templates } from './pages/results/Templates'
+import { DesignTaxonomy } from './pages/DesignTaxonomy'
 import { Worked } from './pages/results/Worked'
 import { BrandVisuals } from './pages/BrandVisuals'
 import { Archive } from './pages/Archive'
@@ -86,7 +86,11 @@ export default function App() {
         <Route path="results" element={<Results />} />
         <Route path="results/week" element={<Week />} />
         <Route path="results/worked" element={<Worked />} />
-        <Route path="results/templates" element={<Templates />} />
+        <Route
+          path="results/templates"
+          element={<Navigate to="/design?section=templates" replace />}
+        />
+        <Route path="design" element={<DesignTaxonomy />} />
         <Route path="results/seo" element={<SeoPage />} />
         <Route path="results/reach" element={<ReachPage />} />
         <Route path="results/trends" element={<TrendsPage />} />

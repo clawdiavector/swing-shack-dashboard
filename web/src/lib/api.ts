@@ -2534,6 +2534,126 @@ export function fetchTemplateGallery(brandId: string) {
   )
 }
 
+export type TaxonomyApproval = {
+  status: 'not_approved' | 'approved'
+  by: string | null
+  at: string | null
+}
+
+export type TaxonomyStyle = {
+  id: string
+  name: string
+  summary?: string
+  approval: TaxonomyApproval
+  references?: { label: string; path?: string; url?: string; note?: string }[]
+  roles?: {
+    colour_roles?: Record<string, { from: string; role?: string; hex?: string }>
+    font_roles?: Record<string, { from: string; role?: string; family?: string }>
+    fixed?: Record<string, string>
+  }
+  method_id?: string
+  checks?: string[]
+  examples?: string[]
+  brands_used?: string[]
+}
+
+export type TaxonomyType = {
+  id: string
+  name: string
+  meaning: string
+  needs_photo: boolean
+  templates: Record<string, string[]>
+  approval: TaxonomyApproval
+}
+
+export type TaxonomyMethod = {
+  id: string
+  name: string
+  kind: string
+  tools?: string[]
+  cost_notes?: string
+  approval: TaxonomyApproval
+}
+
+export type TaxonomyPicture = {
+  role: string
+  thumb: string
+  mid: string | null
+  video: boolean
+  where: string
+}
+
+export type TaxonomyPost = {
+  id: string
+  brand: string
+  campaign: string
+  date: string
+  title: string
+  status: string
+  /** The label the phase 0 index carries, or "no style". */
+  style: string
+  /** Seeded styles that label names. Empty means no style recorded. */
+  style_ids?: string[]
+  template_id?: string | null
+  /** A raw photo or source that goes into a post, not a finished post. */
+  reference_photo?: boolean
+  caption?: string
+  sources?: string[]
+  pictures?: TaxonomyPicture[]
+  approval: TaxonomyApproval
+}
+
+export function designMediaUrl(name: string | null | undefined) {
+  return name ? `/api/design/media/${name}` : ''
+}
+
+export type TaxonomyTemplateRow = TemplateGalleryTemplate & {
+  id: string
+  brand?: string
+  approval: TaxonomyApproval
+}
+
+export type TaxonomyPayload = {
+  ok?: boolean
+  schema_version?: string
+  brand_id?: string
+  styles?: TaxonomyStyle[]
+  types?: TaxonomyType[]
+  methods?: TaxonomyMethod[]
+  posts?: TaxonomyPost[]
+  media_stats?: Record<string, number>
+  /** Pictures the seed names as examples of a style, by exact file. */
+  style_pins?: Record<string, { post: string; thumb: string; mid: string | null }[]>
+  templates?: TaxonomyTemplateRow[]
+  template_gallery?: { brand_bible?: TemplateGalleryPayload['brand_bible'] }
+  error?: string
+}
+
+export function fetchDesignTaxonomy(brandId?: string) {
+  const q = brandId ? `?brand=${encodeURIComponent(brandId)}` : ''
+  return getJson<TaxonomyPayload>(`/api/design/taxonomy${q}`)
+}
+
+export async function approveDesignTaxonomyItem(section: string, id: string) {
+  const res = await fetch('/api/design/taxonomy/approve', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ section, id }),
+  })
+  return res.json() as Promise<{ ok?: boolean; approval?: TaxonomyApproval; error?: string }>
+}
+
+export async function unapproveDesignTaxonomyItem(section: string, id: string) {
+  const res = await fetch('/api/design/taxonomy/unapprove', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ section, id }),
+  })
+  return res.json() as Promise<{ ok?: boolean; approval?: TaxonomyApproval; error?: string }>
+}
+
 export type PostStudioFieldSpec = {
   key: string
   label: string
