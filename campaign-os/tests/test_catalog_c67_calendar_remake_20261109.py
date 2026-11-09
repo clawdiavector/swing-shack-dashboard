@@ -241,7 +241,6 @@ def test_remake_brief_contains_note_loved_look_and_reference_uploads(data_dir, m
     plan, pack_id = _catalog(data_dir, monkeypatch)
     posts = [i for i in plan["items"] if i["kind"] == "post"]
     love, target = posts[0], posts[1]
-    rp.record_decision(pack_id, love["item_id"], "approve", "Herman")
     rp.record_decision(pack_id, target["item_id"], "reject", "Herman")
     rp.add_comment(pack_id, target["item_id"], "Herman", "Make it bolder.", role="client")
     png = _png()
@@ -254,6 +253,7 @@ def test_remake_brief_contains_note_loved_look_and_reference_uploads(data_dir, m
         story_data=png,
         google_data=png,
     )
+    rp.record_decision(pack_id, love["item_id"], "approve", "Herman")  # marked after seeing the picture
     rp.save_upload(
         pack_id,
         target["item_id"],

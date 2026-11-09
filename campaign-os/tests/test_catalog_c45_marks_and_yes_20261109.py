@@ -166,7 +166,7 @@ def test_upload_needs_purpose_and_text(data_dir, monkeypatch):
     _, pack_id = _catalog_pack(data_dir, monkeypatch)
     plan_posts = [i for i in _plan(data_dir, monkeypatch)["items"] if i["kind"] == "post"]
     item = plan_posts[0]["item_id"] if plan_posts else rp.get_pack(pack_id)["items"][0]["id"]
-    token = rp.mint_token(URLSafeTimedSerializer("not-a-real-secret"), pack_id)
+    token = rp.mint_token(app_module._serializer, pack_id)
     client = app_module.app.test_client(cos_anon=True)
     bad = client.post(
         f"/review-pack/{token}/upload",

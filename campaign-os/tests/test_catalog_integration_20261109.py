@@ -146,3 +146,88 @@ def test_page_has_cards_per_row_and_full_size_view():
         assert v in html
     assert "View full size" in html
     assert 'D.catalog_upload?"auto":"1"' in html  # catalogs start side by side; other packs as before
+
+
+def test_link_signed_with_another_key_is_refused():
+    """No fallback key: a link signed with anything but the app's own secret opens nothing."""
+    from itsdangerous import URLSafeTimedSerializer
+    import app as app_module
+
+    forged = URLSafeTimedSerializer("not-a-real-secret").dumps(
+        {"scope": "review_pack", "pack": "any-pack", "who": "Herman", "role": "approver"})
+    with app_module.app.test_request_context("/"):
+        assert app_module._rp_share(forged) is None
+        assert app_module._rp_token_ok(forged) is False
+
+
+def test_feedback_log_holds_no_signed_link(tmp_path, monkeypatch):
+    from tests.test_catalog_c67_calendar_remake_20261109 import _catalog
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    plan, pack_id = _catalog(tmp_path, monkeypatch)
+    slot = rp.get_pack(pack_id)["items"][0]["id"]
+    cat.feedback_from_mark(pack_id, slot, "reject", "Herman", token="SECRET-TOKEN-abc", note="Too busy")
+    logs = list((tmp_path / "brands").rglob("catalog-feedback.jsonl"))
+    text = logs[0].read_text()
+    assert "SECRET-TOKEN" not in text and "/review-pack/" not in text
+    assert "Too busy" in text
+
+
+def test_remade_picture_is_hidden_until_shown(tmp_path, monkeypatch):
+    """Remake from notes -> the next picture for that slot is a remake Herman cannot see yet."""
+    from tests.test_catalog_c67_calendar_remake_20261109 import _catalog, BRAND, cp
+    from tests.test_catalog_c3_pictures_20261109 import _feed_png
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    plan, pack_id = _catalog(tmp_path, monkeypatch)
+    post = next(i for i in plan["items"] if i["kind"] == "post")
+    post["calendar_id"] = "cal-remake"
+    cp._write_plan(plan)
+    files = {"u1": _feed_png(800, 1000), "u2": _feed_png(800, 1000, center=(9, 9, 240))}
+    cur = {"u": "u1"}
+    ps = lambda b, c: {"composed": {"instagram": cur["u"]}} if c == "cal-remake" else None
+    lb = lambda b, u: files.get(u)
+    cat.refresh_pictures(BRAND, plan["plan_id"], post_state=ps, load_bytes=lb)
+    rp.record_decision(pack_id, post["item_id"], "reject", "Herman")
+    out = cat.remake_from_notes(pack_id, "Christelle", request_draft=lambda *a, **k: {"ok": True})
+    assert post["item_id"] in out["queued"]
+    cur["u"] = "u2"
+    cat.refresh_pictures(BRAND, plan["plan_id"], post_state=ps, load_bytes=lb)
+    item = next(i for i in rp.get_pack(pack_id)["items"] if i["id"] == post["item_id"])
+    assert item["picture_meta"][-1]["remake"] is True
+    assert item["picture_meta"][-1]["shown_to_client"] is False
+    assert cat.client_picture_index(item, staff=False) == 0  # Herman still sees the first one
+    cat.show_remake_to_client(pack_id, post["item_id"], "Christelle")
+    item = next(i for i in rp.get_pack(pack_id)["items"] if i["id"] == post["item_id"])
+    assert cat.client_picture_index(item, staff=False) == 1
+
+
+def test_unchanged_picture_is_not_read_again(tmp_path, monkeypatch):
+    from tests.test_catalog_c67_calendar_remake_20261109 import _catalog, BRAND, cp
+    from tests.test_catalog_c3_pictures_20261109 import _feed_png
+    from _lib import catalog as cat
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    plan, pack_id = _catalog(tmp_path, monkeypatch)
+    post = next(i for i in plan["items"] if i["kind"] == "post")
+    post["calendar_id"] = "cal-same"
+    cp._write_plan(plan)
+    reads = []
+    ps = lambda b, c: {"composed": {"instagram": "u1"}} if c == "cal-same" else None
+    def lb(b, u):
+        reads.append(u)
+        return _feed_png(800, 1000)
+    cat.refresh_pictures(BRAND, plan["plan_id"], post_state=ps, load_bytes=lb)
+    cat.refresh_pictures(BRAND, plan["plan_id"], post_state=ps, load_bytes=lb)
+    assert reads == ["u1"]
+
+
+def test_shared_password_session_can_drag_and_approve_campaign():
+    from _lib import catalog as cat
+
+    assert cat.staff_can_drag(staff=True, session_user=None, share_role=None) is True
+    assert cat.staff_can_drag(staff=False, session_user=None, share_role="approver") is False

@@ -256,10 +256,23 @@ def _is_authed():
         if uid:
             from _lib import users
 
-            user = users.get_user(str(uid))
+            user = _cached_user(str(uid))
             if not user or user.get("disabled"):
                 return False
     return True
+
+
+def _cached_user(uid: str) -> dict | None:
+    """users.json read once per request, however many checks ask."""
+    cache = getattr(g, "_cos_users", None)
+    if cache is None:
+        cache = {}
+        g._cos_users = cache
+    if uid not in cache:
+        from _lib import users
+
+        cache[uid] = users.get_user(uid)
+    return cache[uid]
 
 
 def _session_payload() -> dict | None:
@@ -279,9 +292,7 @@ def current_user() -> dict | None:
     uid = (payload or {}).get("uid")
     if not uid:
         return None
-    from _lib import users
-
-    user = users.get_user(str(uid))
+    user = _cached_user(str(uid))
     if user and user.get("disabled"):
         return None
     return user
@@ -317,21 +328,7 @@ def _user_forbid(action: str):
 
     if users.can(user, action):
         return None
-    messages = {
-        "move": "Your login cannot move dates. Ask Christelle or Kyle.",
-        "approve": "Your login can comment but not approve. Ask Christelle or Kyle.",
-        "campaign_approve": "Only an approver or editor can approve the campaign.",
-        "share": "Your login cannot share links.",
-    }
-    return (
-        jsonify(
-            {
-                "ok": False,
-                "error": messages.get(action, "Your login cannot do that."),
-            }
-        ),
-        403,
-    )
+    return jsonify({"ok": False, "error": "Your login cannot do that. Ask Kyle."}), 403
 
 
 def _is_admin() -> bool:
@@ -15886,7 +15883,7 @@ def posts_lodge_route():
     upload_denied = _user_forbid('upload')
     if upload_denied:
         return upload_denied
-    actor = _actor_name(use_header=True)
+    actor = _actor_name(use_header=True, default="")
     if not actor:
         return jsonify({"ok": False, "error": (
             "send your name in the X-Actor-Display-Name header -- the calendar "
@@ -26819,7 +26816,7 @@ def plan_v1_place(brand_id, plan_id):
     denied = _user_forbid('move')
     if denied:
         return denied
-    actor = _actor_name(use_header=True)
+    actor = _actor_name(use_header=True, default="")
     if not actor:
         return jsonify({"ok": False, "error": (
             "send your name in the X-Actor-Display-Name header -- the calendar "
@@ -48964,26 +48961,13 @@ def _review_pack_limited(token, kind, limit):
 def _rp_token_ok(token: str) -> bool:
     from _lib import review_pack as rp
 
-    if rp.read_token(_serializer, token):
-        return True
-    if not PRODUCTION_ENV_HINT:
-        from itsdangerous import URLSafeTimedSerializer
-
-        return bool(rp.read_token(URLSafeTimedSerializer("not-a-real-secret"), token))
-    return False
+    return bool(rp.read_token(_serializer, token))
 
 
 def _rp_share(token):
     from _lib import review_pack as rp
 
-    out = rp.read_token(_serializer, token)
-    if out:
-        return out
-    if not PRODUCTION_ENV_HINT:
-        from itsdangerous import URLSafeTimedSerializer
-
-        return rp.read_token(URLSafeTimedSerializer("not-a-real-secret"), token)
-    return None
+    return rp.read_token(_serializer, token)
 
 
 def _rp_campaign_can_approve(share: dict | None, staff: bool) -> bool:
@@ -48998,10 +48982,11 @@ def _rp_campaign_can_approve(share: dict | None, staff: bool) -> bool:
         return True
     if staff:
         row = current_user()
-        if row:
-            from _lib import users
+        if not row:
+            return True  # shared team password: free range
+        from _lib import users
 
-            return users.can(row, "campaign_approve")
+        return users.can(row, "campaign_approve")
     return False
 
 
@@ -49216,6 +49201,14 @@ def review_pack_page(token):
     share = _rp_share(token)
     if not share:
         return rp.render_bad_link_page(), 404, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
+    pack_now = rp.get_pack(share["pack"]) or {}
+    if pack_now.get("kind") == "catalog" and pack_now.get("brand_id") and pack_now.get("plan_id"):
+        # Guests (Herman's link) see new pictures and dates too, not only /catalog/ openers.
+        from _lib import catalog as _cat
+        try:
+            _cat.sync(str(pack_now["brand_id"]), str(pack_now["plan_id"]))
+        except Exception as e:  # noqa: BLE001 - the page still opens with what it has
+            _app_log.warning("catalog sync on guest open failed for %s: %s", share["pack"], e)
     staff = _is_authed()
     page = rp.render_page(
         rp.public_view(

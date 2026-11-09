@@ -290,6 +290,16 @@ def refresh_pictures(
         feed_url = str(composed.get(FEED_RENDER_CHANNEL) or composed.get("instagram") or "").strip()
         if not feed_url:
             continue
+        pack0 = rp.get_pack(pack_id) or {}
+        slot0 = next((i for i in pack0.get("items") or [] if i["id"] == row["item_id"]), None) or {}
+        meta0 = slot0.get("picture_meta") or []
+        if meta0 and meta0[-1].get("source_url") == feed_url[:500]:
+            skipped += 1
+            draft_cap = _draft_caption(st)
+            if draft_cap and (not str(slot0.get("caption") or "").strip() or slot0.get("caption_auto", True)) \
+                    and slot0.get("caption") != draft_cap:
+                rp.update_item_fields(pack_id, row["item_id"], {"caption": draft_cap, "caption_auto": True})
+            continue
         raw = load_bytes(brand_id, feed_url)
         if not raw:
             continue
@@ -315,6 +325,7 @@ def refresh_pictures(
                 google_raw = load_bytes(brand_id, google_url)
             if not google_raw:
                 google_raw, _ = fit_google_4x3(raw)
+            is_remake = _take_remake_pending(pack_id, row["item_id"])
             out = rp.add_catalog_picture(
                 pack_id,
                 row["item_id"],
@@ -323,6 +334,8 @@ def refresh_pictures(
                 content_hash=content_hash,
                 story_data=story_raw,
                 google_data=google_raw,
+                remake=is_remake,
+                shown_to_client=not is_remake,
             )
             if out.get("skipped"):
                 skipped += 1
@@ -651,10 +664,10 @@ def month_strip_view(pack_id: str) -> dict[str, Any]:
 
 
 def staff_can_drag(*, staff: bool, session_user: dict[str, Any] | None, share_role: str | None) -> bool:
-    if not staff or share_role == "approver":
+    if not staff:
         return False
     if not session_user:
-        return False
+        return True  # signed in with the shared team password: free range
     from _lib import users
 
     return users.can(session_user, "move")
@@ -761,7 +774,7 @@ def build_remake_brief(pack_id: str, slot_id: str, *, token: str = "") -> dict[s
         state = dec.get("state") if isinstance(dec, dict) else None
         if state in ("hold", "reject"):
             continue
-        if state != "approve" and not (it.get("images") and state in (None, "pending")):
+        if state != "approve":
             continue
         urls = []
         if it.get("images") and base:
@@ -781,6 +794,26 @@ def build_remake_brief(pack_id: str, slot_id: str, *, token: str = "") -> dict[s
         parts.append("Reference uploads: " + json.dumps(refs, ensure_ascii=False))
     prompt_text = "\n".join(parts)
     return {"notes": notes, "loved_look": loved, "reference_uploads": refs, "prompt_text": prompt_text}
+
+
+def _mark_remake_pending(pack_id: str, item_id: str, who: str) -> None:
+    """The next picture that arrives for this slot is a remake: the team sees it first."""
+    slots = slot_states(pack_id)
+    row = slots.get(item_id) or {}
+    row.update({"remake_pending": True, "remake_asked_by": who, "remake_asked_at": rp._now()})  # noqa: SLF001
+    slots[item_id] = row
+    _write_slots(pack_id, slots)
+
+
+def _take_remake_pending(pack_id: str, item_id: str) -> bool:
+    slots = slot_states(pack_id)
+    row = slots.get(item_id) or {}
+    if not row.get("remake_pending"):
+        return False
+    row["remake_pending"] = False
+    slots[item_id] = row
+    _write_slots(pack_id, slots)
+    return True
 
 
 def remake_from_notes(
@@ -829,6 +862,7 @@ def remake_from_notes(
         r = draft_fn(brand_id, plan_id, iid, who)
         if r.get("ok"):
             queued.append(iid)
+            _mark_remake_pending(pack_id, iid, who)
         else:
             err = str(r.get("error") or "Could not queue the remake.")
             if err == "only a post step can be drafted":
@@ -915,10 +949,10 @@ def feedback_from_mark(pack_id: str, item_id: str, mark: str, who: str, *, token
     if not pack or pack.get("kind") != "catalog":
         return
     brand_id, plan_id = _slot_brand_plan(pack)
-    base = f"/review-pack/{token}" if token else ""
+    # A pack reference, never the person's signed link: the log is read by jobs.
     pack_item = next((i for i in pack.get("items") or [] if i["id"] == item_id), None)
-    idx = max(0, len((pack_item or {}).get("images") or []) - 1)
-    url = f"{base}/image/{item_id}/{idx}" if base else ""
+    images = (pack_item or {}).get("images") or []
+    url = f"pack:{pack_id}/{item_id}/{images[-1]}" if images else ""
     log_catalog_feedback(brand_id, pack_id, plan_id, item_id, who, mark, note, url)
 
 

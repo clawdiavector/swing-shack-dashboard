@@ -13,16 +13,10 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 ROLES = ("admin", "editor", "approver", "contributor")
 
-_ACTIONS: dict[str, frozenset[str]] = {
-    "approve": frozenset({"admin", "editor"}),
-    "move": frozenset({"admin", "editor"}),
-    "share": frozenset({"admin", "editor"}),
-    "catalog_make": frozenset({"admin", "editor"}),
-    "campaign_approve": frozenset({"admin", "editor", "approver"}),
-    "comment": frozenset(ROLES),
-    "upload": frozenset(ROLES),
-    "users_admin": frozenset({"admin"}),
-}
+# Actions a signed-in login may take. Free range for now (Kyle, 9 Nov 2026): every
+# enabled login may take every one, whatever its role; only "users_admin" is the
+# admin's. The role is stored so limits can be switched on later without a migration.
+ACTIONS = frozenset({"approve", "move", "share", "catalog_make", "campaign_approve", "comment", "upload"})
 
 _LOCK = threading.Lock()
 
@@ -200,4 +194,4 @@ def can(user: dict[str, Any] | None, action: str) -> bool:
         return False
     if action == "users_admin":
         return user.get("role") == "admin"
-    return action in _ACTIONS
+    return action in ACTIONS
