@@ -565,11 +565,12 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
 
   const approved = plan.status === 'approved'
   const livePlan = plan.status === 'proposed' || plan.status === 'approved'
+  const planId = plan.plan_id
 
   async function openCatalog() {
     setCatalogNote(null)
     setError(null)
-    const r = await ensurePlanCatalog(brandId, plan.plan_id)
+    const r = await ensurePlanCatalog(brandId, planId)
     if (!r.ok || !r.pack_id) {
       setError(r.error || 'Could not open the catalog.')
       return
@@ -584,7 +585,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
     setError(null)
     let id = catalogPackId
     if (!id) {
-      const r = await ensurePlanCatalog(brandId, plan.plan_id)
+      const r = await ensurePlanCatalog(brandId, planId)
       if (!r.ok || !r.pack_id) {
         setError(r.error || 'Could not copy the link.')
         return
@@ -612,7 +613,7 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
     if (!name) return
     let id = catalogPackId
     if (!id) {
-      const r = await ensurePlanCatalog(brandId, plan.plan_id)
+      const r = await ensurePlanCatalog(brandId, planId)
       if (!r.ok || !r.pack_id) {
         setError(r.error || 'Could not make a guest link.')
         return
