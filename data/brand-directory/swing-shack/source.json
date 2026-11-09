@@ -50,6 +50,20 @@
       "download_errors": 0,
       "counts_by_folder": {},
       "dry_run": false
+    },
+    {
+      "date": "2026-11-09",
+      "method": "public_folder_http",
+      "folder_id": "1n9pHD6hwr7oEfRBAGBriRrsqv_I-qGge",
+      "files_downloaded": 56,
+      "files_skipped_dedupe": 215,
+      "files_skipped_non_image": 9,
+      "download_errors": 0,
+      "counts_by_folder": {
+        "Brand": 24,
+        "Location": 32
+      },
+      "dry_run": false
     }
   ]
 }

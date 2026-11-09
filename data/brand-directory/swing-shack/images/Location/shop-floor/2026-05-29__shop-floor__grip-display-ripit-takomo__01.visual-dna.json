@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/shop-floor/2026-05-29__shop-floor__grip-display-ripit-takomo__01.jpg",
+  "layer1_metadata": {
+    "filename": "2026-05-29__shop-floor__grip-display-ripit-takomo__01.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 1810737,
+    "modified": 1794189907.2156613,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#3c3d37",
+        "rgb": [
+          60,
+          61,
+          55
+        ],
+        "share": 0.1807
+      },
+      {
+        "hex": "#d1c4bc",
+        "rgb": [
+          209,
+          196,
+          188
+        ],
+        "share": 0.1578
+      },
+      {
+        "hex": "#a07c6c",
+        "rgb": [
+          160,
+          124,
+          108
+        ],
+        "share": 0.1348
+      },
+      {
+        "hex": "#151a14",
+        "rgb": [
+          21,
+          26,
+          20
+        ],
+        "share": 0.1198
+      },
+      {
+        "hex": "#273129",
+        "rgb": [
+          39,
+          49,
+          41
+        ],
+        "share": 0.1138
+      },
+      {
+        "hex": "#5a6955",
+        "rgb": [
+          90,
+          105,
+          85
+        ],
+        "share": 0.1011
+      },
+      {
+        "hex": "#554540",
+        "rgb": [
+          85,
+          69,
+          64
+        ],
+        "share": 0.0993
+      },
+      {
+        "hex": "#9fb381",
+        "rgb": [
+          159,
+          179,
+          129
+        ],
+        "share": 0.0928
+      }
+    ],
+    "mean_brightness": 97.5,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 135.6,
+    "brightness_bottom": 94.6,
+    "edge_density_grid": [
+      [
+        5.47,
+        4.13,
+        5.56
+      ],
+      [
+        4.79,
+        5.56,
+        5.23
+      ],
+      [
+        7.58,
+        7.83,
+        5.24
+      ]
+    ],
+    "subject_estimate_position": "bottom"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 68,
+    "text_preview": "STYLE YOUR GANE Brege /\u00a7 We PIE yo CTY ESI OL Apa MONG iy, We OM tg BeZ- CPSE flop TLOMU AP tis. ZA. 7 a GLOVE 100 DESIGNED FOR FEEL. DESIGNED TOGO Low, DESIGNED FOR THOSE WHO HiT BOMBS, AND THOSE WHo HIT WINDOws, GLOVE 100 OFFE TOUR-QUALITy FEEL AND GRIP EVEN TIME IN 7; FOR THOSE WHO SPEND MOR HE W"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 123,
+    "median_text_height_px": 19,
+    "likely_heading_text": "GLOVE 100",
+    "is_all_caps": true,
+    "sample_text_colour": "#cdc7af"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#3c3d37",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "bottom",
+      "ocr_text": "STYLE YOUR GANE Brege /\u00a7 We PIE yo CTY ESI OL Apa MONG iy, We OM tg BeZ- CPSE flop TLOMU AP tis. ZA. 7 a GLOVE 100 DESIGNED FOR FEEL. DESIGNED TOGO Low, DESIGNED FOR THOSE WHO HiT BOMBS, AND THOSE WHo HIT WINDOws, GLOVE 100 OFFE TOUR-QUALITy FEEL AND GRIP EVEN TIME IN 7; FOR THOSE WHO SPEND MOR HE Woops THAN THE FAIRWays, TAKOMO ee",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Takomo"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

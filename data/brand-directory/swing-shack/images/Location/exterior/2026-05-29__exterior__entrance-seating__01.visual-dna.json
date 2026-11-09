@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/exterior/2026-05-29__exterior__entrance-seating__01.jpg",
+  "layer1_metadata": {
+    "filename": "2026-05-29__exterior__entrance-seating__01.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 3938918,
+    "modified": 1794189849.4145417,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#ab8561",
+        "rgb": [
+          171,
+          133,
+          97
+        ],
+        "share": 0.1714
+      },
+      {
+        "hex": "#4e3e32",
+        "rgb": [
+          78,
+          62,
+          50
+        ],
+        "share": 0.1397
+      },
+      {
+        "hex": "#403128",
+        "rgb": [
+          64,
+          49,
+          40
+        ],
+        "share": 0.1391
+      },
+      {
+        "hex": "#604f3f",
+        "rgb": [
+          96,
+          79,
+          63
+        ],
+        "share": 0.1238
+      },
+      {
+        "hex": "#2e251f",
+        "rgb": [
+          46,
+          37,
+          31
+        ],
+        "share": 0.1169
+      },
+      {
+        "hex": "#100c09",
+        "rgb": [
+          16,
+          12,
+          9
+        ],
+        "share": 0.1129
+      },
+      {
+        "hex": "#88674c",
+        "rgb": [
+          136,
+          103,
+          76
+        ],
+        "share": 0.1075
+      },
+      {
+        "hex": "#cbb9a1",
+        "rgb": [
+          203,
+          185,
+          161
+        ],
+        "share": 0.0887
+      }
+    ],
+    "mean_brightness": 84.1,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 100.4,
+    "brightness_bottom": 72.6,
+    "edge_density_grid": [
+      [
+        43.13,
+        52.93,
+        15.7
+      ],
+      [
+        11.53,
+        24.41,
+        26.62
+      ],
+      [
+        28.34,
+        37.78,
+        20.36
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 12,
+    "text_preview": "RAE WG ae TRAINING WITH SOL LY; Robbies cycling and Fitness Center"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 19,
+    "median_text_height_px": 13,
+    "likely_heading_text": "RAE TRAINING cycling",
+    "is_all_caps": false,
+    "sample_text_colour": "#564032"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": false,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#ab8561",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top",
+      "ocr_text": "RAE WG ae TRAINING WITH SOL LY; Robbies cycling and Fitness Center",
+      "all_caps_detected": false
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}
