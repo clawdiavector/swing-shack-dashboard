@@ -240,3 +240,4 @@ campaign-os/tests/test_brand_lane_readers_20261106.py
 campaign-os/tests/test_job_data_stale_20261105.py
 campaign-os/tests/test_bag_drop_everywhere_20261106.py
 campaign-os/tests/test_catalog_c1_logins_20261109.py
+campaign-os/tests/test_catalog_c1_logins_r2_20261109.py
