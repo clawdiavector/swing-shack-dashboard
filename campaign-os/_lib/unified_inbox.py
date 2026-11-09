@@ -2115,6 +2115,23 @@ def approve_item(
     if not item:
         return {"ok": False, "error": "inbox item not found"}
     item_type, key = _parse_item_id(item_id)
+    from _lib import catalog as cat
+
+    if item_type == "draft_asset":
+        brand_id = str(item.get("brand_id") or "")
+        cal_id = str((item.get("meta") or {}).get("calendar_id") or "")
+        if not cal_id and ":" in key:
+            parts = key.split(":", 1)
+            if len(parts) == 2:
+                from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+                for rec in canonical_records(brand_id):
+                    if str(rec.get("calendar_id") or "") == parts[0]:
+                        cal_id = parts[0]
+                        break
+        blocked = cat.release_blocked(brand_id, cal_id)
+        if blocked:
+            return {"ok": False, "error": blocked}
     mode_norm = (mode or "lodge").strip().lower()
     if mode_norm not in ("lodge", "book"):
         mode_norm = "lodge"
