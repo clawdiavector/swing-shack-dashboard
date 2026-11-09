@@ -77,6 +77,76 @@ are not counted in "answered".
   route whose path ends in a file extension.
 - Per-link rate limits on act, comment and upload on top of the app's general limiter.
 
+## Catalog (2026-11-09, slice c2-catalog)
+
+A **catalog** is a review pack tied to one campaign plan (`kind: "catalog"`). Each post and
+story step becomes a slot; shoot, boost and reminder steps are left out. Slots show
+**Picture to come** until a picture is added. The pack stays in sync with the plan; decisions,
+comments and uploads are never cleared by sync.
+
+**Our side (signed in):**
+
+```
+POST /api/plan/v1/<brand>/<plan_id>/catalog     ensure + sync → {pack_id, url, counts}
+GET  /catalog/<pack_id>                         sync, then redirect to /review-pack/<token> (staff mode on)
+GET  /api/review-packs                          list packs (id, title, kind, plan_id, brand, counts)
+POST /api/review-packs/<pack_id>/share          {who} → guest share_url (session; same shape as the job route)
+```
+
+Indexed at `DATA_DIR/review-packs/_catalog_index.json` (`brand:plan_id` → `pack_id`).
+Code: `campaign-os/_lib/catalog.py`, tests `campaign-os/tests/test_catalog_c2_catalog_20261109.py`.
+
+## Campaign yes and Love it / Maybe / No (2026-11-09, slice c45)
+
+Catalog packs use **Love it / Maybe / No** on the page; stored states stay
+`approve` / `hold` / `reject`. Maybe and No need a note (`Say what should change…`).
+Catalog uploads need a **purpose** (`reference`, `element`, `post`) and a line of text.
+
+**Approve the campaign** (option A) records `campaign_approval` on the pack, sets
+per-slot `release_ok` / `held`, and writes `catalog_hold` on plan steps and calendar
+records. It does **not** call `approve_plan`, `place_on_calendar`, Postiz or the
+publish queue.
+
+```
+POST /review-pack/<token>/campaign-approve     guest approver link or signed-in approver+
+POST /api/review-packs/<pack_id>/campaign-approve
+POST /api/review-packs/<pack_id>/items/<item_id>/clear-hold   editors only
+POST /api/review-packs/<pack_id>/share {who, campaign_approver: true}   approver guest link
+```
+
+`/news` includes `campaign_approved` with who and when when that happened after
+`since`. The Mac Telegram watcher polls `GET /api/jobs/review-packs/<id>/news?since=…`;
+wiring the watcher on the Mac is Kyle's step (not in the app).
+
+## Calendar strip and drag (2026-11-09, slice c67)
+
+Catalog staff (editors and admins, signed in, not an approver guest link) see a
+**month strip** above the slots: dots per post coloured Love it / Maybe / No / grey.
+Drag a slot’s date chip onto a day, or use **Move to…** with a date field.
+
+- Placed steps (`calendar_id` set): `POST /review-pack/<token>/move-slot` calls the
+  same move as `POST /api/clean-calendar/<brand>/move` and shows refusal text as-is.
+- Not placed yet: changes the plan step `due` via `PATCH /api/plan/v1/.../item/<id>`,
+  then `catalog.sync`.
+
+## Remake from notes (2026-11-09, slice c67)
+
+Editors and admins: **Remake from notes** on the catalog page (staff view).
+`POST /api/review-packs/<pack_id>/remake` queues at most **4** remakes per press
+through `campaign_plan.request_draft` (nothing calls Krea directly). Briefs live in
+`DATA_DIR/catalog-remakes/` and are picked up by the caption/image draft path.
+
+Love-it slots are untouched. Maybe/No slots get a brief from the note, Love-it
+lookalikes in the pack, and reference/element uploads. Unplaced steps get a plain
+“put the plan on the calendar first” line.
+
+New pictures can be flagged `remake` and hidden until **Show to Herman** on the slot
+(`POST /api/review-packs/<pack_id>/items/<item_id>/show-remake`) or
+`POST .../show-all-remakes`.
+
+Marks and notes append to `DATA_DIR/brands/<brand>/catalog-feedback.jsonl` (write-only
+for now; nothing reads it yet).
+
 ## Not built yet
 
 A page on our side listing packs and live decisions (today: the API above), email or

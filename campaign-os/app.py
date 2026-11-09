@@ -78,6 +78,12 @@ SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 SHARE_TOKEN_MAX_AGE = 60 * 60 * 24
 _serializer = URLSafeTimedSerializer(SESSION_SECRET)
 
+try:
+    from _lib import users as _users_boot
+    _users_boot.ensure_bootstrap()
+except Exception as _users_boot_err:
+    print(f"[boot] users bootstrap skipped: {_users_boot_err}", flush=True, file=sys.stderr)
+
 # Routes that never require auth (login + the static asset paths needed to render login)
 PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/api/live', '/api/ready', '/livez', '/readyz', '/favicon.ico'}
 # Public route prefixes — anyone can hit these
@@ -242,10 +248,87 @@ def _is_authed():
     if not token:
         return False
     try:
-        _serializer.loads(token, max_age=SESSION_MAX_AGE)
-        return True
+        data = _serializer.loads(token, max_age=SESSION_MAX_AGE)
     except (BadSignature, SignatureExpired):
         return False
+    if isinstance(data, dict):
+        uid = data.get("uid")
+        if uid:
+            from _lib import users
+
+            user = _cached_user(str(uid))
+            if not user or user.get("disabled"):
+                return False
+    return True
+
+
+def _cached_user(uid: str) -> dict | None:
+    """users.json read once per request, however many checks ask."""
+    cache = getattr(g, "_cos_users", None)
+    if cache is None:
+        cache = {}
+        g._cos_users = cache
+    if uid not in cache:
+        from _lib import users
+
+        cache[uid] = users.get_user(uid)
+    return cache[uid]
+
+
+def _session_payload() -> dict | None:
+    token = request.cookies.get(SESSION_COOKIE)
+    if not token:
+        return None
+    try:
+        data = _serializer.loads(token, max_age=SESSION_MAX_AGE)
+        return data if isinstance(data, dict) else None
+    except (BadSignature, SignatureExpired):
+        return None
+
+
+def current_user() -> dict | None:
+    """The named account behind this cookie, if any. Shared-password sessions have no uid."""
+    payload = _session_payload()
+    uid = (payload or {}).get("uid")
+    if not uid:
+        return None
+    user = _cached_user(str(uid))
+    if user and user.get("disabled"):
+        return None
+    return user
+
+
+def _actor_name(
+    *,
+    use_header: bool = True,
+    body: dict | None = None,
+    default: str = "operator",
+) -> str:
+    """Signed-in name wins. Otherwise match each route's old header/body/default behaviour."""
+    user = current_user()
+    if user:
+        return str(user.get("name") or "").strip() or default
+    payload = body if body is not None else (request.get_json(silent=True) or {})
+    actor = str(payload.get("actor") or "").strip()
+    if actor:
+        return actor
+    if use_header:
+        header = (request.headers.get("X-Actor-Display-Name") or "").strip()
+        if header:
+            return header
+    return default
+
+
+def _user_forbid(action: str):
+    """403 when a named login may not do this. Shared password and job bearer skip checks."""
+    user = current_user()
+    if not user:
+        return None
+    from _lib import users
+
+    if users.can(user, action):
+        return None
+    return jsonify({"ok": False, "error": "Your login cannot do that. Ask Kyle."}), 403
 
 
 def _is_admin() -> bool:
@@ -398,7 +481,9 @@ def _gate():
     # uploaded .jpg cannot be fetched without its link.
     if path.startswith('/review-pack/'):
         from _lib import review_pack as _rp_gate
-        if _rp_gate.read_token(_serializer, path[len('/review-pack/'):].split('/', 1)[0]):
+
+        tok = path[len('/review-pack/'):].split('/', 1)[0]
+        if _rp_token_ok(tok):
             return None
         return _rp_gate.render_bad_link_page(), 404, {'Content-Type': 'text/html; charset=utf-8'}
     # Allow static asset extensions (CSS, JS, images, fonts) needed to render login page.
@@ -436,21 +521,26 @@ def login_page():
 
 @app.route('/login', methods=['POST'])
 def login_submit():
+    email = (request.form.get('email') or '').strip().lower()
     pw = request.form.get('password') or ''
-    if not pw:
-        # also accept JSON for fetch() fallback
-        try:
-            data = request.get_json(silent=True) or {}
-            pw = data.get('password') or ''
-        except Exception:
-            pass
-    # constant-time-ish compare (string compare is fine for shared password)
-    if not pw or hashlib.sha256(pw.encode()).hexdigest() != hashlib.sha256(SHARED_PASSWORD.encode()).hexdigest():
-        return jsonify({'ok': False, 'error': 'Wrong password. Try again.'}), 401
-    token = _serializer.dumps({'authed': True})
+    if not pw and not email:
+        data = request.get_json(silent=True) or {}
+        email = (data.get('email') or '').strip().lower()
+        pw = data.get('password') or ''
     next_url = request.args.get('next') or request.form.get('next') or '/'
     if not next_url.startswith('/'):
         next_url = '/'
+    if email:
+        from _lib import users
+
+        user = users.authenticate(email, pw)
+        if not user:
+            return jsonify({'ok': False, 'error': 'Wrong email or password. Try again.'}), 401
+        token = _serializer.dumps({'authed': True, 'uid': user['id']})
+    else:
+        if not pw or hashlib.sha256(pw.encode()).hexdigest() != hashlib.sha256(SHARED_PASSWORD.encode()).hexdigest():
+            return jsonify({'ok': False, 'error': 'Wrong password. Try again.'}), 401
+        token = _serializer.dumps({'authed': True})
     resp = make_response(jsonify({'ok': True, 'next': next_url}))
     resp.set_cookie(SESSION_COOKIE, token, max_age=SESSION_MAX_AGE, httponly=True, samesite='Lax', path='/')
     return resp
@@ -461,6 +551,111 @@ def logout():
     resp = make_response(redirect(url_for('login_page')))
     resp.set_cookie(SESSION_COOKIE, '', max_age=0, path='/')
     return resp
+
+
+@app.route('/api/me', methods=['GET'])
+def api_me():
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    user = current_user()
+    shared = user is None and bool(_session_payload())
+    payload = {
+        'ok': True,
+        'signed_in': True,
+        'shared': shared,
+        'user': None,
+    }
+    if user:
+        payload['user'] = {
+            'id': user['id'],
+            'name': user['name'],
+            'role': user['role'],
+            'brands': user.get('brands') or [],
+        }
+    return jsonify(payload), 200
+
+
+def _users_admin_forbid():
+    """Logins are managed by Kyle's admin login, or by anyone signed in with the shared
+    team password (so the first logins can be made right after a deploy, with no
+    environment change). A named non-admin login and a job token cannot."""
+    user = current_user()
+    from _lib import users
+
+    if user and users.can(user, 'users_admin'):
+        return None
+    payload = _session_payload()
+    if user is None and isinstance(payload, dict) and payload.get('authed') and not payload.get('uid'):
+        return None
+    return jsonify({'ok': False, 'error': 'Only Kyle can manage logins.'}), 403
+
+
+@app.route('/api/users', methods=['GET'])
+def api_users_list():
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    bad = _users_admin_forbid()
+    if bad:
+        return bad
+    from _lib import users
+
+    return jsonify({'ok': True, 'users': users.list_users()}), 200
+
+
+@app.route('/api/users', methods=['POST'])
+def api_users_create():
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    bad = _users_admin_forbid()
+    if bad:
+        return bad
+    from _lib import users
+
+    body = request.get_json(silent=True) or {}
+    try:
+        row = users.create_user(
+            str(body.get('name') or ''),
+            str(body.get('email') or ''),
+            str(body.get('role') or 'contributor'),
+            list(body.get('brands') or []),
+            str(body.get('password') or ''),
+        )
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+    return jsonify({'ok': True, 'user': row}), 200
+
+
+@app.route('/api/users/<user_id>', methods=['PATCH'])
+def api_users_patch(user_id):
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    bad = _users_admin_forbid()
+    if bad:
+        return bad
+    from _lib import users
+
+    try:
+        row = users.update_user(user_id, request.get_json(silent=True) or {})
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+    return jsonify({'ok': True, 'user': row}), 200
+
+
+@app.route('/api/users/<user_id>/password', methods=['POST'])
+def api_users_password(user_id):
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    bad = _users_admin_forbid()
+    if bad:
+        return bad
+    from _lib import users
+
+    body = request.get_json(silent=True) or {}
+    try:
+        users.set_password(user_id, str(body.get('password') or ''))
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+    return jsonify({'ok': True}), 200
 
 
 _FAVICON_SVG = (
@@ -15685,7 +15880,10 @@ def posts_lodge_route():
     # The V2.6 write-gate (_v26_wrapped_upsert_event) only books an approved
     # slot for a request that names its person in this header. Checked here
     # so the caller gets the fix, not a PermissionError from three layers down.
-    actor = (request.headers.get('X-Actor-Display-Name') or '').strip()
+    upload_denied = _user_forbid('upload')
+    if upload_denied:
+        return upload_denied
+    actor = _actor_name(use_header=True, default="")
     if not actor:
         return jsonify({"ok": False, "error": (
             "send your name in the X-Actor-Display-Name header -- the calendar "
@@ -26565,7 +26763,8 @@ def plan_v1_edit_item(brand_id, plan_id, item_id):
     if bad:
         return bad
     body = request.get_json(silent=True) or {}
-    actor = body.pop("actor", "operator") or "operator"
+    actor = _actor_name(body=body)
+    body = {k: v for k, v in body.items() if k != "actor"}
     try:
         r = _plan_import().edit_item(brand_id, plan_id, item_id, body, actor)
     except ValueError as e:
@@ -26579,7 +26778,8 @@ def plan_v1_add_item(brand_id, plan_id):
     if bad:
         return bad
     body = request.get_json(silent=True) or {}
-    actor = body.pop("actor", "operator") or "operator"
+    actor = _actor_name(body=body)
+    body = {k: v for k, v in body.items() if k != "actor"}
     try:
         r = _plan_import().add_item(brand_id, plan_id, body, actor)
     except ValueError as e:
@@ -26593,11 +26793,13 @@ def plan_v1_approve(brand_id, plan_id):
     bad = _plan_guard(brand_id)
     if bad:
         return bad
+    denied = _user_forbid('approve')
+    if denied:
+        return denied
     body = request.get_json(silent=True) or {}
     try:
         _plan_sync(brand_id, _plan_import().get_plan(brand_id, plan_id))
-        r = _plan_import().approve_plan(brand_id, plan_id,
-                                        body.get("actor") or "operator")
+        r = _plan_import().approve_plan(brand_id, plan_id, _actor_name(body=body))
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
     return jsonify(r), (200 if r.get("ok") else 400)
@@ -26611,7 +26813,10 @@ def plan_v1_place(brand_id, plan_id):
     bad = _plan_guard(brand_id)
     if bad:
         return bad
-    actor = (request.headers.get('X-Actor-Display-Name') or '').strip()
+    denied = _user_forbid('move')
+    if denied:
+        return denied
+    actor = _actor_name(use_header=True, default="")
     if not actor:
         return jsonify({"ok": False, "error": (
             "send your name in the X-Actor-Display-Name header -- the calendar "
@@ -26629,10 +26834,12 @@ def plan_v1_unplace(brand_id, plan_id):
     bad = _plan_guard(brand_id)
     if bad:
         return bad
+    denied = _user_forbid('move')
+    if denied:
+        return denied
     body = request.get_json(silent=True) or {}
     try:
-        r = _plan_import().take_off_calendar(
-            brand_id, plan_id, body.get("actor") or "operator")
+        r = _plan_import().take_off_calendar(brand_id, plan_id, _actor_name(body=body))
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
     return jsonify(r), (200 if r.get("ok") else 400)
@@ -26646,7 +26853,7 @@ def plan_v1_draft(brand_id, plan_id, item_id):
     if bad:
         return bad
     body = request.get_json(silent=True) or {}
-    actor = (request.headers.get('X-Actor-Display-Name') or body.get("actor") or "operator")
+    actor = _actor_name(body=body)
     try:
         r = _plan_import().request_draft(brand_id, plan_id, item_id, str(actor).strip() or "operator")
     except ValueError as e:
@@ -26662,7 +26869,7 @@ def plan_v1_draft_all(brand_id, plan_id):
     if bad:
         return bad
     body = request.get_json(silent=True) or {}
-    actor = (request.headers.get('X-Actor-Display-Name') or body.get("actor") or "operator")
+    actor = _actor_name(body=body)
     try:
         r = _plan_import().request_all_drafts(brand_id, plan_id, str(actor).strip() or "operator")
     except ValueError as e:
@@ -26675,13 +26882,29 @@ def plan_v1_reopen(brand_id, plan_id):
     bad = _plan_guard(brand_id)
     if bad:
         return bad
+    denied = _user_forbid('approve')
+    if denied:
+        return denied
     body = request.get_json(silent=True) or {}
     try:
-        r = _plan_import().reopen_plan(brand_id, plan_id,
-                                       body.get("actor") or "operator")
+        r = _plan_import().reopen_plan(brand_id, plan_id, _actor_name(body=body))
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
     return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/catalog', methods=['POST'])
+def plan_v1_catalog(brand_id, plan_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import catalog as cat
+    try:
+        out = cat.ensure_for_plan(brand_id, plan_id)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    counts = cat.counts(out["pack_id"])
+    return jsonify({"ok": True, "pack_id": out["pack_id"], "url": f"/catalog/{out['pack_id']}", "counts": counts})
 
 
 @app.route('/api/brief/v1/<brand_id>/<brief_id>', methods=['GET'])
@@ -48057,7 +48280,10 @@ def calendar_suggestions_approve(brand_id):
     bad = _cs_guard(brand_id)
     if bad:
         return bad
-    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    denied = _user_forbid('campaign_approve')
+    if denied:
+        return denied
+    actor = _actor_name()
     out, code = _cs_approve_core(brand_id, request.get_json(silent=True) or {}, actor)
     return jsonify(out), code
 
@@ -48415,6 +48641,16 @@ def _clean_cal_act(brand_id, body, who):
                 return {"ok": False, "error": "Could not reopen it. Nothing was changed."}, 500
             cc.add_comment(brand_id, key, who, "Reopened", action="reopen")
             return {"ok": True, "message": "Reopened. It is waiting for a yes again."}, 200
+        if action == "approve":
+            # Herman held this post in the campaign catalog (Maybe/No). Checked before every
+            # approve path, including a video already sitting in Postiz as a draft.
+            from _lib import catalog as cat
+
+            blocked = cat.release_blocked(brand_id, key)
+            if not blocked and row.get("catalog_hold"):
+                blocked = cat.catalog_hold_error()
+            if blocked:
+                return {"ok": False, "error": blocked}, 409
         if action not in entry["actions"]:
             return {"ok": False, "error": "This one is not waiting for a yes any more. Refresh the page."}, 409
         if action == "comment":
@@ -48436,7 +48672,9 @@ def _clean_cal_act(brand_id, body, who):
         if action == "approve":
             res = ui.approve_item(item_id, editor=who, reason=f"approved on the calendar by {who}")
             if not res.get("ok"):
-                return {"ok": False, "error": res.get("error") or "Could not approve it."}, 400
+                err = res.get("error") or "Could not approve it."
+                code = 409 if "Maybe/No" in str(err) else 400
+                return {"ok": False, "error": err}, code
             cc.add_comment(brand_id, key, who, "Approved", action="approve")
             return {"ok": True, "message": f"Approved. It goes out {entry['when']}."}, 200
         res = ui.reject_item(item_id, editor=who, reason=text)
@@ -48499,7 +48737,17 @@ def clean_calendar_act(brand_id):
     bad = _cs_guard(brand_id)
     if bad:
         return bad
-    who = (request.headers.get('X-Actor-Display-Name') or '').strip() or "Christelle"
+    body = request.get_json(silent=True) or {}
+    action = str(body.get("action") or "").strip().lower()
+    if action == "approve":
+        denied = _user_forbid('campaign_approve')
+    elif action == "move":
+        denied = _user_forbid('move')
+    else:
+        denied = _user_forbid('comment')
+    if denied:
+        return denied
+    who = _actor_name(default="Christelle")
     out, code = _clean_cal_act(brand_id, request.get_json(silent=True) or {}, who)
     return jsonify(out), code
 
@@ -48575,7 +48823,10 @@ def clean_calendar_move(brand_id):
     bad = _cs_guard(brand_id)
     if bad:
         return bad
-    who = (request.headers.get('X-Actor-Display-Name') or '').strip() or "Christelle"
+    denied = _user_forbid('move')
+    if denied:
+        return denied
+    who = _actor_name(default="Christelle")
     out, code = _clean_cal_move(brand_id, request.get_json(silent=True) or {}, who)
     return jsonify(out), code
 
@@ -48707,9 +48958,65 @@ def _review_pack_limited(token, kind, limit):
     return False
 
 
+def _rp_token_ok(token: str) -> bool:
+    from _lib import review_pack as rp
+
+    return bool(rp.read_token(_serializer, token))
+
+
 def _rp_share(token):
     from _lib import review_pack as rp
+
     return rp.read_token(_serializer, token)
+
+
+def _rp_campaign_can_approve(share: dict | None, staff: bool) -> bool:
+    """Guest approver links and signed-in approvers/editors can approve the campaign."""
+    if not share:
+        return False
+    from _lib import review_pack as rp
+    pack = rp.get_pack(share.get("pack") or "")
+    if not pack or pack.get("kind") != "catalog":
+        return False
+    if share.get("role") == "approver":
+        return True
+    if staff:
+        row = current_user()
+        if not row:
+            return True  # shared team password: free range
+        from _lib import users
+
+        return users.can(row, "campaign_approve")
+    return False
+
+
+def _catalog_user_row() -> dict | None:
+    """The named login behind this session (C1), or None for the shared password."""
+    row = current_user()
+    return row if isinstance(row, dict) else None
+
+
+def _catalog_actor_name() -> str:
+    row = _catalog_user_row()
+    if row and row.get("name"):
+        return str(row["name"]).strip()[:40]
+    return (request.headers.get("X-Actor-Display-Name") or "Team").strip()[:40] or "Team"
+
+
+def _catalog_actor_uid() -> str:
+    row = _catalog_user_row()
+    if row and row.get("id"):
+        return str(row["id"]).strip()[:80]
+    return ""
+
+
+def _rp_public_view_kwargs(share: dict | None, staff: bool) -> dict:
+    row = current_user()
+    return {
+        "campaign_can_approve": _rp_campaign_can_approve(share, staff),
+        "share_role": (share or {}).get("role"),
+        "session_user": row if isinstance(row, dict) else None,
+    }
 
 
 _RP_MIME = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
@@ -48725,13 +49032,194 @@ _RP_GONE = {"ok": False, "error": "This link has expired. Ask for a new one."}
 _RP_SLOW = {"ok": False, "error": "That was a lot, quickly. Please wait a moment and try again."}
 
 
+@app.route("/catalog/<pack_id>", methods=["GET"])
+def catalog_page(pack_id):
+    if not _is_authed():
+        return redirect(url_for("login_page", next=request.path))
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+    pack = rp.get_pack(pack_id)
+    if not pack or pack.get("kind") != "catalog":
+        abort(404)
+    brand_id = str(pack.get("brand_id") or "")
+    plan_id = str(pack.get("plan_id") or "")
+    if brand_id and plan_id:
+        try:
+            cat.sync(brand_id, plan_id)
+        except ValueError:
+            pass
+    who = _catalog_actor_name()
+    uid = _catalog_actor_uid() or None
+    try:
+        token = rp.mint_token(_serializer, pack_id, who=who, uid=uid)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    return redirect(f"/review-pack/{token}")
+
+
+@app.route("/api/review-packs", methods=["GET"])
+def review_packs_session_list():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib import review_pack as rp
+    return jsonify({"ok": True, "packs": rp.list_packs()}), 200
+
+
+@app.route("/api/review-packs/<pack_id>/share", methods=["POST"])
+def review_packs_session_share(pack_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    denied = _user_forbid('share')
+    if denied:
+        return denied
+    from _lib import review_pack as rp
+    body = request.get_json(silent=True) or {}
+    who = str(body.get("who") or "Guest").strip()[:40] or "Guest"
+    role = "approver" if body.get("campaign_approver") or body.get("role") == "approver" else None
+    try:
+        token = rp.mint_token(_serializer, pack_id, who=who, role=role)
+    except ValueError as e:
+        return _rp_error(e)
+    scheme = (request.headers.get('X-Forwarded-Proto') or request.scheme).split(',')[0].strip()
+    expires = _dt_cls.now(_tz.utc) + _td(seconds=rp.MAX_AGE)
+    return jsonify({"ok": True, "share_url": f"{scheme}://{request.host}/review-pack/{token}",
+                    "expires_at": expires.isoformat(), "who": who, "campaign_approver": role == "approver"}), 200
+
+
+@app.route("/api/review-packs/<pack_id>/campaign-approve", methods=["POST"])
+def review_packs_campaign_approve(pack_id):
+    denied = _user_forbid("campaign_approve")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    who = _actor_name(default="Christelle")
+    uid = (_catalog_user_row() or {}).get("id")
+    try:
+        out = cat.approve_campaign(pack_id, who, str(uid) if uid else None)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({**out, "campaign_approval": rp.get_pack(pack_id).get("campaign_approval")}), 200
+
+
+@app.route("/review-pack/<token>/move-slot", methods=["POST"])
+def review_pack_move_slot(token):
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    staff = _is_authed()
+    row = current_user()
+    if not cat.staff_can_drag(staff=staff, session_user=row if isinstance(row, dict) else None, share_role=share.get("role")):
+        return jsonify({"ok": False, "error": "You cannot move posts on this page."}), 403
+    body = request.get_json(silent=True) or {}
+    item_id = str(body.get("item") or "")
+    new_date = str(body.get("date") or "")
+    who = _catalog_actor_name()
+    pack = rp.get_pack(share["pack"])
+    if not pack or pack.get("kind") != "catalog":
+        return jsonify({"ok": False, "error": "That is not a catalog pack."}), 400
+    try:
+        out = cat.move_slot_day(
+            share["pack"],
+            item_id,
+            new_date,
+            who,
+            calendar_move=lambda brand, move_body, actor: _clean_cal_move(brand, move_body, actor),
+        )
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/remake", methods=["POST"])
+def review_packs_remake(pack_id):
+    denied = _user_forbid("catalog_make")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.remake_from_notes(pack_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/show-remake", methods=["POST"])
+def review_packs_show_remake(pack_id, item_id):
+    denied = _user_forbid("catalog_make")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.show_remake_to_client(pack_id, item_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/show-all-remakes", methods=["POST"])
+def review_packs_show_all_remakes(pack_id):
+    denied = _user_forbid("catalog_make")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.show_all_remakes_to_client(pack_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/clear-hold", methods=["POST"])
+def review_packs_clear_hold(pack_id, item_id):
+    denied = _user_forbid("approve")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.clear_hold(pack_id, item_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
 @app.route("/review-pack/<token>", methods=["GET"])
 def review_pack_page(token):
     from _lib import review_pack as rp
     share = _rp_share(token)
     if not share:
         return rp.render_bad_link_page(), 404, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
-    page = rp.render_page(rp.public_view(share["pack"], token, share["who"], staff=_is_authed()), token=token)
+    pack_now = rp.get_pack(share["pack"]) or {}
+    if pack_now.get("kind") == "catalog" and pack_now.get("brand_id") and pack_now.get("plan_id"):
+        # Guests (Herman's link) see new pictures and dates too, not only /catalog/ openers.
+        from _lib import catalog as _cat
+        try:
+            _cat.sync(str(pack_now["brand_id"]), str(pack_now["plan_id"]))
+        except Exception as e:  # noqa: BLE001 - the page still opens with what it has
+            _app_log.warning("catalog sync on guest open failed for %s: %s", share["pack"], e)
+    staff = _is_authed()
+    page = rp.render_page(
+        rp.public_view(
+            share["pack"],
+            token,
+            share["who"],
+            staff=staff,
+            **_rp_public_view_kwargs(share, staff),
+        ),
+        token=token,
+    )
     return page, 200, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
 
 
@@ -48741,7 +49229,16 @@ def review_pack_data(token):
     share = _rp_share(token)
     if not share:
         return jsonify(_RP_GONE), 404
-    resp = jsonify(rp.public_view(share["pack"], token, share["who"], staff=_is_authed()))
+    staff = _is_authed()
+    resp = jsonify(
+        rp.public_view(
+            share["pack"],
+            token,
+            share["who"],
+            staff=staff,
+            **_rp_public_view_kwargs(share, staff),
+        )
+    )
     resp.headers.update(_RP_HEADERS)
     return resp
 
@@ -48750,7 +49247,8 @@ def review_pack_data(token):
 def review_pack_image(token, item, idx):
     from _lib import review_pack as rp
     share = _rp_share(token)
-    path = rp.image_path(share["pack"], item, idx) if share else None
+    size = str(request.args.get("size") or "feed").strip().lower()
+    path = rp.image_path(share["pack"], item, idx, size=size) if share else None
     if path is None:
         abort(404)
     resp = _rp_send(path)
@@ -48787,11 +49285,27 @@ def review_pack_act(token):
     body = request.get_json(silent=True) or {}
     state = str(body.get("state") or "")
     choice = str(body.get("choice") or "") or None
+    note = str(body.get("note") or "").strip()
     if not state and not choice:
         return jsonify({"ok": False, "error": "choose Approve, Reject, Hold or a design"}), 400
+    pack = rp.get_pack(share["pack"])
+    if pack and pack.get("kind") == "catalog" and state in ("hold", "reject"):
+        if not note:
+            return jsonify({"ok": False, "error": "Say what should change, so the remake gets it right."}), 400
     try:
         if state:
             row = rp.record_decision(share["pack"], str(body.get("item") or ""), state, share["who"], choice=choice)
+            if pack and pack.get("kind") == "catalog" and state in ("hold", "reject") and note:
+                tag = str(body.get("tag") or "general").strip() or "general"
+                if tag not in rp.TAGS:
+                    tag = "general"
+                rp.add_comment(share["pack"], str(body.get("item") or ""), share["who"], note,
+                               role="client", tag=tag)
+            if pack and pack.get("kind") == "catalog" and state in ("approve", "hold", "reject"):
+                from _lib import catalog as cat
+
+                item_id = str(body.get("item") or "")
+                cat.feedback_from_mark(share["pack"], item_id, state, share["who"], token=token, note=note)
         else:
             row = rp.record_choice(share["pack"], str(body.get("item") or ""), choice, share["who"])
     except ValueError as e:
@@ -48846,6 +49360,16 @@ def review_pack_upload(token):
     if len(files) > rp.MAX_UPLOADS_PER_BATCH:
         return jsonify({"ok": False, "error": f"Only {rp.MAX_UPLOADS_PER_BATCH} photos at a time. Please choose fewer."}), 400
     item = str(request.form.get("item") or "")
+    pack = rp.get_pack(share["pack"])
+    purpose = str(request.form.get("purpose") or "").strip()
+    text = str(request.form.get("text") or "").strip()
+    if pack and pack.get("kind") == "catalog":
+        from _lib import catalog as cat
+
+        if purpose not in cat.UPLOAD_PURPOSES:
+            return jsonify({"ok": False, "error": "Say what this photo is for: reference, element or post."}), 400
+        if not text:
+            return jsonify({"ok": False, "error": "Write a line about what this photo is for."}), 400
     if not rp.item_exists(share["pack"], item):
         return jsonify({"ok": False, "error": "That post is not in this pack."}), 404
     # Check every file BEFORE keeping any, so a bad one saves nothing.
@@ -48859,9 +49383,38 @@ def review_pack_upload(token):
         blobs.append((data, f.filename))
     source = str(request.form.get("source") or "")
     rights = str(request.form.get("rights") or "").lower() in ("1", "true", "on", "yes")
-    saved = [rp.save_upload(share["pack"], item, data, original_name=name or "", source=source,
-                            rights=rights, who=share["who"]) for data, name in blobs]
+    saved = [
+        rp.save_upload(
+            share["pack"],
+            item,
+            data,
+            original_name=name or "",
+            source=source,
+            rights=rights,
+            who=share["who"],
+            purpose=purpose,
+            text=text,
+        )
+        for data, name in blobs
+    ]
     return jsonify({"ok": True, "uploads": saved}), 200
+
+
+@app.route("/review-pack/<token>/campaign-approve", methods=["POST"])
+def review_pack_campaign_approve(token):
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    if not _rp_campaign_can_approve(share, _is_authed()):
+        return jsonify({"ok": False, "error": "Your login cannot approve the campaign."}), 403
+    try:
+        out = cat.approve_campaign(share["pack"], share["who"], share.get("uid"))
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({**out, "campaign_approval": rp.get_pack(share["pack"]).get("campaign_approval")}), 200
 
 
 # Our side. Bearer token only (the gate treats /api/jobs as job-authed).
@@ -48934,6 +49487,9 @@ def review_packs_add_item(pack_id):
 # no route that removes anything. Removing hides a post; nothing is deleted.
 @app.route("/api/review-packs/<pack_id>/items/<item_id>/remove", methods=["POST"])
 def review_packs_remove_item(pack_id, item_id):
+    denied = _user_forbid('approve')
+    if denied:
+        return denied
     from _lib import review_pack as rp
     try:
         out = rp.remove_item(pack_id, item_id)
@@ -48944,6 +49500,9 @@ def review_packs_remove_item(pack_id, item_id):
 
 @app.route("/api/review-packs/<pack_id>/items/<item_id>/restore", methods=["POST"])
 def review_packs_restore_item(pack_id, item_id):
+    denied = _user_forbid('approve')
+    if denied:
+        return denied
     from _lib import review_pack as rp
     try:
         out = rp.restore_item(pack_id, item_id)
@@ -48971,14 +49530,15 @@ def review_packs_share(pack_id):
     from _lib import review_pack as rp
     body = request.get_json(silent=True) or {}
     who = str(body.get("who") or "Chantalle")
+    role = "approver" if body.get("campaign_approver") or body.get("role") == "approver" else None
     try:
-        token = rp.mint_token(_serializer, pack_id, who=who)
+        token = rp.mint_token(_serializer, pack_id, who=who, role=role)
     except ValueError as e:
         return _rp_error(e)
     scheme = (request.headers.get('X-Forwarded-Proto') or request.scheme).split(',')[0].strip()
     expires = _dt_cls.now(_tz.utc) + _td(seconds=rp.MAX_AGE)
     return jsonify({"ok": True, "share_url": f"{scheme}://{request.host}/review-pack/{token}",
-                    "expires_at": expires.isoformat(), "who": who}), 200
+                    "expires_at": expires.isoformat(), "who": who, "campaign_approver": role == "approver"}), 200
 
 
 @app.route("/api/jobs/review-packs/<pack_id>/reply", methods=["POST"])

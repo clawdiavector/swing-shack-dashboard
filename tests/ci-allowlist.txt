@@ -224,6 +224,8 @@ campaign-os/tests/test_stock_suggestions_20261016.py
 campaign-os/tests/test_gsc_refresh_failure_no_stale_token.py
 campaign-os/tests/jobs/test_asset_qc_skips_state_files.py
 campaign-os/tests/test_plan_action_script.py
+campaign-os/tests/test_catalog_c2_catalog_20261109.py
+campaign-os/tests/test_catalog_c3_pictures_20261109.py
 campaign-os/tests/test_bag_drop_weekly_deal_template.py
 campaign-os/tests/test_image_library_20261103.py
 campaign-os/tests/test_catalogue_drive_20261103.py
@@ -242,3 +244,8 @@ campaign-os/tests/test_bag_drop_everywhere_20261106.py
 campaign-os/tests/test_bag_drop_story_ideas_20261106.py
 campaign-os/tests/test_bag_drop_shopify_stock_20261106.py
 campaign-os/tests/test_top_posts_own_brand_20261106.py
+campaign-os/tests/test_catalog_c1_logins_20261109.py
+campaign-os/tests/test_catalog_c1_logins_r2_20261109.py
+campaign-os/tests/test_catalog_integration_20261109.py
+campaign-os/tests/test_catalog_c45_marks_and_yes_20261109.py
+campaign-os/tests/test_catalog_c67_calendar_remake_20261109.py

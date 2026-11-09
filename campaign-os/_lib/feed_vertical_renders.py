@@ -62,6 +62,34 @@ def _blur_fill(im: Any, target: float) -> Any:
     return bg
 
 
+_GOOGLE_SIZE = (1200, 900)
+_GOOGLE_ASPECT = 4 / 3
+
+
+def fit_google_4x3(src: Any) -> tuple[bytes, str | None]:
+    """The whole picture inside 4:3 on a blurred fill of itself, saved 1200x900 JPEG.
+
+    Never crops and never stretches: a designed post keeps its headline and logo.
+    (Kyle's hand-made Google versions were re-laid out; a ready-made one from the
+    draft pipeline is used instead of this when it exists.)"""
+    from PIL import Image  # noqa: PLC0415
+
+    if hasattr(src, "convert"):
+        im = src.convert("RGB")
+    else:
+        with Image.open(io.BytesIO(src)) as opened:
+            im = opened.convert("RGB")
+    w, h = im.size
+    note = None
+    if abs(w / h - _GOOGLE_ASPECT) > 0.005:
+        im = _blur_fill(im, _GOOGLE_ASPECT)
+        note = "google: whole picture on a blurred 4:3 fill"
+    im = im.resize(_GOOGLE_SIZE, Image.Resampling.LANCZOS)
+    buf = io.BytesIO()
+    im.save(buf, format="JPEG", quality=92)
+    return buf.getvalue(), note
+
+
 def fit_for_channel_png(src: Any, channel: str) -> tuple[bytes, str | None]:
     """Size a finished image for one channel. Returns (PNG bytes, note or None).
 

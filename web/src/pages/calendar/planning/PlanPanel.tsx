@@ -31,6 +31,10 @@ import {
   reopenPlan,
   splitItems,
   todayIso,
+  catalogPublicUrl,
+  ensurePlanCatalog,
+  shareCatalogGuest,
+  type CatalogCounts,
   type Plan,
   type PlanItem,
   type PlanItemKind,
@@ -475,6 +479,9 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [composer, setComposer] = useState<{ kind: 'shoot'; stepIds: string[] } | { kind: 'signoff' } | null>(null)
+  const [catalogPackId, setCatalogPackId] = useState<string | null>(null)
+  const [catalogCounts, setCatalogCounts] = useState<CatalogCounts | null>(null)
+  const [catalogNote, setCatalogNote] = useState<string | null>(null)
   const today = todayIso()
 
   const take = useCallback((r: PlanResult): string | null => {
@@ -497,6 +504,24 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
       cancelled = true
     }
   }, [brandId, briefId])
+
+  useEffect(() => {
+    if (!plan || plan.status === 'superseded') return
+    let cancelled = false
+    void fetch('/api/review-packs', { credentials: 'same-origin' })
+      .then((res) => res.json().catch(() => ({})))
+      .then((j: { packs?: { id: string; plan_id?: string; counts?: CatalogCounts }[] }) => {
+        if (cancelled) return
+        const row = (j.packs || []).find((p) => p.plan_id === plan.plan_id)
+        if (row?.counts) {
+          setCatalogPackId(row.id)
+          setCatalogCounts(row.counts)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [plan])
 
   async function run(fn: () => Promise<PlanResult>) {
     setBusy(true)
@@ -539,6 +564,78 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
   }
 
   const approved = plan.status === 'approved'
+  const livePlan = plan.status === 'proposed' || plan.status === 'approved'
+  const planId = plan.plan_id
+
+  async function openCatalog() {
+    setCatalogNote(null)
+    setError(null)
+    const r = await ensurePlanCatalog(brandId, planId)
+    if (!r.ok || !r.pack_id) {
+      setError(r.error || 'Could not open the catalog.')
+      return
+    }
+    setCatalogPackId(r.pack_id)
+    if (r.counts) setCatalogCounts(r.counts)
+    window.open(`/catalog/${r.pack_id}`, '_blank', 'noopener,noreferrer')
+  }
+
+  async function copyCatalogLink() {
+    setCatalogNote(null)
+    setError(null)
+    let id = catalogPackId
+    if (!id) {
+      const r = await ensurePlanCatalog(brandId, planId)
+      if (!r.ok || !r.pack_id) {
+        setError(r.error || 'Could not copy the link.')
+        return
+      }
+      id = r.pack_id
+      setCatalogPackId(id)
+      if (r.counts) setCatalogCounts(r.counts)
+    }
+    const url = catalogPublicUrl(id, window.location.origin)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      setError('Could not copy. Your browser may not allow the clipboard here.')
+      return
+    }
+    setCatalogNote(
+      'Link copied. Whoever opens it signs in, and what they mark is saved under their name.',
+    )
+  }
+
+  async function guestCatalogLink() {
+    setCatalogNote(null)
+    setError(null)
+    const name = window.prompt('Who is this guest link for?')?.trim()
+    if (!name) return
+    let id = catalogPackId
+    if (!id) {
+      const r = await ensurePlanCatalog(brandId, planId)
+      if (!r.ok || !r.pack_id) {
+        setError(r.error || 'Could not make a guest link.')
+        return
+      }
+      id = r.pack_id
+      setCatalogPackId(id)
+      if (r.counts) setCatalogCounts(r.counts)
+    }
+    const shared = await shareCatalogGuest(id, name)
+    if (!shared.ok || !shared.share_url) {
+      setError(shared.error || 'Could not make a guest link.')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(shared.share_url)
+    } catch {
+      setError('Could not copy. Your browser may not allow the clipboard here.')
+      return
+    }
+    setCatalogNote(`Guest link for ${name} copied. It opens this catalog only, for 30 days.`)
+  }
+
   const { active, removed } = splitItems(plan.items)
   const blocker = approveBlocker(plan)
   const boosts = boostBudget(plan.items)
@@ -571,6 +668,30 @@ export function PlanPanel({ brandId, briefId }: { brandId: string; briefId: stri
         <p className="text-xs text-tx3" data-testid="plan-shape">
           <EventTypeIcon kind={plan.profile} size="sm" className="mr-1.5 align-middle" />
           Shaped as <b className="text-tx2">{plan.profile_label}</b>. {plan.profile_reason}
+        </p>
+      ) : null}
+
+      {livePlan ? (
+        <div className="flex flex-wrap items-center gap-2" data-testid="plan-catalog-actions">
+          <button type="button" className={btnQuiet} data-testid="plan-catalog-open" onClick={() => void openCatalog()}>
+            Open catalog
+          </button>
+          <button type="button" className={btnQuiet} data-testid="plan-catalog-copy" onClick={() => void copyCatalogLink()}>
+            Copy link
+          </button>
+          <button type="button" className={btnQuiet} data-testid="plan-catalog-guest" onClick={() => void guestCatalogLink()}>
+            Guest link…
+          </button>
+          {catalogCounts ? (
+            <span className="text-xs text-tx3" data-testid="plan-catalog-counts">
+              Catalog: {catalogCounts.posts} posts, {catalogCounts.pictures} with pictures
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+      {catalogNote ? (
+        <p className="text-xs text-tx2" data-testid="plan-catalog-note">
+          {catalogNote}
         </p>
       ) : null}
 
