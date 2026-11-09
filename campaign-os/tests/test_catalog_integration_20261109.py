@@ -111,3 +111,4 @@ def test_calendar_move_also_moves_the_catalog_slot(tmp_path, monkeypatch):
     assert moved["due"] == "2026-11-28"
     slot = next(i for i in rp.get_pack(pack_id)["items"] if i["id"] == post["item_id"])
     assert slot["when"] == "Sat 28 Nov"
+

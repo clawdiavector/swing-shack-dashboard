@@ -48638,6 +48638,16 @@ def _clean_cal_act(brand_id, body, who):
                 return {"ok": False, "error": "Could not reopen it. Nothing was changed."}, 500
             cc.add_comment(brand_id, key, who, "Reopened", action="reopen")
             return {"ok": True, "message": "Reopened. It is waiting for a yes again."}, 200
+        if action == "approve":
+            # Herman held this post in the campaign catalog (Maybe/No). Checked before every
+            # approve path, including a video already sitting in Postiz as a draft.
+            from _lib import catalog as cat
+
+            blocked = cat.release_blocked(brand_id, key)
+            if not blocked and row.get("catalog_hold"):
+                blocked = cat.catalog_hold_error()
+            if blocked:
+                return {"ok": False, "error": blocked}, 409
         if action not in entry["actions"]:
             return {"ok": False, "error": "This one is not waiting for a yes any more. Refresh the page."}, 409
         if action == "comment":
@@ -48657,13 +48667,6 @@ def _clean_cal_act(brand_id, body, who):
             return out, code
         item_id = str((draft or {}).get("inbox_item_id") or "")
         if action == "approve":
-            from _lib import catalog as cat
-
-            blocked = cat.release_blocked(brand_id, key)
-            if not blocked and row.get("catalog_hold"):
-                blocked = cat.catalog_hold_error()
-            if blocked:
-                return {"ok": False, "error": blocked}, 409
             res = ui.approve_item(item_id, editor=who, reason=f"approved on the calendar by {who}")
             if not res.get("ok"):
                 err = res.get("error") or "Could not approve it."

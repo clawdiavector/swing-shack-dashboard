@@ -266,9 +266,13 @@ class HeldPostRouteTests(unittest.TestCase):
         for child in self.tmpdir.iterdir():
             if child.is_dir() and child.name != "campaign-data.json":
                 shutil.rmtree(child)
+        import _lib
+
         for name in list(sys.modules):
             if name.startswith("_lib."):
                 del sys.modules[name]
+                if name.count(".") == 1:
+                    _lib.__dict__.pop(name.split(".", 1)[1], None)
         from _lib import marketing_calendar as mc
 
         self.mc = mc
@@ -295,6 +299,23 @@ class HeldPostRouteTests(unittest.TestCase):
                     {"key": self.cal_id, "kind": "post", "action": "approve"},
                     "Christelle",
                 )
+        self.assertEqual(code, 409, out)
+        self.assertIn("Maybe/No", out.get("error", ""))
+
+
+    def test_held_video_already_in_postiz_is_not_scheduled(self):
+        """A held post that sits in Postiz as a draft must not be scheduled by Approve."""
+        from unittest import mock
+        from _lib import clean_calendar as cc
+
+        row = {"calendar_id": self.cal_id, "state": "draft_ready", "go_live_date": "2099-06-01",
+               "primary_channel": "instagram", "catalog_hold": True,
+               "postiz_mode": "draft", "postiz_post_id": "pz-1"}
+        with mock.patch.object(cc, "find_post", return_value=(row, {"inbox_item_id": "draft_asset:c1:a1"})):
+            with mock.patch.object(self.app_module, "_clean_cal_postiz_approve",
+                                   side_effect=AssertionError("must not schedule in Postiz")):
+                out, code = self.app_module._clean_cal_act(
+                    "swing-shack", {"key": self.cal_id, "kind": "post", "action": "approve"}, "Christelle")
         self.assertEqual(code, 409, out)
         self.assertIn("Maybe/No", out.get("error", ""))
 
