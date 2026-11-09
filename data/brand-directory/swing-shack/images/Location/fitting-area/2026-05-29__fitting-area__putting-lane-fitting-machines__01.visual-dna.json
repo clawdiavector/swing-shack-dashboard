@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/fitting-area/2026-05-29__fitting-area__putting-lane-fitting-machines__01.jpg",
+  "layer1_metadata": {
+    "filename": "2026-05-29__fitting-area__putting-lane-fitting-machines__01.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 2612533,
+    "modified": 1794189866.3626783,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#937f6b",
+        "rgb": [
+          147,
+          127,
+          107
+        ],
+        "share": 0.157
+      },
+      {
+        "hex": "#242730",
+        "rgb": [
+          36,
+          39,
+          48
+        ],
+        "share": 0.1535
+      },
+      {
+        "hex": "#0e0e13",
+        "rgb": [
+          14,
+          14,
+          19
+        ],
+        "share": 0.135
+      },
+      {
+        "hex": "#b1bdc7",
+        "rgb": [
+          177,
+          189,
+          199
+        ],
+        "share": 0.1292
+      },
+      {
+        "hex": "#9f988e",
+        "rgb": [
+          159,
+          152,
+          142
+        ],
+        "share": 0.1172
+      },
+      {
+        "hex": "#18191f",
+        "rgb": [
+          24,
+          25,
+          31
+        ],
+        "share": 0.1085
+      },
+      {
+        "hex": "#3e353d",
+        "rgb": [
+          62,
+          53,
+          61
+        ],
+        "share": 0.1056
+      },
+      {
+        "hex": "#575e6f",
+        "rgb": [
+          87,
+          94,
+          111
+        ],
+        "share": 0.094
+      }
+    ],
+    "mean_brightness": 89.2,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 116.7,
+    "brightness_bottom": 52.0,
+    "edge_density_grid": [
+      [
+        6.15,
+        9.57,
+        9.88
+      ],
+      [
+        9.2,
+        22.81,
+        14.53
+      ],
+      [
+        9.68,
+        19.51,
+        13.04
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 6,
+    "text_preview": "UG Mihiiicty \\ | it |"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 54,
+    "median_text_height_px": 20,
+    "likely_heading_text": "|",
+    "is_all_caps": true,
+    "sample_text_colour": "#767267"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#937f6b",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "UG Mihiiicty \\ | it |",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}
