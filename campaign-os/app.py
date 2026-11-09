@@ -49016,6 +49016,15 @@ def _catalog_actor_uid() -> str:
     return ""
 
 
+def _rp_public_view_kwargs(share: dict | None, staff: bool) -> dict:
+    row = current_user()
+    return {
+        "campaign_can_approve": _rp_campaign_can_approve(share, staff),
+        "share_role": (share or {}).get("role"),
+        "session_user": row if isinstance(row, dict) else None,
+    }
+
+
 _RP_MIME = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
 
 
@@ -49100,6 +49109,83 @@ def review_packs_campaign_approve(pack_id):
     return jsonify({**out, "campaign_approval": rp.get_pack(pack_id).get("campaign_approval")}), 200
 
 
+@app.route("/review-pack/<token>/move-slot", methods=["POST"])
+def review_pack_move_slot(token):
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    staff = _is_authed()
+    row = current_user()
+    if not cat.staff_can_drag(staff=staff, session_user=row if isinstance(row, dict) else None, share_role=share.get("role")):
+        return jsonify({"ok": False, "error": "You cannot move posts on this page."}), 403
+    body = request.get_json(silent=True) or {}
+    item_id = str(body.get("item") or "")
+    new_date = str(body.get("date") or "")
+    who = _catalog_actor_name()
+    pack = rp.get_pack(share["pack"])
+    if not pack or pack.get("kind") != "catalog":
+        return jsonify({"ok": False, "error": "That is not a catalog pack."}), 400
+    try:
+        out = cat.move_slot_day(
+            share["pack"],
+            item_id,
+            new_date,
+            who,
+            calendar_move=lambda brand, move_body, actor: _clean_cal_move(brand, move_body, actor),
+        )
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/remake", methods=["POST"])
+def review_packs_remake(pack_id):
+    denied = _user_forbid("catalog_make")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.remake_from_notes(pack_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/show-remake", methods=["POST"])
+def review_packs_show_remake(pack_id, item_id):
+    denied = _user_forbid("catalog_make")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.show_remake_to_client(pack_id, item_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/show-all-remakes", methods=["POST"])
+def review_packs_show_all_remakes(pack_id):
+    denied = _user_forbid("catalog_make")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.show_all_remakes_to_client(pack_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
 @app.route("/api/review-packs/<pack_id>/items/<item_id>/clear-hold", methods=["POST"])
 def review_packs_clear_hold(pack_id, item_id):
     denied = _user_forbid("approve")
@@ -49128,7 +49214,7 @@ def review_pack_page(token):
             token,
             share["who"],
             staff=staff,
-            campaign_can_approve=_rp_campaign_can_approve(share, staff),
+            **_rp_public_view_kwargs(share, staff),
         ),
         token=token,
     )
@@ -49148,7 +49234,7 @@ def review_pack_data(token):
             token,
             share["who"],
             staff=staff,
-            campaign_can_approve=_rp_campaign_can_approve(share, staff),
+            **_rp_public_view_kwargs(share, staff),
         )
     )
     resp.headers.update(_RP_HEADERS)
@@ -49213,6 +49299,11 @@ def review_pack_act(token):
                     tag = "general"
                 rp.add_comment(share["pack"], str(body.get("item") or ""), share["who"], note,
                                role="client", tag=tag)
+            if pack and pack.get("kind") == "catalog" and state in ("approve", "hold", "reject"):
+                from _lib import catalog as cat
+
+                item_id = str(body.get("item") or "")
+                cat.feedback_from_mark(share["pack"], item_id, state, share["who"], token=token, note=note)
         else:
             row = rp.record_choice(share["pack"], str(body.get("item") or ""), choice, share["who"])
     except ValueError as e:

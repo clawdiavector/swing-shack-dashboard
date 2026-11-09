@@ -597,6 +597,15 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
     if not ref_bytes and refs and isinstance(refs[0], dict):
         ref_bytes = _load_reference_image_bytes(refs[0], brand_id=brand, root=root)
 
+    try:
+        from _lib.catalog import load_remake_brief_text  # noqa: PLC0415
+
+        extra = load_remake_brief_text(inbox_item_id)
+        if extra:
+            job = f"{job}. Catalog remake notes: {extra[:1500]}"
+    except Exception:
+        pass
+
     return ImageDraftContext(
         job=job,
         refs=refs,

@@ -504,6 +504,14 @@ def _caption_pipeline_payload(
     angle = str(calendar.get("angle") or "")
     post_type = str(calendar.get("post_type") or "").strip() or None
     brief_bits = [bit for bit in (lodge_title, angle, post_type or "") if bit]
+    try:
+        from _lib.catalog import load_remake_brief_text  # noqa: PLC0415
+
+        remake = load_remake_brief_text(item_id)
+        if remake:
+            brief_bits.append(remake)
+    except Exception:
+        pass
     payload: dict[str, Any] = {
         "brand_id": brand_id,
         "user_brief": " | ".join(brief_bits) or lodge_title or (ctx.job or ""),

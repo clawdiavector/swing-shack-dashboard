@@ -554,7 +554,8 @@ def edit_item(brand_id: str, plan_id: str, item_id: str, patch: dict,
     marks_done = set(patch) == {"status"} and patch.get("status") == "done"
     marks_asked = set(patch) == {"asked"}
     marks_catalog = set(patch) <= {"catalog_hold"}
-    if err and not (plan and plan.get("status") == PLAN_APPROVED and (marks_done or marks_asked or marks_catalog)):
+    marks_due = set(patch) == {"due"}
+    if err and not (plan and plan.get("status") == PLAN_APPROVED and (marks_done or marks_asked or marks_catalog or marks_due)):
         return {"ok": False, "error": err}
     item = next((i for i in plan["items"] if i["item_id"] == item_id), None)
     if not item:

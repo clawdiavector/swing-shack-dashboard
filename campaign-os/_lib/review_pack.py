@@ -254,6 +254,9 @@ def update_item_fields(pack_id: str, item_id: str, fields: dict[str, Any]) -> di
         if key == "caption_auto":
             item["caption_auto"] = bool(val)
             continue
+        if key == "picture_meta" and isinstance(val, list):
+            item["picture_meta"] = val
+            continue
         if key not in limits:
             continue
         item[key] = str(val or "")[: limits[key]]
@@ -439,6 +442,8 @@ def add_catalog_picture(
     content_hash: str,
     story_data: bytes,
     google_data: bytes,
+    remake: bool = False,
+    shown_to_client: bool = True,
 ) -> dict[str, Any]:
     """Add a composed feed picture and its story + Google renders. Bumps version, keeps history."""
     pack = _pack_or_raise(pack_id)
@@ -464,13 +469,30 @@ def add_catalog_picture(
     hashes.append(content_hash)
     item["picture_hashes"] = hashes
     meta = list(item.get("picture_meta") or [])
-    meta.append({"version": ver, "hash": content_hash, "source_url": str(source_url or "")[:500], "idx": idx})
+    meta.append({
+        "version": ver,
+        "hash": content_hash,
+        "source_url": str(source_url or "")[:500],
+        "idx": idx,
+        "remake": bool(remake),
+        "shown_to_client": bool(shown_to_client),
+    })
     item["picture_meta"] = meta
     _write_json(d / "pack.json", pack)
     decisions = _read_json(d / "decisions.json", {})
+    cur = decisions.get(item_id) if isinstance(decisions.get(item_id), dict) else None
+    if cur and not (remake and not shown_to_client):
+        if cur.get("state") not in ("hold", "reject"):
+            decisions.pop(item_id, None)
+            _write_json(d / "decisions.json", decisions)
+    return {"index": idx, "version": ver, "skipped": False}
+
+
+def clear_decision(pack_id: str, item_id: str) -> None:
+    d = _pack_dir(pack_id)
+    decisions = _read_json(d / "decisions.json", {})
     if decisions.pop(item_id, None) is not None:
         _write_json(d / "decisions.json", decisions)
-    return {"index": idx, "version": ver, "skipped": False}
 
 
 def _feed_image_name(item: dict[str, Any], index: int) -> str | None:
@@ -667,21 +689,38 @@ def public_view(
     staff: bool = False,
     *,
     campaign_can_approve: bool = False,
+    share_role: str | None = None,
+    session_user: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """What the page needs, with links that carry her token. staff=True only for a signed-in
     teammate: it adds the data for Remove and Put back. The client's view never carries it."""
     v = view(pack_id)
     base = f"/review-pack/{token}"
+    is_catalog = v["pack"].get("kind") == "catalog"
     items = []
     for it in v["pack"]["items"]:
-        urls = [f"{base}/image/{it['id']}/{i}" for i in range(len(it["images"]))]
+        urls = [f"{base}/image/{it['id']}/{i}" for i in range(len(it.get("images") or []))]
         latest = len(urls) - 1
+        if is_catalog:
+            from _lib import catalog as _cat
+
+            latest = _cat.client_picture_index(it, staff=staff)
+            if latest < 0:
+                latest = len(urls) - 1
+            if not staff and latest < len(urls) - 1:
+                urls = urls[: latest + 1]
         size_urls = {}
-        if latest >= 0:
+        if latest >= 0 and urls:
             root = f"{base}/image/{it['id']}/{latest}"
             size_urls = {"feed": root, "story": f"{root}?size=story", "google": f"{root}?size=google"}
-        items.append({**{k: it[k] for k in ("id", "title", "kind", "caption", "channels", "when", "audience", "note", "version")},
-                      "images": urls, "size_urls": size_urls})
+        keys = ("id", "title", "kind", "caption", "channels", "when", "due", "audience", "note", "version")
+        row = {**{k: it[k] for k in keys if k in it}, "images": urls, "size_urls": size_urls}
+        if staff and is_catalog:
+            meta = it.get("picture_meta") or []
+            row["hidden_remake"] = bool(
+                meta and meta[-1].get("remake") and meta[-1].get("shown_to_client") is False
+            )
+        items.append(row)
     uploads = [{**u, "url": f"{base}/file/{u['file']}", "colour": colour_of(pack_id, u.get("who", ""))} for u in v["uploads"]]
     comments = {k: [{**c, "colour": colour_of(pack_id, c.get("who", ""))} for c in rows] for k, rows in v["comments"].items()}
     decisions = {k: ({**r, "colour": colour_of(pack_id, r.get("by", ""))} if isinstance(r, dict) else r)
@@ -692,12 +731,19 @@ def public_view(
     catalog_line = ""
     labels = None
     campaign_summary = None
+    month_strip = None
+    can_drag = False
+    can_remake = False
     if v["pack"].get("kind") == "catalog":
         from _lib import catalog as _cat
+        from _lib import users as _users
 
         catalog_line = _cat.catalog_header(v["pack"])
         labels = _cat.labels_for(v["pack"])
         campaign_summary = _cat.mark_summary(pack_id)
+        month_strip = _cat.month_strip_view(pack_id)
+        can_drag = _cat.staff_can_drag(staff=staff, session_user=session_user, share_role=share_role)
+        can_remake = bool(staff and session_user and _users.can(session_user, "catalog_make"))
     out = {"pack": {"title": v["pack"]["title"], "client": v["pack"].get("client", ""),
                      "theme": v["pack"].get("theme", {}), "notice": v["pack"].get("notice", ""), "items": items},
             "decisions": decisions, "comments": comments, "uploads": uploads, "done": done, "staff": False,
@@ -706,6 +752,10 @@ def public_view(
             "campaign_summary": campaign_summary}
     if labels:
         out["labels"] = labels
+    if month_strip is not None:
+        out["month_strip"] = month_strip
+        out["can_drag"] = can_drag
+        out["can_remake"] = can_remake
     if v["pack"].get("campaign_approval"):
         out["campaign_approved"] = v["pack"]["campaign_approval"]
     if staff:
@@ -819,6 +869,16 @@ h1{font-size:clamp(28px,5vw,42px);line-height:1.1;margin:0;font-weight:900}h1 sp
 .size-tabs button.pill{font-size:14px;padding:6px 14px;min-height:40px}
 .earlier{margin:4px 0 0;font-size:13px;color:var(--muted)}
 .catline{font-size:15px;color:var(--muted);margin:6px 0 0}
+.month-strip{display:flex;flex-direction:column;gap:10px;margin:4px 0 18px}
+.month-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.month-lbl{font-weight:800;font-size:14px;min-width:5rem}
+.month-days{display:flex;flex-wrap:wrap;gap:6px}
+.day-dot{font:inherit;display:inline-flex;gap:3px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:5px 9px;background:var(--card);cursor:pointer;min-height:40px}
+.day-dot.drag-over{outline:2px dashed var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.slot-chip{cursor:grab;font-weight:700}
+.move-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}
+.move-row input[type=date]{font:inherit;border:2px solid var(--line);border-radius:10px;padding:8px}
 .zoom{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(18,21,40,.78);color:#fff;font-size:19px;cursor:pointer}
 .opt{border:3px solid transparent;border-radius:14px;padding:5px;background:transparent;color:inherit;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:8px;text-align:left}
 .opt[aria-pressed=true]{border-color:var(--accent)}.opt b{font-size:18px}
@@ -871,6 +931,18 @@ $("lbx").onclick=()=>{$("lb").hidden=true};$("lbp").onclick=()=>step(-1);$("lbn"
 document.addEventListener("keydown",e=>{if($("lb").hidden)return;if(e.key==="Escape")$("lb").hidden=true;if(e.key==="ArrowLeft")step(-1);if(e.key==="ArrowRight")step(1)});
 function say(t){$("status").textContent=t;if(t)setTimeout(()=>{if($("status").textContent===t)$("status").textContent=""},4000)}
 async function post(path,body){const r=await fetch(BASE+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Something went wrong");return j}
+let DRAG_ITEM="";
+function paintMonthStrip(){const old=document.getElementById("monthstrip");if(old)old.remove();if(!D.month_strip||!D.month_strip.months||!D.month_strip.months.length)return;
+ const strip=el("div","month-strip");strip.id="monthstrip";strip.setAttribute("role","navigation");strip.setAttribute("aria-label","Campaign calendar");
+ D.month_strip.months.forEach(m=>{const row=el("div","month-row");row.append(el("span","month-lbl",m.label));const days=el("div","month-days");
+  m.days.forEach(day=>{const b=el("button","day-dot",String(Number(day.iso.slice(8,10))));
+   b.type="button";b.dataset.day=day.iso;(day.dots||[]).forEach(d=>{const dot=el("span","dot");dot.style.background=d.colour;b.append(dot)});
+   b.onclick=()=>{const t=document.querySelector('section[data-id="'+day.first_slot+'"]');if(t)t.scrollIntoView({behavior:"smooth",block:"start"})};
+   if(D.can_drag){b.ondragover=e=>{e.preventDefault();b.classList.add("drag-over")};b.ondragleave=()=>b.classList.remove("drag-over");
+    b.ondrop=async e=>{e.preventDefault();b.classList.remove("drag-over");const id=e.dataTransfer.getData("text/plain")||DRAG_ITEM;if(!id)return;try{await post("/move-slot",{item:id,date:day.iso});say("Moved to "+day.iso);location.reload()}catch(err){say(err.message)}}}
+   days.append(b)});row.append(days);strip.append(row)});$("items").before(strip)}
+async function remakeNotes(){if(!D.can_remake||!D.pack_id)return;const r=await fetch("/api/review-packs/"+encodeURIComponent(D.pack_id)+"/remake",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:"{}"});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||j.message||"Could not start remakes");say(j.message||"Remakes queued");location.reload()}
+async function showRemake(item){if(!D.pack_id)return;const r=await fetch("/api/review-packs/"+encodeURIComponent(D.pack_id)+"/items/"+encodeURIComponent(item)+"/show-remake",{method:"POST",credentials:"same-origin"});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Could not show remake");say("Shown to Herman");location.reload()}
 function threadHTML(box,item){box.textContent="";const list=D.comments[item]||[];if(!list.length)box.append(el("p","sub","No comments yet."));
  list.forEach(c=>{const d=el("div","cm "+c.role);if(c.colour)d.style.borderLeft="5px solid "+c.colour;const nm=el("small","",c.who+(c.tag&&c.tag!=="general"?"  ·  "+c.tag:"")+"  ·  "+(c.at||"").slice(0,16).replace("T"," "));if(c.colour)nm.style.color=c.colour;d.append(nm,el("p","",c.text));box.append(d)})}
 function composer(item,box){const w=el("div","compose");const ta=document.createElement("textarea");ta.placeholder="Write a comment";ta.setAttribute("aria-label","Comment");
@@ -930,6 +1002,8 @@ async function campaignYes(){if(!D.campaign_can_approve)return;const s=D.campaig
  try{const j=await post("/campaign-approve",{confirm_unmarked:un>0});D.campaign_approved=j.campaign_approval;UNMARKED_OK=false;paintCampaign();say("Campaign approved")}catch(e){say(e.message)}}
 function paintCampaign(){document.querySelectorAll("[data-campaign-yes]").forEach(b=>{b.hidden=!D.campaign_can_approve||!!D.campaign_approved});const line=document.getElementById("campaignline");if(line&&D.campaign_summary)line.textContent=D.campaign_summary.line||"";if(D.campaign_approved&&line)line.textContent="Campaign approved by "+D.campaign_approved.by+"."}
 function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name+": ":"";$("ttl").textContent="";$("ttl").append(document.createTextNode(parts),el("span","",P.title));
+ if(D.can_remake){const rb=el("button","send","Remake from notes");rb.type="button";rb.style.marginTop="10px";rb.onclick=async()=>{try{await remakeNotes()}catch(e){say(e.message)}};$("ttl").after(rb)}
+ paintMonthStrip();
  $("intro").textContent="Look at each post, then choose Approve, Reject or Hold. Leave a comment on anything, and upload your own photo where you have one. Your answers save as you go. When you have been through them all, press I'm done at the bottom.";
  if(D.catalog_line){const cl=$("catline");cl.hidden=false;cl.textContent=D.catalog_line}
  if(D.campaign_summary||D.campaign_approved){const cl=$("campaignline");cl.hidden=false;if(D.campaign_summary)cl.textContent=D.campaign_summary.line}
@@ -937,7 +1011,11 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
  paintCampaign();
  if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
  const box=$("items");P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
-  const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m));const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);if(D.staff)h.append(teamRemove(it));c.append(h);
+  if(D.can_drag&&it.when){const chip=el("span","slot-chip",it.when);chip.draggable=true;chip.title="Drag to a day on the calendar strip";chip.ondragstart=e=>{DRAG_ITEM=it.id;e.dataTransfer.setData("text/plain",it.id)};hh.append(chip)}else{const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m))}
+  if(it.channels&&D.can_drag)hh.append(el("p","meta",it.channels));else if(!D.can_drag){const m2=[it.audience,it.channels].filter(Boolean).join("  ·  ");if(m2)hh.append(el("p","meta",m2))}
+  const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);if(D.staff)h.append(teamRemove(it));c.append(h);
+  if(D.can_drag&&it.due){const mv=el("div","move-row");const inp=document.createElement("input");inp.type="date";inp.value=it.due;inp.setAttribute("aria-label","Move to day");const mb=el("button","pill","Move to…");mb.type="button";mb.onclick=async()=>{if(!inp.value)return;try{await post("/move-slot",{item:it.id,date:inp.value});say("Day updated");location.reload()}catch(e){say(e.message)}};mv.append(inp,mb);c.append(mv)}
+  if(it.hidden_remake){const sb=el("button","pill","Show to Herman");sb.type="button";sb.onclick=()=>showRemake(it.id).catch(e=>say(e.message));c.append(sb)}
   if(it.images.length){const one=it.images.length===1;const g=el("div","grid"+(one?" one":"")+(it.kind==="choice"&&it.images.length>1?" choice":""));const latest=it.images.length-1;it.images.forEach((src,i)=>{const cell=el("div","cell");const im=new Image();const urls=it.size_urls||{};const isLatest=i===latest&&it.kind!=="choice";
     im.src=(isLatest&&urls.feed)?urls.feed:src;im.alt=it.title;
     if(it.kind==="choice"&&it.images.length>1){const L="ABC"[i];const o=el("button","opt");o.type="button";o.setAttribute("aria-label","Pick design option "+L);o.dataset.ch=it.id;o.dataset.v=L;o.setAttribute("aria-pressed","false");o.append(im,el("b","","Option "+L));o.onclick=()=>act(it.id,null,L);im.onclick=null;cell.append(o)}else{
