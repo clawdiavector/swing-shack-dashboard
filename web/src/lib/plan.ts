@@ -330,6 +330,43 @@ export function boostBudget(items: PlanItem[]): { total: number; boosts: number;
   }
 }
 
+export type CatalogCounts = { posts: number; pictures: number; pictures_yet: number }
+
+export type CatalogResult = { ok: boolean; error?: string; pack_id?: string; url?: string; counts?: CatalogCounts }
+
+/** Make sure this plan has a catalog pack, synced to its post and story steps. */
+export async function ensurePlanCatalog(brand: string, planId: string): Promise<CatalogResult> {
+  return call('POST', `${base(brand)}/${encodeURIComponent(planId)}/catalog`, {}) as Promise<CatalogResult>
+}
+
+/** Shareable URL for the signed-in catalog opener (not the guest review-pack link). */
+export function catalogPublicUrl(packId: string, origin: string): string {
+  const base = origin.replace(/\/$/, '')
+  return `${base}/catalog/${encodeURIComponent(packId)}`
+}
+
+/** A no-login link for one named guest, valid 30 days. */
+export async function shareCatalogGuest(
+  packId: string,
+  who: string,
+): Promise<{ ok: boolean; error?: string; share_url?: string }> {
+  try {
+    const res = await fetch(`/api/review-packs/${encodeURIComponent(packId)}/share`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ who }),
+    })
+    const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; share_url?: string }
+    if (!res.ok || j.ok === false) {
+      return { ok: false, error: j.error || `Something went wrong (${res.status}).` }
+    }
+    return { ok: true, share_url: j.share_url }
+  } catch (e: unknown) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Network problem.' }
+  }
+}
+
 export function todayIso(now: Date = new Date()): string {
   const p = (n: number) => String(n).padStart(2, '0')
   return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`
