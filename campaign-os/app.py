@@ -48729,7 +48729,7 @@ def review_pack_page(token):
     share = _rp_share(token)
     if not share:
         return rp.render_bad_link_page(), 404, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
-    page = rp.render_page(rp.public_view(share["pack"], token, share["who"]), token=token)
+    page = rp.render_page(rp.public_view(share["pack"], token, share["who"], staff=_is_authed()), token=token)
     return page, 200, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
 
 
@@ -48739,7 +48739,7 @@ def review_pack_data(token):
     share = _rp_share(token)
     if not share:
         return jsonify(_RP_GONE), 404
-    resp = jsonify(rp.public_view(share["pack"], token, share["who"]))
+    resp = jsonify(rp.public_view(share["pack"], token, share["who"], staff=_is_authed()))
     resp.headers.update(_RP_HEADERS)
     return resp
 
@@ -48924,6 +48924,30 @@ def review_packs_add_item(pack_id):
     except ValueError as e:
         return _rp_error(e)
     return jsonify({"ok": True, "item_id": item["id"]}), 200
+
+
+# Our side, from the review page itself: a signed-in teammate who opens a client's link sees
+# "Remove from pack" and "Put back". Not under /api/jobs, so the gate needs the session
+# cookie (or the bearer token, which _is_authed accepts on /api/). The client's link has
+# no route that removes anything. Removing hides a post; nothing is deleted.
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/remove", methods=["POST"])
+def review_packs_remove_item(pack_id, item_id):
+    from _lib import review_pack as rp
+    try:
+        out = rp.remove_item(pack_id, item_id)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "removed": out}), 200
+
+
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/restore", methods=["POST"])
+def review_packs_restore_item(pack_id, item_id):
+    from _lib import review_pack as rp
+    try:
+        out = rp.restore_item(pack_id, item_id)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "restored": out}), 200
 
 
 @app.route("/api/jobs/review-packs/<pack_id>/items/<item_id>/image", methods=["POST"])

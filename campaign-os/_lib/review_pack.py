@@ -245,6 +245,58 @@ def _pack_or_raise(pack_id: str) -> dict[str, Any]:
     return pack
 
 
+# ── taking a post off a live pack (our side only) ───────────────────────────
+# Hidden, never deleted: the post, its pictures and any answers stay on disk under
+# pack["removed_items"], so "Put back" returns it where it was.
+
+
+def remove_item(pack_id: str, item_id: str) -> dict[str, Any]:
+    pack = _pack_or_raise(pack_id)
+    item = _item(pack, item_id)
+    pos = pack["items"].index(item)
+    after = pack["items"][pos - 1]["id"] if pos else None
+    pack["items"].remove(item)
+    pack.setdefault("removed_items", []).append(
+        {**item, "removed_at": _now(), "removed_after": after, "removed_index": pos})
+    _write_json(_pack_dir(pack_id) / "pack.json", pack)
+    return {"id": item_id, "title": item.get("title", "")}
+
+
+def restore_item(pack_id: str, item_id: str) -> dict[str, Any]:
+    pack = _pack_or_raise(pack_id)
+    gone = pack.get("removed_items") or []
+    idx = next((n for n in range(len(gone) - 1, -1, -1) if gone[n].get("id") == item_id), None)
+    if idx is None or any(i["id"] == item_id for i in pack["items"]):
+        raise NotFound("that post is not in the removed list")
+    row = gone.pop(idx)
+    after, index = row.pop("removed_after", None), row.pop("removed_index", None)
+    row.pop("removed_at", None)
+    ids = [i["id"] for i in pack["items"]]
+    if after in ids:
+        pos = ids.index(after) + 1
+    elif after is None and index == 0:
+        pos = 0
+    else:
+        pos = min(index, len(ids)) if isinstance(index, int) else len(ids)
+    pack["items"].insert(pos, row)
+    _write_json(_pack_dir(pack_id) / "pack.json", pack)
+    return {"id": item_id, "title": row.get("title", "")}
+
+
+def removed_items(pack_id: str) -> list[dict[str, Any]]:
+    """Posts taken off the pack that can be put back: latest removal first, one row per post."""
+    pack = _pack_or_raise(pack_id)
+    shown = {i["id"] for i in pack["items"]}
+    out, seen = [], set()
+    for row in reversed(pack.get("removed_items") or []):
+        rid = row.get("id")
+        if not rid or rid in seen or rid in shown:
+            continue
+        seen.add(rid)
+        out.append({"id": rid, "title": row.get("title", rid), "removed_at": row.get("removed_at", "")})
+    return out
+
+
 # ── images ──────────────────────────────────────────────────────────────────
 
 
@@ -467,8 +519,9 @@ def colour_of(pack_id: str, who: str) -> str:
     return PALETTE[people[key] % len(PALETTE)]
 
 
-def public_view(pack_id: str, token: str, who: str = "") -> dict[str, Any]:
-    """What the page needs, with links that carry her token."""
+def public_view(pack_id: str, token: str, who: str = "", staff: bool = False) -> dict[str, Any]:
+    """What the page needs, with links that carry her token. staff=True only for a signed-in
+    teammate: it adds the data for Remove and Put back. The client's view never carries it."""
     v = view(pack_id)
     base = f"/review-pack/{token}"
     items = []
@@ -482,9 +535,14 @@ def public_view(pack_id: str, token: str, who: str = "") -> dict[str, Any]:
     me = " ".join(str(who or "").lower().split())
     done = [{**r, "colour": colour_of(pack_id, r.get("by", "")), "mine": bool(me) and k == me}
             for k, r in sorted(_done_rows(pack_id).items(), key=lambda kv: kv[1].get("at", ""))]
-    return {"pack": {"title": v["pack"]["title"], "client": v["pack"].get("client", ""),
+    out = {"pack": {"title": v["pack"]["title"], "client": v["pack"].get("client", ""),
                      "theme": v["pack"].get("theme", {}), "notice": v["pack"].get("notice", ""), "items": items},
-            "decisions": decisions, "comments": comments, "uploads": uploads, "done": done}
+            "decisions": decisions, "comments": comments, "uploads": uploads, "done": done, "staff": False}
+    if staff:
+        out["staff"] = True
+        out["pack_id"] = pack_id
+        out["removed"] = removed_items(pack_id)
+    return out
 
 
 def news(pack_id: str, since: str = "") -> dict[str, Any]:
@@ -597,6 +655,8 @@ textarea{flex:1 1 240px;min-height:52px;resize:vertical}
 .nextb{font:inherit;font-weight:800;border:2px solid var(--bg);background:transparent;color:var(--bg);border-radius:999px;padding:6px 16px;min-height:40px;cursor:pointer}#progress{font-weight:800}
 #finish:focus,.card:focus{outline:none}
 [hidden]{display:none!important}
+.team{border:2px dashed var(--no);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:8px;font-size:15px}
+button.rm{font:inherit;font-size:14px;font-weight:800;border:2px solid var(--no);background:transparent;color:var(--no);border-radius:999px;padding:6px 14px;min-height:38px;cursor:pointer}
 .bar{flex-wrap:wrap;position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;z-index:5}
 .lb{position:fixed;inset:0;background:rgba(8,10,22,.95);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}.lb[hidden]{display:none}
 .lb img{max-width:min(96vw,1100px);max-height:86vh;border-radius:8px}
@@ -663,12 +723,19 @@ function paint(){let done=0,total=0,first=null;D.pack.items.forEach(it=>{const a
   const t=document.querySelector('[data-th="'+it.id+'"]');if(t)threadHTML(t,it.id);
   const g=document.querySelector('[data-ug="'+it.id+'"]');if(g){g.textContent="";const u=uploadsGrid(it.id);if(u)g.append(u)}});
  paintFinish(done,total,first)}
+async function team(id,what){const r=await fetch("/api/review-packs/"+encodeURIComponent(D.pack_id)+"/items/"+encodeURIComponent(id)+"/"+what,{method:"POST",credentials:"same-origin"});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"That did not work");return j}
+function teamRemove(it){const b=el("button","rm","Remove from pack");b.type="button";b.title="Only your team sees this button";
+ b.onclick=async()=>{if(!confirm('Take "'+it.title+'" off this page? The client stops seeing it. You can put it back from the list at the bottom.'))return;b.disabled=true;try{await team(it.id,"remove");location.reload()}catch(e){say(e.message);b.disabled=false}};return b}
+function teamSection(){const s=el("section","card team");s.append(el("b","","Team view: only signed-in teammates see Remove and Put back. The client never does."));
+ const gone=D.removed||[];s.append(el("h2","","Removed posts"));if(!gone.length)s.append(el("p","sub","Nothing removed."));
+ gone.forEach(g=>{const r=el("div","row");r.style.alignItems="center";r.append(el("span","",g.title));const b=el("button","rm","Put back");b.type="button";
+  b.onclick=async()=>{b.disabled=true;try{await team(g.id,"restore");location.reload()}catch(e){say(e.message);b.disabled=false}};r.append(b);s.append(r)});return s}
 async function act(item,state,choice){try{const j=await post("/act",{item,state:state||undefined,choice:choice||undefined});D.decisions[item]=j.decision;paint();say(state?LBL[state]+" saved":"Option "+choice+" picked")}catch(e){say(e.message)}}
 function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name+": ":"";$("ttl").textContent="";$("ttl").append(document.createTextNode(parts),el("span","",P.title));
  $("intro").textContent="Look at each post, then choose Approve, Reject or Hold. Leave a comment on anything, and upload your own photo where you have one. Your answers save as you go. When you have been through them all, press I'm done at the bottom.";
  if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
  const box=$("items");P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
-  const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m));const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);c.append(h);
+  const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m));const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);if(D.staff)h.append(teamRemove(it));c.append(h);
   if(it.images.length){const one=it.images.length===1;const g=el("div","grid"+(one?" one":"")+(it.kind==="choice"&&it.images.length>1?" choice":""));it.images.forEach((src,i)=>{const cell=el("div","cell");const im=new Image();im.src=src;im.alt=it.title;im.onclick=()=>openLB(it.images,i,it.title);
     if(it.kind==="choice"&&it.images.length>1){const L="ABC"[i];const o=el("button","opt");o.type="button";o.setAttribute("aria-label","Pick design option "+L);o.dataset.ch=it.id;o.dataset.v=L;o.setAttribute("aria-pressed","false");o.append(im,el("b","","Option "+L));o.onclick=()=>act(it.id,null,L);im.onclick=null;cell.append(o)}else cell.append(im);
     if(it.kind==="choice"&&it.images.length>1){const z=el("button","zoom","⤢");z.type="button";z.setAttribute("aria-label","View full screen");z.onclick=()=>openLB(it.images,i,it.title);cell.append(z)}g.append(cell)});c.append(g)}
@@ -676,6 +743,7 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
   const r=el("div","row");["approve","reject","hold"].forEach(s=>{const b=el("button","pill "+s,LBL[s]);b.type="button";b.dataset.st=it.id;b.dataset.v=s;b.setAttribute("aria-pressed","false");b.onclick=()=>{const cur=D.decisions[it.id];act(it.id,s,cur&&cur.choice)};r.append(b)});c.append(r);
   const t=el("div","thread");t.append(el("h3","","Comments"));const tb=el("div");tb.dataset.th=it.id;t.append(tb,composer(it.id,tb));c.append(t);
   const ug=el("div");ug.dataset.ug=it.id;c.append(uploadBox(it.id),ug);box.append(c)});
+ if(D.staff)$("finish").after(teamSection());
  const w=$("week");w.append(el("h2","","Your own photos for the week"),el("p","sub","Not tied to one post? Add them here."),uploadBox(""));const wg=el("div");wg.dataset.ug="";w.append(wg);
  const wt=el("div","thread");wt.append(el("h3","","General comments"));const wb=el("div");wb.dataset.th="";wt.append(wb,composer("",wb));w.append(wt);paint();const g0=document.querySelector('[data-ug=""]');if(g0){const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}
 async function refresh(){try{const r=await fetch(BASE+"/data",{cache:"no-store"});if(!r.ok)return;const j=await r.json();D.decisions=j.decisions;D.comments=j.comments;if(j.pack&&j.pack.items.length!==D.pack.items.length){if(![...document.querySelectorAll("textarea")].some(t=>t.value.trim())){location.reload();return}say("A new post was added. Reload the page to see it.");return}D.uploads=j.uploads;D.done=j.done||[];paint();const g0=document.querySelector('[data-ug=""]');if(g0){g0.textContent="";const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}catch(e){}}
