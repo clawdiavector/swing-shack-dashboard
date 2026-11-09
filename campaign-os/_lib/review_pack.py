@@ -924,7 +924,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 const TOKEN="__TOKEN__",BASE="/review-pack/"+TOKEN;let D=JSON.parse(document.getElementById("boot").textContent);
 const $=id=>document.getElementById(id);const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e};
 const LBL=__LBL__;let LB={l:[],i:0,t:""};const SIZE_PICK=new Map();let UNMARKED_OK=false;
-function pickSize(item,key,img,urls){SIZE_PICK.set(item,key);document.querySelectorAll('[data-size-tab="'+item+'"]').forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===key)));if(img&&urls[key])img.src=urls[key]}
+function pickSize(item,key,img,urls){SIZE_PICK.set(item,key);document.querySelectorAll('[data-size-tab="'+item+'"]').forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===key)));if(img&&urls[key]){img.src=urls[key];img.style.aspectRatio={story:"9/16",google:"4/3"}[key]||"";img.style.objectFit=key==="feed"?"":"contain";img.style.maxHeight=key==="story"?"70vh":""}}
 function openLB(l,i,t){LB={l,i,t};showLB();$("lb").hidden=false;$("lbx").focus()}
 function showLB(){$("lbi").src=LB.l[LB.i];$("lbc").textContent=LB.t+(LB.l.length>1?"  ·  "+(LB.i+1)+" of "+LB.l.length:"");$("lbp").hidden=$("lbn").hidden=LB.l.length<2}
 function step(d){LB.i=(LB.i+d+LB.l.length)%LB.l.length;showLB()}

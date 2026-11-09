@@ -67,7 +67,11 @@ _GOOGLE_ASPECT = 4 / 3
 
 
 def fit_google_4x3(src: Any) -> tuple[bytes, str | None]:
-    """Centre-crop or blur-fill to 4:3, then save 1200×900 JPEG. Never stretch."""
+    """The whole picture inside 4:3 on a blurred fill of itself, saved 1200x900 JPEG.
+
+    Never crops and never stretches: a designed post keeps its headline and logo.
+    (Kyle's hand-made Google versions were re-laid out; a ready-made one from the
+    draft pipeline is used instead of this when it exists.)"""
     from PIL import Image  # noqa: PLC0415
 
     if hasattr(src, "convert"):
@@ -76,15 +80,10 @@ def fit_google_4x3(src: Any) -> tuple[bytes, str | None]:
         with Image.open(io.BytesIO(src)) as opened:
             im = opened.convert("RGB")
     w, h = im.size
-    aspect = w / h
     note = None
-    if aspect + 0.005 < _GOOGLE_ASPECT:
-        nh = round(w / _GOOGLE_ASPECT)
-        top = max(0, (h - nh) // 2)
-        im = im.crop((0, top, w, min(h, top + nh)))
-    elif aspect - 0.005 > _GOOGLE_ASPECT:
+    if abs(w / h - _GOOGLE_ASPECT) > 0.005:
         im = _blur_fill(im, _GOOGLE_ASPECT)
-        note = "google: blur-filled wide source to 4:3"
+        note = "google: whole picture on a blurred 4:3 fill"
     im = im.resize(_GOOGLE_SIZE, Image.Resampling.LANCZOS)
     buf = io.BytesIO()
     im.save(buf, format="JPEG", quality=92)

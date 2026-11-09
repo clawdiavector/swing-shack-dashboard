@@ -112,3 +112,24 @@ def test_calendar_move_also_moves_the_catalog_slot(tmp_path, monkeypatch):
     slot = next(i for i in rp.get_pack(pack_id)["items"] if i["id"] == post["item_id"])
     assert slot["when"] == "Sat 28 Nov"
 
+
+
+def test_ready_made_google_version_wins(tmp_path, monkeypatch):
+    """When the draft pipeline already made a Google version, the catalog uses it, not a crop."""
+    from tests.test_catalog_c67_calendar_remake_20261109 import _catalog, BRAND, cp
+    from tests.test_catalog_c3_pictures_20261109 import _feed_png
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    plan, pack_id = _catalog(tmp_path, monkeypatch)
+    post = next(i for i in plan["items"] if i["kind"] == "post")
+    post["calendar_id"] = "cal-gbp"
+    cp._write_plan(plan)
+    feed, gbp = _feed_png(800, 1000), _feed_png(1200, 900, center=(1, 2, 250))
+    files = {"proof://feed": feed, "proof://gbp": gbp}
+    cat.refresh_pictures(BRAND, plan["plan_id"],
+                         post_state=lambda b, c: {"composed": {"instagram": "proof://feed", "gbp": "proof://gbp"}} if c == "cal-gbp" else None,
+                         load_bytes=lambda b, u: files.get(u))
+    path = rp.image_path(pack_id, post["item_id"], 0, size="google")
+    assert path is not None and path.read_bytes() == gbp

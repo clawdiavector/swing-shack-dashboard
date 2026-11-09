@@ -309,7 +309,12 @@ def refresh_pictures(
                     story_raw, _ = fit_for_channel_png(raw, "instagram_story")
             else:
                 story_raw, _ = fit_for_channel_png(raw, "instagram_story")
-            google_raw, _ = fit_google_4x3(raw)
+            google_raw = None
+            google_url = str(composed.get("google_business") or composed.get("gbp") or "").strip()
+            if google_url:
+                google_raw = load_bytes(brand_id, google_url)
+            if not google_raw:
+                google_raw, _ = fit_google_4x3(raw)
             out = rp.add_catalog_picture(
                 pack_id,
                 row["item_id"],

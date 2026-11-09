@@ -197,7 +197,11 @@ def test_google_crop_is_4x3_no_stretch():
     with Image.open(io.BytesIO(jpg)) as im:
         assert im.size == (1200, 900)
         px = im.getpixel((600, 450))
-        assert px[1] > px[0], "centre band should survive centre crop"
+        assert px[1] > px[0], "centre band survives"
+        top = im.getpixel((600, 3))
+        assert min(top) > 200, "the top edge of the picture is kept (a headline is never cut off)"
+        side = im.getpixel((20, 450))
+        assert max(side) < 200, "the sides are the darkened blur fill"
 
     wide = _feed_png(1600, 600, center=(40, 40, 200))
     jpg2, _ = fit_google_4x3(wide)
