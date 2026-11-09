@@ -17021,8 +17021,8 @@ def gbp_daily_poster_pending_route():
     integration_error = None
     try:
         from _lib import postiz_client as _pc
-        if _pc and _pc._credentials_present():
-            integrations, err = _pc.list_integrations()
+        if _pc and _pc._credentials_present(brand_id):
+            integrations, err = _pc.list_integrations(brand_id=brand_id)
             if err:
                 integration_ok = False
                 integration_error = str(err)
@@ -19283,8 +19283,8 @@ def today_panel():
                         configured_int_id = profile.get("postiz_gbp_integration_id")
                         try:
                             from _lib import postiz_client as _pc
-                            if _pc and _pc._credentials_present():
-                                _ints, _err = _pc.list_integrations()
+                            if _pc and _pc._credentials_present(active_brand_id):
+                                _ints, _err = _pc.list_integrations(brand_id=active_brand_id)
                                 if _err:
                                     integration_verified = False
                                     integration_error = str(_err)
