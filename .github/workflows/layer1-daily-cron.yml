@@ -111,6 +111,17 @@ jobs:
             -o /tmp/competitor_tracker.json
           python3 scripts/cos_job_summary.py print /tmp/competitor_tracker.json
 
+      - name: Wave 1 — shopify_stock (Bag Drop stock list)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/shopify_stock ==="
+          curl -sf -X POST "$BASE/api/jobs/run/shopify_stock?all=1" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/shopify_stock.json
+          python3 scripts/cos_job_summary.py print /tmp/shopify_stock.json
+
       - name: Wave 1 — site_audit
         continue-on-error: true
         run: |
