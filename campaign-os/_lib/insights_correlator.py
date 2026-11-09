@@ -94,7 +94,7 @@ def _ig_store_stamp() -> str | None:
     return None
 
 
-def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
+def _load_ig_posts(brand_id: str | None = None, *, own_only: bool = False) -> tuple[list[dict[str, Any]], str | None]:
     """Load Instagram posts from whichever file is present on disk.
 
     The platform has had three different IG data stores over time:
@@ -105,11 +105,15 @@ def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
     We try them in priority order and normalise the post shape so callers
     can treat them uniformly. Returns (posts, source_label).
     """
-    rel_candidates = (
+    # A brand's own store (brands/<brand>/ig-analytics.json, written by
+    # meta_refresh since 18 Sep 2026) comes first; own_only stops there.
+    own = (f"brands/{brand_id}/ig-analytics.json",) if brand_id else ()
+    shared = (
         "ig-analytics.json",
         "instagram.json",
         "analytics/instagram-analytics.json",
     )
+    rel_candidates = own if own_only else own + shared
     for base in _data_roots():
         for rel in rel_candidates:
             path = base / rel
@@ -158,7 +162,7 @@ def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
                     "shares": int(p.get("shares") or 0),
                 })
             if normalised:
-                label = str(path.relative_to(base)) if path.is_relative_to(base) else str(path)
+                label = path.relative_to(base).as_posix() if path.is_relative_to(base) else str(path)
                 return normalised, label
     return [], None
 
@@ -742,6 +746,11 @@ def _external_publications() -> dict[str, dict[str, Any]]:
     return {}
 
 
+def brand_has_own_ig(brand_id: str | None) -> bool:
+    """True when brands/<brand>/ig-analytics.json holds posts for this brand."""
+    return bool(brand_id) and bool(_load_ig_posts(brand_id, own_only=True)[0])
+
+
 def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict[str, Any]:
     """Surface top IG posts with thumbnails + engagement + plain-English verdict.
 
@@ -760,13 +769,23 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
         _meta: { total_scanned, average_engagement, source }
       }
     """
-    ig_data = _read_json(_data_dir() / "instagram.json") or {}
-    if not isinstance(ig_data, dict):
-        ig_data = {}
-    # Prefer the larger/more-complete IG store if it exists on disk.
-    _fallback_posts, ig_source = _load_ig_posts()
-    if _fallback_posts and (not ig_data.get("posts") or len(_fallback_posts) > len(ig_data.get("posts", []))):
-        ig_data = {"posts": _fallback_posts, "updated": _ig_store_stamp()}
+    own_posts, own_source = _load_ig_posts(brand_id, own_only=True) if brand_id else ([], None)
+    if own_posts:
+        ig_data: dict[str, Any] = {"posts": own_posts}
+        ig_source = own_source
+        for base in _data_roots():
+            stamp = _read_json(base / str(own_source))
+            if isinstance(stamp, dict):
+                ig_data["updated"] = stamp.get("updated") or stamp.get("fetched_at")
+                break
+    else:
+        ig_data = _read_json(_data_dir() / "instagram.json") or {}
+        if not isinstance(ig_data, dict):
+            ig_data = {}
+        # Prefer the larger/more-complete IG store if it exists on disk.
+        _fallback_posts, ig_source = _load_ig_posts()
+        if _fallback_posts and (not ig_data.get("posts") or len(_fallback_posts) > len(ig_data.get("posts", []))):
+            ig_data = {"posts": _fallback_posts, "updated": _ig_store_stamp()}
     posts = ig_data.get("posts", []) if isinstance(ig_data, dict) else []
     # Track the actual source so the response is honest about where data came from.
     actual_source = ig_source or "instagram.json"

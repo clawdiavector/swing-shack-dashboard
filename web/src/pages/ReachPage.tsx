@@ -88,25 +88,31 @@ function MoveList({ title, rows }: { title: string; rows: SeoMove[] }) {
   )
 }
 
+/** Reach reads the selected brand's own files (brands/<brand>/, PR #342). */
+export function reachRequests(brandId: string): [string, string] {
+  const q = `?brand=${encodeURIComponent(brandId)}`
+  return [`/api/intel/performance${q}`, `/api/intel/explain${q}`]
+}
+
 export function ReachPage() {
-  const { brandId, brandLabel } = useBrand()
-  const isSwingShack = brandId === 'swing-shack'
+  const { brandId } = useBrand()
   const [perf, setPerf] = useState<Performance | null>(null)
   const [explain, setExplain] = useState<ExplainItem[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isSwingShack) return
+    if (!brandId) return
+    const [perfUrl, explainUrl] = reachRequests(brandId)
     Promise.all([
-      getJson<Performance>('/api/intel/performance'),
-      getJson<{ insights: ExplainItem[] }>('/api/intel/explain').catch(() => ({ insights: [] as ExplainItem[] })),
+      getJson<Performance>(perfUrl),
+      getJson<{ insights: ExplainItem[] }>(explainUrl).catch(() => ({ insights: [] as ExplainItem[] })),
     ])
       .then(([p, e]) => {
         setPerf(p)
         setExplain(e.insights ?? [])
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Reach unavailable'))
-  }, [isSwingShack])
+  }, [brandId])
 
   return (
     <div className="space-y-6">
@@ -114,13 +120,7 @@ export function ReachPage() {
         Did anyone see it, and what the numbers say to do next.
       </PageIntro>
 
-      {!isSwingShack ? (
-        <section className="glass rounded-2xl border-[1.5px] border-white/10 p-5 backdrop-blur-xl">
-          <p className="text-sm text-tx2">
-            Reach data is only tracked for Swing Shack right now{brandLabel ? `, not ${brandLabel}` : ''}. Switch the brand to Swing Shack to see it.
-          </p>
-        </section>
-      ) : error ? (
+      {error ? (
         <section className="glass rounded-2xl border-[1.5px] border-red/40 p-5 backdrop-blur-xl">
           <p className="text-sm text-tx2">Could not load reach: {error}</p>
         </section>
