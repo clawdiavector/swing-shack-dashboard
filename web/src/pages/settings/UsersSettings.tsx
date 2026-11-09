@@ -186,7 +186,7 @@ export function UsersSettings() {
           Change your own password here.
         </PageIntro>
         <OwnPassword />
-        <p className="text-sm text-tx2">Adding people, and resetting someone else's password, stays with Kyle.</p>
+        <p className="text-sm text-tx2">Adding people, and resetting someone else's password, stays with an admin.</p>
       </div>
     )
   }

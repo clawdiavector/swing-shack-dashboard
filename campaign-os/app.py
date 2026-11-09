@@ -609,7 +609,7 @@ def _users_admin_forbid():
     payload = _session_payload()
     if user is None and isinstance(payload, dict) and payload.get('authed') and not payload.get('uid'):
         return None
-    return jsonify({'ok': False, 'error': 'Only Kyle can manage logins.'}), 403
+        return jsonify({'ok': False, 'error': 'Only an admin can manage logins.'}), 403
 
 
 @app.route('/api/users', methods=['GET'])
