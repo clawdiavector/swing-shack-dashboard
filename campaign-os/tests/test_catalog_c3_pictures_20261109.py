@@ -203,8 +203,12 @@ def test_google_crop_is_4x3_no_stretch():
     jpg2, _ = fit_google_4x3(wide)
     with Image.open(io.BytesIO(jpg2)) as im:
         assert im.size == (1200, 900)
-        corners = [im.getpixel((0, 0)), im.getpixel((1199, 899))]
-        assert corners[0] != corners[1] or max(corners[0]) != min(corners[0])
+        # 1600x600 fits as 1200x450 in the middle; the 30px band becomes ~22px.
+        # Stretched to 900 tall it would be ~45px and still cover y=470.
+        mid = im.getpixel((600, 450))
+        assert mid[2] > mid[0] + 60, "the picture's centre band survives"
+        below = im.getpixel((600, 472))
+        assert not (below[2] > below[0] + 60), "the picture is not stretched taller"
 
 
 def test_story_render_is_9x16():

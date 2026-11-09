@@ -60,3 +60,24 @@ class CatalogWithLoginsTests(_Base):
         pack_id = cat.ensure_for_plan("stick", plan["plan_id"])["pack_id"]
         r = christelle.post(f"/api/review-packs/{pack_id}/share", json={"who": "Yolanda"})
         self.assertEqual(r.status_code, 200, r.get_json())
+
+
+def test_refresh_builds_post_index_once(monkeypatch):
+    """A catalog with many slots must not rebuild the brand's post index per slot."""
+    from _lib import catalog, unified_inbox, marketing_calendar
+
+    calls = {"index": 0}
+
+    def fake_index(*, brand_id):
+        calls["index"] += 1
+        return object()
+
+    monkeypatch.setattr(unified_inbox, "build_post_index", fake_index)
+    monkeypatch.setattr(marketing_calendar, "canonical_records",
+                        lambda b: [{"calendar_id": f"c{i}"} for i in range(20)])
+    monkeypatch.setattr(unified_inbox, "post_state", lambda rec, index=None: {"composed": {}})
+    look = catalog._post_state_once("stick")
+    for i in range(20):
+        assert look("stick", f"c{i}") == {"composed": {}}
+    assert look("stick", "missing") is None
+    assert calls["index"] == 1

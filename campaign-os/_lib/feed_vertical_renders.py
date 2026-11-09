@@ -84,17 +84,6 @@ def fit_google_4x3(src: Any) -> tuple[bytes, str | None]:
         im = im.crop((0, top, w, min(h, top + nh)))
     elif aspect - 0.005 > _GOOGLE_ASPECT:
         im = _blur_fill(im, _GOOGLE_ASPECT)
-        # Light left-to-right grade on the fill so edges read as blur, not a flat crop.
-        w, h = im.size
-        graded = Image.new("RGB", (w, h))
-        sp, dp = im.load(), graded.load()
-        for y in range(h):
-            fade_l = 0.93 + 0.07 * (y / max(1, h - 1))
-            for x in range(w):
-                fade = fade_l * (0.95 + 0.05 * (x / max(1, w - 1)))
-                r, g, b = sp[x, y]
-                dp[x, y] = (min(255, int(r * fade)), min(255, int(g * fade)), min(255, int(b * fade)))
-        im = graded
         note = "google: blur-filled wide source to 4:3"
     im = im.resize(_GOOGLE_SIZE, Image.Resampling.LANCZOS)
     buf = io.BytesIO()

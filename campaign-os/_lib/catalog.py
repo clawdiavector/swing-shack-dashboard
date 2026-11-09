@@ -229,6 +229,27 @@ def _draft_caption(state: dict[str, Any]) -> str:
     return ""
 
 
+def _post_state_once(brand_id: str) -> Callable[[str, str], dict[str, Any] | None]:
+    """post_state_for builds the brand's whole post index per call. Build it once per
+    refresh instead, so a 20-slot catalog does not rebuild it 20 times."""
+    from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+    from _lib.unified_inbox import build_post_index, post_state  # noqa: PLC0415
+
+    cache: dict[str, Any] = {}
+
+    def lookup(_brand: str, calendar_id: str) -> dict[str, Any] | None:
+        if "records" not in cache:
+            cache["index"] = build_post_index(brand_id=brand_id)
+            cache["records"] = {
+                str(r.get("calendar_id") or r.get("event_key") or ""): r
+                for r in canonical_records(brand_id)
+            }
+        rec = cache["records"].get(calendar_id)
+        return post_state(rec, index=cache["index"]) if rec else None
+
+    return lookup
+
+
 def refresh_pictures(
     brand_id: str,
     plan_id: str,
@@ -245,9 +266,7 @@ def refresh_pictures(
     )
 
     if post_state is None:
-        from _lib.unified_inbox import post_state_for
-
-        post_state = post_state_for
+        post_state = _post_state_once(brand_id)
     if load_bytes is None:
         load_bytes = _load_png_for_url
 
