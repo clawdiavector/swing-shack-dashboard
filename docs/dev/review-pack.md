@@ -96,6 +96,28 @@ POST /api/review-packs/<pack_id>/share          {who} → guest share_url (sessi
 Indexed at `DATA_DIR/review-packs/_catalog_index.json` (`brand:plan_id` → `pack_id`).
 Code: `campaign-os/_lib/catalog.py`, tests `campaign-os/tests/test_catalog_c2_catalog_20261109.py`.
 
+## Campaign yes and Love it / Maybe / No (2026-11-09, slice c45)
+
+Catalog packs use **Love it / Maybe / No** on the page; stored states stay
+`approve` / `hold` / `reject`. Maybe and No need a note (`Say what should change…`).
+Catalog uploads need a **purpose** (`reference`, `element`, `post`) and a line of text.
+
+**Approve the campaign** (option A) records `campaign_approval` on the pack, sets
+per-slot `release_ok` / `held`, and writes `catalog_hold` on plan steps and calendar
+records. It does **not** call `approve_plan`, `place_on_calendar`, Postiz or the
+publish queue.
+
+```
+POST /review-pack/<token>/campaign-approve     guest approver link or signed-in approver+
+POST /api/review-packs/<pack_id>/campaign-approve
+POST /api/review-packs/<pack_id>/items/<item_id>/clear-hold   editors only
+POST /api/review-packs/<pack_id>/share {who, campaign_approver: true}   approver guest link
+```
+
+`/news` includes `campaign_approved` with who and when when that happened after
+`since`. The Mac Telegram watcher polls `GET /api/jobs/review-packs/<id>/news?since=…`;
+wiring the watcher on the Mac is Kyle's step (not in the app).
+
 ## Not built yet
 
 A page on our side listing packs and live decisions (today: the API above), email or

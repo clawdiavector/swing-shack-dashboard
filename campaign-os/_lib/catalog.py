@@ -364,6 +364,196 @@ def catalog_header(pack: dict[str, Any]) -> str:
     return " · ".join(bits)
 
 
+CATALOG_LABELS = {"approve": "Love it", "hold": "Maybe", "reject": "No"}
+HOLD_REASON = "Waiting for a remake (marked Maybe/No)"
+UPLOAD_PURPOSES = frozenset({"reference", "element", "post"})
+_SLOTS_NAME = "catalog_slots.json"
+_AUDIT_NAME = "catalog_audit.jsonl"
+
+
+def labels_for(pack: dict[str, Any]) -> dict[str, str] | None:
+    if pack.get("kind") != "catalog":
+        return None
+    return dict(CATALOG_LABELS)
+
+
+def _slots_path(pack_id: str) -> Path:
+    return _root() / pack_id / _SLOTS_NAME
+
+
+def slot_states(pack_id: str) -> dict[str, dict[str, Any]]:
+    return json.loads(_slots_path(pack_id).read_text(encoding="utf-8")) if _slots_path(pack_id).is_file() else {}
+
+
+def _write_slots(pack_id: str, data: dict[str, dict[str, Any]]) -> None:
+    p = _slots_path(pack_id)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    os.replace(tmp, p)
+
+
+def mark_summary(pack_id: str) -> dict[str, Any]:
+    """How many slots are marked, for the campaign-yes line on the page."""
+    pack = rp.get_pack(pack_id)
+    if not pack:
+        return {"total": 0, "marked": 0, "approve": 0, "hold": 0, "reject": 0, "unmarked": 0, "line": "", "items": []}
+    decisions = rp.view(pack_id)["decisions"]
+    items = pack.get("items") or []
+    counts = {"approve": 0, "hold": 0, "reject": 0, "unmarked": 0}
+    rows = []
+    for it in items:
+        if it.get("kind") == "note":
+            continue
+        d = decisions.get(it["id"])
+        state = d.get("state") if isinstance(d, dict) else None
+        if state == "pending":
+            state = None
+        if state in counts:
+            counts[state] += 1
+        else:
+            counts["unmarked"] += 1
+        rows.append({"id": it["id"], "state": state or "unmarked"})
+    total = len(rows)
+    marked = total - counts["unmarked"]
+    parts = [f"{marked} of {total} marked"]
+    if counts["approve"]:
+        parts.append(f"{counts['approve']} Love it")
+    if counts["hold"]:
+        parts.append(f"{counts['hold']} Maybe")
+    if counts["reject"]:
+        parts.append(f"{counts['reject']} No")
+    if counts["unmarked"]:
+        parts.append(f"{counts['unmarked']} not marked")
+    return {**counts, "total": total, "marked": marked, "line": ". ".join(parts) + ".", "items": rows}
+
+
+def is_held(brand_id: str, calendar_id: str) -> bool:
+    """True when Herman held this post in the campaign catalog and it was not cleared."""
+    cid = str(calendar_id or "").strip()
+    if not brand_id or not cid:
+        return False
+    try:
+        from _lib import marketing_calendar as mc
+
+        row = mc._newest_row(brand_id, cid)
+    except Exception:
+        row = None
+    return bool(row and row.get("catalog_hold"))
+
+
+def catalog_hold_error() -> str:
+    return "Herman marked this Maybe/No in the campaign catalog. Remake it or clear the hold first."
+
+
+def release_blocked(brand_id: str, calendar_id: str) -> str | None:
+    """Plain error when a held catalog post cannot be approved yet; None when it can."""
+    return catalog_hold_error() if is_held(brand_id, calendar_id) else None
+
+
+def _append_audit(pack_id: str, row: dict[str, Any]) -> None:
+    p = _root() / pack_id / _AUDIT_NAME
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def _slot_brand_plan(pack: dict[str, Any]) -> tuple[str, str]:
+    return str(pack.get("brand_id") or ""), str(pack.get("plan_id") or "")
+
+
+def _plan_item_for_slot(brand_id: str, plan_id: str, slot_id: str) -> dict[str, Any] | None:
+    plan = cp.get_plan(brand_id, plan_id)
+    if not plan:
+        return None
+    return next((i for i in plan.get("items") or [] if i["item_id"] == slot_id), None)
+
+
+def _set_plan_hold(brand_id: str, plan_id: str, item_id: str, held: bool, who: str) -> None:
+    cp.edit_item(brand_id, plan_id, item_id, {"catalog_hold": held}, actor=who)
+
+
+def _set_calendar_hold(brand_id: str, calendar_id: str, held: bool, who: str) -> None:
+    if not calendar_id:
+        return
+    from _lib import marketing_calendar as mc
+
+    mc.set_fields(brand_id, calendar_id, {"catalog_hold": held}, reason=f"catalog campaign yes by {who}")
+
+
+def approve_campaign(pack_id: str, who: str, uid: str | None = None) -> dict[str, Any]:
+    """Record the campaign yes: slot release flags and holds on plan and calendar. Sends nothing."""
+    pack = rp.get_pack(pack_id)
+    if not pack or pack.get("kind") != "catalog":
+        raise CatalogError("That is not a catalog pack.")
+    brand_id, plan_id = _slot_brand_plan(pack)
+    summary = mark_summary(pack_id)
+    decisions = rp.view(pack_id)["decisions"]
+    slots: dict[str, dict[str, Any]] = {}
+    for it in pack.get("items") or []:
+        if it.get("kind") == "note":
+            continue
+        iid = it["id"]
+        d = decisions.get(iid)
+        state = d.get("state") if isinstance(d, dict) else None
+        if state == "pending":
+            state = None
+        love = state == "approve"
+        held = not love
+        slots[iid] = {
+            "release_ok": love,
+            "held": held,
+            "hold_reason": HOLD_REASON if held else "",
+        }
+        plan_item = _plan_item_for_slot(brand_id, plan_id, iid)
+        if plan_item:
+            _set_plan_hold(brand_id, plan_id, iid, held, who)
+            cid = str(plan_item.get("calendar_id") or "").strip()
+            _set_calendar_hold(brand_id, cid, held, who)
+    _write_slots(pack_id, slots)
+    from _lib.review_pack import _now
+
+    stamp = _now()
+    approval = {
+        "by": (who or "someone").strip()[:40],
+        "uid": str(uid).strip()[:80] if uid else "",
+        "at": stamp,
+        "counts": {k: summary[k] for k in ("approve", "hold", "reject", "unmarked", "total", "marked")},
+    }
+    rp.patch_pack(pack_id, campaign_approval=approval)
+    _append_audit(pack_id, {"at": stamp, "who": approval["by"], "uid": approval["uid"], "event": "campaign_approved", "counts": approval["counts"]})
+    return {"ok": True, "campaign_approval": approval}
+
+
+def clear_hold(pack_id: str, item_id: str, who: str) -> dict[str, Any]:
+    """Editor clears a catalog hold so the post can be released as it is."""
+    pack = rp.get_pack(pack_id)
+    if not pack or pack.get("kind") != "catalog":
+        raise CatalogError("That is not a catalog pack.")
+    _item(pack, item_id)
+    slots = slot_states(pack_id)
+    row = slots.get(item_id) or {}
+    from _lib.review_pack import _now
+
+    row.update({"held": False, "release_ok": True, "hold_reason": "", "cleared_by": who, "cleared_at": _now()})
+    slots[item_id] = row
+    _write_slots(pack_id, slots)
+    brand_id, plan_id = _slot_brand_plan(pack)
+    _set_plan_hold(brand_id, plan_id, item_id, False, who)
+    plan_item = _plan_item_for_slot(brand_id, plan_id, item_id)
+    if plan_item:
+        _set_calendar_hold(brand_id, str(plan_item.get("calendar_id") or ""), False, who)
+    _append_audit(pack_id, {"at": row["cleared_at"], "who": who, "event": "clear_hold", "item_id": item_id})
+    return {"ok": True, "item_id": item_id}
+
+
+def _item(pack: dict[str, Any], item_id: str) -> dict[str, Any]:
+    item = next((i for i in pack.get("items") or [] if i["id"] == item_id), None)
+    if not item:
+        raise CatalogError("That post is not in this pack.")
+    return item
+
+
 def list_catalog_rows() -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for row in rp.list_packs():

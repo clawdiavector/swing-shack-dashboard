@@ -109,7 +109,14 @@ def _append_row(path: Path, row: dict[str, Any]) -> None:
 # ── the link ────────────────────────────────────────────────────────────────
 
 
-def mint_token(serializer: Any, pack_id: str, who: str = "Chantalle", *, uid: str | None = None) -> str:
+def mint_token(
+    serializer: Any,
+    pack_id: str,
+    who: str = "Chantalle",
+    *,
+    uid: str | None = None,
+    role: str | None = None,
+) -> str:
     """A signed link for ONE pack. It cannot open anything else."""
     if get_pack(pack_id) is None:
         raise NotFound("that pack is not there")
@@ -121,6 +128,8 @@ def mint_token(serializer: Any, pack_id: str, who: str = "Chantalle", *, uid: st
     }
     if uid:
         payload["uid"] = str(uid).strip()[:80]
+    if role:
+        payload["role"] = str(role).strip()[:20]
     return serializer.dumps(payload)
 
 
@@ -140,6 +149,8 @@ def read_token(serializer: Any, token: str, *, max_age: int = MAX_AGE) -> dict[s
     out: dict[str, str] = {"pack": pack_id, "who": str(payload.get("who") or "Chantalle")}
     if payload.get("uid"):
         out["uid"] = str(payload["uid"])
+    if payload.get("role"):
+        out["role"] = str(payload["role"])
     return out
 
 
@@ -565,7 +576,7 @@ def _clean_name(name: str) -> str:
 
 
 def save_upload(pack_id: str, item_id: str, data: bytes, *, original_name: str, source: str,
-                rights: bool, who: str) -> dict[str, Any]:
+                rights: bool, who: str, purpose: str = "", text: str = "") -> dict[str, Any]:
     """Keep one photo she uploaded. Checked by looking inside it, re-encoded (which
     drops hidden location data) and saved under a random name."""
     pack = _pack_or_raise(pack_id)
@@ -587,6 +598,7 @@ def save_upload(pack_id: str, item_id: str, data: bytes, *, original_name: str, 
     (d / "uploads" / name).write_bytes(buf.getvalue())
     row = {"file": name, "item": item_id or "", "original_name": _clean_name(original_name),
            "source": str(source or "").strip()[:200], "rights": bool(rights),
+           "purpose": str(purpose or "").strip()[:40], "text": str(text or "").strip()[:400],
            "who": (who or "someone").strip()[:40], "at": _now(), "bytes": buf.tell()}
     _append_row(d / "uploads.jsonl", row)
     return row
@@ -648,7 +660,14 @@ def colour_of(pack_id: str, who: str) -> str:
     return PALETTE[people[key] % len(PALETTE)]
 
 
-def public_view(pack_id: str, token: str, who: str = "", staff: bool = False) -> dict[str, Any]:
+def public_view(
+    pack_id: str,
+    token: str,
+    who: str = "",
+    staff: bool = False,
+    *,
+    campaign_can_approve: bool = False,
+) -> dict[str, Any]:
     """What the page needs, with links that carry her token. staff=True only for a signed-in
     teammate: it adds the data for Remove and Put back. The client's view never carries it."""
     v = view(pack_id)
@@ -671,14 +690,24 @@ def public_view(pack_id: str, token: str, who: str = "", staff: bool = False) ->
     done = [{**r, "colour": colour_of(pack_id, r.get("by", "")), "mine": bool(me) and k == me}
             for k, r in sorted(_done_rows(pack_id).items(), key=lambda kv: kv[1].get("at", ""))]
     catalog_line = ""
+    labels = None
+    campaign_summary = None
     if v["pack"].get("kind") == "catalog":
         from _lib import catalog as _cat
 
         catalog_line = _cat.catalog_header(v["pack"])
+        labels = _cat.labels_for(v["pack"])
+        campaign_summary = _cat.mark_summary(pack_id)
     out = {"pack": {"title": v["pack"]["title"], "client": v["pack"].get("client", ""),
                      "theme": v["pack"].get("theme", {}), "notice": v["pack"].get("notice", ""), "items": items},
             "decisions": decisions, "comments": comments, "uploads": uploads, "done": done, "staff": False,
-            "catalog_line": catalog_line}
+            "catalog_line": catalog_line, "catalog_upload": v["pack"].get("kind") == "catalog",
+            "campaign_can_approve": bool(campaign_can_approve and v["pack"].get("kind") == "catalog"),
+            "campaign_summary": campaign_summary}
+    if labels:
+        out["labels"] = labels
+    if v["pack"].get("campaign_approval"):
+        out["campaign_approved"] = v["pack"]["campaign_approval"]
     if staff:
         out["staff"] = True
         out["pack_id"] = pack_id
@@ -708,8 +737,11 @@ def news(pack_id: str, since: str = "") -> dict[str, Any]:
         "uploads": len(uploads),
     }
     done_now = [r for r in sorted(_done_rows(pack_id).values(), key=lambda r: r.get("at", "")) if fresh(r)]
-    empty = not any(counts.values()) and not done_now
+    camp = v["pack"].get("campaign_approval") if isinstance(v["pack"].get("campaign_approval"), dict) else {}
+    camp_fresh = bool(camp and fresh(camp))
+    empty = not any(counts.values()) and not done_now and not camp_fresh
     lines: list[str] = []
+    campaign_approved = camp if camp_fresh else None
     if not empty:
         client = v["pack"].get("client") or "The client"
         lines.append(f"{client} on \"{v['pack']['title']}\":")
@@ -724,8 +756,15 @@ def news(pack_id: str, since: str = "") -> dict[str, Any]:
             lines.append(f"- {u.get('who', 'someone')} uploaded a photo to {titles.get(u.get('item'), 'the pack')}")
         for r in done_now:
             lines.append(f"- {r.get('by', 'someone')} says they are done")
+        if campaign_approved:
+            lines.append(
+                f"- {campaign_approved.get('by', 'someone')} approved the campaign "
+                f"({campaign_approved.get('at', '')[:16].replace('T', ' ')})"
+            )
     return {"pack_id": pack_id, "since": since, "now": _now(), "empty": empty, "counts": counts,
-            "done": [r.get("by", "someone") for r in done_now], "text": "\n".join(lines)}
+            "done": [r.get("by", "someone") for r in done_now], "text": "\n".join(lines),
+            "campaign_approved": {"by": campaign_approved.get("by"), "at": campaign_approved.get("at")}
+            if campaign_approved else None}
 
 
 def has_activity(pack_id: str) -> bool:
@@ -811,7 +850,7 @@ button.rm{font:inherit;font-size:14px;font-weight:800;border:2px solid var(--no)
 button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 </style></head><body>
 <div class="wrap">
-<header><h1 id="ttl"></h1><p class="catline" id="catline" hidden></p><p class="lead" id="intro"></p></header>
+<header><h1 id="ttl"></h1><p class="catline" id="catline" hidden></p><p class="catline" id="campaignline" hidden></p><button type="button" class="send" data-campaign-yes hidden>Approve the campaign</button><p class="lead" id="intro"></p></header>
 <aside class="card" id="notice" hidden style="border-left:6px solid var(--accent)"></aside>
 <div id="items" class="wrap"></div>
 <section class="card" id="week"></section>
@@ -823,7 +862,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 <script>
 const TOKEN="__TOKEN__",BASE="/review-pack/"+TOKEN;let D=JSON.parse(document.getElementById("boot").textContent);
 const $=id=>document.getElementById(id);const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e};
-const LBL={approve:"Approve",reject:"Reject",hold:"Hold"};let LB={l:[],i:0,t:""};const SIZE_PICK=new Map();
+const LBL=__LBL__;let LB={l:[],i:0,t:""};const SIZE_PICK=new Map();let UNMARKED_OK=false;
 function pickSize(item,key,img,urls){SIZE_PICK.set(item,key);document.querySelectorAll('[data-size-tab="'+item+'"]').forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===key)));if(img&&urls[key])img.src=urls[key]}
 function openLB(l,i,t){LB={l,i,t};showLB();$("lb").hidden=false;$("lbx").focus()}
 function showLB(){$("lbi").src=LB.l[LB.i];$("lbc").textContent=LB.t+(LB.l.length>1?"  ·  "+(LB.i+1)+" of "+LB.l.length:"");$("lbp").hidden=$("lbn").hidden=LB.l.length<2}
@@ -843,14 +882,17 @@ function uploadBox(item,onDone){const u=el("div","up");u.append(el("b","","Add y
  const f=document.createElement("input");f.type="file";f.accept="image/jpeg,image/png,image/webp";f.multiple=true;f.setAttribute("aria-label","Choose photos");
  const s=document.createElement("input");s.type="text";s.placeholder="Where is it from, and who owns it?";s.setAttribute("aria-label","Source and owner");
  const lab=el("label","chk");const cb=document.createElement("input");cb.type="checkbox";lab.append(cb,el("span","","I own this photo, or I have permission to use it."));
+ let pur,txt;if(D.catalog_upload){pur=document.createElement("select");pur.setAttribute("aria-label","What is this photo for");[["reference","The look I want"],["element","Use this in the post"],["post","This is the post"]].forEach(([v,t])=>{const o=el("option","",t);o.value=v;pur.append(o)});txt=document.createElement("textarea");txt.rows=2;txt.placeholder="Say what this is for in a line of text";txt.setAttribute("aria-label","What this photo is for")}
  const b=el("button","send","Upload");b.type="button";const out=el("p","sub","Up to 20 photos at a time.");
  b.onclick=async()=>{const files=[...f.files];if(!files.length){out.textContent="Choose a photo first.";return}
   if(files.length>20){out.textContent="Only 20 photos at a time. Please choose fewer.";return}
+  if(D.catalog_upload&&(!pur.value||!txt.value.trim())){out.textContent="Choose what the photo is for and write a line about it.";return}
   const fd=new FormData();files.forEach(x=>fd.append("files",x));fd.append("item",item);fd.append("source",s.value);fd.append("rights",cb.checked?"1":"");
+  if(D.catalog_upload){fd.append("purpose",pur.value);fd.append("text",txt.value.trim())}
   b.disabled=true;out.textContent="Uploading "+files.length+"...";
-  try{const r=await fetch(BASE+"/upload",{method:"POST",body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Upload failed");out.textContent=j.uploads.length+" saved.";f.value="";await refresh()}catch(e){out.textContent=e.message}finally{b.disabled=false}};
- u.append(f,s,lab,b,out);return u}
-function uploadsGrid(item){const g=el("div","ups");const mine=D.uploads.filter(x=>x.item===item);mine.forEach((x,i)=>{const im=new Image();im.src=x.url;im.alt=x.original_name;im.title=x.source||x.original_name;im.onclick=()=>openLB(mine.map(y=>y.url),i,"Your photo");g.append(im)});return mine.length?g:null}
+  try{const r=await fetch(BASE+"/upload",{method:"POST",body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Upload failed");out.textContent=j.uploads.length+" saved.";f.value="";if(txt)txt.value="";await refresh()}catch(e){out.textContent=e.message}finally{b.disabled=false}};
+ u.append(f,s,lab);if(pur)u.append(pur,txt);u.append(b,out);return u}
+function uploadsGrid(item){const g=el("div","ups");const mine=D.uploads.filter(x=>x.item===item);mine.forEach((x,i)=>{const im=new Image();im.src=x.url;im.alt=x.original_name;im.title=x.source||x.original_name;im.onclick=()=>openLB(mine.map(y=>y.url),i,"Your photo");g.append(im);if(x.text||x.purpose){const cap=el("p","sub",(x.purpose?x.purpose.replace("_"," ")+": ":"")+(x.text||""));g.append(cap)}});return mine.length?g:null}
 let SURE=false;
 function paintFinish(done,total,first){SURE=false;$("progress").textContent=done+" of "+total+" answered";
  const nb=$("nextb");nb.textContent=first?"Next post":"Finish";nb.onclick=()=>{const t=first?document.querySelector('section[data-id="'+first+'"]'):$("finish");if(t){t.scrollIntoView({behavior:"smooth",block:"start"});t.focus({preventScroll:true})}};
@@ -862,6 +904,7 @@ function paintFinish(done,total,first){SURE=false;$("progress").textContent=done
  const b=el("button","send",mine?"Done. Tell us again":"I'm done");b.type="button";
  b.onclick=async()=>{if(!mine&&done<total&&!SURE){SURE=true;b.textContent="Send anyway ("+(total-done)+" unanswered)";return}
   b.disabled=true;try{const j=await post("/done",{});D.done=(D.done||[]).filter(x=>!x.mine);D.done.push({by:j.done.by,at:j.done.at,mine:true,colour:"#7c38f8"});paint();say("Thank you, we have it")}catch(e){say(e.message);b.disabled=false}};
+ if(D.campaign_can_approve){const cy=el("button","send","Approve the campaign");cy.type="button";cy.setAttribute("data-campaign-yes","");cy.onclick=campaignYes;f.prepend(cy)}
  f.append(b)}
 function paint(){let done=0,total=0,first=null;D.pack.items.forEach(it=>{const ans=!!D.decisions[it.id]&&D.decisions[it.id].state!=="pending";if(it.kind!=="note"){total++;if(ans)done++;else if(!first)first=it.id}const d=D.decisions[it.id];const b=document.querySelector('[data-badge="'+it.id+'"]');
   if(b){const pend=d&&d.state==="pending";b.className="badge"+(d&&!pend?" "+d.state:"");b.textContent=d?(pend?"Option "+d.choice+" picked. Now Approve, Reject or Hold":LBL[d.state]+(d.choice?" · option "+d.choice:"")):"Waiting for you"}
@@ -877,10 +920,21 @@ function teamSection(){const s=el("section","card team");s.append(el("b","","Tea
  const gone=D.removed||[];s.append(el("h2","","Removed posts"));if(!gone.length)s.append(el("p","sub","Nothing removed."));
  gone.forEach(g=>{const r=el("div","row");r.style.alignItems="center";r.append(el("span","",g.title));const b=el("button","rm","Put back");b.type="button";
   b.onclick=async()=>{b.disabled=true;try{await team(g.id,"restore");location.reload()}catch(e){say(e.message);b.disabled=false}};r.append(b);s.append(r)});return s}
-async function act(item,state,choice){try{const j=await post("/act",{item,state:state||undefined,choice:choice||undefined});D.decisions[item]=j.decision;paint();say(state?LBL[state]+" saved":"Option "+choice+" picked")}catch(e){say(e.message)}}
+async function act(item,state,choice){try{let body={item,state:state||undefined,choice:choice||undefined};
+ if(D.catalog_upload&&state&&(state==="hold"||state==="reject")){const note=window.prompt("What should change?","");
+  if(note===null)return;if(!note.trim()){say("Say what should change first.");return}
+  const tag=state==="reject"?"general":"design edit";body={...body,note:note.trim(),tag}}
+ const j=await post("/act",body);D.decisions[item]=j.decision;paint();say(state?LBL[state]+" saved":"Option "+choice+" picked")}catch(e){say(e.message)}}
+async function campaignYes(){if(!D.campaign_can_approve)return;const s=D.campaign_summary||{};const un=s.unmarked||0;
+ if(un&&!UNMARKED_OK){UNMARKED_OK=true;say(un+" posts are not marked. Approve the campaign anyway? Unmarked posts are treated as Maybe.");return}
+ try{const j=await post("/campaign-approve",{confirm_unmarked:un>0});D.campaign_approved=j.campaign_approval;UNMARKED_OK=false;paintCampaign();say("Campaign approved")}catch(e){say(e.message)}}
+function paintCampaign(){document.querySelectorAll("[data-campaign-yes]").forEach(b=>{b.hidden=!D.campaign_can_approve||!!D.campaign_approved});const line=document.getElementById("campaignline");if(line&&D.campaign_summary)line.textContent=D.campaign_summary.line||"";if(D.campaign_approved&&line)line.textContent="Campaign approved by "+D.campaign_approved.by+"."}
 function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name+": ":"";$("ttl").textContent="";$("ttl").append(document.createTextNode(parts),el("span","",P.title));
  $("intro").textContent="Look at each post, then choose Approve, Reject or Hold. Leave a comment on anything, and upload your own photo where you have one. Your answers save as you go. When you have been through them all, press I'm done at the bottom.";
  if(D.catalog_line){const cl=$("catline");cl.hidden=false;cl.textContent=D.catalog_line}
+ if(D.campaign_summary||D.campaign_approved){const cl=$("campaignline");cl.hidden=false;if(D.campaign_summary)cl.textContent=D.campaign_summary.line}
+ document.querySelectorAll("[data-campaign-yes]").forEach(b=>{b.onclick=campaignYes});
+ paintCampaign();
  if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
  const box=$("items");P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
   const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m));const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);if(D.staff)h.append(teamRemove(it));c.append(h);
@@ -908,10 +962,13 @@ def render_page(data: dict[str, Any], *, token: str) -> str:
     grad = theme.get("gradient") or ["#D751F7", "#7C38F8", "#23A4F1"]
     css_grad = "linear-gradient(90deg," + ",".join(grad) + ")"
     payload = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c").replace("&", "\\u0026")
+    labels = data.get("labels") or {"approve": "Approve", "reject": "Reject", "hold": "Hold"}
+    lbl = json.dumps(labels, ensure_ascii=False).replace("<", "\\u003c")
     safe_token = re.sub(r"[^A-Za-z0-9_.-]", "", token)
     return (_PAGE.replace("__TITLE__", html.escape(data["pack"]["title"]))
             .replace("__INK__", theme.get("ink", "#121528")).replace("__BG__", theme.get("bg", "#f6f4f1"))
             .replace("__ACCENT__", theme.get("accent", "#7c38f8")).replace("__GRAD__", css_grad)
+            .replace("__LBL__", lbl)
             .replace("__DATA__", payload).replace("__TOKEN__", safe_token))
 
 

@@ -446,8 +446,10 @@ def _ensure_calendar_dir() -> Path:
     """
     global _CALENDAR_DIR, _CALENDAR_DIR_READY
     runtime_calendar = _runtime_data_dir() / "intelligence" / "marketing-calendar"
-    if _CALENDAR_DIR_READY:
+    if _CALENDAR_DIR_READY and _CALENDAR_DIR == runtime_calendar:
         return _CALENDAR_DIR
+    if _CALENDAR_DIR_READY and _CALENDAR_DIR != runtime_calendar:
+        _CALENDAR_DIR_READY = False
     baked = Path(os.path.dirname(os.path.abspath(__file__))) / ".." / "data" / "calendar"
     candidates_dirs: list[Path] = []
     for cand in (_CALENDAR_DIR, runtime_calendar, baked):
@@ -742,6 +744,7 @@ _EDITABLE_MOMENT_FIELDS = frozenset(
         "render_mode",
         "oneshot_ai_logo",
         "oneshot_model",
+        "catalog_hold",
     }
 )
 

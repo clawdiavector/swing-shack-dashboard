@@ -247,3 +247,4 @@ campaign-os/tests/test_top_posts_own_brand_20261106.py
 campaign-os/tests/test_catalog_c1_logins_20261109.py
 campaign-os/tests/test_catalog_c1_logins_r2_20261109.py
 campaign-os/tests/test_catalog_integration_20261109.py
+campaign-os/tests/test_catalog_c45_marks_and_yes_20261109.py
