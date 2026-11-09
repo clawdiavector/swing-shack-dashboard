@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/fitting-area/2026-05-29__fitting-area__shaft-wall-tool-chest__02.jpg",
+  "layer1_metadata": {
+    "filename": "2026-05-29__fitting-area__shaft-wall-tool-chest__02.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 2822314,
+    "modified": 1794189875.4420114,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#a0988b",
+        "rgb": [
+          160,
+          152,
+          139
+        ],
+        "share": 0.1354
+      },
+      {
+        "hex": "#3a383c",
+        "rgb": [
+          58,
+          56,
+          60
+        ],
+        "share": 0.134
+      },
+      {
+        "hex": "#5c4c3d",
+        "rgb": [
+          92,
+          76,
+          61
+        ],
+        "share": 0.129
+      },
+      {
+        "hex": "#6d6a65",
+        "rgb": [
+          109,
+          106,
+          101
+        ],
+        "share": 0.1258
+      },
+      {
+        "hex": "#262224",
+        "rgb": [
+          38,
+          34,
+          36
+        ],
+        "share": 0.1231
+      },
+      {
+        "hex": "#c4bcab",
+        "rgb": [
+          196,
+          188,
+          171
+        ],
+        "share": 0.1228
+      },
+      {
+        "hex": "#907a61",
+        "rgb": [
+          144,
+          122,
+          97
+        ],
+        "share": 0.1165
+      },
+      {
+        "hex": "#111423",
+        "rgb": [
+          17,
+          20,
+          35
+        ],
+        "share": 0.1134
+      }
+    ],
+    "mean_brightness": 95.0,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 115.4,
+    "brightness_bottom": 82.6,
+    "edge_density_grid": [
+      [
+        22.55,
+        37.42,
+        23.04
+      ],
+      [
+        12.47,
+        27.73,
+        15.91
+      ],
+      [
+        14.92,
+        21.39,
+        12.75
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 5,
+    "text_preview": "SS SAU\u00bb al = SSN"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 19,
+    "median_text_height_px": 19,
+    "likely_heading_text": "=",
+    "is_all_caps": true,
+    "sample_text_colour": "#736862"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#a0988b",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top",
+      "ocr_text": "SS SAU\u00bb al = SSN",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

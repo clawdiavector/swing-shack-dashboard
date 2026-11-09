@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/bays/2026-09-23__bays__bays-from-above__01.jpg",
+  "layer1_metadata": {
+    "filename": "2026-09-23__bays__bays-from-above__01.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 2321585,
+    "modified": 1794189839.587704,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#a28c6e",
+        "rgb": [
+          162,
+          140,
+          110
+        ],
+        "share": 0.1436
+      },
+      {
+        "hex": "#dabf94",
+        "rgb": [
+          218,
+          191,
+          148
+        ],
+        "share": 0.1327
+      },
+      {
+        "hex": "#1d1c1a",
+        "rgb": [
+          29,
+          28,
+          26
+        ],
+        "share": 0.131
+      },
+      {
+        "hex": "#5d4c41",
+        "rgb": [
+          93,
+          76,
+          65
+        ],
+        "share": 0.1239
+      },
+      {
+        "hex": "#080708",
+        "rgb": [
+          8,
+          7,
+          8
+        ],
+        "share": 0.1237
+      },
+      {
+        "hex": "#37322e",
+        "rgb": [
+          55,
+          50,
+          46
+        ],
+        "share": 0.1221
+      },
+      {
+        "hex": "#b0aa93",
+        "rgb": [
+          176,
+          170,
+          147
+        ],
+        "share": 0.1159
+      },
+      {
+        "hex": "#797b7b",
+        "rgb": [
+          121,
+          123,
+          123
+        ],
+        "share": 0.1071
+      }
+    ],
+    "mean_brightness": 97.3,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 137.2,
+    "brightness_bottom": 67.6,
+    "edge_density_grid": [
+      [
+        4.85,
+        8.64,
+        9.95
+      ],
+      [
+        10.48,
+        13.36,
+        12.66
+      ],
+      [
+        11.44,
+        19.54,
+        9.37
+      ]
+    ],
+    "subject_estimate_position": "bottom"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 13,
+    "text_preview": "= Vie eo \u201cPOR THIS GAME | ABOVE ALL OF MIND.\u201d -e weve"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 28,
+    "median_text_height_px": 27,
+    "likely_heading_text": "THIS GAME ABOVE",
+    "is_all_caps": true,
+    "sample_text_colour": "#b1a481"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#a28c6e",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "bottom",
+      "ocr_text": "= Vie eo \u201cPOR THIS GAME | ABOVE ALL OF MIND.\u201d -e weve",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

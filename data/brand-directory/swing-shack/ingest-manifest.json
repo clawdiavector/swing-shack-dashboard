@@ -1656,6 +1656,454 @@
       "modified": null,
       "folder": "Products",
       "ingested": 1792982565.828853
+    },
+    "Brand/Logos/full_logo_dark.png": {
+      "drive_id": "1f1oUZlWVIOETW-mq7-jqerp8I8msIw8x",
+      "size": "5438",
+      "md5": "7ef805be3c258293a3810b29c94f14c4",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189789.45632
+    },
+    "Brand/Logos/full_logo_dark.svg": {
+      "drive_id": "1EW3Ykwm5g0PokXt_pNoRjdfPsPEoXOS2",
+      "size": "5250",
+      "md5": "cf1b6cacd7034521de308236dede2857",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189791.115108
+    },
+    "Brand/Logos/full_logo_dark@2x.png": {
+      "drive_id": "1BBCuyjchrXAab8motrdSphfNqfF_Tlk_",
+      "size": "11571",
+      "md5": "9a679b73714345f2900c768b794f2e20",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189792.9395552
+    },
+    "Brand/Logos/full_logo_light.png": {
+      "drive_id": "12O4hbMyuU3ty_EPJ2S6_3Wp3gg2nc6uP",
+      "size": "5062",
+      "md5": "351787dc99131ea8afe4413da84f5028",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189794.657792
+    },
+    "Brand/Logos/full_logo_light.svg": {
+      "drive_id": "1soDQ24i7uKacARKZR4FnmIf6WQtyK8ed",
+      "size": "5247",
+      "md5": "544da4fe118f66b186c5a74b2f57758e",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189796.308374
+    },
+    "Brand/Logos/full_logo_light@2x.png": {
+      "drive_id": "1AJQ6dCEh-j0WEN9AxUAbec8RO6ORirFL",
+      "size": "10972",
+      "md5": "56b8de441babc07aa0f38804cb89f56d",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189798.1238668
+    },
+    "Brand/Logos/icon1_dark.png": {
+      "drive_id": "1biOuRBDiM5szfVYrTIpqJM72-oRv6hUH",
+      "size": "2204",
+      "md5": "6cc63c65fe95571d319e734afb3beec9",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189799.9180758
+    },
+    "Brand/Logos/icon1_dark.svg": {
+      "drive_id": "1E85jl5pemCE5SJIUgGqxRQnT0v1LVS26",
+      "size": "1805",
+      "md5": "1b1df1e104ce3dc73d55b0b4b50db543",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189801.480588
+    },
+    "Brand/Logos/icon1_dark@2x.png": {
+      "drive_id": "1sKQvHIzYCpJO2h6eKESxaF4c7-GGiQj9",
+      "size": "4506",
+      "md5": "dfd24da8a3a39fcc7d0323df35cf426a",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189803.1719182
+    },
+    "Brand/Logos/icon1_light.png": {
+      "drive_id": "192lSHK1c1pJPF1dvfjDTBUYzbve6qU6D",
+      "size": "2059",
+      "md5": "227597ef6b7eee1930ac4dcab9422251",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189804.892164
+    },
+    "Brand/Logos/icon1_light.svg": {
+      "drive_id": "16gu7f3C8JM2LLFvebHEnONhY4vyUq3wU",
+      "size": "1802",
+      "md5": "9b11db985ecf6e78e8fc0016ed95059c",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189806.568907
+    },
+    "Brand/Logos/icon1_light@2x.png": {
+      "drive_id": "1ZzU9ZkYrdMwwHOgWXQAlDM13Urn_Y8AV",
+      "size": "4271",
+      "md5": "53d9db21e7f9f419775a67b37ac66931",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189808.220396
+    },
+    "Brand/Logos/icon2_dark.png": {
+      "drive_id": "1lWgLFoJaGnvqpVDzOmCBe0WenZGDxpnD",
+      "size": "1388",
+      "md5": "4ed91c592a1ff7cb393ab06aa8eb04bc",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189809.786794
+    },
+    "Brand/Logos/icon2_dark.svg": {
+      "drive_id": "1smasLe-UyM4egrEo8RSpC5MF5PKg7-Tz",
+      "size": "1088",
+      "md5": "cfd2ce853e4f6da2b4741cdfa9a0dcc8",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189811.370827
+    },
+    "Brand/Logos/icon2_dark@2x.png": {
+      "drive_id": "1eVhlNg25nW3zrq0VqixUg_ZuTw-4jsbA",
+      "size": "2755",
+      "md5": "4aae43390234276cf98dddf3006bf6eb",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189813.010893
+    },
+    "Brand/Logos/icon2_light.png": {
+      "drive_id": "1y537FFfUl5ctAnC1ECAYo46qw0PjIj6P",
+      "size": "1320",
+      "md5": "0f396fb9aec8a4aebdcfc2c567c202e0",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189814.697453
+    },
+    "Brand/Logos/icon2_light.svg": {
+      "drive_id": "1E64kfbNbSGlPtQcnc9BUOA9jkkfCUpl_",
+      "size": "1085",
+      "md5": "35bdc402ce0054f5286ab373457f17fb",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189816.285248
+    },
+    "Brand/Logos/icon2_light@2x.png": {
+      "drive_id": "170Jgv5IMXSyhWhtiTaor-PeUXpP5SpCI",
+      "size": "2604",
+      "md5": "66b00327dbf52d22bb9a6f01493142be",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189817.823064
+    },
+    "Brand/Logos/swingshack_dark.png": {
+      "drive_id": "1zhYHN-PGmCvbMeIAkVJTrJcjG_zSOQvD",
+      "size": "54728",
+      "md5": "63a8550624745181e1fade5243846471",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189819.935918
+    },
+    "Brand/Logos/swingshack_dark@0.5x.png": {
+      "drive_id": "1IYSfxQDtLdW9vAv2zxfOvW2elFp0Tnoh",
+      "size": "24704",
+      "md5": "320a7fb422fec5b2a91b24347b03d2eb",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189821.6517172
+    },
+    "Brand/Logos/swingshack_dark@3x.png": {
+      "drive_id": "1gouz6yc6SknKVVj8eM6BwPdh4BsQPlSx",
+      "size": "219323",
+      "md5": "eae36d4471e1df97b3678f5e8be6d6ee",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189824.02751
+    },
+    "Brand/Logos/swingshack_light.png": {
+      "drive_id": "1AlBgjd8aefMmVMw6L21IINuPF4fvTPGm",
+      "size": "52624",
+      "md5": "b3d58ed6100ba98ed90c426acb1346fd",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189826.02393
+    },
+    "Brand/Logos/swingshack_light@0.5x.png": {
+      "drive_id": "1SSK-Mqvl8NyRzl80nLQOsu_Pe-5fqyfr",
+      "size": "23615",
+      "md5": "a8b2a6a8c475d21ed57c81480c35d2a8",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189827.952904
+    },
+    "Brand/Logos/swingshack_light@3x.png": {
+      "drive_id": "1_Dfq_WfjTyzz_iuDgF8ndp8bosuor2Pq",
+      "size": "207209",
+      "md5": "80a20400adbb50088c3b00f9f6ce56eb",
+      "modified": null,
+      "folder": "Brand/Logos",
+      "ingested": 1794189830.29351
+    },
+    "Location/bays/2026-05-29__bays__bays-from-above-in-play__01.jpg": {
+      "drive_id": "1whyfBVx4RwNREGFkopR7YRZE1HrRRg6v",
+      "size": "2576605",
+      "md5": "ccaee24c5083bbb5c3e8e07a7b346147",
+      "modified": null,
+      "folder": "Location/bays",
+      "ingested": 1794189833.338597
+    },
+    "Location/bays/2026-09-23__bays__bay-wide__01.jpg": {
+      "drive_id": "1enKW8jV0G45iO3VgBfc90EVb_J5MEWC8",
+      "size": "2171438",
+      "md5": "9cab9fa0111df54b757751fd563c7b6a",
+      "modified": null,
+      "folder": "Location/bays",
+      "ingested": 1794189836.428622
+    },
+    "Location/bays/2026-09-23__bays__bays-from-above__01.jpg": {
+      "drive_id": "1fWqrzVWJQU5zWInbLj8bs7JL-QFO0hfm",
+      "size": "2321585",
+      "md5": "e11942e99a0ddc7600944f0664962e55",
+      "modified": null,
+      "folder": "Location/bays",
+      "ingested": 1794189839.591022
+    },
+    "Location/bays/2026-09-23__bays__two-bays-in-play__01.jpg": {
+      "drive_id": "1S96fyksxQVeQxD9lZcENduYrCOOTpuM6",
+      "size": "2057134",
+      "md5": "b54033764f836570d0df9b6f3467a7c1",
+      "modified": null,
+      "folder": "Location/bays",
+      "ingested": 1794189842.910569
+    },
+    "Location/bays/2026-09-23__bays__two-bays-in-play__02.jpg": {
+      "drive_id": "1w73n8GxXNvEBeXwLBE4jc4LBl2pJlMxJ",
+      "size": "2174862",
+      "md5": "2a1f1786eec87d4be0d2d51c832e46ae",
+      "modified": null,
+      "folder": "Location/bays",
+      "ingested": 1794189845.873525
+    },
+    "Location/exterior/2026-05-29__exterior__entrance-seating__01.jpg": {
+      "drive_id": "1sPi8JcrtF0-GzFJ1CLwm-rmbreFdh9ey",
+      "size": "3938918",
+      "md5": "d3f55a420986fd98c3ae99cb093f3469",
+      "modified": null,
+      "folder": "Location/exterior",
+      "ingested": 1794189849.4337249
+    },
+    "Location/exterior/2026-05-29__exterior__entrance-seating__02.jpg": {
+      "drive_id": "1yzyTa1jMJDHkEBffedqtK8nR7PPyjhPS",
+      "size": "3905956",
+      "md5": "326d37412de2394077bc434fc991a17b",
+      "modified": null,
+      "folder": "Location/exterior",
+      "ingested": 1794189852.913598
+    },
+    "Location/exterior/2026-05-29__exterior__entrance-sign__01.jpg": {
+      "drive_id": "1ovPhYfZz_ywpalH7mIdVnvtP_mJ8yrn0",
+      "size": "3434333",
+      "md5": "944c1cbe5c2bb6240eac3f10c9b6b48b",
+      "modified": null,
+      "folder": "Location/exterior",
+      "ingested": 1794189856.5404649
+    },
+    "Location/exterior/2026-09-23__exterior__entrance-sign__01.jpg": {
+      "drive_id": "1i1amVBac980UJFbQ8YPzUfRbYFpOEMrr",
+      "size": "2932831",
+      "md5": "76b7d5695270904cb97d79ac66fece67",
+      "modified": null,
+      "folder": "Location/exterior",
+      "ingested": 1794189859.8406389
+    },
+    "Location/exterior/2026-09-23__exterior__entrance-sign__02.jpg": {
+      "drive_id": "1U9eienbDkuwdRC4c2dXzJ1OMfbdfHK8l",
+      "size": "3535878",
+      "md5": "4680e1cfe0aec3b34d5c6b3b8eb4b376",
+      "modified": null,
+      "folder": "Location/exterior",
+      "ingested": 1794189863.0001001
+    },
+    "Location/fitting-area/2026-05-29__fitting-area__putting-lane-fitting-machines__01.jpg": {
+      "drive_id": "14vWcuge0fiNfvoDgxrcVT9acECnXy577",
+      "size": "2612533",
+      "md5": "a605ef30420381c74876d896c6696f90",
+      "modified": null,
+      "folder": "Location/fitting-area",
+      "ingested": 1794189866.3663502
+    },
+    "Location/fitting-area/2026-05-29__fitting-area__putting-lane-fitting-machines__02.jpg": {
+      "drive_id": "136_zeS56VRIyX9xGlac2ByXtH6wP5mMs",
+      "size": "2486879",
+      "md5": "a3924ab820cc279d39fcf747a079c74e",
+      "modified": null,
+      "folder": "Location/fitting-area",
+      "ingested": 1794189869.35137
+    },
+    "Location/fitting-area/2026-05-29__fitting-area__shaft-wall-tool-chest__01.jpg": {
+      "drive_id": "15FQZzppHtOuo4F0T6Ia4pRlBnasA-yba",
+      "size": "2733919",
+      "md5": "177382d153eb3ed16d661fdbdf51ed02",
+      "modified": null,
+      "folder": "Location/fitting-area",
+      "ingested": 1794189872.527671
+    },
+    "Location/fitting-area/2026-05-29__fitting-area__shaft-wall-tool-chest__02.jpg": {
+      "drive_id": "1squTrwRZJZoPhoEIPgZFLOgyqAlvyLkj",
+      "size": "2822314",
+      "md5": "f55c0ce2543c35ae4c676b07f79a2c96",
+      "modified": null,
+      "folder": "Location/fitting-area",
+      "ingested": 1794189875.445887
+    },
+    "Location/fitting-area/2026-09-23__fitting-area__driver-head-drawers__01.jpg": {
+      "drive_id": "1FFFdFmaC8e1wJUoa7XuPe4QFoV93pHyE",
+      "size": "2145151",
+      "md5": "828b53ce25b4e5f72c5f5cf393680a6a",
+      "modified": null,
+      "folder": "Location/fitting-area",
+      "ingested": 1794189878.435497
+    },
+    "Location/fitting-area/2026-09-23__fitting-area__driver-head-drawers__02.jpg": {
+      "drive_id": "1UTGimbtgUofYOI8EjE2nnPlW43zs6Alt",
+      "size": "2142660",
+      "md5": "13f82b061a62869fd23a5aa1e7010ec6",
+      "modified": null,
+      "folder": "Location/fitting-area",
+      "ingested": 1794189881.4570282
+    },
+    "Location/fitting-area/2026-09-23__fitting-area__shaft-rack__01.jpg": {
+      "drive_id": "1hHPhG6q4n5z2zT1-HSHgzH19wKasuMur",
+      "size": "2343885",
+      "md5": "141e4ee325cf6b32af836a5ed96499a4",
+      "modified": null,
+      "folder": "Location/fitting-area",
+      "ingested": 1794189884.455532
+    },
+    "Location/fitting-area/2026-09-23__fitting-area__shaft-wall-and-bay__01.jpg": {
+      "drive_id": "1RoeBjaByDHinNW7_nsEih9PyZoEwEMEq",
+      "size": "2554351",
+      "md5": "3f8c648b3e37e00c40bd480e8521d617",
+      "modified": null,
+      "folder": "Location/fitting-area",
+      "ingested": 1794189887.443155
+    },
+    "Location/lounge-bar/2026-05-29__lounge-bar__lounge-into-bays__01.jpg": {
+      "drive_id": "1Pq254B7-wKEBqQ0CnB_noBl94V3qMYsm",
+      "size": "1913527",
+      "md5": "3f49afcd02f45ab049505597ca98a5e1",
+      "modified": null,
+      "folder": "Location/lounge-bar",
+      "ingested": 1794189890.792784
+    },
+    "Location/lounge-bar/2026-09-23__lounge-bar__tv-wall-bag-display__01.jpg": {
+      "drive_id": "1o4PKSQhHH-o5YY839Wh_eDp_LM2g9vDz",
+      "size": "2021229",
+      "md5": "b4bd443a31808a0eb6e5adc01af8e40d",
+      "modified": null,
+      "folder": "Location/lounge-bar",
+      "ingested": 1794189894.1135528
+    },
+    "Location/lounge-bar/2026-09-23__lounge-bar__tv-wall-bag-display__02.jpg": {
+      "drive_id": "1ziY1zQv4OsSUtNWxcVBsX0cuhEi-vAF5",
+      "size": "2036324",
+      "md5": "c2adf23ae7d3a8eab55a734e03b92c5d",
+      "modified": null,
+      "folder": "Location/lounge-bar",
+      "ingested": 1794189897.600398
+    },
+    "Location/shop-floor/2026-05-29__shop-floor__ball-display-srixon__01.jpg": {
+      "drive_id": "1fMkN8q9P3zXaYXJhowRLoEZBm1CtK31G",
+      "size": "1947792",
+      "md5": "b63dd35b658615d1a7183eff5412405e",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189900.958751
+    },
+    "Location/shop-floor/2026-05-29__shop-floor__ball-display-titleist__01.jpg": {
+      "drive_id": "1_6yWIVHWS4QwIyib9XiBH4euGFGj2Ppg",
+      "size": "2209381",
+      "md5": "2e20856a52085de71e18953d91c9aa85",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189903.997599
+    },
+    "Location/shop-floor/2026-05-29__shop-floor__grip-display-ripit-takomo__01.jpg": {
+      "drive_id": "19D0kEcndnj7VVHRiePD-HaokoBEWPpDB",
+      "size": "1810737",
+      "md5": "81db0f3d96a457ad55428b4b74e3f0c7",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189907.2180429
+    },
+    "Location/shop-floor/2026-05-29__shop-floor__putter-wall-lab-la-golf__01.jpg": {
+      "drive_id": "1ucbq8NvsL7PIBhjGrS_KL1MC6Mgd8kbn",
+      "size": "2392035",
+      "md5": "cdc599ce51ed10f3eb2d27b3cb8a3a03",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189910.838625
+    },
+    "Location/shop-floor/2026-05-29__shop-floor__putter-wall-lab-la-golf__02.jpg": {
+      "drive_id": "1zrwrKpm694amUJ5ig59rEpV2wxVxQdwu",
+      "size": "2406569",
+      "md5": "4a719e1141c1b40fbf9496adb6bff99f",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189914.1100101
+    },
+    "Location/shop-floor/2026-09-23__shop-floor__ball-display-cabinet__01.jpg": {
+      "drive_id": "1UXwsTaUE495c1KlMnohuxurhGMCZEzBr",
+      "size": "1856936",
+      "md5": "77c20b2f5141148b80a94b3946af4317",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189917.339251
+    },
+    "Location/shop-floor/2026-09-23__shop-floor__grip-display-ripit__01.jpg": {
+      "drive_id": "1jgaVxSGkp2cvs9MV8lDfU7U1V4DdzR0b",
+      "size": "1761775",
+      "md5": "6ec8a2c9352743e2598e38bcaf433ad1",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189920.694879
+    },
+    "Location/shop-floor/2026-09-23__shop-floor__lit-logo-sign__01.jpg": {
+      "drive_id": "1RVG8PtP9KOZjsYaF6upDkyY4rZS_vq4G",
+      "size": "1725027",
+      "md5": "d21b3dd68f06fa8e49269adff9cb0dd3",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189923.55696
+    },
+    "Location/shop-floor/2026-09-23__shop-floor__putter-wall-lab-la-golf__01.jpg": {
+      "drive_id": "1pFcn7_rIguxI_njc9ynVYiFRS_TIIF9-",
+      "size": "2233708",
+      "md5": "dcd72cf3146b8f122a86b5f02af5b724",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189926.584262
+    },
+    "Location/shop-floor/2026-09-23__shop-floor__putter-wall-lab-la-golf__02.jpg": {
+      "drive_id": "1Tc_KanPVTj_PRKii50kzMVIVAKU_EZJE",
+      "size": "2213951",
+      "md5": "73b4ef9a5bdd129ac55093278d68a47b",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189929.557013
+    },
+    "Location/shop-floor/2026-09-23__shop-floor__tv-and-display-cabinet__01.jpg": {
+      "drive_id": "19Ls-lWw6H_uVuZMx8gu965QzE3ni06nd",
+      "size": "1946209",
+      "md5": "14d991070274e995f40e7612f5854eec",
+      "modified": null,
+      "folder": "Location/shop-floor",
+      "ingested": 1794189932.839443
     }
   },
   "errors": [],
@@ -1680,6 +2128,48 @@
       "name": "2026-10-20__test__reel-9x16__v1.txt",
       "folder": "Video/2-ready-to-publish",
       "mime": "text/plain",
+      "reason": "non_image"
+    },
+    {
+      "drive_id": "1AOLMTNlghWJczIYdmpBTq-Ku28WvRY0E",
+      "name": "full_logo_dark.pdf",
+      "folder": "Brand/Logos",
+      "mime": "application/pdf",
+      "reason": "non_image"
+    },
+    {
+      "drive_id": "1XkEcRGt1JWhOzR35KD2K9MMZS_LnRDdi",
+      "name": "full_logo_light.pdf",
+      "folder": "Brand/Logos",
+      "mime": "application/pdf",
+      "reason": "non_image"
+    },
+    {
+      "drive_id": "10IK_yAWbm1dntLReyRFjS7zV7njtjkdf",
+      "name": "icon1_dark.pdf",
+      "folder": "Brand/Logos",
+      "mime": "application/pdf",
+      "reason": "non_image"
+    },
+    {
+      "drive_id": "1Pi0YaqR3k90iJAgLv6sO2Qfafqx50D7v",
+      "name": "icon1_light.pdf",
+      "folder": "Brand/Logos",
+      "mime": "application/pdf",
+      "reason": "non_image"
+    },
+    {
+      "drive_id": "19rpsmFg4fVfiFzIXKtF8wV72cQPfw0J_",
+      "name": "icon2_dark.pdf",
+      "folder": "Brand/Logos",
+      "mime": "application/pdf",
+      "reason": "non_image"
+    },
+    {
+      "drive_id": "1AgGB6r1sPmHtUEZ_SdENxtSbv-qEnbAS",
+      "name": "icon2_light.pdf",
+      "folder": "Brand/Logos",
+      "mime": "application/pdf",
       "reason": "non_image"
     }
   ]

@@ -2065,6 +2065,30 @@ def image_portal_submit():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+def _brand_image_thumb(brand_id, src, w):
+    """A cached JPEG of `src` no wider than `w` (64-1600 px), or None if it can't be made.
+
+    Kept under DATA_DIR/thumbs/<brand>/<w>/ and rebuilt when the photo is newer.
+    """
+    from pathlib import Path as _P
+    import hashlib
+    w = max(64, min(int(w), 1600))
+    out = _P(DATA_DIR) / 'thumbs' / brand_id / str(w) / (hashlib.md5(str(src).encode('utf-8')).hexdigest() + '.jpg')
+    try:
+        if not out.exists() or out.stat().st_mtime < src.stat().st_mtime:
+            from PIL import Image, ImageOps
+            out.parent.mkdir(parents=True, exist_ok=True)
+            with Image.open(src) as im:
+                im = ImageOps.exif_transpose(im).convert('RGB')
+                im.thumbnail((w, w * 4))
+                tmp = out.with_suffix('.tmp')
+                im.save(tmp, 'JPEG', quality=82)
+            os.replace(tmp, out)
+        return out
+    except Exception:
+        return None
+
+
 @app.route('/brand-images/<brand_id>/<path:filename>', methods=['GET'])
 def brand_image_serve(brand_id, filename):
     """GET /brand-images/<brand>/ — serve a brand-directory image.
@@ -2114,6 +2138,12 @@ def brand_image_serve(brand_id, filename):
         except ValueError:
             return jsonify({"error": "path traversal denied"}), 403
         if target.exists() and target.is_file():
+            # ?w=N: a small cached preview for the library grid instead of the full photo.
+            w = request.args.get('w', type=int)
+            if w and target.suffix.lower() in _VL_IMAGE_EXTS:
+                thumb = _brand_image_thumb(brand_id, target, w)
+                if thumb is not None:
+                    return send_from_directory(str(thumb.parent), thumb.name)
             return send_from_directory(str(target.parent), target.name)
 
     for root in _brand_directory_roots():
@@ -2195,6 +2225,55 @@ def asset_serve(filename):
     return jsonify({"error": "not found", "filename": filename}), 404
 
 
+_VL_IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.webp')
+
+
+def _visual_library_index(brand_id):
+    """The brand's Visual Library index, or None when it has no photos at all.
+
+    The bundled visual-dna-index.json, plus every photo the Drive ingest scanned
+    onto the live disk (DATA_DIR/brand-directory/<brand>/images/<folder>/). The
+    live index has no by_filename list of its own, so those are found by their
+    .visual-dna.json files and keyed by their path under images/.
+    """
+    from pathlib import Path as _P
+    bundled_dir = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id
+    idx = {}
+    index_path = bundled_dir / 'visual-dna-index.json'
+    if index_path.exists():
+        try:
+            idx = json.loads(index_path.read_text())
+        except Exception:
+            idx = {}
+    by_fn = dict(idx.get('by_filename') or {})
+    bundled_names = {_P(k).name for k in by_fn}
+    live = _P(DATA_DIR) / 'brand-directory' / brand_id / 'images'
+    if live.is_dir() and live.resolve() != (bundled_dir / 'images').resolve():
+        for dna_p in sorted(live.rglob('*.visual-dna.json')):
+            stem = dna_p.name[:-len('.visual-dna.json')]
+            img = next((c for c in sorted(dna_p.parent.glob(glob.escape(stem) + '.*'))
+                        if c.suffix.lower() in _VL_IMAGE_EXTS), None)
+            if img is None or img.name in bundled_names:
+                continue
+            by_fn.setdefault(img.relative_to(live).as_posix(), {'dna_path': str(dna_p), 'score': 0})
+    if not index_path.exists() and not by_fn:
+        return None
+    idx = dict(idx)
+    idx['by_filename'] = by_fn
+    idx['image_count'] = len(by_fn)
+    return idx
+
+
+def _visual_library_brand_ids():
+    """Every brand with a bundled index or a live images folder, sorted."""
+    from pathlib import Path as _P
+    ids = set()
+    for root in (_P(BUNDLED_DATA_DIR) / 'brand-directory', _P(DATA_DIR) / 'brand-directory'):
+        if root.is_dir():
+            ids.update(p.name for p in root.iterdir() if p.is_dir() and p.name != '_system')
+    return sorted(ids)
+
+
 @app.route('/api/visual-library/<brand_id>/images', methods=['GET'])
 def visual_library_images(brand_id):
     """GET /api/visual-library/<brand>/images — full image roster with DNA preview.
@@ -2208,20 +2287,34 @@ def visual_library_images(brand_id):
       min_score — only images with brand-alignment score >= N (0.0-1.0)
       sort      — score | filename | modified (default score desc)
       limit     — cap results (default 200)
+      folder    — only photos in this folder or under it (e.g. "Shot List/Bags")
+      offset    — skip this many matching photos ("Load more")
     """
     try:
         from pathlib import Path as _P
         import re, base64 as _b64
-        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
-        if not index_path.exists():
+        from urllib.parse import quote as _quote
+        idx = _visual_library_index(brand_id)
+        if idx is None:
             return jsonify({"error": f"no visual-dna index for {brand_id}"}), 404
-        idx = json.loads(index_path.read_text())
         by_filename = idx.get("by_filename", {})
 
         product_filter = request.args.get("product", "").strip()
         min_score = float(request.args.get("min_score", "0") or "0")
         sort_by = request.args.get("sort", "score")
         limit = min(int(request.args.get("limit", "200") or "200"), 500)
+        folder = request.args.get("folder", "").strip().strip("/")
+        try:
+            offset = max(int(request.args.get("offset", "0") or "0"), 0)
+        except ValueError:
+            offset = 0
+        # Every folder (and each parent) with how many photos sit in it or under it.
+        from collections import Counter as _Counter
+        folder_counts = _Counter()
+        for _fn in by_filename:
+            _parts = _fn.split("/")[:-1]
+            for _i in range(1, len(_parts) + 1):
+                folder_counts["/".join(_parts[:_i])] += 1
 
         # Canonical images dir relative to BUNDLED_DATA_DIR — used for both jpg and DNA JSON
         images_dir = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images'
@@ -2253,6 +2346,8 @@ def visual_library_images(brand_id):
             # Primary location: the requested brand
             if (images_dir / filename).exists():
                 return True
+            if (_P(DATA_DIR) / 'brand-directory' / brand_id / 'images' / filename).is_file():
+                return True
             # Sibling brands (orphan DNA fallback path)
             stem = _P(filename).name  # strip any path prefix safely
             for sib in _sibling_brands:
@@ -2263,6 +2358,8 @@ def visual_library_images(brand_id):
 
         out = []
         for fn, meta in by_filename.items():
+            if folder and not fn.startswith(folder + "/"):
+                continue
             dna_p = _resolve_dna(meta.get("dna_path", ""), fn)
             if dna_p is None:
                 continue
@@ -2319,10 +2416,13 @@ def visual_library_images(brand_id):
             # WITHOUT firing a doomed network request.
             _has_thumb = bool(dna.get("thumbnail_b64"))
             _on_disk = _image_on_disk(fn)
+            # Live-disk photos carry no inline thumbnail; point the grid at a small preview.
+            _live_thumb = (None if _has_thumb or not (_P(DATA_DIR) / 'brand-directory' / brand_id / 'images' / fn).is_file()
+                           else f"/brand-images/{brand_id}/{_quote(fn)}?w=480")
             _image_missing = (not _has_thumb) and (not _on_disk)
             entry = {
                 "filename": fn,
-                "url": (None if _image_missing else f"/brand-images/{brand_id}/{fn}"),
+                "url": (None if _image_missing else f"/brand-images/{brand_id}/{_quote(fn)}"),
                 "image_missing": _image_missing,
                 "dna_url": f"/brand-images/{brand_id}/{fn.replace('.jpg', '.visual-dna.json').replace('.jpeg', '.visual-dna.json').replace('.png', '.visual-dna.json')}",
                 "score": round(score, 3),
@@ -2347,7 +2447,7 @@ def visual_library_images(brand_id):
                 # Inline thumbnail (data URL) so the grid works on Railway without the
                 # actual jpg files. The images dir is gitignored; thumbnails are embedded
                 # in each DNA JSON at build time.
-                "thumbnail_data_url": (f"data:image/jpeg;base64,{dna['thumbnail_b64']}" if dna.get("thumbnail_b64") else None),
+                "thumbnail_data_url": (f"data:image/jpeg;base64,{dna['thumbnail_b64']}" if dna.get("thumbnail_b64") else _live_thumb),
                 "thumbnail_w": dna.get("thumbnail_w"),
                 "thumbnail_h": dna.get("thumbnail_h"),
                 # Searchable blob (lowercase) for client-side text matching
@@ -2369,11 +2469,16 @@ def visual_library_images(brand_id):
             out.sort(key=lambda x: x["filename"].lower())
         elif sort_by == "modified":
             out.sort(key=lambda x: x["filename"].lower(), reverse=True)
-        out = out[:limit]
+        total_matching = len(out)
+        out = out[offset:offset + limit]
         return jsonify({
             "brand": brand_id,
             "total": len(out),
-            "filters": {"product": product_filter, "min_score": min_score, "sort": sort_by},
+            "total_matching": total_matching,
+            "offset": offset,
+            "has_more": offset + len(out) < total_matching,
+            "folders": [{"path": f, "count": c} for f, c in sorted(folder_counts.items(), key=lambda x: x[0].lower())],
+            "filters": {"product": product_filter, "min_score": min_score, "sort": sort_by, "folder": folder},
             "products_available": sorted(set(p for e in out for p in e["products"])),
             "images": out,
         })
@@ -2392,10 +2497,9 @@ def visual_library_stats(brand_id):
     try:
         from pathlib import Path as _P
         from collections import Counter
-        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
-        if not index_path.exists():
+        idx = _visual_library_index(brand_id)
+        if idx is None:
             return jsonify({"error": f"no visual-dna index for {brand_id}"}), 404
-        idx = json.loads(index_path.read_text())
         by_filename = idx.get("by_filename", {})
 
         product_counts = Counter()
@@ -2474,6 +2578,7 @@ def visual_library_search():
     """
     try:
         from pathlib import Path as _P
+        from urllib.parse import quote
         q = (request.args.get('q') or '').strip()
         if len(q) < 2:
             return jsonify({"ok": False, "error": "q must be 2+ chars", "results": [], "count": 0}), 400
@@ -2495,20 +2600,16 @@ def visual_library_search():
 
         # Decide which brands to search
         if brand_filter and brand_filter != 'all':
-            brand_dirs = [brand_root / brand_filter] if (brand_root / brand_filter).is_dir() else []
+            brand_dirs = [brand_root / brand_filter]
         else:
-            brand_dirs = sorted([p for p in brand_root.iterdir() if p.is_dir()])
+            brand_dirs = [brand_root / b for b in _visual_library_brand_ids()]
 
         results = []
         seen = set()
         for brand_dir in brand_dirs:
             bid = brand_dir.name
-            idx_path = brand_dir / 'visual-dna-index.json'
-            if not idx_path.exists():
-                continue
-            try:
-                idx = json.loads(idx_path.read_text())
-            except Exception:
+            idx = _visual_library_index(bid)
+            if idx is None:
                 continue
             # Canonical images dir relative to BUNDLED_DATA_DIR — same fallback
             # strategy used by /api/visual-library/<brand>/images.
@@ -2619,8 +2720,8 @@ def visual_library_search():
                 results.append({
                     'brand': bid,
                     'filename': fn,
-                    'url': f"/brand-images/{bid}/{fn}",
-                    'thumbnail_url': f"/brand-images/{bid}/{fn}",
+                    'url': f"/brand-images/{bid}/{quote(fn)}",
+                    'thumbnail_url': f"/brand-images/{bid}/{quote(fn)}",
                     'score': round(score, 3),
                     'products': prod_names[:5],
                     'ocr_snippet': ocr_text[:140],
@@ -2651,14 +2752,9 @@ def visual_library_brands():
         if not brand_root.exists():
             return jsonify({'brands': []})
         out = []
-        for brand_dir in sorted([p for p in brand_root.iterdir() if p.is_dir()]):
-            bid = brand_dir.name
-            idx_path = brand_dir / 'visual-dna-index.json'
-            if not idx_path.exists():
-                continue
-            try:
-                idx = json.loads(idx_path.read_text())
-            except Exception:
+        for bid in _visual_library_brand_ids():
+            idx = _visual_library_index(bid)
+            if idx is None:
                 continue
             by_fn = idx.get('by_filename', {}) or {}
             out.append({
@@ -10281,8 +10377,8 @@ def visual_library_image_detail(brand_id, filename):
                 break
         else:
             dna_filename = filename + ".visual-dna.json"
-        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
-        idx = json.loads(index_path.read_text())
+        from urllib.parse import quote
+        idx = _visual_library_index(brand_id) or {}
         meta = idx.get("by_filename", {}).get(filename)
         if not meta:
             return jsonify({"error": f"image {filename} not in index"}), 404
@@ -10293,7 +10389,7 @@ def visual_library_image_detail(brand_id, filename):
         return jsonify({
             "brand": brand_id,
             "filename": filename,
-            "image_url": f"/brand-images/{brand_id}/{filename}",
+            "image_url": "/brand-images/%s/%s" % (brand_id, quote(filename)),
             "score": meta.get("score"),
             "dna": dna,
         })
@@ -48635,7 +48731,7 @@ def review_pack_page(token):
     share = _rp_share(token)
     if not share:
         return rp.render_bad_link_page(), 404, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
-    page = rp.render_page(rp.public_view(share["pack"], token, share["who"]), token=token)
+    page = rp.render_page(rp.public_view(share["pack"], token, share["who"], staff=_is_authed()), token=token)
     return page, 200, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
 
 
@@ -48645,7 +48741,7 @@ def review_pack_data(token):
     share = _rp_share(token)
     if not share:
         return jsonify(_RP_GONE), 404
-    resp = jsonify(rp.public_view(share["pack"], token, share["who"]))
+    resp = jsonify(rp.public_view(share["pack"], token, share["who"], staff=_is_authed()))
     resp.headers.update(_RP_HEADERS)
     return resp
 
@@ -48830,6 +48926,30 @@ def review_packs_add_item(pack_id):
     except ValueError as e:
         return _rp_error(e)
     return jsonify({"ok": True, "item_id": item["id"]}), 200
+
+
+# Our side, from the review page itself: a signed-in teammate who opens a client's link sees
+# "Remove from pack" and "Put back". Not under /api/jobs, so the gate needs the session
+# cookie (or the bearer token, which _is_authed accepts on /api/). The client's link has
+# no route that removes anything. Removing hides a post; nothing is deleted.
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/remove", methods=["POST"])
+def review_packs_remove_item(pack_id, item_id):
+    from _lib import review_pack as rp
+    try:
+        out = rp.remove_item(pack_id, item_id)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "removed": out}), 200
+
+
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/restore", methods=["POST"])
+def review_packs_restore_item(pack_id, item_id):
+    from _lib import review_pack as rp
+    try:
+        out = rp.restore_item(pack_id, item_id)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "restored": out}), 200
 
 
 @app.route("/api/jobs/review-packs/<pack_id>/items/<item_id>/image", methods=["POST"])
