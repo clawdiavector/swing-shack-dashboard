@@ -48947,15 +48947,8 @@ def _rp_share(token):
 
 
 def _catalog_user_row() -> dict | None:
-    import importlib
-    try:
-        umod = importlib.import_module("_lib.users")
-    except ModuleNotFoundError:
-        return None
-    fn = getattr(umod, "current_user", None)
-    if not callable(fn):
-        return None
-    row = fn()
+    """The named login behind this session (C1), or None for the shared password."""
+    row = current_user()
     return row if isinstance(row, dict) else None
 
 
@@ -48963,13 +48956,13 @@ def _catalog_actor_name() -> str:
     row = _catalog_user_row()
     if row and row.get("name"):
         return str(row["name"]).strip()[:40]
-    return (request.headers.get("X-Actor-Display-Name") or request.environ.get("cos_actor_name") or "Team").strip()[:40]
+    return (request.headers.get("X-Actor-Display-Name") or "Team").strip()[:40] or "Team"
 
 
 def _catalog_actor_uid() -> str:
     row = _catalog_user_row()
-    if row and row.get("uid"):
-        return str(row["uid"]).strip()[:80]
+    if row and row.get("id"):
+        return str(row["id"]).strip()[:80]
     return ""
 
 
@@ -49023,6 +49016,9 @@ def review_packs_session_list():
 def review_packs_session_share(pack_id):
     if not _is_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
+    denied = _user_forbid('share')
+    if denied:
+        return denied
     from _lib import review_pack as rp
     body = request.get_json(silent=True) or {}
     who = str(body.get("who") or "Guest").strip()[:40] or "Guest"
