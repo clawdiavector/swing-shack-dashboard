@@ -988,6 +988,13 @@ def release_moment(
     if not cal_id:
         return {"ok": False, "error": "calendar_id required", "code": "bad_request"}
 
+    # Herman's campaign yes held this post (marked Maybe/No in the catalog).
+    from _lib import catalog as _catalog  # noqa: PLC0415
+
+    held = _catalog.release_blocked(brand_id, cal_id)
+    if held:
+        return {"ok": False, "error": held, "code": "catalog_hold"}
+
     if channels is not None:
         ch_result = set_post_channels(
             brand_id=brand_id, calendar_id=cal_id, channels=list(channels)

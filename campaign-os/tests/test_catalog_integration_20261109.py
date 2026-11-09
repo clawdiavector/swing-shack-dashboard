@@ -81,3 +81,13 @@ def test_refresh_builds_post_index_once(monkeypatch):
         assert look("stick", f"c{i}") == {"composed": {}}
     assert look("stick", "missing") is None
     assert calls["index"] == 1
+
+
+def test_release_moment_refuses_catalog_hold(monkeypatch):
+    """The Release button (Scheduled -> Released) respects Herman's hold too."""
+    from _lib import catalog, publish_sandbox
+
+    monkeypatch.setattr(catalog, "is_held", lambda b, c: c == "cal-held")
+    out = publish_sandbox.release_moment(brand_id="stick", calendar_id="cal-held", dispatch=False)
+    assert out["ok"] is False and out["code"] == "catalog_hold"
+    assert "Maybe/No" in out["error"]
