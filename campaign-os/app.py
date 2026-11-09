@@ -579,10 +579,16 @@ def api_me():
 
 
 def _users_admin_forbid():
+    """Logins are managed by Kyle's admin login, or by anyone signed in with the shared
+    team password (so the first logins can be made right after a deploy, with no
+    environment change). A named non-admin login and a job token cannot."""
     user = current_user()
     from _lib import users
 
     if user and users.can(user, 'users_admin'):
+        return None
+    payload = _session_payload()
+    if user is None and isinstance(payload, dict) and payload.get('authed') and not payload.get('uid'):
         return None
     return jsonify({'ok': False, 'error': 'Only Kyle can manage logins.'}), 403
 

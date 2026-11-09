@@ -181,7 +181,7 @@ class CatalogDragAuthTests(unittest.TestCase):
         self.base = f"/review-pack/{self.token}"
         self.ap_base = f"/review-pack/{self.approver_token}"
 
-    def test_guest_and_approver_cannot_drag(self):
+    def test_guest_links_cannot_drag_but_any_login_can(self):
         for base in (self.base, self.ap_base):
             r = self.anon.post(base + "/move-slot", json={"item": self.post["item_id"], "date": "2026-11-20"})
             self.assertIn(r.status_code, (403, 401), r.get_json())
@@ -193,7 +193,7 @@ class CatalogDragAuthTests(unittest.TestCase):
             f"/review-pack/{self.token}/move-slot",
             json={"item": self.post["item_id"], "date": "2026-11-20"},
         )
-        self.assertEqual(r.status_code, 403, r.get_json())
+        self.assertEqual(r.status_code, 200, r.get_json())
 
 
 def test_remake_only_touches_maybe_and_no(data_dir, monkeypatch):

@@ -864,6 +864,18 @@ h1{font-size:clamp(28px,5vw,42px);line-height:1.1;margin:0;font-weight:900}h1 sp
 .badge.approve{background:var(--okbg);color:var(--ok)}.badge.reject{background:var(--nobg);color:var(--no)}
 .meta{font-size:15px;color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}.grid.one{grid-template-columns:minmax(0,420px)}.grid.choice{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.grid.choice .zoom{top:6px;right:6px;width:34px;height:34px;font-size:16px}
+.layout-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:14px;color:var(--muted)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:transparent;color:var(--ink);font:inherit;font-weight:700;padding:6px 14px;min-height:38px;min-width:44px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+body.wide .wrap{max-width:min(1560px,100%)}
+#items.cols{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:18px;align-items:start}
+#items.cols.auto{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+#items.cols .grid.one{grid-template-columns:minmax(0,1fr)}
+#items.cols .card h2{font-size:20px}
+@media (max-width:700px){#items.cols,#items.cols.auto{grid-template-columns:minmax(0,1fr)}.layout-bar>span:first-child,.layout-bar .seg{display:none}}
+details.upl>summary{cursor:pointer;font-weight:700;padding:6px 0}
+.cell .full{position:absolute;right:10px;bottom:10px;border:0;border-radius:999px;background:rgba(18,21,40,.78);color:#fff;font:inherit;font-size:13px;font-weight:700;padding:6px 12px;min-height:34px;cursor:pointer}
 .cell{position:relative;min-width:0}.cell img{width:100%;display:block;border-radius:10px;background:var(--line);aspect-ratio:4/5;object-fit:cover;cursor:zoom-in}
 .pic.none{aspect-ratio:4/5;border-radius:10px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;text-align:center;padding:8px;min-height:120px}
 .size-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}
@@ -905,7 +917,7 @@ textarea{flex:1 1 240px;min-height:52px;resize:vertical}
 button.rm{font:inherit;font-size:14px;font-weight:800;border:2px solid var(--no);background:transparent;color:var(--no);border-radius:999px;padding:6px 14px;min-height:38px;cursor:pointer}
 .bar{flex-wrap:wrap;position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;z-index:5}
 .lb{position:fixed;inset:0;background:rgba(8,10,22,.95);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}.lb[hidden]{display:none}
-.lb img{max-width:min(96vw,1100px);max-height:86vh;border-radius:8px}
+.lb img{max-width:96vw;max-height:88vh;border-radius:8px;object-fit:contain}
 .lbb{position:absolute;border:0;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font:inherit;font-weight:800;cursor:pointer;padding:10px 18px}
 #lbx{top:16px;right:16px}#lbp{left:10px;top:50%}#lbn{right:10px;top:50%}#lbc{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#fff;font-size:15px}
 button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
@@ -925,8 +937,8 @@ const TOKEN="__TOKEN__",BASE="/review-pack/"+TOKEN;let D=JSON.parse(document.get
 const $=id=>document.getElementById(id);const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e};
 const LBL=__LBL__;let LB={l:[],i:0,t:""};const SIZE_PICK=new Map();let UNMARKED_OK=false;
 function pickSize(item,key,img,urls){SIZE_PICK.set(item,key);document.querySelectorAll('[data-size-tab="'+item+'"]').forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===key)));if(img&&urls[key]){img.src=urls[key];img.style.aspectRatio={story:"9/16",google:"4/3"}[key]||"";img.style.objectFit=key==="feed"?"":"contain";img.style.maxHeight=key==="story"?"70vh":""}}
-function openLB(l,i,t){LB={l,i,t};showLB();$("lb").hidden=false;$("lbx").focus()}
-function showLB(){$("lbi").src=LB.l[LB.i];$("lbc").textContent=LB.t+(LB.l.length>1?"  ·  "+(LB.i+1)+" of "+LB.l.length:"");$("lbp").hidden=$("lbn").hidden=LB.l.length<2}
+function openLB(l,i,t,names){LB={l,i,t,names};showLB();$("lb").hidden=false;$("lbx").focus()}
+function showLB(){$("lbi").src=LB.l[LB.i];$("lbc").textContent=LB.t+(LB.names&&LB.names[LB.i]?"  ·  "+LB.names[LB.i]:(LB.l.length>1?"  ·  "+(LB.i+1)+" of "+LB.l.length:""));$("lbp").hidden=$("lbn").hidden=LB.l.length<2}
 function step(d){LB.i=(LB.i+d+LB.l.length)%LB.l.length;showLB()}
 $("lbx").onclick=()=>{$("lb").hidden=true};$("lbp").onclick=()=>step(-1);$("lbn").onclick=()=>step(1);$("lb").onclick=e=>{if(e.target===$("lb"))$("lb").hidden=true};
 document.addEventListener("keydown",e=>{if($("lb").hidden)return;if(e.key==="Escape")$("lb").hidden=true;if(e.key==="ArrowLeft")step(-1);if(e.key==="ArrowRight")step(1)});
@@ -1002,6 +1014,12 @@ async function campaignYes(){if(!D.campaign_can_approve)return;const s=D.campaig
  if(un&&!UNMARKED_OK){UNMARKED_OK=true;say((un===1?"1 post is":un+" posts are")+" not marked. Press Approve the campaign again to go ahead. Unmarked posts are treated as Maybe.");return}
  try{const j=await post("/campaign-approve",{confirm_unmarked:un>0});D.campaign_approved=j.campaign_approval;UNMARKED_OK=false;paintCampaign();say("Campaign approved")}catch(e){say(e.message)}}
 function paintCampaign(){document.querySelectorAll("[data-campaign-yes]").forEach(b=>{b.hidden=!D.campaign_can_approve||!!D.campaign_approved});const line=document.getElementById("campaignline");if(line&&D.campaign_summary)line.textContent=D.campaign_summary.line||"";if(D.campaign_approved&&line)line.textContent="Campaign approved by "+D.campaign_approved.by+"."}
+const COLS_KEY="rp-cols";
+function colsPref(){let v=null;try{v=localStorage.getItem(COLS_KEY)}catch(e){}return v||(D.catalog_upload?"auto":"1")}
+function applyCols(v){const box=$("items");if(!box)return;const multi=v!=="1";box.classList.toggle("cols",multi);box.classList.toggle("auto",v==="auto");box.style.setProperty("--cols",v==="auto"?"2":v);document.body.classList.toggle("wide",multi);
+ document.querySelectorAll("details.upl").forEach(d=>{d.open=!multi});document.querySelectorAll("[data-cols]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.cols===v)))}
+function layoutBar(){const bar=el("div","layout-bar");bar.append(el("span","","Cards per row"));const seg=el("div","seg");seg.setAttribute("role","group");seg.setAttribute("aria-label","Cards per row");
+ [["auto","Auto"],["1","1"],["2","2"],["3","3"],["4","4"]].forEach(([v,l])=>{const b=el("button","",l);b.type="button";b.dataset.cols=v;b.onclick=()=>{try{localStorage.setItem(COLS_KEY,v)}catch(e){}applyCols(v)};seg.append(b)});bar.append(seg,el("span","","Click a picture to see it full size."));return bar}
 function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name+": ":"";$("ttl").textContent="";$("ttl").append(document.createTextNode(parts),el("span","",P.title));
  if(D.can_remake){const rb=el("button","send","Remake from notes");rb.type="button";rb.style.marginTop="10px";rb.onclick=async()=>{try{await remakeNotes()}catch(e){say(e.message)}};$("ttl").after(rb)}
  paintMonthStrip();
@@ -1011,7 +1029,7 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
  document.querySelectorAll("[data-campaign-yes]").forEach(b=>{b.onclick=campaignYes});
  paintCampaign();
  if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
- const box=$("items");P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
+ const box=$("items");box.before(layoutBar());P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
   if(D.can_drag&&it.when){const chip=el("span","slot-chip",it.when);chip.draggable=true;chip.title="Drag to a day on the calendar strip";chip.ondragstart=e=>{DRAG_ITEM=it.id;e.dataTransfer.setData("text/plain",it.id)};hh.append(chip)}else{const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m))}
   if(it.channels&&D.can_drag)hh.append(el("p","meta",it.channels));
   const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);if(D.staff)h.append(teamRemove(it));c.append(h);
@@ -1022,12 +1040,12 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
     if(it.kind==="choice"&&it.images.length>1){const L="ABC"[i];const o=el("button","opt");o.type="button";o.setAttribute("aria-label","Pick design option "+L);o.dataset.ch=it.id;o.dataset.v=L;o.setAttribute("aria-pressed","false");o.append(im,el("b","","Option "+L));o.onclick=()=>act(it.id,null,L);im.onclick=null;cell.append(o)}else{
       if(isLatest&&urls.feed){const tabs=el("div","size-tabs");tabs.setAttribute("role","tablist");tabs.setAttribute("aria-label","Picture size");[["feed","Feed"],["story","Story"],["google","Google"]].forEach(([k,l])=>{const b=el("button","pill",l);b.type="button";b.dataset.sizeTab=it.id;b.dataset.k=k;b.setAttribute("role","tab");b.setAttribute("aria-pressed",String(k==="feed"));b.onclick=()=>pickSize(it.id,k,im,urls);tabs.append(b)});cell.append(tabs)}
       if(!isLatest)cell.append(el("p","earlier","Earlier version"));
-      im.onclick=()=>{const pick=SIZE_PICK.get(it.id)||"feed";const lb=(isLatest&&urls[pick])?[urls.feed,urls.story,urls.google].filter(Boolean):it.images;const at=isLatest?["feed","story","google"].indexOf(pick):i;openLB(lb,Math.max(0,at),it.title)};cell.append(im)}
+      im.onclick=()=>{const pick=SIZE_PICK.get(it.id)||"feed";const sized=isLatest&&urls[pick];const lb=sized?[urls.feed,urls.story,urls.google].filter(Boolean):it.images;const at=isLatest?["feed","story","google"].indexOf(pick):i;openLB(lb,Math.max(0,at),it.title,sized?["Feed","Story","Google"]:null)};cell.append(im);const fb=el("button","full","⤢ View full size");fb.type="button";fb.setAttribute("aria-label","View "+it.title+" full size");fb.onclick=()=>im.onclick();cell.append(fb)}
     if(it.kind==="choice"&&it.images.length>1){const z=el("button","zoom","⤢");z.type="button";z.setAttribute("aria-label","View full screen");z.onclick=()=>openLB(it.images,i,it.title);cell.append(z)}g.append(cell)});c.append(g)}else{c.append(el("div","pic none","Picture to come"))}
-  if(it.caption)c.append(el("div","cap",it.caption));if(it.note)c.append(el("p","meta",it.note));
-  const r=el("div","row");["approve","reject","hold"].forEach(s=>{const b=el("button","pill "+s,LBL[s]);b.type="button";b.dataset.st=it.id;b.dataset.v=s;b.setAttribute("aria-pressed","false");b.onclick=()=>{const cur=D.decisions[it.id];act(it.id,s,cur&&cur.choice)};r.append(b)});c.append(r);
+  if(it.caption)c.append(el("div","cap",it.caption));if(it.note&&!(it.caption||"").includes(it.note))c.append(el("p","meta",it.note));
+  const r=el("div","row");(D.labels?["approve","hold","reject"]:["approve","reject","hold"]).forEach(s=>{const b=el("button","pill "+s,LBL[s]);b.type="button";b.dataset.st=it.id;b.dataset.v=s;b.setAttribute("aria-pressed","false");b.onclick=()=>{const cur=D.decisions[it.id];act(it.id,s,cur&&cur.choice)};r.append(b)});c.append(r);
   const t=el("div","thread");t.append(el("h3","","Comments"));const tb=el("div");tb.dataset.th=it.id;t.append(tb,composer(it.id,tb));c.append(t);
-  const ug=el("div");ug.dataset.ug=it.id;c.append(uploadBox(it.id),ug);box.append(c)});
+  const ug=el("div");ug.dataset.ug=it.id;const upl=document.createElement("details");upl.className="upl";upl.open=true;upl.append(el("summary","","Add a photo or a reference"),uploadBox(it.id));c.append(upl,ug);box.append(c)});applyCols(colsPref());
  if(D.staff)$("finish").after(teamSection());
  const w=$("week");w.append(el("h2","","Your own photos for the week"),el("p","sub","Not tied to one post? Add them here."),uploadBox(""));const wg=el("div");wg.dataset.ug="";w.append(wg);
  const wt=el("div","thread");wt.append(el("h3","","General comments"));const wb=el("div");wb.dataset.th="";wt.append(wb,composer("",wb));w.append(wt);paint();const g0=document.querySelector('[data-ug=""]');if(g0){const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}

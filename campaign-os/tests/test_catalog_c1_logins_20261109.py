@@ -151,7 +151,8 @@ def test_signed_in_plan_approve_records_user_name(env):
     assert got["approved_by"] == "Real Anna"
 
 
-def test_contributor_cannot_approve_gets_plain_403(env):
+def test_contributor_can_approve_free_range(env):
+    """Free range (Kyle, 9 Nov): any signed-in login can approve; it is saved under them."""
     client, _, tmp_path = env
     from _lib import users
 
@@ -162,25 +163,31 @@ def test_contributor_cannot_approve_gets_plain_403(env):
         "/api/plan/v1/stick/propose", json={"brief_id": "brf-c1-002"}
     ).get_json()["plan"]
     r = client.post(f"/api/plan/v1/stick/{plan['plan_id']}/approve", json={})
-    assert r.status_code == 403
-    msg = r.get_json().get("error", "")
-    assert "cannot approve" in msg.lower() or "not approve" in msg.lower()
-    assert "Christelle" in msg or "Kyle" in msg
+    assert r.status_code == 200, r.get_json()
+    got = client.get(f"/api/plan/v1/stick/{plan['plan_id']}").get_json()["plan"]
+    assert got["approved_by"] == "Connie"
 
 
-def test_approver_can_campaign_approve_but_not_move():
+def test_every_role_can_do_everything_but_manage_logins():
     from _lib import users
 
-    user = {
-        "id": "u-approver",
-        "name": "Approver",
-        "email": "ap@test.example",
-        "role": "approver",
-        "brands": ["stick"],
-        "disabled": False,
-    }
-    assert users.can(user, "campaign_approve") is True
-    assert users.can(user, "move") is False
+    for role in users.ROLES:
+        user = {"id": "u-" + role, "name": role, "role": role, "brands": ["stick"], "disabled": False}
+        for action in ("approve", "move", "share", "catalog_make", "campaign_approve", "comment", "upload"):
+            assert users.can(user, action) is True, (role, action)
+        assert users.can(user, "users_admin") is (role == "admin")
+    assert users.can({"id": "x", "role": "admin", "disabled": True}, "approve") is False
+    assert users.can(None, "comment") is False
+
+
+def test_shared_password_session_can_manage_logins(env):
+    """Right after a deploy there are no logins yet: the shared team password can add them."""
+    client, app_mod, _ = env
+    _login_shared(client, app_mod)
+    r = client.post("/api/users", json={"name": "Christelle", "email": "chr@test.example",
+                                        "role": "editor", "brands": ["*"], "password": "start-1"})
+    assert r.status_code == 200, r.get_json()
+    assert client.get("/api/users").get_json()["users"][0]["name"] == "Christelle"
 
 
 def test_users_api_admin_only(env):

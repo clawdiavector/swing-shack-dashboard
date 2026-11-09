@@ -42,15 +42,15 @@ class CatalogWithLoginsTests(_Base):
         self.assertEqual(act.status_code, 200, act.get_json())
         self.assertEqual(rp.view(pack_id)["decisions"][post["item_id"]]["by"], "Herman")
 
-    def test_contributor_cannot_mint_guest_link(self):
+    def test_any_login_can_mint_guest_link_signed_out_cannot(self):
         plan = self._live_plan()
         jason, _ = self._named("Jason", "contributor", "jason@example.test")
         from _lib import catalog as cat
 
         pack_id = cat.ensure_for_plan("stick", plan["plan_id"])["pack_id"]
         r = jason.post(f"/api/review-packs/{pack_id}/share", json={"who": "Guest"})
-        self.assertEqual(r.status_code, 403)
-        self.assertIn("cannot share", r.get_json()["error"])
+        self.assertEqual(r.status_code, 200, r.get_json())
+        self.assertEqual(self.anon.post(f"/api/review-packs/{pack_id}/share", json={"who": "Me"}).status_code, 401)
 
     def test_editor_can_mint_guest_link(self):
         plan = self._live_plan()
@@ -133,3 +133,16 @@ def test_ready_made_google_version_wins(tmp_path, monkeypatch):
                          load_bytes=lambda b, u: files.get(u))
     path = rp.image_path(pack_id, post["item_id"], 0, size="google")
     assert path is not None and path.read_bytes() == gbp
+
+
+def test_page_has_cards_per_row_and_full_size_view():
+    """Kyle 9 Nov: cards side by side with a per-row setting, and a full-size view of every picture."""
+    from _lib import review_pack as rp
+
+    html = rp.render_page({"pack": {"title": "T", "items": []}, "decisions": {}, "comments": [],
+                           "uploads": [], "done": [], "staff": False}, token="tok")
+    assert "Cards per row" in html
+    for v in ('"auto","Auto"', '["1","1"]', '["4","4"]'):
+        assert v in html
+    assert "View full size" in html
+    assert 'D.catalog_upload?"auto":"1"' in html  # catalogs start side by side; other packs as before

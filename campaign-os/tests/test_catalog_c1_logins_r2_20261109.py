@@ -108,7 +108,7 @@ def test_deleted_user_cookie_is_signed_out(env):
     assert client.get("/api/me").status_code == 401
 
 
-def test_approver_cannot_approve_plan_shape(env):
+def test_approver_can_approve_plan_shape_free_range(env):
     client, _, tmp_path = env
     from _lib import users
 
@@ -119,13 +119,10 @@ def test_approver_cannot_approve_plan_shape(env):
         "/api/plan/v1/stick/propose", json={"brief_id": "brf-c1-r2-003"}
     ).get_json()["plan"]
     r = client.post(f"/api/plan/v1/stick/{plan['plan_id']}/approve", json={})
-    assert r.status_code == 403
-    assert r.get_json().get("error") == (
-        "Your login can comment but not approve. Ask Christelle or Kyle."
-    )
+    assert r.status_code == 200, r.get_json()
 
 
-def test_user_forbid_move_message(env):
+def test_contributor_is_not_refused_moving_dates(env):
     client, _, tmp_path = env
     from _lib import users
 
@@ -144,7 +141,5 @@ def test_user_forbid_move_message(env):
         headers={"X-Actor-Display-Name": "Connie"},
         json={},
     )
-    assert r.status_code == 403
-    assert r.get_json().get("error") == (
-        "Your login cannot move dates. Ask Christelle or Kyle."
-    )
+    assert r.status_code != 403, r.get_json()
+

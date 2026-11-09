@@ -366,11 +366,13 @@ class CampaignApproveAuthTests(unittest.TestCase):
         self.app_module = app_module
         self.app = app_module.app
 
-    def test_contributor_cannot_campaign_approve(self):
+    def test_any_login_can_campaign_approve_but_signed_out_cannot(self):
+        anon = self.app.test_client(cos_anon=True)
+        self.assertEqual(anon.post(f"/api/review-packs/{self.pack_id}/campaign-approve", json={}).status_code, 401)
         c = self.app.test_client(cos_anon=True)
         c.post("/login", data={"email": "con@test.example", "password": "con-pass"})
         r = c.post(f"/api/review-packs/{self.pack_id}/campaign-approve", json={})
-        self.assertEqual(r.status_code, 403)
+        self.assertEqual(r.status_code, 200, r.get_json())
 
     def test_approver_guest_link_can_campaign_approve(self):
         token = self.rp.mint_token(self.app_module._serializer, self.pack_id, who="Yolanda", role="approver")
@@ -441,7 +443,7 @@ class ClearHoldTests(unittest.TestCase):
         self.app_module = app_module
         self.app = app_module.app
 
-    def test_clear_hold_editor_only(self):
+    def test_clear_hold_any_login(self):
         editor = self.app.test_client(cos_anon=True)
         editor.post("/login", data={"email": "ed@test.example", "password": "ed-pass"})
         ok = editor.post(f"/api/review-packs/{self.pack_id}/items/{self.item_id}/clear-hold", json={})
@@ -453,5 +455,7 @@ class ClearHoldTests(unittest.TestCase):
         cat.approve_campaign(self.pack_id, "Herman", None)
         approver = self.app.test_client(cos_anon=True)
         approver.post("/login", data={"email": "ap@test.example", "password": "ap-pass"})
-        denied = approver.post(f"/api/review-packs/{self.pack_id}/items/{self.item_id}/clear-hold", json={})
-        self.assertEqual(denied.status_code, 403)
+        again = approver.post(f"/api/review-packs/{self.pack_id}/items/{self.item_id}/clear-hold", json={})
+        self.assertEqual(again.status_code, 200, again.get_json())
+        anon = self.app.test_client(cos_anon=True)
+        self.assertEqual(anon.post(f"/api/review-packs/{self.pack_id}/items/{self.item_id}/clear-hold", json={}).status_code, 401)

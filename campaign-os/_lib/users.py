@@ -192,9 +192,12 @@ def set_password(user_id: str, new_password: str) -> None:
 
 
 def can(user: dict[str, Any] | None, action: str) -> bool:
+    """Free range for now (Kyle, 9 Nov 2026): every signed-in, enabled login can do
+    everything in the app, whatever its role. Only managing logins is Kyle's (admin).
+    The role is still stored and shown, so limits can be switched on later without
+    a data change. Signed-out visitors and guest links never reach this."""
     if not user or user.get("disabled"):
         return False
-    allowed = _ACTIONS.get(action)
-    if not allowed:
-        return False
-    return user.get("role") in allowed
+    if action == "users_admin":
+        return user.get("role") == "admin"
+    return action in _ACTIONS
