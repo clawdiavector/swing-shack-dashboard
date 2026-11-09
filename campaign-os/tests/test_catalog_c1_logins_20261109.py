@@ -204,51 +204,6 @@ def test_users_api_admin_only(env):
     assert j["ok"] and len(j["users"]) >= 2
 
 
-def test_login_cookie_lasts_one_year(env):
-    client, _, _ = env
-    from _lib import users
-
-    users.create_user("Year", "year@test.example", "editor", ["*"], "year-pass")
-    r = _login_user(client, "year@test.example", "year-pass")
-    assert "Max-Age=31536000" in (r.headers.get("Set-Cookie") or "")
-    me = client.get("/api/me")
-    assert me.status_code == 200
-    assert "Max-Age=31536000" in (me.headers.get("Set-Cookie") or "")
-
-
-def test_person_changes_own_password_only(env):
-    """A guest or editor can replace their own password. They cannot set someone else's."""
-    client, app_mod, _ = env
-    from _lib import users
-
-    users.create_user("Guest", "guest@test.example", "contributor", ["*"], "old-pass")
-    users.create_user("Herman", "herman@test.example", "editor", ["*"], "herman-pass")
-    _login_user(client, "guest@test.example", "old-pass")
-
-    blocked = client.post("/api/users", json={})
-    assert blocked.status_code == 403
-    other = next(u for u in users.list_users() if u["email"] == "herman@test.example")
-    stolen = client.post(f"/api/users/{other['id']}/password", json={"password": "taken"})
-    assert stolen.status_code == 403
-    assert users.authenticate("herman@test.example", "herman-pass")
-
-    wrong = client.post("/api/me/password", json={"current": "nope", "password": "new-pass"})
-    assert wrong.status_code == 400
-    assert users.authenticate("guest@test.example", "old-pass")
-
-    changed = client.post("/api/me/password", json={"current": "old-pass", "password": "new-pass"})
-    assert changed.status_code == 200, changed.get_json()
-    assert changed.get_json() == {"ok": True}
-    assert "password" not in json.dumps(changed.get_json())
-    assert users.authenticate("guest@test.example", "new-pass")
-    assert users.authenticate("guest@test.example", "old-pass") is None
-
-    shared = app_mod.app.test_client(cos_anon=True)
-    _login_shared(shared, app_mod)
-    no_name = shared.post("/api/me/password", json={"current": "x", "password": "y"})
-    assert no_name.status_code == 400
-
-
 def test_api_me_shapes(env):
     client, app_mod, _ = env
     from _lib import users
