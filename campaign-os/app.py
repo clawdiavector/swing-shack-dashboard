@@ -71,7 +71,7 @@ if PRODUCTION_ENV_HINT and not _os.environ.get('CAMPAIGN_OS_SECRET', '').strip()
     )
 
 SESSION_COOKIE = 'cos_session'
-SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+SESSION_MAX_AGE = 60 * 60 * 24 * 365  # one year from sign-in
 # v2026-08-13: signed share-token TTL for the auth-optional markdown export.
 # 24 hours is enough for a same-day Slack/email share; longer than a day
 # invites stale-data sharing and stale links accumulating in docs.
@@ -572,7 +572,14 @@ def api_me():
             'role': user['role'],
             'brands': user.get('brands') or [],
         }
-    return jsonify(payload), 200
+    resp = make_response(jsonify(payload), 200)
+    # Opening the app calls this. Refresh the browser cookie so a sign-in
+    # already in progress picks up the one-year lifetime. The token itself
+    # still expires one year after it was issued.
+    token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        resp.set_cookie(SESSION_COOKIE, token, max_age=SESSION_MAX_AGE, httponly=True, samesite='Lax', path='/')
+    return resp
 
 
 @app.route('/api/me/password', methods=['POST'])
@@ -609,7 +616,7 @@ def _users_admin_forbid():
     payload = _session_payload()
     if user is None and isinstance(payload, dict) and payload.get('authed') and not payload.get('uid'):
         return None
-        return jsonify({'ok': False, 'error': 'Only an admin can manage logins.'}), 403
+    return jsonify({'ok': False, 'error': 'Only an admin can manage logins.'}), 403
 
 
 @app.route('/api/users', methods=['GET'])

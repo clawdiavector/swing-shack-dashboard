@@ -204,6 +204,18 @@ def test_users_api_admin_only(env):
     assert j["ok"] and len(j["users"]) >= 2
 
 
+def test_login_cookie_lasts_one_year(env):
+    client, _, _ = env
+    from _lib import users
+
+    users.create_user("Year", "year@test.example", "editor", ["*"], "year-pass")
+    r = _login_user(client, "year@test.example", "year-pass")
+    assert "Max-Age=31536000" in (r.headers.get("Set-Cookie") or "")
+    me = client.get("/api/me")
+    assert me.status_code == 200
+    assert "Max-Age=31536000" in (me.headers.get("Set-Cookie") or "")
+
+
 def test_person_changes_own_password_only(env):
     """A guest or editor can replace their own password. They cannot set someone else's."""
     client, app_mod, _ = env

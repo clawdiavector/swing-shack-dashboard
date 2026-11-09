@@ -43,6 +43,7 @@ import GEO from './pages/GEO'
 import { ReachPage } from './pages/ReachPage'
 import { SeoPage } from './pages/SeoPage'
 import { TrendsPage } from './pages/TrendsPage'
+import { PasswordSettings } from './pages/settings/PasswordSettings'
 import { UsersSettings } from './pages/settings/UsersSettings'
 
 export default function App() {
@@ -90,6 +91,7 @@ export default function App() {
         <Route path="results/reach" element={<ReachPage />} />
         <Route path="results/trends" element={<TrendsPage />} />
         <Route path="ops" element={<Ops />} />
+        <Route path="settings/password" element={<PasswordSettings />} />
         <Route path="settings/users" element={<UsersSettings />} />
         <Route path="geo" element={<GEO />} />
         <Route path="other" element={<Other />} />

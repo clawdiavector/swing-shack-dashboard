@@ -40,71 +40,6 @@ async function usersPatch(id: string, body: Record<string, unknown>): Promise<vo
   if (!r.ok) throw new Error(j.error || 'Could not save changes')
 }
 
-function OwnPassword() {
-  const [current, setCurrent] = useState('')
-  const [next, setNext] = useState('')
-  const [again, setAgain] = useState('')
-  const [msg, setMsg] = useState('')
-  const [err, setErr] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    setErr('')
-    setMsg('')
-    if (next !== again) {
-      setErr('The new password was typed differently the second time.')
-      return
-    }
-    setBusy(true)
-    try {
-      const r = await fetch('/api/me/password', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ current, password: next }),
-      })
-      const j = await r.json()
-      if (!r.ok) throw new Error(j.error || 'Could not change password')
-      setCurrent('')
-      setNext('')
-      setAgain('')
-      setMsg('Password changed. Use the new one next time you sign in.')
-    } catch (ex) {
-      setErr(ex instanceof Error ? ex.message : 'Could not change password')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <section className="glass space-y-3 rounded-2xl border border-white/10 p-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-tx3">Your password</h2>
-      <form className="grid gap-3 sm:grid-cols-2" onSubmit={submit}>
-        <label className="block text-xs text-tx2 sm:col-span-2">
-          Current password
-          <input type="password" className="mt-1 w-full rounded-lg border border-white/10 bg-bg2 px-3 py-2 text-sm" value={current} onChange={(e) => setCurrent(e.target.value)} required autoComplete="current-password" />
-        </label>
-        <label className="block text-xs text-tx2">
-          New password
-          <input type="password" className="mt-1 w-full rounded-lg border border-white/10 bg-bg2 px-3 py-2 text-sm" value={next} onChange={(e) => setNext(e.target.value)} required autoComplete="new-password" />
-        </label>
-        <label className="block text-xs text-tx2">
-          New password again
-          <input type="password" className="mt-1 w-full rounded-lg border border-white/10 bg-bg2 px-3 py-2 text-sm" value={again} onChange={(e) => setAgain(e.target.value)} required autoComplete="new-password" />
-        </label>
-        <div className="sm:col-span-2">
-          <button type="submit" disabled={busy} className="rounded-full bg-yel px-4 py-2 text-sm font-semibold text-bg disabled:opacity-50">
-            Change password
-          </button>
-        </div>
-      </form>
-      {err ? <p className="text-sm text-red">{err}</p> : null}
-      {msg ? <p className="text-sm text-tx">{msg}</p> : null}
-    </section>
-  )
-}
-
 async function usersPassword(id: string, password: string): Promise<void> {
   const r = await fetch(`/api/users/${encodeURIComponent(id)}/password`, {
     method: 'POST',
@@ -183,10 +118,11 @@ export function UsersSettings() {
     return (
       <div className="mx-auto max-w-2xl p-6">
         <PageIntro here="/settings/users" title="Logins">
-          Change your own password here.
+          Only an admin can manage logins.
         </PageIntro>
-        <OwnPassword />
-        <p className="text-sm text-tx2">Adding people, and resetting someone else's password, stays with an admin.</p>
+        <p className="text-sm text-tx2">
+          Change your own password from Password in the top bar.
+        </p>
       </div>
     )
   }
@@ -197,8 +133,6 @@ export function UsersSettings() {
         Named accounts for Campaign OS. The shared password still works until everyone has their own login.
       </PageIntro>
       {err ? <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{err}</p> : null}
-
-      {me ? <OwnPassword /> : null}
 
       <section className="glass space-y-3 rounded-2xl border border-white/10 p-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-tx3">Add someone</h2>

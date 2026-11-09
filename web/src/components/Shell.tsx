@@ -153,6 +153,12 @@ export function Shell() {
             >
               {theme === 'play' ? 'Classic' : 'Playful'}
             </button>
+            <Link
+              to="/settings/password"
+              className="glass-pill rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-tx2 hover:text-tx"
+            >
+              Password
+            </Link>
             <BrandSwitch variant="bar" />
           </div>
         </header>
