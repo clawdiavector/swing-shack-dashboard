@@ -100,9 +100,10 @@ export const SETTINGS: RailItem = {
   label: 'Settings',
   hint: 'Ops, brand, accounts',
   icon: Settings,
-  match: ['/ops', '/other', '/brand', '/library', '/geo', '/desk'],
+  match: ['/ops', '/other', '/brand', '/library', '/geo', '/desk', '/settings'],
   pages: [
     { to: '/ops', label: 'Ops' },
+    { to: '/settings/users', label: 'Logins' },
     { to: '/other', label: 'Everything else' },
   ],
 }

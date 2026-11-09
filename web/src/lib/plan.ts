@@ -234,6 +234,8 @@ export function draftState(
 export const approvePlan = (brand: string, planId: string) =>
   call('POST', `${base(brand)}/${encodeURIComponent(planId)}/approve`, {})
 
+import { signedInActorName } from './me'
+
 const NAME_KEY = 'cos_actor_name'
 
 /** The calendar books a slot only for a named person. Ask once, remember it. */
@@ -247,6 +249,8 @@ export function savedActorName(): string {
 }
 
 export function actorName(ask: (q: string) => string | null = (q) => window.prompt(q)): string {
+  const fromLogin = signedInActorName()
+  if (fromLogin) return fromLogin
   try {
     const saved = window.localStorage.getItem(NAME_KEY)
     if (saved) return saved
