@@ -873,6 +873,10 @@ body.wide .wrap{max-width:min(1560px,100%)}
 #items.cols.auto{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
 #items.cols .grid.one{grid-template-columns:minmax(0,1fr)}
 #items.cols .card h2{font-size:20px}
+.c-top,.c-media,.c-body{display:flex;flex-direction:column;gap:14px;min-width:0}
+#items.cols .card{display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:14px;align-content:start}
+#items.cols .c-top{align-self:start}
+#items.cols .head{flex-direction:column;align-items:flex-start;gap:8px}
 @media (max-width:700px){#items.cols,#items.cols.auto{grid-template-columns:minmax(0,1fr)}.layout-bar>span:first-child,.layout-bar .seg{display:none}}
 details.upl>summary{cursor:pointer;font-weight:700;padding:6px 0}
 .cell .full{position:absolute;right:10px;bottom:10px;border:0;border-radius:999px;background:rgba(18,21,40,.78);color:#fff;font:inherit;font-size:13px;font-weight:700;padding:6px 12px;min-height:34px;cursor:pointer}
@@ -886,7 +890,7 @@ details.upl>summary{cursor:pointer;font-weight:700;padding:6px 0}
 .month-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .month-lbl{font-weight:800;font-size:14px;min-width:5rem}
 .month-days{display:flex;flex-wrap:wrap;gap:6px}
-.day-dot{font:inherit;display:inline-flex;gap:3px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:5px 9px;background:var(--card);cursor:pointer;min-height:40px}
+.day-dot{font:inherit;color:var(--ink);display:inline-flex;gap:3px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:5px 9px;background:var(--card);cursor:pointer;min-height:40px}
 .day-dot.drag-over{outline:2px dashed var(--accent)}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
 .slot-chip{cursor:grab;font-weight:700}
@@ -1045,7 +1049,11 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
   if(it.caption)c.append(el("div","cap",it.caption));if(it.note&&!(it.caption||"").includes(it.note))c.append(el("p","meta",it.note));
   const r=el("div","row");(D.labels?["approve","hold","reject"]:["approve","reject","hold"]).forEach(s=>{const b=el("button","pill "+s,LBL[s]);b.type="button";b.dataset.st=it.id;b.dataset.v=s;b.setAttribute("aria-pressed","false");b.onclick=()=>{const cur=D.decisions[it.id];act(it.id,s,cur&&cur.choice)};r.append(b)});c.append(r);
   const t=el("div","thread");t.append(el("h3","","Comments"));const tb=el("div");tb.dataset.th=it.id;t.append(tb,composer(it.id,tb));c.append(t);
-  const ug=el("div");ug.dataset.ug=it.id;const upl=document.createElement("details");upl.className="upl";upl.open=true;upl.append(el("summary","","Add a photo or a reference"),uploadBox(it.id));c.append(upl,ug);box.append(c)});applyCols(colsPref());
+  const ug=el("div");ug.dataset.ug=it.id;const upl=document.createElement("details");upl.className="upl";upl.open=true;upl.append(el("summary","","Add a photo or a reference"),uploadBox(it.id));c.append(upl,ug);
+  // Three bands (top / picture / rest) so pictures line up across a row whatever the title length.
+  const top=el("div","c-top"),media=el("div","c-media"),body=el("div","c-body");let stage=0;
+  [...c.children].forEach(k=>{if(stage===0&&(k.classList.contains("grid")||k.classList.contains("pic")))stage=1;else if(stage===1)stage=2;(stage===0?top:stage===1?media:body).append(k)});
+  c.append(top,media,body);box.append(c)});applyCols(colsPref());
  if(D.staff)$("finish").after(teamSection());
  const w=$("week");w.append(el("h2","","Your own photos for the week"),el("p","sub","Not tied to one post? Add them here."),uploadBox(""));const wg=el("div");wg.dataset.ug="";w.append(wg);
  const wt=el("div","thread");wt.append(el("h3","","General comments"));const wb=el("div");wb.dataset.th="";wt.append(wb,composer("",wb));w.append(wt);paint();const g0=document.querySelector('[data-ug=""]');if(g0){const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}
