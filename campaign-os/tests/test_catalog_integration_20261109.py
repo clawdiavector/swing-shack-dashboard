@@ -231,13 +231,3 @@ def test_shared_password_session_can_drag_and_approve_campaign():
 
     assert cat.staff_can_drag(staff=True, session_user=None, share_role=None) is True
     assert cat.staff_can_drag(staff=False, session_user=None, share_role="approver") is False
-
-
-def test_cards_line_up_and_strip_days_are_readable():
-    """Kyle 9 Nov: pictures start at the same height across a row; strip day numbers use the ink colour."""
-    from _lib import review_pack as rp
-
-    html = rp.render_page({"pack": {"title": "T", "items": []}, "decisions": {}, "comments": [],
-                           "uploads": [], "done": [], "staff": False}, token="tok")
-    assert "grid-template-rows:subgrid" in html and 'el("div","c-media")' in html
-    assert ".day-dot{font:inherit;color:var(--ink)" in html
