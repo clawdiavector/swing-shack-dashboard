@@ -100,16 +100,31 @@ def _slug_from_archetype(archetype_id: str, template_pack: str) -> str:
     return parts[-1] if len(parts) > 1 else str(archetype_id or "")
 
 
+def _same_brand_dirs(brand_path: Path) -> list[Path]:
+    """The brand folder in every root, runtime first.
+
+    A brand folder in DATA_DIR (feedback, calendar config) must not hide the
+    template packs and golden renders that ship in the repo.
+    """
+    out = [brand_path]
+    for root in brand_directory_roots():
+        cand = root / brand_path.name
+        if cand.is_dir() and cand.resolve() != brand_path.resolve():
+            out.append(cand)
+    return out
+
+
 def _template_pack_dir(brand_path: Path, archetype: dict[str, Any]) -> Path | None:
     pack = str(archetype.get("template_pack") or "").strip()
-    if pack:
-        cand = brand_path / pack
+    slug = _slug_from_archetype(str(archetype.get("id") or ""), pack)
+    for base in _same_brand_dirs(brand_path):
+        if pack:
+            cand = base / pack
+            if cand.is_dir():
+                return cand
+        cand = base / "templates" / slug
         if cand.is_dir():
             return cand
-    slug = _slug_from_archetype(str(archetype.get("id") or ""), pack)
-    cand = brand_path / "templates" / slug
-    if cand.is_dir():
-        return cand
     return None
 
 
@@ -128,7 +143,7 @@ def _is_compose_template(brand_path: Path, archetype: dict[str, Any]) -> bool:
     if str(archetype.get("template_pack") or "").strip():
         return True
     slug = _slug_from_archetype(str(archetype.get("id") or ""), "")
-    return (brand_path / "templates" / slug / "spec.json").is_file()
+    return any((b / "templates" / slug / "spec.json").is_file() for b in _same_brand_dirs(brand_path))
 
 
 def _is_golden_render(rel: str) -> bool:

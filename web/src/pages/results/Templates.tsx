@@ -79,7 +79,7 @@ function CoverageSummaryBar({
   )
 }
 
-function TemplateCard({
+export function TemplateCard({
   template,
   onSelect,
 }: {
@@ -120,7 +120,7 @@ function TemplateCard({
   )
 }
 
-function DetailDrawer({
+export function DetailDrawer({
   template,
   onClose,
 }: {
