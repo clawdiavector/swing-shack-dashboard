@@ -682,6 +682,57 @@ def colour_of(pack_id: str, who: str) -> str:
     return PALETTE[people[key] % len(PALETTE)]
 
 
+_CAL_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_CAL_TIME = re.compile(r"^\d{2}:\d{2}$")
+_CAL_HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def set_calendar(pack_id: str, raw: dict[str, Any] | None) -> dict[str, Any]:
+    """Save the calendar grid shown at the top of the client's page. `{}` clears it.
+    groups: [{name, page, colour}]; slots: [{date YYYY-MM-DD, time HH:MM, item, img, label, group, flag}]."""
+    pack = _pack_or_raise(pack_id)
+    raw = raw or {}
+    if not raw.get("slots") and not raw.get("groups"):
+        pack.pop("calendar", None)
+        _write_json(_pack_dir(pack_id) / "pack.json", pack)
+        return {}
+    items = {i["id"]: i for i in pack["items"]}
+    groups = []
+    for g in raw.get("groups") or []:
+        colour = str(g.get("colour") or "#7c38f8")
+        if not _CAL_HEX.match(colour):
+            raise ValueError("a group colour must look like #7c38f8")
+        groups.append({"name": str(g.get("name") or "")[:40], "page": str(g.get("page") or "")[:80], "colour": colour})
+    slots = []
+    for sl in raw.get("slots") or []:
+        date, time_, item = str(sl.get("date") or ""), str(sl.get("time") or ""), str(sl.get("item") or "")
+        if not _CAL_DATE.match(date):
+            raise ValueError(f"'{date}' is not a date like 2026-11-16")
+        if not _CAL_TIME.match(time_):
+            raise ValueError(f"'{time_}' is not a time like 07:30")
+        if item not in items:
+            raise ValueError(f"this pack has no post called '{item}'")
+        img = int(sl.get("img") or 0)
+        if not 0 <= img < max(1, len(items[item].get("images") or [])):
+            raise ValueError(f"post '{item}' has no picture {img}")
+        group = int(sl.get("group") or 0)
+        slots.append({"date": date, "time": time_, "item": item, "img": img,
+                      "label": str(sl.get("label") or "")[:20], "group": group if 0 <= group < len(groups) else 0,
+                      "flag": bool(sl.get("flag"))})
+    slots.sort(key=lambda x: (x["date"], x["time"]))
+    pack["calendar"] = {"groups": groups, "slots": slots}
+    _write_json(_pack_dir(pack_id) / "pack.json", pack)
+    return pack["calendar"]
+
+
+def _calendar_for_page(pack: dict[str, Any], base: str, shown: set[str]) -> dict[str, Any] | None:
+    cal = pack.get("calendar") or {}
+    slots = [{**sl, "src": f"{base}/image/{sl['item']}/{sl['img']}"} for sl in cal.get("slots") or [] if sl["item"] in shown]
+    if not slots:
+        return None
+    return {"groups": cal.get("groups") or [], "slots": slots}
+
+
 def public_view(
     pack_id: str,
     token: str,
@@ -757,6 +808,9 @@ def public_view(
         out["month_strip"] = month_strip
         out["can_drag"] = can_drag
         out["can_remake"] = can_remake
+    cal = _calendar_for_page(v["pack"], base, {i["id"] for i in items})
+    if cal:
+        out["calendar"] = cal
     if v["pack"].get("campaign_approval"):
         out["campaign_approved"] = v["pack"]["campaign_approval"]
     if staff:
@@ -913,6 +967,21 @@ textarea{flex:1 1 240px;min-height:52px;resize:vertical}
 .nextb{font:inherit;font-weight:800;border:2px solid var(--bg);background:transparent;color:var(--bg);border-radius:999px;padding:6px 16px;min-height:40px;cursor:pointer}#progress{font-weight:800}
 #finish:focus,.card:focus{outline:none}
 [hidden]{display:none!important}
+.cal{display:flex;flex-direction:column;gap:12px}.cal h2{font-size:22px}
+.cal-keys{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--muted)}.cal-keys span{display:inline-flex;align-items:center;gap:6px}
+.cal-sw{width:14px;height:14px;border-radius:4px;display:inline-block}
+.cal-week{display:grid;grid-template-columns:repeat(var(--days),minmax(0,1fr));gap:8px}
+.cal-day{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg);min-width:0}
+.cal-day>b{display:block;color:#fff;padding:6px 10px;font-size:15px}
+.cal-slots{display:flex;flex-direction:column;gap:6px;padding:8px}
+.cal-slot{display:flex;gap:8px;align-items:center;border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:2px;border-radius:8px;cursor:pointer;min-height:44px}
+.cal-slot:hover{background:var(--line)}
+.cal-slot img{width:46px;aspect-ratio:4/5;object-fit:cover;border-radius:5px;border:3px solid #3478f6;flex:none}
+.cal-slot img.approve{border-color:var(--ok)}.cal-slot img.reject{border-color:var(--no)}.cal-slot img.hold{border-color:var(--hold)}
+.cal-slot .t{font-weight:800;font-size:15px;line-height:1.1}.cal-slot .l{display:block;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.cal-flag{display:inline-block;background:var(--no);color:#fff;border-radius:5px;font-size:12px;font-weight:900;padding:0 6px;margin-left:4px}
+.card.flash{outline:3px solid var(--accent);outline-offset:3px}
+@media (max-width:700px){.cal-week{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 .team{border:2px dashed var(--no);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:8px;font-size:15px}
 button.rm{font:inherit;font-size:14px;font-weight:800;border:2px solid var(--no);background:transparent;color:var(--no);border-radius:999px;padding:6px 14px;min-height:38px;cursor:pointer}
 .bar{flex-wrap:wrap;position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;z-index:5}
@@ -925,6 +994,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 <div class="wrap">
 <header><h1 id="ttl"></h1><p class="catline" id="catline" hidden></p><p class="catline" id="campaignline" hidden></p><button type="button" class="send" data-campaign-yes hidden>Approve the campaign</button><p class="lead" id="intro"></p></header>
 <aside class="card" id="notice" hidden style="border-left:6px solid var(--accent)"></aside>
+<section class="card cal" id="calendar" hidden aria-label="Calendar"></section>
 <div id="items" class="wrap"></div>
 <section class="card" id="week"></section>
 <section class="card" id="finish" tabindex="-1"></section>
@@ -945,6 +1015,24 @@ document.addEventListener("keydown",e=>{if($("lb").hidden)return;if(e.key==="Esc
 function say(t){$("status").textContent=t;if(t)setTimeout(()=>{if($("status").textContent===t)$("status").textContent=""},4000)}
 async function post(path,body){const r=await fetch(BASE+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Something went wrong");return j}
 let DRAG_ITEM="";
+function paintCalendar(){const C=D.calendar,box=$("calendar");if(!C||!C.slots||!C.slots.length||!box)return;box.hidden=false;box.textContent="";
+ box.append(el("h2","","When each post goes out"),el("p","sub","Tap a post to see it bigger. The frame shows your answer."));
+ const keys=el("div","cal-keys");(C.groups||[]).forEach(g=>{const k=el("span");const sw=el("i","cal-sw");sw.style.background=g.colour;k.append(sw,document.createTextNode(g.name+(g.page?"  "+g.page:"")));keys.append(k)});box.append(keys);
+ const st=el("div","cal-keys");[["var(--ok)","Approved"],["#3478f6","Waiting for you"],["var(--hold)","Hold"],["var(--no)","Rejected"]].forEach(([c,t])=>{const k=el("span");const sw=el("i","cal-sw");sw.style.background=c;k.append(sw,document.createTextNode(t));st.append(k)});
+ if(C.slots.some(x=>x.flag)){const k=el("span");k.append(el("span","cal-flag","!"),document.createTextNode("Carmaker photo: needs permission first"));st.append(k)}box.append(st);
+ const byDay={};C.slots.forEach(x=>{(byDay[x.date]=byDay[x.date]||[]).push(x)});const dates=Object.keys(byDay).sort();
+ const d0=new Date(dates[0]+"T12:00:00"),dN=new Date(dates[dates.length-1]+"T12:00:00");const mon=new Date(d0);mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
+ const sun=dates.some(x=>new Date(x+"T12:00:00").getDay()===0);const n=sun?7:6;const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+ for(let w=new Date(mon);w<=dN;w.setDate(w.getDate()+7)){const row=el("div","cal-week");row.style.setProperty("--days",n);
+  for(let i=0;i<n;i++){const d=new Date(w);d.setDate(d.getDate()+i);const k=iso(d);const list=(byDay[k]||[]).slice().sort((a,b)=>a.time<b.time?-1:1);
+   const cell=el("div","cal-day");const g=list.length?(C.groups||[])[list[0].group]:null;const h=el("b","",d.toLocaleDateString("en-ZA",{weekday:"short",day:"numeric",month:"short"}));h.style.background=g?g.colour:"var(--muted)";cell.append(h);
+   const sl=el("div","cal-slots");if(!list.length)sl.append(el("p","sub","No posts"));
+   list.forEach(x=>{const it=D.pack.items.find(i=>i.id===x.item);const b=el("button","cal-slot");b.type="button";b.dataset.calItem=x.item;b.title=it?it.title:"";b.setAttribute("aria-label",(it?it.title:x.item)+", "+k+" "+x.time);
+    const im=new Image();im.src=x.src;im.alt="";im.loading="lazy";const tx=el("span");const t=el("span","t",x.time);if(x.flag)t.append(el("span","cal-flag","!"));tx.append(t,el("span","l",x.label||""));b.append(im,tx);
+    b.onclick=()=>{const c=document.querySelector('section[data-id="'+x.item+'"]');if(!c)return;c.scrollIntoView({behavior:"smooth",block:"start"});c.focus({preventScroll:true});c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),1800)};sl.append(b)});
+   cell.append(sl);row.append(cell)}box.append(row)}
+ paintCalFrames()}
+function paintCalFrames(){document.querySelectorAll("[data-cal-item] img").forEach(im=>{const d=D.decisions[im.parentElement.dataset.calItem];im.className=d&&d.state!=="pending"?d.state:""})}
 function paintMonthStrip(){const old=document.getElementById("monthstrip");if(old)old.remove();if(!D.month_strip||!D.month_strip.months||!D.month_strip.months.length)return;
  const strip=el("div","month-strip");strip.id="monthstrip";strip.setAttribute("role","navigation");strip.setAttribute("aria-label","Campaign calendar");
  D.month_strip.months.forEach(m=>{const row=el("div","month-row");row.append(el("span","month-lbl",m.label));const days=el("div","month-days");
@@ -997,7 +1085,7 @@ function paint(){let done=0,total=0,first=null;D.pack.items.forEach(it=>{const a
   document.querySelectorAll('[data-ch="'+it.id+'"]').forEach(x=>x.setAttribute("aria-pressed",String(!!d&&d.choice===x.dataset.v)));
   const t=document.querySelector('[data-th="'+it.id+'"]');if(t)threadHTML(t,it.id);
   const g=document.querySelector('[data-ug="'+it.id+'"]');if(g){g.textContent="";const u=uploadsGrid(it.id);if(u)g.append(u)}});
- paintFinish(done,total,first)}
+ paintFinish(done,total,first);if(D.calendar)paintCalFrames()}
 async function team(id,what){const r=await fetch("/api/review-packs/"+encodeURIComponent(D.pack_id)+"/items/"+encodeURIComponent(id)+"/"+what,{method:"POST",credentials:"same-origin"});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"That did not work");return j}
 function teamRemove(it){const b=el("button","rm","Remove from pack");b.type="button";b.title="Only your team sees this button";
  b.onclick=async()=>{if(!confirm('Take "'+it.title+'" off this page? The client stops seeing it. You can put it back from the list at the bottom.'))return;b.disabled=true;try{await team(it.id,"remove");location.reload()}catch(e){say(e.message);b.disabled=false}};return b}
@@ -1029,6 +1117,7 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
  document.querySelectorAll("[data-campaign-yes]").forEach(b=>{b.onclick=campaignYes});
  paintCampaign();
  if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
+ paintCalendar();
  const box=$("items");box.before(layoutBar());P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
   if(D.can_drag&&it.when){const chip=el("span","slot-chip",it.when);chip.draggable=true;chip.title="Drag to a day on the calendar strip";chip.ondragstart=e=>{DRAG_ITEM=it.id;e.dataTransfer.setData("text/plain",it.id)};hh.append(chip)}else{const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m))}
   if(it.channels&&D.can_drag)hh.append(el("p","meta",it.channels));

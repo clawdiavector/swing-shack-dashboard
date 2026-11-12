@@ -49590,6 +49590,17 @@ def review_packs_add_item(pack_id):
     return jsonify({"ok": True, "item_id": item["id"]}), 200
 
 
+@app.route("/api/jobs/review-packs/<pack_id>/calendar", methods=["POST"])
+def review_packs_set_calendar(pack_id):
+    """Set (or clear with {}) the calendar grid at the top of the client's page."""
+    from _lib import review_pack as rp
+    try:
+        cal = rp.set_calendar(pack_id, request.get_json(silent=True) or {})
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "slots": len(cal.get("slots") or [])}), 200
+
+
 # Our side, from the review page itself: a signed-in teammate who opens a client's link sees
 # "Remove from pack" and "Put back". Not under /api/jobs, so the gate needs the session
 # cookie (or the bearer token, which _is_authed accepts on /api/). The client's link has
