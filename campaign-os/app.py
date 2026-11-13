@@ -39847,6 +39847,23 @@ def _seed_swing_shack_products():
     return _write_products("swing-shack", seed)
 
 
+@app.route("/api/faq/questions", methods=["GET"])
+def faq_questions_route():
+    """GET /api/faq/questions?brand=<id>[&refresh=1] — questions people ask Google.
+
+    Plan > Ideas shows these as post ideas. Read from Google's public search
+    suggestions at most once a week per brand (see _lib/faq_questions.py).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import faq_questions  # noqa: PLC0415
+    brand = (request.args.get("brand") or "").strip()
+    if brand not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False, "error": "pick a brand: stick, swing-shack or bag-drop"}), 400
+    res = faq_questions.questions_for(brand, refresh=request.args.get("refresh") == "1")
+    return jsonify({"ok": True, **res}), 200
+
+
 @app.route("/api/products/line-items", methods=["GET"])
 def products_line_items_list():
     """GET /api/products/line-items?brand_id=<id> — verified product catalog."""
