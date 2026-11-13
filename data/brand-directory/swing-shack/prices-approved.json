@@ -1,0 +1,11 @@
+{
+  "about": "Prices approved for posts but not (yet) in the ClubLab booking list. Each needs what it is, its source and an end date. The caption check fails any rand price that is neither live nor listed here.",
+  "prices": [
+    {
+      "rand": 22500,
+      "what": "2027 Progress membership, loyalty price (10% off R25,000)",
+      "source": "Herman with Christelle, 9 Nov 2026 (wiki research/swing-shack-2027-prices-launch-check-2026-11-06)",
+      "until": "2027-12-31"
+    }
+  ]
+}
