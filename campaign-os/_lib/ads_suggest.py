@@ -384,7 +384,9 @@ def _setup(s: dict, brand: str, site: dict, today: _dt.date) -> list[dict]:
              ("Budget", f"Daily budget {_r(s['spend']['daily'])}"),
              ("Schedule", f"Start {start:%d %b %Y} 00:00, end {end:%d %b %Y} 23:59 (South Africa time)"),
              ("Location", site["location"]),
-             ("Audience", "Advantage+ audience on, no interests added: let Meta find the people"),
+             ("Audience", (f"Custom audience {s['audience']} (people who watched at least half the awareness "
+                           "reel), with Advantage+ audience on so Meta can go wider once they have seen it")
+              if s.get("audience") else "Advantage+ audience on, no interests added: let Meta find the people"),
              ("Placements", "Advantage+ placements (the reel fits Reels, Stories and Feed)")]
     ad = [("Name", n["ad"]),
           ("Identity", f"{BRAND_NAMES.get(brand, brand)} Facebook Page and Instagram account"),
@@ -442,6 +444,9 @@ def _checks(s: dict, caption: str) -> list[str]:
     if _PRICE.search(caption or ""):
         out.append("The caption names a price: check it is the current price (live on the booking site or in "
                    "prices-approved.json) before paying to show it. Swing Shack moved to 2027 prices in November.")
+    if s.get("audience"):
+        out.append("The watched audience needs at least 100 people in it. If Ads Manager says it is too small, "
+                   "run the ad without it.")
     if s["ad_type"] == "traffic":
         out.append("Open the landing page on a phone first: it must load fast and show the Book button without "
                    "scrolling. Traffic ads were paused on 26 Oct because visitors left the landing pages.")
@@ -453,7 +458,8 @@ def _checks(s: dict, caption: str) -> list[str]:
 # ── build ────────────────────────────────────────────────────────────────
 
 def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, settings: dict | None,
-          figures: dict | None, brief: dict | None, today: _dt.date, learned: dict | None = None) -> dict:
+          figures: dict | None, brief: dict | None, today: _dt.date, learned: dict | None = None,
+          audiences: list | None = None) -> dict:
     site = SITES.get(brand_id) or {}
     by_id = {str(m.get("id")): m for m in media or [] if isinstance(m, dict)}
     used = set((running or {}).get("bodies") or []) - {""}
@@ -479,6 +485,7 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
     typical_score = scores[len(scores) // 2] if scores else 0
     typical_reach = reaches[len(reaches) // 2] if reaches else 0
 
+    follow = (audiences or [None])[0]
     suggestions, skipped, seen = [], [], set()
     runnable = stills = 0
     for r in rows:
@@ -565,6 +572,12 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
             s["cta"] = "Send message"
             s["greeting"] = "Hi! Ask us anything about what you saw in the post."
             s["starters"] = ["Is it in stock?", "What does it cost?", "Can I come in and try it?"]
+        s["audience"] = None
+        if follow and kind in ("lead_form", "messages"):
+            s["audience"] = follow["name"]
+            s["type_reason"] += (f" Aim it first at {follow['name']}: the people who watched the awareness reel "
+                                 f"that started {follow['started']}, so they already know the brand.")
+            follow = None
         s["setup"] = _setup(s, brand_id, site, today)
         s["checks"] = _checks(s, cap)
         suggestions.append(s)

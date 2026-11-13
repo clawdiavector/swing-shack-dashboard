@@ -56346,7 +56346,8 @@ def _ads_suggest_docs(today):
             running=_ads_lane_load(b, "ads-suggest/running.json"),
             settings=_ads_lane_load(b, "ads-budget/settings.json") or {},
             figures=_ads_lane_load(b, "ads-budget/figures.json") or {},
-            brief=_ads_brief_load(b, "daily") or {}, today=today, learned=_ads_learn.learned(log)))
+            brief=_ads_brief_load(b, "daily") or {}, today=today, learned=_ads_learn.learned(log),
+            audiences=_ads_learn.audiences(log, today)))
         docs[-1]["log"] = log
     return docs, missing
 

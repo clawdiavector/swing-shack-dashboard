@@ -138,3 +138,22 @@ def adjust(learned_doc: dict | None, ad_type: str, theme) -> tuple[int, str]:
     if b["beat"] > b["missed"]:
         return 1, line
     return 0, line
+
+
+# An awareness audience is worth aiming at once it has had a few days to fill, and while Meta still keeps it.
+AUDIENCE_READY_DAYS = 3
+AUDIENCE_KEEP_DAYS = 30
+
+
+def audiences(log: list, today: _dt.date) -> list[dict]:
+    """Watched audiences from awareness ads that ran, newest first, that are ready to aim a follow-up ad at."""
+    out = []
+    for e in log or []:
+        if e.get("ad_type") != "awareness" or e.get("status") not in ("RUNNING", "DONE"):
+            continue
+        started = _date(e.get("started"))
+        if not started or not AUDIENCE_READY_DAYS <= (today - started).days <= AUDIENCE_KEEP_DAYS:
+            continue
+        out.append({"name": f"{e['campaign_name']}_watched50", "campaign_name": e["campaign_name"],
+                    "started": started.isoformat(), "caption": e.get("caption")})
+    return sorted(out, key=lambda a: a["started"], reverse=True)

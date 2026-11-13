@@ -177,7 +177,7 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
             media=as_list(as_dict(io.read("ig-business-analytics.json", allow_flat_fallback=False)).get("media")),
             running=running, settings=as_dict(io.read(BUDGET_SETTINGS, allow_flat_fallback=False)),
             figures=as_dict(io.read(BUDGET_FIGURES, allow_flat_fallback=False)), brief=daily, today=today,
-            learned=ads_learn.learned(log))
+            learned=ads_learn.learned(log), audiences=ads_learn.audiences(log, today))
         io.write(SUGGEST_LOG, {"schema": ads_learn.SCHEMA, "date": today.isoformat(),
                                "entries": ads_learn.remember(log, doc, today)})
     except Exception as exc:
