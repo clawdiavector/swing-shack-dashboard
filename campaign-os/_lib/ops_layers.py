@@ -273,7 +273,7 @@ def load_create_stats() -> dict[str, Any]:
         "images_drafted_today": images_drafted_today,
         "max_images_per_day": max_images_per_day,
         "verdict": verdict,
-        "inbox_href": "/app/review",
+        "inbox_href": "/?page=review",
     }
 
 
@@ -505,7 +505,7 @@ def build_layers(
         "pending": l4_pending,
         "stale": l4_stale,
         "approved_today": l4_approved_today,
-        "inbox_href": "/app/review",
+        "inbox_href": "/?page=review",
     }
 
     layers["L5"] = {
@@ -522,7 +522,7 @@ def build_layers(
         "image_submits_today": create_stats.get("image_submits_today", {}),
         "images_drafted_today": create_stats.get("images_drafted_today", {}),
         "max_images_per_day": create_stats.get("max_images_per_day", 2),
-        "inbox_href": create_stats.get("inbox_href", "/app/review"),
+        "inbox_href": create_stats.get("inbox_href", "/?page=review"),
     }
 
     layers["L7"] = {
