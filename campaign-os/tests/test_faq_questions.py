@@ -126,3 +126,33 @@ def test_api_returns_questions(tmp_path, monkeypatch):
     # The test harness signs clients in by default; cos_anon=True is a signed-out visitor.
     anon = app_module.app.test_client(cos_anon=True)
     assert anon.get("/api/faq/questions?brand=swing-shack").status_code == 401
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "how much is club fitting at edwin watts",
+        "how much is club fitting at scheels",
+        "what is cool clubs fitting",
+        "how to choose a disc golf driver",
+        "is a top golf membership worth it",
+        "is a golf now membership worth it",
+        "how much can you make regripping golf clubs",
+        "how much is a golf simulator for your home",
+    ],
+)
+def test_drops_seen_live_on_13_nov(text):
+    assert F.keep(text, {"area": ["any"], "drop_words": []}) is False or "home" in text
+
+
+def test_simulator_for_your_home_is_dropped_for_swing_shack():
+    assert F.keep("how much is a golf simulator for your home", F.load_seeds("swing-shack")) is False
+
+
+def test_at_most_four_questions_per_search(tmp_path):
+    res = F.questions_for("swing-shack", get=fake_get, cache_dir=tmp_path, sleep=lambda s: None)
+    per = {}
+    for q in res["questions"]:
+        per[q["from"]] = per.get(q["from"], 0) + 1
+    assert per and max(per.values()) <= F.PER_SEARCH
+    assert F.PER_SEARCH == 4
