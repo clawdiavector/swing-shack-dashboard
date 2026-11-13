@@ -21,6 +21,7 @@ import os
 import re
 import tempfile
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -35,9 +36,11 @@ SOURCES: Dict[str, Dict[str, Any]] = {
     "bag-drop": {"shopify": "thebagdrop.co.za"},
 }
 MAX_AGE_S = 6 * 3600
+STALE_OK_S = 7 * 24 * 3600  # when a source can't be read, last good prices up to a week old still count
 SHOPIFY_PAGE_SIZE = 250
 SHOPIFY_MAX_PAGES = 20
 USER_AGENT = "CampaignOS/1.0 (price check)"
+RATE_LIMIT_WAITS_S = (10, 30)  # Shopify answers 429 to quick repeat reads
 
 Getter = Callable[[str], Tuple[int, bytes]]
 
@@ -48,8 +51,11 @@ _PRICE_RE = re.compile(r"\bR\s?\d{1,3}(?:[ ,.]\d{3})*(?:\.\d{2})?(?!\d)|\bR\s?\d
 
 def _get(url: str) -> Tuple[int, bytes]:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310 (fixed public https URLs)
-        return r.status, r.read()
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310 (fixed public https URLs)
+            return r.status, r.read()
+    except urllib.error.HTTPError as e:  # 429 and friends come back as a status, so callers can wait
+        return e.code, b""
 
 
 def _rand_value(token: str) -> Optional[int]:
@@ -105,10 +111,16 @@ def _clublab(fid: int, get: Getter) -> List[Dict[str, Any]]:
     return items
 
 
-def _shopify(domain: str, get: Getter) -> List[Dict[str, Any]]:
+def _shopify(domain: str, get: Getter, sleep: Callable[[float], Any] = time.sleep) -> List[Dict[str, Any]]:
     items: List[Dict[str, Any]] = []
     for page in range(1, SHOPIFY_MAX_PAGES + 1):
-        status, body = get(f"https://{domain}/products.json?limit={SHOPIFY_PAGE_SIZE}&page={page}")
+        url = f"https://{domain}/products.json?limit={SHOPIFY_PAGE_SIZE}&page={page}"
+        status, body = get(url)
+        for wait in RATE_LIMIT_WAITS_S:
+            if status != 429:
+                break
+            sleep(wait)
+            status, body = get(url)
         if status != 200:
             raise RuntimeError(f"HTTP {status}")
         products = (json.loads(body.decode("utf-8")) or {}).get("products") or []
@@ -132,18 +144,20 @@ def _shopify(domain: str, get: Getter) -> List[Dict[str, Any]]:
 
 
 def live_prices(brand: str, *, get: Getter = _get, cache_dir: Optional[Path] = None,
-                now: Callable[[], float] = time.time, max_age_s: int = MAX_AGE_S) -> Dict[str, Any]:
+                now: Callable[[], float] = time.time, max_age_s: int = MAX_AGE_S,
+                sleep: Callable[[float], Any] = time.sleep) -> Dict[str, Any]:
     """{"items": [{name, rand, source}], "errors": [...], "fetched_at": epoch} for one brand."""
     sources = SOURCES.get(brand)
     if not sources:
         return {"items": [], "errors": [f"No price source is set up for {brand}"], "fetched_at": now()}
     cache = _cache_dir(cache_dir) / f"live-prices-{brand}.json"
+    cached: Optional[Dict[str, Any]] = None
     try:
         cached = json.loads(cache.read_text(encoding="utf-8"))
         if now() - float(cached.get("fetched_at") or 0) < max_age_s and not cached.get("errors"):
             return cached
     except (OSError, ValueError):
-        pass
+        cached = None
     items: List[Dict[str, Any]] = []
     errors: List[str] = []
     if "clublab" in sources:
@@ -153,9 +167,13 @@ def live_prices(brand: str, *, get: Getter = _get, cache_dir: Optional[Path] = N
             errors.append(f"ClubLab booking list could not be read: {e}")
     if "shopify" in sources:
         try:
-            items += _shopify(sources["shopify"], get)
+            items += _shopify(sources["shopify"], get, sleep)
         except Exception as e:  # noqa: BLE001
             errors.append(f"Shop {sources['shopify']} could not be read: {e}")
+    if errors and cached and cached.get("items") and now() - float(cached.get("fetched_at") or 0) < STALE_OK_S:
+        # A busy source (Shopify answers 429 to repeat reads) is not a reason to call real
+        # prices wrong. Last week's list is close enough; say how old it is.
+        return {**cached, "errors": [], "stale_since": cached.get("fetched_at")}
     res = {"items": items, "errors": errors, "fetched_at": now()}
     if items and not errors:
         try:
