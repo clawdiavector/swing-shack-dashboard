@@ -188,8 +188,14 @@ def undo(brand_id: str, action_id: str, *, graph, token: str, account_id: str,
         raise ActionRefused("That change was already undone.", 409)
     if entry.get("kind") == "build_ad":
         from . import ads_build
-        return ads_build.undo(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
-                              write=write, by=by)
+        try:
+            return ads_build.undo(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
+                                  write=write, by=by)
+        except Exception as exc:
+            # ads_build may hold another copy of this module after a reload; keep one refusal type for callers.
+            if type(exc).__name__ == "ActionRefused" and not isinstance(exc, ActionRefused):
+                raise ActionRefused(str(exc), getattr(exc, "status", 400)) from None
+            raise
     if entry.get("kind", "").startswith("rename_"):
         return _undo_rename(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
                             write=write, by=by)
