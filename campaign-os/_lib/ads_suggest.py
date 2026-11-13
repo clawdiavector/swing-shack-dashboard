@@ -319,7 +319,7 @@ def _fund(need_daily: float, state: dict) -> dict:
         part = ", ".join(f"{d['name']} ({_r(d['daily'])} a day, "
                          + ("no leads or chats" if not d["results"] else "costly results") + ")" for d, _ in moves)
         short = need - got * TEST_DAYS
-        return {"source": "extra", "moves": [d["name"] for d, _ in moves],
+        return {"source": "extra", "moves": [d["name"] for d, _ in moves], "extra_amount": round(short, 2),
                 "text": (f"Not enough room or weak spend to cover all of it. Part can come from {part}"
                          + (" and the unused room" if state["room"] > 0 else "")
                          + f"; the other {_r(short)} for this week-long test needs Herman's yes.")}
@@ -328,7 +328,7 @@ def _fund(need_daily: float, state: dict) -> dict:
     else:
         text = (f"The {_r(state['budget'])} weekly budget is already set to be spent and no running ad set is weak "
                 f"enough to take from. Ask Herman for an extra {_r(need)} for this week-long test.")
-    return {"source": "extra", "text": text}
+    return {"source": "extra", "text": text, "extra_amount": need}
 
 
 # ── settings ─────────────────────────────────────────────────────────────
@@ -712,9 +712,59 @@ def _section(doc: dict) -> str:
     return "".join(parts)
 
 
+_PLAIN_TYPE = {"lead_form": "a booking enquiry form ad", "messages": "a chat ad (people message us)",
+               "traffic": "a website visit ad", "awareness": "a video ad that warms people up for a later offer"}
+_PLAIN_UNIT = {"lead": "enquiries", "chat": "chats", "page visit": "website visits", "view": "views"}
+
+
+def herman_text(docs: list) -> str:
+    """One message for Herman: a numbered yes or no per ad, cost and where the money comes from, plain words.
+    Ads that need money over the budget come first, because only he can say yes to those."""
+    items = [(d, s) for d in docs for s in d.get("suggestions") or [] if s.get("spend")]
+    order = {"extra": 0, "move": 1, "room": 2}
+    items.sort(key=lambda it: order.get((it[1].get("funding") or {}).get("source"), 3))
+    date = max((d.get("date") or "" for d in docs), default="")
+    start = _dt.date.fromisoformat(date) + _dt.timedelta(days=1) if date else None
+    head = f"Ads for the week from {start.day} {start:%b}." if start else "Ads for the week."
+    out = [head + " Please reply with the numbers you say yes to (for example: yes 1 and 3).", ""]
+    total = over = 0.0
+    for i, (d, s) in enumerate(items, 1):
+        sp, fu = s["spend"], s.get("funding") or {}
+        first = re.sub(r"\s+", " ", (s.get("caption") or "").split("\n")[0]).strip()
+        first = first if len(first) <= 60 else first[:60].rsplit(" ", 1)[0].rstrip(".,;:!?") + "..."
+        unit = (s.get("names") and ads_learn.UNIT.get(s["ad_type"])) or "result"
+        expect = (f"Expect about {sp['expected_results']} {_PLAIN_UNIT.get(unit, unit)}."
+                  if sp.get("expected_results") else "First time, so no estimate yet.")
+        if fu.get("source") == "room":
+            money = "from this week's unused budget."
+        elif fu.get("source") == "move":
+            money = "moved from a running ad that is not working, so the week's total stays the same."
+        else:
+            extra = fu.get("extra_amount") or sp["total"]
+            over += extra
+            money = f"needs {_r(extra)} extra, over the budget."
+        total += sp["total"]
+        what = f"{(s.get('theme') or 'brand')} {s.get('format') or 'post'}"
+        out.append(f"{i}. {BRAND_NAMES.get(d.get('brand_id'), d.get('brand_id'))}: run the {what} \"{first}\" as "
+                   f"{_PLAIN_TYPE[s['ad_type']]}. {_r(sp['daily'])} a day for {sp['days']} days = {_r(sp['total'])}. "
+                   f"{expect} Money: {money}")
+    if not items:
+        out.append("No ads to decide this week.")
+    else:
+        out += ["", f"Total: {_r(total)} for {len(items)} ad{'s' if len(items) != 1 else ''}"
+                + (f", of which {_r(over)} is over the budget." if over else ", all within the budget.")]
+    return "\n".join(out)
+
+
 def render_html(docs: list, missing: list | None = None) -> str:
     from . import ads_brief
-    body = f"<style>{_CSS}</style>" + "".join(_section(d) for d in docs)
+    note = herman_text(docs)
+    rows = min(24, note.count("\n") + 2)
+    body = (f"<style>{_CSS}</style>"
+            f'<details><summary><b>For Herman</b>: the week\'s ads as one numbered list to copy into an email</summary>'
+            f'<textarea readonly rows="{rows}" style="width:100%;font:inherit">{_e(note)}</textarea>'
+            '<p class="mute">Nothing is sent from here. Copy it into one email to Herman.</p></details>'
+            + "".join(_section(d) for d in docs))
     for brand in missing or []:
         body += (f'<h2>{_e(BRAND_NAMES.get(brand, brand))}</h2><p class="mute">No posts on file yet. '
                  'They are read from Instagram by the morning jobs.</p>')
