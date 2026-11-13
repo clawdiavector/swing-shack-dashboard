@@ -100,6 +100,10 @@ def _r(x) -> str:
     return f"R{x:,.0f}"
 
 
+def _n(x, word) -> str:
+    return f"{x:,} {word}{'' if x == 1 else 's'}"
+
+
 def _date(ts) -> _dt.date | None:
     try:
         return _dt.datetime.strptime(str(ts)[:10], "%Y-%m-%d").date()
@@ -176,21 +180,49 @@ def _spend(kind: str, cpl: float | None) -> dict:
 
 
 def _fund(need_daily: float, state: dict) -> dict:
+    """Unused room first; then the weakest running ad sets, topped up by whatever room is left; then an ask."""
     need = need_daily * TEST_DAYS
     if state["room"] >= need:
+        left = ("" if state["room"] == state["free"] else
+                f"; after the suggestions above, {_r(state['room'])} is still free")
         text = (f"Unused room in the {_r(state['budget'])} weekly budget: the running ad sets are set to "
-                f"{_r(state['committed'])} a week, which leaves {_r(state['room'])}. This test uses {_r(need)} of it.")
+                f"{_r(state['committed'])} a week, which leaves {_r(state['free'])}{left}. "
+                f"This test uses {_r(need)} of it.")
         state["room"] -= need
         return {"source": "room", "text": text}
+    got, moves = state["room"] / TEST_DAYS, []
     for d in state["donors"]:
-        if d["daily"] >= need_daily:
-            why = ("no leads or chats" if not d["results"]
-                   else f"{_r(d['spend'] / d['results'])} a result, well above the brand's usual")
-            act = "Pause it" if not d["results"] else f"Lower it from {_r(d['daily'])} to {_r(d['daily'] - need_daily)} a day"
-            text = (f"Take {_r(need_daily)} a day from {d['name']}: {_r(d['spend'])} spent in the last 7 days for {why}. "
-                    f"{act} and give that money to this test, so the weekly total stays the same.")
-            d["daily"] -= need_daily
-            return {"source": "move", "from": d["name"], "text": text}
+        if got >= need_daily:
+            break
+        if d["daily"] <= 0:
+            continue
+        take = min(d["daily"], need_daily - got)
+        moves.append((d, take))
+        got += take
+    if moves and got >= need_daily - 0.01:
+        lines = []
+        for d, take in moves:
+            if not d["results"]:
+                lines.append(f"Pause {d['name']}: {_r(d['spend'])} spent in the last 7 days for no leads or chats. "
+                             f"Use {_r(take)} a day of its {_r(d['daily'])} here.")
+            else:
+                lines.append(f"Lower {d['name']} from {_r(d['daily'])} to {_r(d['daily'] - take)} a day: "
+                             f"{_r(d['spend'] / d['results'])} a result in the last 7 days, well above the brand's usual.")
+            d["daily"] -= take
+        if state["room"] > 0:
+            lines.append(f"The other {_r(state['room'])} comes from the unused room in the weekly budget.")
+            state["room"] = 0.0
+        lines.append("The weekly total stays the same.")
+        return {"source": "move", "from": moves[0][0]["name"], "moves": [d["name"] for d, _ in moves],
+                "text": " ".join(lines)}
+    if moves:
+        part = ", ".join(f"{d['name']} ({_r(d['daily'])} a day, "
+                         + ("no leads or chats" if not d["results"] else "costly results") + ")" for d, _ in moves)
+        short = need - got * TEST_DAYS
+        return {"source": "extra", "moves": [d["name"] for d, _ in moves],
+                "text": (f"Not enough room or weak spend to cover all of it. Part can come from {part}"
+                         + (" and the unused room" if state["room"] > 0 else "")
+                         + f"; the other {_r(short)} for this week-long test needs Herman's yes.")}
     if not state["budget"]:
         text = f"No weekly ad budget is set. Ask Herman for {_r(need)} for this week-long test."
     else:
@@ -213,17 +245,17 @@ def _tags(names: dict, content: str | None = None) -> str:
 
 
 def _form(theme: str, site: dict, names: dict, opening: str | None) -> dict:
-    headline, button, extra = _FORM_COPY[theme]
+    headline, cta, extra = _FORM_COPY[theme]
     return {
         "name": f"{names['campaign']}_form", "type": "Higher intent",
         "why_type": ("Adds a review screen before the form is sent, so fewer people tap through by accident. "
                      "Since 1 Oct, 93 leads gave 1 booking in ClubLab (wiki: research/lead-conversion-check-2026-11-13)."),
-        "headline": headline, "description": opening or headline,
+        "headline": headline, "description": opening or headline, "cta": cta,
         "questions": _CONTACT + [dict(q) for q in extra],
         "privacy_url": site["privacy"],
         "thank_you": {"headline": "Thanks, we have your details",
                       "text": "We will be in touch to find a time that suits you.",
-                      "button": button,
+                      "button": "Book now",
                       "button_url": f"{site['bookings']}?" + _tags(names, f"{names['ad']}_thankyou").split("&utm_id")[0]},
     }
 
@@ -272,8 +304,9 @@ def _setup(s: dict, brand: str, site: dict, today: _dt.date) -> list[dict]:
     out.append({"title": "Tracking and follow-up", "rows": [
         ("Website link", f"{s['landing_url']}?{s['url_params']}"),
         ("Where results land", "Meta Leads Center (Business Suite, All tools, Leads Center)" if lead
-         else "Instagram and Messenger inbox, labelled with the ad name"),
-        ("Follow up", "The same working day, by WhatsApp or a call; note the booking in the leads sheet"),
+         else "The Instagram and Messenger inbox"),
+        ("Follow up", "The same working day, by WhatsApp or a call; note the booking in the leads sheet" if lead
+         else "Reply the same working day; note any sale in the leads sheet"),
     ]})
     return out
 
@@ -305,7 +338,8 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
     cpl = _brand_cpl(brief or {})
     budget = weekly_budget(settings or {}, today)
     committed = float((figures or {}).get("daily_run_rate") or 0) * 7
-    state = {"budget": budget, "committed": committed, "room": max(0.0, budget - committed),
+    free = max(0.0, budget - committed)
+    state = {"budget": budget, "committed": committed, "room": free, "free": free,
              "donors": donors(figures or {}, brief or {})}
 
     rows = []
@@ -365,7 +399,7 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
         }
         basis = ("including visits to the website it sent" if r.get("score_basis") == "conversion_backed"
                  else "from reach, likes, comments, saves and shares")
-        s["why"] = (f"Reached {s['reach']:,} people, with {s['saves']} saves and {s['shares']} shares. "
+        s["why"] = (f"Reached {s['reach']:,} people, with {_n(s['saves'], 'save')} and {_n(s['shares'], 'share')}. "
                     f"The best {theme} post of the last {WINDOW_DAYS} days by score ({s['score']}, {basis}).")
         if kind == "animated_still":
             stills += 1
@@ -381,11 +415,11 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
         s["funding"] = _fund(s["spend"]["daily"], state)
         if kind == "lead_form":
             s["form"] = _form(theme, site, names, ads_creative.opening(cap))
-            s["cta"] = s["form"]["thank_you"]["button"]
+            s["cta"] = s["form"]["cta"]
         else:
             s["form"] = None
             s["cta"] = "Send message"
-            s["greeting"] = f"Hi! Ask us anything about what you saw in the post, we reply fast."
+            s["greeting"] = "Hi! Ask us anything about what you saw in the post."
             s["starters"] = ["Is it in stock?", "What does it cost?", "Can I come in and try it?"]
         s["setup"] = _setup(s, brand_id, site, today)
         s["checks"] = _checks(s, cap)
@@ -437,7 +471,7 @@ def _value(v: str) -> str:
 
 def _card(i: int, s: dict) -> str:
     first = _e((s["caption"] or "").split("\n")[0][:120])
-    img = f'<img src="{_e(s["thumbnail"])}" alt="" loading="lazy">' if s.get("thumbnail") else ""
+    img = f'<img src="{_e(s["thumbnail"])}" alt="" loading="lazy" onerror="this.style.visibility=&quot;hidden&quot;">' if s.get("thumbnail") else ""
     head = (f'<div class="top">{img}<div><h3>{i}. {_e(s["theme"].capitalize())} {_e(s["format"])}: '
             f'{_KIND_LABEL[s["ad_type"]]}</h3><p>{first}</p>'
             f'<p class="mute">Posted {_e(s["posted"])} &middot; <a href="{_e(s["permalink"])}" target="_blank" '
@@ -447,7 +481,7 @@ def _card(i: int, s: dict) -> str:
         return f'<div class="sg">{head}<p><b>{_e(s["todo"])}.</b></p><ul>{todo}</ul></div>'
     sp, fu = s["spend"], s["funding"]
     money = (f'<div class="money"><div><b>{_r(sp["daily"])}</b> a day</div><div><b>{sp["days"]}</b> days</div>'
-             f'<div><b>{_r(sp["total"])}</b> in all</div></div><p>Expect {_e(sp["expected_text"])}.</p>'
+             f'<div><b>{_r(sp["total"])}</b> in all</div></div><p>Expected result: {_e(sp["expected_text"])}.</p>'
              f'<p><b class="src-{fu["source"]}">{_SOURCE_LABEL[fu["source"]]}.</b> {_e(fu["text"])}</p>')
     secs = "".join(
         f'<details{" open" if j == 0 else ""}><summary><b>{_e(sec["title"])}</b></summary><table>'
