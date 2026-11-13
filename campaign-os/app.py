@@ -48284,33 +48284,105 @@ def _staff_topics(brand, entries):
     return sm.parse_topics("\n".join(lines[:sm.MAX_ITEMS]))
 
 
-_STAFF_KINDS = ("week", "today", "stories", "report")
+_STAFF_KINDS = ("week", "today", "stories", "leads", "report")
+_STAFF_FACILITIES = ("swing-shack", "stick", "bag-drop")
+
+
+def _staff_now():
+    from zoneinfo import ZoneInfo as _Zone
+    return _dt_cls.now(_Zone("Africa/Johannesburg"))
+
+
+def _staff_message(kind, brand):
+    """{"send": bool, "text": str} for one facility's staff message of this kind."""
+    from _lib import staff_messages as sm
+    from _lib import foreman_eod as feod
+    today = _jhb_today()
+    if kind == "week":
+        week = sm.week_entries(_staff_week_entries(brand, today), today)
+        return sm.week_message(brand, week, today, topics=_staff_topics(brand, week))
+    if kind == "today":
+        return sm.today_message(brand, _staff_week_entries(brand, today), today)
+    if kind == "stories":
+        from _lib import story_queue as sq
+        return sm.stories_message(brand, sq.list_items(brand)["open"])
+    if kind == "leads":
+        store = _ads_lane_load(brand, "ads-leads/leads.json") or {}
+        return sm.leads_message(brand, store.get("leads") or [], _staff_now(),
+                                f"{feod.public_base_url()}/ads-brief?brand={brand}")
+    return sm.report_message(brand, _weekly_report_link(brand))
 
 
 @app.route("/api/jobs/staff-message", methods=["GET"])
 def staff_message_route():
-    """GET ?kind=week|today|stories|report&brand=stick|swing-shack|bag-drop — one facility's
-    staff message as plain text, for the agent that sends it on WhatsApp. "send" is false when
-    there is nothing worth a message. Sends nothing itself. Job bearer or session."""
-    from _lib import staff_messages as sm
+    """GET ?kind=week|today|stories|leads|report&brand=stick|swing-shack|bag-drop — one
+    facility's staff message as plain text. "send" is false when there is nothing worth a
+    message. Sends nothing itself. Job bearer or session."""
     brand = (request.args.get("brand") or "").strip()
     kind = (request.args.get("kind") or "").strip()
-    if brand not in ("swing-shack", "stick", "bag-drop"):
+    if brand not in _STAFF_FACILITIES:
         return jsonify({"ok": False, "error": "brand must be one facility"}), 400
     if kind not in _STAFF_KINDS:
         return jsonify({"ok": False, "error": f"kind must be one of {', '.join(_STAFF_KINDS)}"}), 400
-    today = _jhb_today()
-    if kind == "week":
-        week = sm.week_entries(_staff_week_entries(brand, today), today)
-        msg = sm.week_message(brand, week, today, topics=_staff_topics(brand, week))
-    elif kind == "today":
-        msg = sm.today_message(brand, _staff_week_entries(brand, today), today)
-    elif kind == "stories":
-        from _lib import story_queue as sq
-        msg = sm.stories_message(brand, sq.list_items(brand)["open"])
-    else:
-        msg = sm.report_message(brand, _weekly_report_link(brand))
-    return jsonify({"ok": True, "kind": kind, "brand": brand, "date": today.isoformat(), **msg}), 200
+    return jsonify({"ok": True, "kind": kind, "brand": brand, "date": _jhb_today().isoformat(),
+                    **_staff_message(kind, brand)}), 200
+
+
+def _staff_groups():
+    """{facility: Zernio conversation id} from STAFF_WHATSAPP_GROUPS (JSON), or {}."""
+    try:
+        raw = json.loads(os.environ.get("STAFF_WHATSAPP_GROUPS") or "{}")
+    except ValueError:
+        _app_log.warning("STAFF_WHATSAPP_GROUPS is not valid JSON")
+        return {}
+    return {b: str(c) for b, c in (raw or {}).items() if b in _STAFF_FACILITIES and c}
+
+
+@app.route("/api/jobs/staff-whatsapp", methods=["POST"])
+def staff_whatsapp_route():
+    """POST ?kind=...&brand=all|<facility>&dry_run=1 — post this kind of staff message into
+    each facility's WhatsApp group (Zernio). Facilities without a group, or with nothing to
+    say, are skipped. One idempotency key per day, kind and facility, so a retried run
+    cannot send twice. Setup: STAFF_WHATSAPP_ACCOUNT_ID, STAFF_WHATSAPP_GROUPS
+    ({"stick": "<conversationId>", ...}) and ZERNIO_API_KEY_STAFF. Job bearer or session."""
+    from _lib import zernio_client as zc
+    kind = (request.args.get("kind") or "").strip()
+    want = (request.args.get("brand") or "all").strip()
+    dry = (request.args.get("dry_run") or "").strip() in ("1", "true", "yes")
+    if kind not in _STAFF_KINDS:
+        return jsonify({"ok": False, "error": f"kind must be one of {', '.join(_STAFF_KINDS)}"}), 400
+    if want != "all" and want not in _STAFF_FACILITIES:
+        return jsonify({"ok": False, "error": "brand must be all or one facility"}), 400
+    groups = _staff_groups()
+    account = (os.environ.get("STAFF_WHATSAPP_ACCOUNT_ID") or "").strip()
+    if not groups or not account:
+        return jsonify({"ok": True, "kind": kind, "sent": 0, "results": {},
+                        "note": "Staff WhatsApp groups are not set up yet; nothing sent."}), 200
+    today = _jhb_today().isoformat()
+    results, sent, failed = {}, 0, 0
+    for brand, conversation in groups.items():
+        if want != "all" and brand != want:
+            continue
+        try:
+            msg = _staff_message(kind, brand)
+        except Exception as exc:
+            _app_log.exception("staff %s message failed for %s", kind, brand)
+            results[brand], failed = {"error": f"could not build the message: {exc}"}, failed + 1
+            continue
+        if not msg["send"]:
+            results[brand] = {"status": "nothing to send"}
+            continue
+        if dry:
+            results[brand] = {"would_send": msg["text"]}
+            continue
+        _out, err = zc.send_message(conversation, account_id=account, text=msg["text"], key="staff",
+                                    idempotency_key=f"staff-{kind}-{brand}-{today}")
+        if err:
+            results[brand], failed = {"error": err}, failed + 1
+        else:
+            results[brand], sent = {"status": "sent"}, sent + 1
+    return jsonify({"ok": not failed, "kind": kind, "sent": sent, "dry_run": dry,
+                    "results": results}), (502 if failed else 200)
 
 
 # ── Suggestions on the month calendar: faded until approved or rejected ──

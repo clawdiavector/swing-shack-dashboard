@@ -155,6 +155,63 @@ def stories_message(brand: str, items: Iterable[Dict[str, Any]]) -> Dict[str, An
     return {"send": True, "text": "\n".join(lines)}
 
 
+CHASE_AFTER_DAYS = 3
+CHASE_UP_TO_DAYS = 30
+
+
+def _when_iso(iso: Any) -> Optional[_dt.datetime]:
+    try:
+        return _dt.datetime.fromisoformat(str(iso or "").replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _first_name(name: Any) -> str:
+    return (str(name or "").strip().split() or ["Someone"])[0]
+
+
+def _source(lead: Dict[str, Any]) -> str:
+    ad = str(lead.get("ad_name") or "").strip()
+    return f'from the ad "{ad}"' if ad else "from a Meta ad"
+
+
+def _capped(lines: List[str]) -> List[str]:
+    if len(lines) <= MAX_ITEMS:
+        return lines
+    return lines[:MAX_ITEMS] + [f"…and {len(lines) - MAX_ITEMS} more in the Leads tab"]
+
+
+def leads_message(brand: str, leads: Iterable[Dict[str, Any]], now: _dt.datetime, link: str) -> Dict[str, Any]:
+    """Every morning: leads that came in since yesterday, and leads nobody has contacted
+    for 3+ days. First names only; the Leads tab has the rest."""
+    fresh, chase = [], []
+    for lead in leads:
+        created = _when_iso(lead.get("created"))
+        stage = lead.get("stage") or "new"
+        if created is None or stage == "lost":
+            continue
+        age = now - created
+        if age <= _dt.timedelta(days=1):
+            fresh.append((created, lead))
+        elif stage == "new" and _dt.timedelta(days=CHASE_AFTER_DAYS) <= age <= _dt.timedelta(days=CHASE_UP_TO_DAYS):
+            chase.append((created, lead))
+    if not fresh and not chase:
+        return {"send": False, "text": ""}
+    lines = [f"{_label(brand)} leads, {_day(now.date())}"]
+    if fresh:
+        rows = []
+        for _c, lead in sorted(fresh, key=lambda p: p[0], reverse=True):
+            done = "" if (lead.get("stage") or "new") == "new" else f" ({lead['stage'].replace('_', ' ')})"
+            rows.append(f"• {_first_name(lead.get('name'))}: {_source(lead)}{done}")
+        lines += ["", f"New since yesterday ({len(fresh)}):", *_capped(rows)]
+    if chase:
+        rows = [f"• {_first_name(l.get('name'))}: waiting since {_day(c.date())}"
+                for c, l in sorted(chase, key=lambda p: p[0])]
+        lines += ["", f"Check on these (not contacted for {CHASE_AFTER_DAYS}+ days):", *_capped(rows)]
+    lines += ["", f"Message them on WhatsApp or reply to their DM, then mark them in the Leads tab: {link}"]
+    return {"send": True, "text": "\n".join(lines)}
+
+
 def report_message(brand: str, link: str) -> Dict[str, Any]:
     """Tuesday: last week's report for this facility."""
     text = f"How {_label(brand)} did online last week 📊\n{link}\n\nOpens without a login, works for 7 days."

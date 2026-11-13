@@ -1,0 +1,52 @@
+name: Staff WhatsApp messages (each facility's group)
+
+# Times are UTC; SAST is UTC+2.
+# Daily 07:30 SAST: today's posts, stories to share, leads.
+# Monday 08:00 SAST: this week online. Tuesday 09:00 SAST: last week's report.
+# Sends nothing until STAFF_WHATSAPP_GROUPS, STAFF_WHATSAPP_ACCOUNT_ID and
+# ZERNIO_API_KEY_STAFF are set on Railway. Foreman's Telegram messages are separate.
+on:
+  schedule:
+    - cron: "30 5 * * *"
+    - cron: "0 6 * * 1"
+    - cron: "0 7 * * 2"
+  workflow_dispatch:
+    inputs:
+      kinds:
+        description: "Space-separated kinds: week today stories leads report"
+        default: "today"
+      dry_run:
+        description: "1 = build the messages but send nothing"
+        default: "1"
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/jobs/staff-whatsapp on Railway
+        env:
+          COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
+          SCHEDULE: ${{ github.event.schedule }}
+          KINDS_IN: ${{ github.event.inputs.kinds }}
+          DRY_IN: ${{ github.event.inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          if [ -z "${COS_JOB_TOKEN:-}" ]; then
+            echo "::error::COS_JOB_TOKEN secret is not set"
+            exit 1
+          fi
+          case "${SCHEDULE:-}" in
+            "30 5 * * *") kinds="today stories leads" ;;
+            "0 6 * * 1")  kinds="week" ;;
+            "0 7 * * 2")  kinds="report" ;;
+            *)            kinds="${KINDS_IN:-today}" ;;
+          esac
+          dry="${DRY_IN:-0}"
+          status=0
+          for kind in $kinds; do
+            echo "== $kind"
+            curl -s -X POST "https://swing-shack-dashboard-production.up.railway.app/api/jobs/staff-whatsapp?kind=${kind}&dry_run=${dry}" \
+              -H "Authorization: Bearer ${COS_JOB_TOKEN}" -w "\nHTTP %{http_code}\n" | tee "/tmp/staff-${kind}.txt"
+            grep -q "^HTTP 200" "/tmp/staff-${kind}.txt" || status=1
+          done
+          exit $status

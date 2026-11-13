@@ -114,6 +114,19 @@ def create_post(*, brand_id: str, content: str, image_url: str, publish_date: st
     return post, None
 
 
+def send_message(conversation_id: str, *, account_id: str, text: str, key: str = "staff",
+                 idempotency_key: str | None = None) -> Tuple[Optional[dict], Optional[str]]:
+    """Post a text into an existing WhatsApp conversation (a staff group, 13 Nov 2026).
+
+    Groups need no template: once a member has written in the group it is a conversation,
+    and `POST /v1/inbox/conversations/{id}/messages` posts into it. Uses its own key,
+    `ZERNIO_API_KEY_<KEY>` (staff by default), never a brand's."""
+    if not _key(key):
+        return None, f"{_env_name(key)} not set"
+    return _request("POST", f"/inbox/conversations/{conversation_id}/messages", key,
+                    {"accountId": account_id, "message": text}, idempotency_key=idempotency_key)
+
+
 def unpublish_post(post_id: str, *, brand_id: str) -> Tuple[Optional[dict], Optional[str]]:
     """Cancel a scheduled post (it becomes a cancelled draft on Zernio)."""
     if not has_brand_key(brand_id):
