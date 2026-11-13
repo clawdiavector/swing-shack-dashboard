@@ -48309,7 +48309,7 @@ def _staff_message(kind, brand):
     if kind == "leads":
         store = _ads_lane_load(brand, "ads-leads/leads.json") or {}
         return sm.leads_message(brand, store.get("leads") or [], _staff_now(),
-                                f"{feod.public_base_url()}/ads-brief?brand={brand}")
+                                f"{feod.public_base_url()}/ads-brief?brand={brand}&kind=leads")
     return sm.report_message(brand, _weekly_report_link(brand))
 
 
