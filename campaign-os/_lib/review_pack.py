@@ -1008,7 +1008,7 @@ async function showRemake(item){if(!D.pack_id)return;const r=await fetch("/api/r
 function threadHTML(box,item){box.textContent="";const list=D.comments[item]||[];if(!list.length)box.append(el("p","sub","No comments yet."));
  list.forEach(c=>{const d=el("div","cm "+c.role);if(c.colour)d.style.borderLeft="5px solid "+c.colour;const nm=el("small","",c.who+(c.tag&&c.tag!=="general"?"  ·  "+c.tag:"")+"  ·  "+(c.at||"").slice(0,16).replace("T"," "));if(c.colour)nm.style.color=c.colour;d.append(nm,el("p","",c.text));box.append(d)})}
 function composer(item,box){const w=el("div","compose");const ta=document.createElement("textarea");ta.placeholder="Write a comment";ta.setAttribute("aria-label","Comment");
- const sel=document.createElement("select");sel.setAttribute("aria-label","What kind of comment");[["general","General"],["copy edit","Copy edit (the words)"],["design edit","Design edit (the picture)"]].forEach(([v,t])=>{const o=el("option","",t);o.value=v;sel.append(o)});
+ const sel=document.createElement("select");sel.setAttribute("aria-label","What kind of comment");(DEALS?[["general","General"],["copy edit","The wording"],["design edit","The offer itself"]]:[["general","General"],["copy edit","Copy edit (the words)"],["design edit","Design edit (the picture)"]]).forEach(([v,t])=>{const o=el("option","",t);o.value=v;sel.append(o)});
  const b=el("button","send","Send");b.type="button";b.disabled=true;ta.oninput=()=>{b.disabled=!ta.value.trim()};
  b.onclick=async()=>{b.disabled=true;try{const j=await post("/comment",{item,text:ta.value,tag:sel.value});(D.comments[item]=D.comments[item]||[]).push(j.comment);ta.value="";threadHTML(box,item);say("Comment sent")}catch(e){say(e.message);b.disabled=false}};
  w.append(ta,sel,b);return w}
