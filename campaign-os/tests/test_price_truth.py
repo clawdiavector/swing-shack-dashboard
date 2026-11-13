@@ -142,10 +142,11 @@ def test_lint_passes_a_live_price(tmp_path):
 
 def test_lint_hard_fails_a_made_up_price(tmp_path):
     prices = P.price_list("swing-shack", get=fake_get, cache_dir=tmp_path, today=dt.date(2026, 11, 13))
-    res = L.lint("swing-shack", CAPTION.format(price="R1,800"), cross_brand=False, prices=prices)
+    # R1,750 is in no Swing Shack list. (R1,800 looked made up but is "I Dabble", a real package.)
+    res = L.lint("swing-shack", CAPTION.format(price="R1,750"), cross_brand=False, prices=prices)
     found = _price_findings(res)
     assert found and found[0]["level"] == L.HARD
-    assert "R1,800" in found[0]["message"]
+    assert "R1,750" in found[0]["message"]
 
 
 def test_lint_only_asks_for_a_check_when_prices_could_not_be_read(tmp_path):
