@@ -44,6 +44,18 @@ PRODUCT_THEMES = ("putter", "irons", "driver", "grip", "bags", "retail")
 _PRICE = re.compile(r"\bR\s?\d[\d ,]*|\b\d+\s?/\s?pm\b|\bper month\b", re.I)
 _DEAL = re.compile(r"\d+\s?%|black friday|\bsale\b|\bspecial\b|\boff\b|\bdeal\b", re.I)
 
+AD_TYPES = ("lead_form", "messages", "traffic", "awareness")
+TYPE_LABEL = {"lead_form": "Leads (instant form)", "messages": "Messages (chats)", "traffic": "Traffic (website visits)",
+              "awareness": "Awareness (video views)", "animated_still": "Animated still first"}
+OBJECTIVE_OF = {"lead_form": "OUTCOME_LEADS", "messages": "OUTCOME_ENGAGEMENT", "traffic": "OUTCOME_TRAFFIC",
+                "awareness": "OUTCOME_AWARENESS", "animated_still": "OUTCOME_ENGAGEMENT"}
+_DM_CUE = re.compile(r"\bdm\b|direct message|message us|whatsapp|inbox us|send us a message", re.I)
+_WEB_CUE = re.compile(r"link in (?:our )?bio|book online|our (?:web)?site|website|\.co\.za|shop online|online store",
+                      re.I)
+_BOOK_CUE = re.compile(r"\bbook\b|booking|reserve|sign up|claim", re.I)
+# A no-offer reel earns awareness money only when it clearly beat the brand's usual post.
+AWARENESS_LIFT = 1.5
+
 BRAND_NAMES = {"stick": "Stick", "swing-shack": "Swing Shack", "bag-drop": "Bag Drop"}
 
 # Landing pages, all checked live on 13 Nov 2026 (HTTP 200). Privacy wording lives on the policies / terms page.
@@ -56,6 +68,7 @@ SITES = {
         "product": "https://stickgolf.co.za/brands/",
         "bookings": "https://stickgolf.co.za/bookings/",
         "privacy": "https://stickgolf.co.za/policies/",
+        "home": "https://stickgolf.co.za/",
         "location": "Paarl, Western Cape, plus 50 km (reaches Cape Town and the Winelands, Stick's customer area)",
     },
     "swing-shack": {
@@ -66,6 +79,7 @@ SITES = {
         "product": "https://swingshack.co.za/",
         "bookings": "https://swingshack.co.za/bookings/",
         "privacy": "https://swingshack.co.za/terms-conditions/",
+        "home": "https://swingshack.co.za/",
         "location": "Old Parktonian Sports Club, Randburg, Johannesburg, plus 25 km",
     },
 }
@@ -163,20 +177,85 @@ def donors(figures: dict, brief: dict) -> list[dict]:
     return sorted(out, key=lambda d: d["rank"])
 
 
-def _spend(kind: str, cpl: float | None) -> dict:
-    if kind == "lead_form" and cpl:
-        daily = max(FLOOR_DAILY, min(MAX_DAILY, math.ceil(cpl * LEADS_PER_WEEK_TARGET / TEST_DAYS / 5) * 5))
-    else:
-        daily = FLOOR_DAILY
+def unit_costs(brief: dict) -> dict:
+    """The brand's own cost per result in the last 7 days, per ad type, where it has one."""
+    ads = ((brief or {}).get("numbers_7d") or {}).get("ads") or []
+    chats = [a for a in ads if a.get("messages")]
+    visits = [a for a in ads if a.get("landing_page_views") and not a.get("leads") and not a.get("messages")]
+
+    def per(rows, key):
+        n = sum(a[key] for a in rows)
+        return round(sum(a.get("spend") or 0 for a in rows) / n, 2) if n else None
+    return {"lead_form": _brand_cpl(brief), "messages": per(chats, "messages"),
+            "traffic": per(visits, "landing_page_views"), "awareness": None}
+
+
+# What a week-long test aims for, per type, and what one result is called.
+_TARGET = {"lead_form": (LEADS_PER_WEEK_TARGET, "lead"), "messages": (5, "chat"), "traffic": (50, "page visit"),
+           "awareness": (None, "view")}
+
+
+def _spend(kind: str, cost: float | None) -> dict:
+    target, unit = _TARGET[kind]
+    daily = FLOOR_DAILY
+    if cost and target:
+        daily = max(FLOOR_DAILY, min(MAX_DAILY, math.ceil(cost * target / TEST_DAYS / 5) * 5))
     total = daily * TEST_DAYS
-    if kind == "lead_form" and cpl:
-        n = int(total // cpl)
-        text = f"about {n} lead{'s' if n != 1 else ''} at about {_r(cpl)} each (the brand's cost per lead in the last 7 days)"
-    elif kind == "lead_form":
-        n, text = None, "no cost per lead on record yet; this first week sets it"
+    if cost:
+        n = int(total // cost)
+        each = _r(cost) if cost >= 10 else f"R{cost:.2f}"
+        text = (f"about {n:,} {unit}{'s' if n != 1 else ''} at about {each} each "
+                f"(the brand's cost per {unit} in the last 7 days)")
+    elif kind == "awareness":
+        n, text = None, ("no cost per view on record; Ads Manager shows the estimated reach on the ad set. "
+                         "The real result is the audience of people who watched it")
     else:
-        n, text = None, "no cost per chat on record yet; this first week sets it"
+        n, text = None, f"no cost per {unit} on record yet; this first week sets it"
     return {"daily": daily, "days": TEST_DAYS, "total": total, "expected_results": n, "expected_text": text}
+
+
+def choose_type(theme, caption: str, site: dict, *, standout: bool, costs: dict) -> dict:
+    """Score each ad type on what the post offers and what its caption asks people to do. Highest wins; on a tie,
+    leads, then messages, then traffic, then awareness. Returns the type, the reason and why not the others."""
+    service, product = theme in LEAD_THEMES, theme in PRODUCT_THEMES
+    dm, web, book = bool(_DM_CUE.search(caption)), bool(_WEB_CUE.search(caption)), bool(_BOOK_CUE.search(caption))
+    own_page = bool(theme and site.get(theme))
+    score = {
+        "lead_form": (2 if service else 0) + (1 if service and book else 0),
+        "messages": (2 if product else 0) + (3 if dm and (service or product) else 0),
+        "traffic": (3 + (1 if own_page else 0)) if web and (service or product) else 0,
+        "awareness": 3 if not theme and standout else 0,
+    }
+    kind = max(AD_TYPES, key=lambda k: (score[k], -AD_TYPES.index(k)))
+    cpl = costs.get("lead_form")
+    if kind == "lead_form":
+        reason = ("A service people book" + (", and the caption asks them to book" if book else "")
+                  + ". An instant form takes their name and number without leaving Instagram"
+                  + (f"; lead forms are the brand's only priced result (about {_r(cpl)} a lead)." if cpl else "."))
+    elif kind == "messages":
+        reason = (("The caption asks people to message" if dm else "A product people ask about before they buy")
+                  + ": stock, price, sizes. A chat is the shortest way to the sale, and it is how the shops sell now.")
+    elif kind == "traffic":
+        reason = ("The caption sends people to the website"
+                  + (f", and {site.get(theme)} is a page for this exact offer" if own_page else "")
+                  + ". Paying for page visits matches what the post asks people to do.")
+    else:
+        reason = ("Nothing to book or buy, but it clearly beat the brand's usual post. Paying for views builds an "
+                  "audience of people who watched it, and the next leads or messages ad goes to them first.")
+    leans = "Possible, but the caption leans harder towards the type chosen."
+    why_not = {
+        "lead_form": ("Nothing to book here, so a form has nothing to ask for." if not service else
+                      "A form would work, but the caption points people elsewhere, so the ad would contradict the post."),
+        "messages": ("The caption does not invite a chat and it is not a product people ask about."
+                     if not (dm or product) else leans),
+        "traffic": ("The caption does not send people to the website. Traffic ads were paused on 26 Oct until landing "
+                    "pages were fixed, so only use one where the post itself points to a page." if not web else leans),
+        "awareness": ("There is an offer: pay for the action (a lead, chat or visit), not only for views." if theme else
+                      "Its numbers are not far enough above the brand's usual post to pay for views."),
+    }
+    return {"ad_type": kind, "type_reason": reason,
+            "alternatives": [{"ad_type": k, "label": TYPE_LABEL[k], "why_not": why_not[k]}
+                             for k in AD_TYPES if k != kind]}
 
 
 def _fund(need_daily: float, state: dict) -> dict:
@@ -263,15 +342,24 @@ def _form(theme: str, site: dict, names: dict, opening: str | None) -> dict:
 def _setup(s: dict, brand: str, site: dict, today: _dt.date) -> list[dict]:
     start = today + _dt.timedelta(days=1)
     end = start + _dt.timedelta(days=TEST_DAYS - 1)
-    lead = s["ad_type"] == "lead_form"
+    kind = s["ad_type"]
+    lead = kind == "lead_form"
     n = s["names"]
+    objective = {"lead_form": "Leads", "messages": "Engagement", "traffic": "Traffic", "awareness": "Awareness"}[kind]
+    location = {"lead_form": "Instant forms", "messages": "Message apps: Instagram and Messenger",
+                "traffic": "Website", "awareness": "Not asked for this objective"}[kind]
+    goal = {"lead_form": "Maximise number of leads", "messages": "Maximise number of conversations",
+            "traffic": "Maximise number of landing page views",
+            "awareness": "Maximise ThruPlay views (people who watch 15 seconds or the whole reel)"}[kind]
+    destination = {"lead_form": f"Instant form {n['campaign']}_form", "messages": "Instagram Direct and Messenger",
+                   "traffic": "Website", "awareness": "Website (only for those who tap the button)"}[kind]
     campaign = [("Name", n["campaign"]), ("Buying type", "Auction"),
-                ("Objective", "Leads" if lead else "Engagement"),
+                ("Objective", objective),
                 ("Special ad categories", "None"),
                 ("Advantage+ campaign budget", "Off: the budget sits on the ad set, where the budget guard pauses it")]
     adset = [("Name", n["adset"]),
-             ("Conversion location", "Instant forms" if lead else "Message apps: Instagram and Messenger"),
-             ("Performance goal", "Maximise number of leads" if lead else "Maximise number of conversations"),
+             ("Conversion location", location),
+             ("Performance goal", goal),
              ("Budget", f"Daily budget {_r(s['spend']['daily'])}"),
              ("Schedule", f"Start {start:%d %b %Y} 00:00, end {end:%d %b %Y} 23:59 (South Africa time)"),
              ("Location", site["location"]),
@@ -282,8 +370,10 @@ def _setup(s: dict, brand: str, site: dict, today: _dt.date) -> list[dict]:
           ("Ad setup", f"Use existing post: Instagram, pick {s['permalink']}"),
           ("Primary text", "Kept from the post, so its likes and comments carry over"),
           ("Call to action button", s["cta"]),
-          ("Destination", f"Instant form {n['campaign']}_form" if lead else "Instagram Direct and Messenger"),
-          ("URL parameters", s["url_params"])]
+          ("Destination", destination)]
+    if kind in ("traffic", "awareness"):
+        ad += [("Website URL", s["landing_url"]), ("Meta pixel", "On (website events), so visits and bookings count")]
+    ad.append(("URL parameters", s["url_params"]))
     out = [{"title": "Campaign", "rows": campaign}, {"title": "Ad set", "rows": adset}, {"title": "Ad", "rows": ad}]
     if lead:
         f = s["form"]
@@ -298,15 +388,25 @@ def _setup(s: dict, brand: str, site: dict, today: _dt.date) -> list[dict]:
                  ("Thank-you screen", f"{f['thank_you']['headline']}. {f['thank_you']['text']}"),
                  ("Thank-you button", f"{f['thank_you']['button']}: {f['thank_you']['button_url']}")]
         out.append({"title": "Instant form", "rows": rows})
-    else:
+    elif kind == "messages":
         rows = [("Greeting", s["greeting"])] + [(f"Question {i}", q) for i, q in enumerate(s["starters"], 1)]
         out.append({"title": "Message template", "rows": rows})
+    elif kind == "awareness":
+        out.append({"title": "Audience to build", "rows": [
+            ("Custom audience", f"Audiences, Create, Custom audience, Video: people who watched at least 50% of this "
+                                f"reel (ThruPlay), last 30 days. Name it {n['campaign']}_watched50"),
+            ("Use it", "After the 7 days, aim the next leads or messages ad for this brand at this audience first"),
+        ]})
     out.append({"title": "Tracking and follow-up", "rows": [
         ("Website link", f"{s['landing_url']}?{s['url_params']}"),
-        ("Where results land", "Meta Leads Center (Business Suite, All tools, Leads Center)" if lead
-         else "The Instagram and Messenger inbox"),
-        ("Follow up", "The same working day, by WhatsApp or a call; note the booking in the leads sheet" if lead
-         else "Reply the same working day; note any sale in the leads sheet"),
+        ("Where results land", {"lead_form": "Meta Leads Center (Business Suite, All tools, Leads Center)",
+                                "messages": "The Instagram and Messenger inbox",
+                                "traffic": "Google Analytics, paid social, by campaign name; bookings in ClubLab",
+                                "awareness": "Ads Manager: ThruPlays and reach; the audience fills over the week"}[kind]),
+        ("Follow up", {"lead_form": "The same working day, by WhatsApp or a call; note the booking in the leads sheet",
+                       "messages": "Reply the same working day; note any sale in the leads sheet",
+                       "traffic": "Check page visits and bookings after 3 days; stop early if visitors leave at once",
+                       "awareness": "Build the next ad for the watched audience before this one ends"}[kind]),
     ]})
     return out
 
@@ -321,6 +421,9 @@ def _checks(s: dict, caption: str) -> list[str]:
     if _PRICE.search(caption or ""):
         out.append("The caption names a price: check it is the current price (live on the booking site or in "
                    "prices-approved.json) before paying to show it. Swing Shack moved to 2027 prices in November.")
+    if s["ad_type"] == "traffic":
+        out.append("Open the landing page on a phone first: it must load fast and show the Book button without "
+                   "scrolling. Traffic ads were paused on 26 Oct because visitors left the landing pages.")
     if s["theme"] == "assessment":
         out.append("Free assessment, not a fitting: keep fitting details out of the form and the reply.")
     return out
@@ -335,7 +438,7 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
     used = set((running or {}).get("bodies") or []) - {""}
     taken = set((running or {}).get("post_ids") or [])
     cutoff = today - _dt.timedelta(days=WINDOW_DAYS)
-    cpl = _brand_cpl(brief or {})
+    costs = unit_costs(brief or {})
     budget = weekly_budget(settings or {}, today)
     committed = float((figures or {}).get("daily_run_rate") or 0) * 7
     free = max(0.0, budget - committed)
@@ -350,6 +453,10 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
                      "saves": m.get("saves") or 0, "shares": m.get("shares") or 0,
                      "thumbnail": m.get("thumbnail_url") or m.get("media_url") or ""})
     rows.sort(key=lambda r: (-(r.get("score") or 0), -(r.get("reach") or 0)))
+    scores = sorted(r.get("score") or 0 for r in rows if (r.get("reach") or 0))
+    reaches = sorted(r.get("reach") or 0 for r in rows if (r.get("reach") or 0))
+    typical_score = scores[len(scores) // 2] if scores else 0
+    typical_reach = reaches[len(reaches) // 2] if reaches else 0
 
     suggestions, skipped, seen = [], [], set()
     runnable = stills = 0
@@ -370,8 +477,14 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
             skip("Already running as an ad, or in a creative test.")
             continue
         theme = theme_of(cap)
-        if not theme:
-            skip("No offer in it: nothing to book or buy. Good for the feed, not for ad money.")
+        standout = (fmt == "reel" and (r.get("score") or 0) >= AWARENESS_LIFT * typical_score > 0
+                    and (r.get("reach") or 0) >= typical_reach)
+        if not theme and not standout:
+            skip("No offer in it, and its numbers are not far above the brand's usual post. "
+                 "Good for the feed, not for ad money.")
+            continue
+        if not theme and "brand" in seen:
+            skip("A stronger no-offer reel is suggested above for awareness.")
             continue
         if theme in seen:
             skip(f"A stronger {theme} post is suggested above.")
@@ -384,23 +497,29 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
         if video and runnable >= MAX_RUNNABLE or not video and stills >= MAX_STILLS:
             skip("Enough suggestions for one week.")
             continue
-        seen.add(theme)
-        kind = "lead_form" if theme in LEAD_THEMES else ("messages" if video else "animated_still")
-        objective = "OUTCOME_LEADS" if kind == "lead_form" else "OUTCOME_ENGAGEMENT"
-        names = _names(brand_id, objective, theme, "reel" if video else "animated", today)
-        landing = site.get(theme) or site.get("product" if product else "bookings") or ""
+        seen.add(theme or "brand")
+        pick = (choose_type(theme, cap, site, standout=standout, costs=costs) if video else
+                {"ad_type": "animated_still", "type_reason": "A product photo cannot run as it is; animated, it can "
+                 "run as a messages ad.", "alternatives": []})
+        kind = pick["ad_type"]
+        objective = OBJECTIVE_OF[kind]
+        names = _names(brand_id, objective, theme or "brand", "reel" if video else "animated", today)
+        landing = (site.get("home") if not theme else
+                   site.get(theme) or site.get("product" if product else "bookings")) or ""
         s = {
             "post_id": pid, "permalink": r.get("permalink"), "thumbnail": r["thumbnail"],
             "caption": cap, "posted": day.isoformat(), "format": fmt, "theme": theme,
             "reach": r.get("reach") or 0, "saves": r["saves"], "shares": r["shares"], "score": r.get("score"),
             "score_basis": r.get("score_basis"),
             "ad_type": kind, "objective": objective, "ready": video, "names": names,
+            "type_label": TYPE_LABEL[kind], "type_reason": pick["type_reason"], "alternatives": pick["alternatives"],
             "landing_url": landing, "url_params": _tags(names),
         }
         basis = ("including visits to the website it sent" if r.get("score_basis") == "conversion_backed"
                  else "from reach, likes, comments, saves and shares")
         s["why"] = (f"Reached {s['reach']:,} people, with {_n(s['saves'], 'save')} and {_n(s['shares'], 'share')}. "
-                    f"The best {theme} post of the last {WINDOW_DAYS} days by score ({s['score']}, {basis}).")
+                    + (f"The best {theme} post of the last {WINDOW_DAYS} days by score ({s['score']}, {basis})." if theme else
+                     f"Score {s['score']} against {typical_score} for the brand's usual post ({basis})."))
         if kind == "animated_still":
             stills += 1
             s.update({"spend": None, "funding": None, "form": None, "setup": [], "checks": [
@@ -411,13 +530,17 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
             suggestions.append(s)
             continue
         runnable += 1
-        s["spend"] = _spend(kind, cpl)
+        s["spend"] = _spend(kind, costs.get(kind))
         s["funding"] = _fund(s["spend"]["daily"], state)
+        s["form"] = None
         if kind == "lead_form":
             s["form"] = _form(theme, site, names, ads_creative.opening(cap))
             s["cta"] = s["form"]["cta"]
+        elif kind == "traffic":
+            s["cta"] = "Book now" if theme in LEAD_THEMES else "Shop now"
+        elif kind == "awareness":
+            s["cta"] = "Learn more"
         else:
-            s["form"] = None
             s["cta"] = "Send message"
             s["greeting"] = "Hi! Ask us anything about what you saw in the post."
             s["starters"] = ["Is it in stock?", "What does it cost?", "Can I come in and try it?"]
@@ -429,7 +552,8 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
         "schema": SCHEMA, "brand_id": brand_id, "date": today.isoformat(),
         "budget": {"weekly": round(budget, 2), "committed": round(committed, 2),
                    "room_before": round(max(0.0, budget - committed), 2), "room_after": round(state["room"], 2),
-                   "cost_per_lead": cpl},
+                   "cost_per_lead": costs.get("lead_form"), "unit_costs": costs,
+                   "typical_score": typical_score},
         "posts_read": len(rows),
         "counts": {"posts": len(rows), "reels": sum(1 for r in rows if r.get("format_type") == "reel"),
                    "reels_with_reach": sum(1 for r in rows if r.get("format_type") == "reel" and (r.get("reach") or 0))},
@@ -455,7 +579,8 @@ _CSS = """
 @media (max-width:600px){.sg .top{flex-direction:column}.sg td:first-child{width:40%}}
 """
 
-_KIND_LABEL = {"lead_form": "Lead form ad", "messages": "Messages ad", "animated_still": "Animated still first"}
+_KIND_LABEL = {"lead_form": "Leads ad (instant form)", "messages": "Messages ad", "traffic": "Traffic ad (website)",
+               "awareness": "Awareness ad (video views)", "animated_still": "Animated still first"}
 _SOURCE_LABEL = {"room": "From unused budget", "move": "Moved from a weak ad set", "extra": "Needs Herman's yes"}
 
 
@@ -472,7 +597,7 @@ def _value(v: str) -> str:
 def _card(i: int, s: dict) -> str:
     first = _e((s["caption"] or "").split("\n")[0][:120])
     img = f'<img src="{_e(s["thumbnail"])}" alt="" loading="lazy" onerror="this.style.visibility=&quot;hidden&quot;">' if s.get("thumbnail") else ""
-    head = (f'<div class="top">{img}<div><h3>{i}. {_e(s["theme"].capitalize())} {_e(s["format"])}: '
+    head = (f'<div class="top">{img}<div><h3>{i}. {_e((s["theme"] or "brand").capitalize())} {_e(s["format"])}: '
             f'{_KIND_LABEL[s["ad_type"]]}</h3><p>{first}</p>'
             f'<p class="mute">Posted {_e(s["posted"])} &middot; <a href="{_e(s["permalink"])}" target="_blank" '
             f'rel="noopener">open the post</a></p><p>{_e(s["why"])}</p></div></div>')
@@ -480,6 +605,10 @@ def _card(i: int, s: dict) -> str:
         todo = "".join(f"<li>{_e(c)}</li>" for c in s["checks"])
         return f'<div class="sg">{head}<p><b>{_e(s["todo"])}.</b></p><ul>{todo}</ul></div>'
     sp, fu = s["spend"], s["funding"]
+    alts = "".join(f"<li><b>{_e(a['label'])}:</b> {_e(a['why_not'])}</li>" for a in s.get("alternatives") or [])
+    typ = (f'<p><b>Why this type:</b> {_e(s.get("type_reason"))}</p>'
+           + (f'<details><summary class="mute">Other types considered</summary><ul>{alts}</ul></details>'
+              if alts else ""))
     money = (f'<div class="money"><div><b>{_r(sp["daily"])}</b> a day</div><div><b>{sp["days"]}</b> days</div>'
              f'<div><b>{_r(sp["total"])}</b> in all</div></div><p>Expected result: {_e(sp["expected_text"])}.</p>'
              f'<p><b class="src-{fu["source"]}">{_SOURCE_LABEL[fu["source"]]}.</b> {_e(fu["text"])}</p>')
@@ -488,7 +617,7 @@ def _card(i: int, s: dict) -> str:
         + "".join(f"<tr><td>{_e(k)}</td><td>{_value(str(v))}</td></tr>" for k, v in sec["rows"])
         + "</table></details>" for j, sec in enumerate(s["setup"]))
     checks = "".join(f"<li>{_e(c)}</li>" for c in s["checks"])
-    return f'<div class="sg">{head}{money}<h4>How to set it up in Ads Manager</h4>{secs}<h4>Before it goes live</h4><ul>{checks}</ul></div>'
+    return f'<div class="sg">{head}{typ}{money}<h4>How to set it up in Ads Manager</h4>{secs}<h4>Before it goes live</h4><ul>{checks}</ul></div>'
 
 
 def _section(doc: dict) -> str:
