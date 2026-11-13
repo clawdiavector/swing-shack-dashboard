@@ -253,3 +253,4 @@ campaign-os/tests/test_design_taxonomy.py
 campaign-os/tests/test_v2026_11_13_ad_suggestions.py
 campaign-os/tests/test_v2026_11_13_ad_suggestions_job.py
 campaign-os/tests/test_v2026_11_13_ad_suggestions_notes.py
+campaign-os/tests/test_v2026_11_13_ad_suggestions_funding.py
