@@ -123,4 +123,6 @@ def test_api_returns_questions(tmp_path, monkeypatch):
     body = r.get_json()
     assert body["ok"] is True and body["brand"] == "swing-shack"
     assert any("worth it" in q["question"] for q in body["questions"])
-    assert client.get("/api/faq/questions?brand=swing-shack").status_code == 401
+    # The test harness signs clients in by default; cos_anon=True is a signed-out visitor.
+    anon = app_module.app.test_client(cos_anon=True)
+    assert anon.get("/api/faq/questions?brand=swing-shack").status_code == 401
