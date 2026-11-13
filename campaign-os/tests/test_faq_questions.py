@@ -156,3 +156,11 @@ def test_at_most_four_questions_per_search(tmp_path):
         per[q["from"]] = per.get(q["from"], 0) + 1
     assert per and max(per.values()) <= F.PER_SEARCH
     assert F.PER_SEARCH == 4
+
+
+def test_list_starts_with_one_question_per_topic(tmp_path):
+    res = F.questions_for("stick", get=fake_get, cache_dir=tmp_path, sleep=lambda s: None)
+    froms = [q["from"] for q in res["questions"]]
+    topics = list(dict.fromkeys(froms))
+    assert len(topics) > 1
+    assert froms[: len(topics)] == topics  # first pass: one from each search, in seed order
