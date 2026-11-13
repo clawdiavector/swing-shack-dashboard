@@ -38,6 +38,24 @@ MAX_UPLOADS_PER_BATCH = 20
 MAX_COMMENT_CHARS = 2000
 
 KINDS = ("single", "choice", "carousel", "note")
+# What a whole pack holds. "posts" is the default and is never stored; "catalog" is set by
+# catalog.py. "deals" (2026-11-13): offers for a yes, not posts, so the page looks different.
+PACK_KINDS = ("posts", "deals")
+DEAL_LABELS = {"approve": "Yes, run it", "reject": "No", "hold": "Change it"}
+DEAL_INTRO = ("These are deals, not posts. Nothing here is a design or goes out as it is. "
+              "Tell us Yes, No or Change it on each offer. We make the content for the deals "
+              "you say yes to later, separately.")
+
+# Both brand bibles: "always say Coaching, never lesson or lessons"
+# (use_coaching_never_lesson). Christelle, 2026-11-13: it must never be put in front of Herman.
+_BANNED = re.compile(r"\blessons?\b", re.IGNORECASE)
+
+
+def _no_banned_words(*texts: Any) -> None:
+    for t in texts:
+        if t and _BANNED.search(str(t)):
+            raise ValueError('say "coaching", never "lesson": the brand bibles ban the word '
+                             f'(found in: "{str(t)[:80]}")')
 STATES = ("approve", "reject", "hold")
 CHOICES = ("A", "B", "C")
 TAGS = ("general", "copy edit", "design edit")
@@ -178,6 +196,7 @@ def _clean_item(raw: Any) -> dict[str, Any]:
         "note": str(raw.get("note") or "")[:600],
         "version": 1, "images": [],
     }
+    _no_banned_words(*(out[k] for k in ("title", "caption", "channels", "when", "audience", "note")))
     if raw.get("plan_item_id"):
         out["plan_item_id"] = str(raw["plan_item_id"])[:80]
     return out
@@ -195,10 +214,14 @@ def add_item(pack_id: str, raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def create_pack(title: str, items: list[dict[str, Any]], *, client: str = "",
-                theme: dict[str, Any] | None = None, notice: str = "") -> dict[str, Any]:
+                theme: dict[str, Any] | None = None, notice: str = "", kind: str = "") -> dict[str, Any]:
     title = (title or "").strip()
     if not title:
         raise ValueError("a pack needs a title")
+    kind = (kind or "posts").strip().lower()
+    if kind not in PACK_KINDS:
+        raise ValueError(f"pack kind must be one of {', '.join(PACK_KINDS)}")
+    _no_banned_words(title, notice)
     if not isinstance(items, list) or not items:
         raise ValueError("a pack needs at least one item")
     clean: list[dict[str, Any]] = []
@@ -213,6 +236,8 @@ def create_pack(title: str, items: list[dict[str, Any]], *, client: str = "",
     pack = {"id": pack_id, "title": title[:200], "client": (client or "").strip()[:60],
             "created": _now(), "theme": _clean_theme(theme),
             "notice": str(notice or "").strip()[:800], "items": clean}
+    if kind != "posts":
+        pack["kind"] = kind
     _write_json(_pack_dir(pack_id) / "pack.json", pack)
     return pack
 
@@ -259,6 +284,7 @@ def update_item_fields(pack_id: str, item_id: str, fields: dict[str, Any]) -> di
             continue
         if key not in limits:
             continue
+        _no_banned_words(val)
         item[key] = str(val or "")[: limits[key]]
         if key == "caption" and "caption_auto" not in fields:
             item["caption_auto"] = False
@@ -582,6 +608,8 @@ def add_comment(pack_id: str, item_id: str, who: str, text: str, *, role: str = 
         raise ValueError(f"tag must be one of {', '.join(TAGS)}")
     if role not in ROLES:
         raise ValueError("role must be client or us")
+    if role == "us":
+        _no_banned_words(text)
     row = {"item": item_id or "", "who": (who or "someone").strip()[:40], "role": role,
            "tag": tag, "text": text[:MAX_COMMENT_CHARS], "at": _now()}
     _append_row(_pack_dir(pack_id) / "comments.jsonl", row)
@@ -757,6 +785,12 @@ def public_view(
         out["month_strip"] = month_strip
         out["can_drag"] = can_drag
         out["can_remake"] = can_remake
+    is_deals = v["pack"].get("kind") == "deals"
+    out["mode"] = "deals" if is_deals else "posts"
+    out["words"] = {"one": "deal", "many": "deals"} if is_deals else {"one": "post", "many": "posts"}
+    if is_deals:
+        out["labels"] = dict(DEAL_LABELS)
+        out["intro"] = DEAL_INTRO
     if v["pack"].get("campaign_approval"):
         out["campaign_approved"] = v["pack"]["campaign_approval"]
     if staff:
@@ -921,21 +955,36 @@ button.rm{font:inherit;font-size:14px;font-weight:800;border:2px solid var(--no)
 .lbb{position:absolute;border:0;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font:inherit;font-weight:800;cursor:pointer;padding:10px 18px}
 #lbx{top:16px;right:16px}#lbp{left:10px;top:50%}#lbn{right:10px;top:50%}#lbc{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#fff;font-size:15px}
 button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-</style></head><body>
+/* Deal packs (2026-11-13): offers for a yes, built to look nothing like a page of posts. */
+body.mode-deals{--bg:#f7f1e3;--card:#fffdf7;--ink:#1f1a10;--muted:#6b5f45;--line:#e2d6b8;--accent:#b7791f;--grad:linear-gradient(90deg,#b7791f,#b7791f)}
+@media (prefers-color-scheme:dark){body.mode-deals{--bg:#17130b;--card:#221c10;--ink:#f7f1e3;--muted:#c9b98f;--line:#4a3d22;--accent:#e0a84a;--grad:linear-gradient(90deg,#c88a2a,#c88a2a)}}
+.deal-banner{display:flex;gap:16px;align-items:center;background:var(--accent);color:#fff;border-radius:16px;padding:16px 20px}
+.deal-banner b{display:block;font-size:clamp(22px,4vw,30px);line-height:1.1;font-weight:900;letter-spacing:.02em;text-transform:uppercase}
+.deal-banner span{font-size:16px}
+.deal-banner .tag{flex:0 0 auto;width:52px;height:52px;border-radius:12px;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900}
+body.mode-deals .card.deal{border:2px dashed var(--accent);border-left:12px solid var(--accent);border-radius:12px}
+body.mode-deals .card.info{border-style:solid;background:transparent}
+body.mode-deals .cap{font-size:20px;line-height:1.45;font-weight:600;border-left:0;padding-left:0}
+body.mode-deals .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+body.mode-deals .chip{font-size:14px;font-weight:800;border-radius:999px;padding:4px 12px;background:var(--line);color:var(--ink)}
+body.mode-deals .thumb{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)}
+body.mode-deals .thumb img{width:96px;height:96px;object-fit:cover;border-radius:8px;cursor:zoom-in;background:var(--line)}
+</style></head><body class="__MODE__">
 <div class="wrap">
+__BANNER__
 <header><h1 id="ttl"></h1><p class="catline" id="catline" hidden></p><p class="catline" id="campaignline" hidden></p><button type="button" class="send" data-campaign-yes hidden>Approve the campaign</button><p class="lead" id="intro"></p></header>
 <aside class="card" id="notice" hidden style="border-left:6px solid var(--accent)"></aside>
 <div id="items" class="wrap"></div>
 <section class="card" id="week"></section>
 <section class="card" id="finish" tabindex="-1"></section>
 </div>
-<div class="bar"><span id="progress"></span><button id="nextb" class="nextb" type="button">Next post</button><span id="status" aria-live="polite"></span></div>
+<div class="bar"><span id="progress"></span><button id="nextb" class="nextb" type="button">__NEXT__</button><span id="status" aria-live="polite"></span></div>
 <div id="lb" class="lb" hidden role="dialog" aria-modal="true" aria-label="Full screen picture"><button id="lbx" class="lbb" type="button">Close</button><button id="lbp" class="lbb" type="button" aria-label="Previous">&lsaquo;</button><img id="lbi" alt=""><button id="lbn" class="lbb" type="button" aria-label="Next">&rsaquo;</button><div id="lbc"></div></div>
 <script type="application/json" id="boot">__DATA__</script>
 <script>
 const TOKEN="__TOKEN__",BASE="/review-pack/"+TOKEN;let D=JSON.parse(document.getElementById("boot").textContent);
 const $=id=>document.getElementById(id);const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e};
-const LBL=__LBL__;let LB={l:[],i:0,t:""};const SIZE_PICK=new Map();let UNMARKED_OK=false;
+const LBL=__LBL__;const W=D.words||{one:"post",many:"posts"};const DEALS=D.mode==="deals";let LB={l:[],i:0,t:""};const SIZE_PICK=new Map();let UNMARKED_OK=false;
 function pickSize(item,key,img,urls){SIZE_PICK.set(item,key);document.querySelectorAll('[data-size-tab="'+item+'"]').forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===key)));if(img&&urls[key]){img.src=urls[key];img.style.aspectRatio={story:"9/16",google:"4/3"}[key]||"";img.style.objectFit=key==="feed"?"":"contain";img.style.maxHeight=key==="story"?"70vh":""}}
 function openLB(l,i,t,names){LB={l,i,t,names};showLB();$("lb").hidden=false;$("lbx").focus()}
 function showLB(){$("lbi").src=LB.l[LB.i];$("lbc").textContent=LB.t+(LB.names&&LB.names[LB.i]?"  ·  "+LB.names[LB.i]:(LB.l.length>1?"  ·  "+(LB.i+1)+" of "+LB.l.length:""));$("lbp").hidden=$("lbn").hidden=LB.l.length<2}
@@ -980,11 +1029,11 @@ function uploadBox(item,onDone){const u=el("div","up");u.append(el("b","","Add y
 function uploadsGrid(item){const g=el("div","ups");const mine=D.uploads.filter(x=>x.item===item);mine.forEach((x,i)=>{const im=new Image();im.src=x.url;im.alt=x.original_name;im.title=x.source||x.original_name;im.onclick=()=>openLB(mine.map(y=>y.url),i,"Your photo");g.append(im);if(x.text||x.purpose){const cap=el("p","sub",(x.purpose?x.purpose.replace("_"," ")+": ":"")+(x.text||""));g.append(cap)}});return mine.length?g:null}
 let SURE=false;
 function paintFinish(done,total,first){SURE=false;$("progress").textContent=done+" of "+total+" answered";
- const nb=$("nextb");nb.textContent=first?"Next post":"Finish";nb.onclick=()=>{const t=first?document.querySelector('section[data-id="'+first+'"]'):$("finish");if(t){t.scrollIntoView({behavior:"smooth",block:"start"});t.focus({preventScroll:true})}};
+ const nb=$("nextb");nb.textContent=first?"Next "+W.one:"Finish";nb.onclick=()=>{const t=first?document.querySelector('section[data-id="'+first+'"]'):$("finish");if(t){t.scrollIntoView({behavior:"smooth",block:"start"});t.focus({preventScroll:true})}};
  const f=$("finish");f.textContent="";const mine=(D.done||[]).find(x=>x.mine);const others=(D.done||[]).filter(x=>!x.mine);
  f.append(el("h2","","All finished?"));
  if(mine)f.append(el("p","sub","Thank you. We have your answers and will take it from here. You can still change anything, and tap again if you add more later."));
- else f.append(el("p","sub",done<total?(total-done)+" of "+total+" posts still have no answer. Answer them, or tell us you are done and we will take it as it is.":"Every post has an answer. Tell us when you are happy for us to take it from here."));
+ else f.append(el("p","sub",done<total?(total-done)+" of "+total+" "+W.many+" still have no answer. Answer them, or tell us you are done and we will take it as it is.":"Every "+W.one+" has an answer. Tell us when you are happy for us to take it from here."));
  others.forEach(x=>{const p=el("p","meta",x.by+" is done");if(x.colour)p.style.color=x.colour;f.append(p)});
  const b=el("button","send",mine?"Done. Tell us again":"I'm done");b.type="button";
  b.onclick=async()=>{if(!mine&&done<total&&!SURE){SURE=true;b.textContent="Send anyway ("+(total-done)+" unanswered)";return}
@@ -1029,13 +1078,14 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
  document.querySelectorAll("[data-campaign-yes]").forEach(b=>{b.onclick=campaignYes});
  paintCampaign();
  if(P.notice){const n=$("notice");n.hidden=false;n.append(el("b","","Please note: "),document.createTextNode(P.notice))}
- const box=$("items");box.before(layoutBar());P.items.forEach(it=>{const c=el("section","card");c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
-  if(D.can_drag&&it.when){const chip=el("span","slot-chip",it.when);chip.draggable=true;chip.title="Drag to a day on the calendar strip";chip.ondragstart=e=>{DRAG_ITEM=it.id;e.dataTransfer.setData("text/plain",it.id)};hh.append(chip)}else{const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m))}
+ const box=$("items");if(!DEALS)box.before(layoutBar());P.items.forEach(it=>{const c=el("section","card"+(DEALS?(it.kind==="note"?" info":" deal"):""));c.dataset.id=it.id;c.tabIndex=-1;const h=el("div","head");const hh=el("div");hh.append(el("h2","",it.title));
+  if(D.can_drag&&it.when){const chip=el("span","slot-chip",it.when);chip.draggable=true;chip.title="Drag to a day on the calendar strip";chip.ondragstart=e=>{DRAG_ITEM=it.id;e.dataTransfer.setData("text/plain",it.id)};hh.append(chip)}else if(DEALS){const ch=el("div","chips");[it.audience,it.when,it.channels].filter(Boolean).forEach(x=>ch.append(el("span","chip",x)));if(ch.childNodes.length)hh.append(ch)}else{const m=[it.audience,it.when,it.channels].filter(Boolean).join("  ·  ");if(m)hh.append(el("p","meta",m))}
   if(it.channels&&D.can_drag)hh.append(el("p","meta",it.channels));
-  const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);if(D.staff)h.append(teamRemove(it));c.append(h);
+  const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh);if(!(DEALS&&it.kind==="note"))h.append(bd);if(D.staff)h.append(teamRemove(it));c.append(h);
   if(D.can_drag&&it.due){const mv=el("div","move-row");const inp=document.createElement("input");inp.type="date";inp.value=it.due;inp.setAttribute("aria-label","Move to day");const mb=el("button","pill","Move to…");mb.type="button";mb.onclick=async()=>{if(!inp.value)return;try{await post("/move-slot",{item:it.id,date:inp.value});say("Day updated");location.reload()}catch(e){say(e.message)}};mv.append(inp,mb);c.append(mv)}
   if(it.hidden_remake){const sb=el("button","pill","Show to Herman");sb.type="button";sb.onclick=()=>showRemake(it.id).catch(e=>say(e.message));c.append(sb)}
-  if(it.images.length){const one=it.images.length===1;const g=el("div","grid"+(one?" one":"")+(it.kind==="choice"&&it.images.length>1?" choice":""));const latest=it.images.length-1;it.images.forEach((src,i)=>{const cell=el("div","cell");const im=new Image();const urls=it.size_urls||{};const isLatest=i===latest&&it.kind!=="choice";
+  if(DEALS){if(it.images.length){const th=el("div","thumb");const im=new Image();const last=it.images.length-1;im.src=it.images[last];im.alt=it.title;im.onclick=()=>openLB([it.images[last]],0,it.title);th.append(im,el("span","","Product photo, for reference only. This is not the post."));c.append(th)}}
+  else if(it.images.length){const one=it.images.length===1;const g=el("div","grid"+(one?" one":"")+(it.kind==="choice"&&it.images.length>1?" choice":""));const latest=it.images.length-1;it.images.forEach((src,i)=>{const cell=el("div","cell");const im=new Image();const urls=it.size_urls||{};const isLatest=i===latest&&it.kind!=="choice";
     im.src=(isLatest&&urls.feed)?urls.feed:src;im.alt=it.title;
     if(it.kind==="choice"&&it.images.length>1){const L="ABC"[i];const o=el("button","opt");o.type="button";o.setAttribute("aria-label","Pick design option "+L);o.dataset.ch=it.id;o.dataset.v=L;o.setAttribute("aria-pressed","false");o.append(im,el("b","","Option "+L));o.onclick=()=>act(it.id,null,L);im.onclick=null;cell.append(o)}else{
       if(isLatest&&urls.feed){const tabs=el("div","size-tabs");tabs.setAttribute("role","tablist");tabs.setAttribute("aria-label","Picture size");[["feed","Feed"],["story","Story"],["google","Google"]].forEach(([k,l])=>{const b=el("button","pill",l);b.type="button";b.dataset.sizeTab=it.id;b.dataset.k=k;b.setAttribute("role","tab");b.setAttribute("aria-pressed",String(k==="feed"));b.onclick=()=>pickSize(it.id,k,im,urls);tabs.append(b)});cell.append(tabs)}
@@ -1043,15 +1093,22 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
       im.onclick=()=>{const pick=SIZE_PICK.get(it.id)||"feed";const sized=isLatest&&urls[pick];const lb=sized?[urls.feed,urls.story,urls.google].filter(Boolean):it.images;const at=isLatest?["feed","story","google"].indexOf(pick):i;openLB(lb,Math.max(0,at),it.title,sized?["Feed","Story","Google"]:null)};cell.append(im);const fb=el("button","full","⤢ View full size");fb.type="button";fb.setAttribute("aria-label","View "+it.title+" full size");fb.onclick=()=>im.onclick();cell.append(fb)}
     if(it.kind==="choice"&&it.images.length>1){const z=el("button","zoom","⤢");z.type="button";z.setAttribute("aria-label","View full screen");z.onclick=()=>openLB(it.images,i,it.title);cell.append(z)}g.append(cell)});c.append(g)}else{c.append(el("div","pic none","Picture to come"))}
   if(it.caption)c.append(el("div","cap",it.caption));if(it.note&&!(it.caption||"").includes(it.note))c.append(el("p","meta",it.note));
+  if(DEALS&&it.kind==="note"){box.append(c);return}
   const r=el("div","row");(D.labels?["approve","hold","reject"]:["approve","reject","hold"]).forEach(s=>{const b=el("button","pill "+s,LBL[s]);b.type="button";b.dataset.st=it.id;b.dataset.v=s;b.setAttribute("aria-pressed","false");b.onclick=()=>{const cur=D.decisions[it.id];act(it.id,s,cur&&cur.choice)};r.append(b)});c.append(r);
   const t=el("div","thread");t.append(el("h3","","Comments"));const tb=el("div");tb.dataset.th=it.id;t.append(tb,composer(it.id,tb));c.append(t);
-  const ug=el("div");ug.dataset.ug=it.id;const upl=document.createElement("details");upl.className="upl";upl.open=true;upl.append(el("summary","","Add a photo or a reference"),uploadBox(it.id));c.append(upl,ug);box.append(c)});applyCols(colsPref());
+  if(DEALS){box.append(c);return}
+  const ug=el("div");ug.dataset.ug=it.id;const upl=document.createElement("details");upl.className="upl";upl.open=true;upl.append(el("summary","","Add a photo or a reference"),uploadBox(it.id));c.append(upl,ug);box.append(c)});applyCols(DEALS?"1":colsPref());
  if(D.staff)$("finish").after(teamSection());
- const w=$("week");w.append(el("h2","","Your own photos for the week"),el("p","sub","Not tied to one post? Add them here."),uploadBox(""));const wg=el("div");wg.dataset.ug="";w.append(wg);
+ const w=$("week");if(DEALS)w.append(el("h2","","Anything else about these deals?"));else w.append(el("h2","","Your own photos for the week"),el("p","sub","Not tied to one post? Add them here."),uploadBox(""));const wg=el("div");wg.dataset.ug="";w.append(wg);
  const wt=el("div","thread");wt.append(el("h3","","General comments"));const wb=el("div");wb.dataset.th="";wt.append(wb,composer("",wb));w.append(wt);paint();const g0=document.querySelector('[data-ug=""]');if(g0){const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}
 async function refresh(){try{const r=await fetch(BASE+"/data",{cache:"no-store"});if(!r.ok)return;const j=await r.json();D.decisions=j.decisions;D.comments=j.comments;if(j.pack&&j.pack.items.length!==D.pack.items.length){if(![...document.querySelectorAll("textarea")].some(t=>t.value.trim())){location.reload();return}say("A new post was added. Reload the page to see it.");return}D.uploads=j.uploads;D.done=j.done||[];paint();const g0=document.querySelector('[data-ug=""]');if(g0){g0.textContent="";const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}catch(e){}}
 build();setInterval(()=>{if(!document.hidden)refresh()},20000);
 </script></body></html>"""
+
+
+_DEAL_BANNER = ('<div class="deal-banner" role="note"><div class="tag" aria-hidden="true">%</div>'
+                "<div><b>Deals, not posts</b><span>Each card below is an offer for your yes. "
+                "No designs to check here.</span></div></div>")
 
 
 def render_page(data: dict[str, Any], *, token: str) -> str:
@@ -1062,7 +1119,10 @@ def render_page(data: dict[str, Any], *, token: str) -> str:
     labels = data.get("labels") or {"approve": "Approve", "reject": "Reject", "hold": "Hold"}
     lbl = json.dumps(labels, ensure_ascii=False).replace("<", "\\u003c")
     safe_token = re.sub(r"[^A-Za-z0-9_.-]", "", token)
-    return (_PAGE.replace("__TITLE__", html.escape(data["pack"]["title"]))
+    deals = data.get("mode") == "deals"
+    banner = _DEAL_BANNER if deals else ""
+    return (_PAGE.replace("__BANNER__", banner).replace("__NEXT__", "Next deal" if deals else "Next post").replace("__MODE__", "mode-deals" if deals else "mode-posts")
+            .replace("__TITLE__", html.escape(data["pack"]["title"]))
             .replace("__INK__", theme.get("ink", "#121528")).replace("__BG__", theme.get("bg", "#f6f4f1"))
             .replace("__ACCENT__", theme.get("accent", "#7c38f8")).replace("__GRAD__", css_grad)
             .replace("__LBL__", lbl)
