@@ -41,6 +41,7 @@ MAX_STILLS = 2
 
 LEAD_THEMES = ("assessment", "fitting", "coaching", "membership")
 PRODUCT_THEMES = ("putter", "irons", "driver", "grip", "bags", "retail")
+_PRICE = re.compile(r"\bR\s?\d[\d ,]*|\b\d+\s?/\s?pm\b|\bper month\b", re.I)
 _DEAL = re.compile(r"\d+\s?%|black friday|\bsale\b|\bspecial\b|\boff\b|\bdeal\b", re.I)
 
 BRAND_NAMES = {"stick": "Stick", "swing-shack": "Swing Shack", "bag-drop": "Bag Drop"}
@@ -284,6 +285,9 @@ def _checks(s: dict, caption: str) -> list[str]:
     if _DEAL.search(caption or ""):
         out.append("The caption names a deal: check it is still on for the whole test, or the ad promises "
                    "something that has ended.")
+    if _PRICE.search(caption or ""):
+        out.append("The caption names a price: check it is the current price (live on the booking site or in "
+                   "prices-approved.json) before paying to show it. Swing Shack moved to 2027 prices in November.")
     if s["theme"] == "assessment":
         out.append("Free assessment, not a fitting: keep fitting details out of the form and the reply.")
     return out
@@ -392,7 +396,10 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
         "budget": {"weekly": round(budget, 2), "committed": round(committed, 2),
                    "room_before": round(max(0.0, budget - committed), 2), "room_after": round(state["room"], 2),
                    "cost_per_lead": cpl},
-        "posts_read": len(rows), "suggestions": suggestions, "skipped": skipped,
+        "posts_read": len(rows),
+        "counts": {"posts": len(rows), "reels": sum(1 for r in rows if r.get("format_type") == "reel"),
+                   "reels_with_reach": sum(1 for r in rows if r.get("format_type") == "reel" and (r.get("reach") or 0))},
+        "suggestions": suggestions, "skipped": skipped,
         "running_known": running is not None,
     }
 
@@ -463,9 +470,14 @@ def _section(doc: dict) -> str:
         parts.append('<p class="mute">Could not check which posts already run as ads (the morning ads job has not '
                      'written that yet). Check in Ads Manager before building one.</p>')
     sugg = doc.get("suggestions") or []
+    c = doc.get("counts") or {}
     if not sugg:
+        why = ""
+        if c.get("reels") and not c.get("reels_with_reach"):
+            why = (f' Instagram returned no reach for any of the {c["reels"]} reels on file, so none can be ranked. '
+                   'This clears when the morning Instagram read brings reel numbers in.')
         parts.append(f'<p class="mute">No post in the last {WINDOW_DAYS} days is ready to be an ad. '
-                     f'{doc.get("posts_read", 0)} posts read.</p>')
+                     f'{doc.get("posts_read", 0)} posts read.{why}</p>')
     parts += [_card(i, s) for i, s in enumerate(sugg, 1)]
     skipped = doc.get("skipped") or []
     if skipped:
