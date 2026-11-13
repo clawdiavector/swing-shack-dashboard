@@ -142,6 +142,12 @@ def find_questions(brand: str, *, get: Getter = _get, sleep: Callable[[float], A
             seen.add(key)
             kept += 1
             questions.append({"question": tidy(re.sub(r"(?<=[a-z])\.(?=[a-z])", " ", s)), "from": q})
+    # One from each search first, then the second from each, so the top of the list
+    # covers every topic instead of ten ways to ask about club fitting.
+    by_search: Dict[str, List[Dict[str, str]]] = {}
+    for item in questions:
+        by_search.setdefault(item["from"], []).append(item)
+    questions = [lst[i] for i in range(PER_SEARCH) for lst in by_search.values() if i < len(lst)]
     if errors and not questions:
         errors = errors[:1]
     return {"brand": brand, "questions": questions, "errors": errors if not questions else [], "generated_at": time.time()}

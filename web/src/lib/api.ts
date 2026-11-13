@@ -341,6 +341,20 @@ export type OpportunitiesPayload = {
   error?: string
 }
 
+export type FaqQuestionsPayload = {
+  ok: boolean
+  brand: string
+  questions: { question: string; from: string }[]
+  errors: string[]
+  generated_at?: number
+}
+
+/** Questions people ask Google about the brand's topics (Plan > Ideas). */
+export function fetchFaqQuestions(brand: string) {
+  const q = new URLSearchParams({ brand })
+  return getJson<FaqQuestionsPayload>(`/api/faq/questions?${q}`)
+}
+
 export function fetchOpportunities(brand: string) {
   const q = new URLSearchParams({ brand })
   return getJson<OpportunitiesPayload>(`/api/intel/opportunities?${q}`)
