@@ -170,3 +170,18 @@ def test_made_up_seed_catalogue_is_gone():
     src = (CAMPAIGN_OS / "app.py").read_text(encoding="utf-8")
     assert "_seed_swing_shack_products" not in src
     assert "4 Players + Beer" not in src
+
+
+def test_shop_rate_limit_is_retried(tmp_path):
+    calls = {"n": 0}
+
+    def busy_once(url: str):
+        if "shop.stickgolf.co.za" in url and "page=1" in url:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return 429, b""
+        return fake_get(url)
+
+    res = P.live_prices("stick", get=busy_once, cache_dir=tmp_path, sleep=lambda s: None)
+    assert res["errors"] == []
+    assert 12999 in {i["rand"] for i in res["items"]}
