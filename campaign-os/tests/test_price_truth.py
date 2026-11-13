@@ -185,3 +185,27 @@ def test_shop_rate_limit_is_retried(tmp_path):
     res = P.live_prices("stick", get=busy_once, cache_dir=tmp_path, sleep=lambda s: None)
     assert res["errors"] == []
     assert 12999 in {i["rand"] for i in res["items"]}
+
+
+def test_last_good_prices_are_used_when_a_source_is_busy(tmp_path):
+    clock = {"t": 1_000_000.0}
+    P.live_prices("stick", get=fake_get, cache_dir=tmp_path, now=lambda: clock["t"])
+    clock["t"] += 2 * 24 * 3600  # two days on: past the 6 h freshness, inside the 7 day fallback
+
+    def shop_busy(url: str):
+        if "shop.stickgolf.co.za" in url:
+            return 429, b""
+        return fake_get(url)
+
+    res = P.live_prices("stick", get=shop_busy, cache_dir=tmp_path, now=lambda: clock["t"], sleep=lambda s: None)
+    assert res["errors"] == []
+    assert 12999 in {i["rand"] for i in res["items"]}
+    assert res.get("stale_since")
+
+
+def test_prices_older_than_a_week_are_not_trusted(tmp_path):
+    clock = {"t": 1_000_000.0}
+    P.live_prices("stick", get=fake_get, cache_dir=tmp_path, now=lambda: clock["t"])
+    clock["t"] += 8 * 24 * 3600
+    res = P.live_prices("stick", get=failing_get, cache_dir=tmp_path, now=lambda: clock["t"], sleep=lambda s: None)
+    assert res["errors"]
