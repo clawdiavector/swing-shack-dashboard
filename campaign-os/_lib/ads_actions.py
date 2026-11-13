@@ -186,6 +186,10 @@ def undo(brand_id: str, action_id: str, *, graph, token: str, account_id: str,
         raise ActionRefused("No such change.", 404)
     if entry.get("undone_at"):
         raise ActionRefused("That change was already undone.", 409)
+    if entry.get("kind") == "build_ad":
+        from . import ads_build
+        return ads_build.undo(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
+                              write=write, by=by)
     if entry.get("kind", "").startswith("rename_"):
         return _undo_rename(brand_id, entries, entry, graph=graph, token=token, account_id=account_id,
                             write=write, by=by)

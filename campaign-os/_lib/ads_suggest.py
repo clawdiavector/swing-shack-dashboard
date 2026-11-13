@@ -535,7 +535,7 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
         landing = (site.get("home") if not theme else
                    site.get(theme) or site.get("product" if product else "bookings")) or ""
         s = {
-            "post_id": pid, "permalink": r.get("permalink"), "thumbnail": r["thumbnail"],
+            "brand_id": brand_id, "post_id": pid, "permalink": r.get("permalink"), "thumbnail": r["thumbnail"],
             "caption": cap, "posted": day.isoformat(), "format": fmt, "theme": theme,
             "reach": r.get("reach") or 0, "saves": r["saves"], "shares": r["shares"], "score": r.get("score"),
             "score_basis": r.get("score_basis"),
@@ -578,6 +578,8 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
             s["type_reason"] += (f" Aim it first at {follow['name']}: the people who watched the awareness reel "
                                  f"that started {follow['started']}, so they already know the brand.")
             follow = None
+        s["schedule"] = {"start": (today + _dt.timedelta(days=1)).isoformat(),
+                         "end": (today + _dt.timedelta(days=TEST_DAYS)).isoformat()}
         s["setup"] = _setup(s, brand_id, site, today)
         s["checks"] = _checks(s, cap)
         suggestions.append(s)
@@ -652,7 +654,11 @@ def _card(i: int, s: dict) -> str:
         + "".join(f"<tr><td>{_e(k)}</td><td>{_value(str(v))}</td></tr>" for k, v in sec["rows"])
         + "</table></details>" for j, sec in enumerate(s["setup"]))
     checks = "".join(f"<li>{_e(c)}</li>" for c in s["checks"])
-    return f'<div class="sg">{head}{typ}{money}<h4>How to set it up in Ads Manager</h4>{secs}<h4>Before it goes live</h4><ul>{checks}</ul></div>'
+    build = (f'<form method="post" action="/ads-brief/build"><input type="hidden" name="brand" value="{_e(s.get("brand_id"))}">'
+             f'<input type="hidden" name="post_id" value="{_e(s["post_id"])}"><input type="hidden" name="ad_type" '
+             f'value="{_e(s["ad_type"])}"><button type="submit">Build in Meta (switched off)</button> '
+             '<span class="mute">Shows everything first; nothing is made until you confirm.</span></form>')
+    return f'<div class="sg">{head}{typ}{money}{build}<h4>How to set it up in Ads Manager</h4>{secs}<h4>Before it goes live</h4><ul>{checks}</ul></div>'
 
 
 def _past(log: list) -> str:

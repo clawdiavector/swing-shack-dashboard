@@ -56398,6 +56398,66 @@ def _ads_suggest_page(today):
     return _sg.render_html(docs, missing=missing)
 
 
+def _ads_build_html(html, status=200):
+    return html, status, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/ads-brief/build", methods=["POST"])
+def ads_build_preview_page():
+    """Preview building one suggested ad in Meta, switched off. Reads only."""
+    brand = request.form.get("brand", "")
+    err, c = _ads_actions_ctx(brand)
+    if err:
+        return err
+    from _lib import ads_brief as _brief, ads_build as _abld
+    docs, _missing = _ads_suggest_docs(_brief.sast_today())
+    doc = next((d for d in docs if d.get("brand_id") == brand), {})
+    s = next((x for x in doc.get("suggestions") or [] if str(x.get("post_id")) == request.form.get("post_id")
+              and x.get("ad_type") == request.form.get("ad_type")), None)
+    if not s:
+        return _ads_build_html("<p>That suggestion is no longer on the page. Go back and reload it.</p>", 404)
+    try:
+        p = _abld.preview(brand, s, graph=c["graph"], token=c["token"], account_id=c["account_id"],
+                          signer=c["signer"])
+    except c["aa"].ActionRefused as exc:
+        return _ads_build_html(f"<p>{__import__("html").escape(str(exc))}</p>", exc.status)
+    return _ads_build_html(_abld.render_preview(p))
+
+
+@app.route("/ads-brief/build/confirm", methods=["POST"])
+def ads_build_confirm_page():
+    """Build the previewed ad in Meta, every part switched off, and log it with undo."""
+    brand = request.form.get("brand", "")
+    err, c = _ads_actions_ctx(brand)
+    if err:
+        return err
+    from _lib import ads_build as _abld
+    try:
+        entry = _abld.apply(brand, request.form.get("ticket", ""), graph=c["graph"], token=c["token"],
+                            account_id=c["account_id"], signer=c["signer"], read=c["read"], write=c["write"],
+                            by=str(session.get("user") or "dashboard"))
+    except c["aa"].ActionRefused as exc:
+        return _ads_build_html(f"<p>{__import__("html").escape(str(exc))}</p>"
+                               '<p><a href="/ads-brief?kind=suggest">Back to Ad suggestions</a></p>', exc.status)
+    return _ads_build_html(_abld.render_done(brand, entry, account_id=c["account_id"]))
+
+
+@app.route("/ads-brief/build/undo", methods=["POST"])
+def ads_build_undo_page():
+    brand = request.form.get("brand", "")
+    err, c = _ads_actions_ctx(brand)
+    if err:
+        return err
+    try:
+        c["aa"].undo(brand, request.form.get("action_id", ""), graph=c["graph"], token=c["token"],
+                     account_id=c["account_id"], read=c["read"], write=c["write"],
+                     by=str(session.get("user") or "dashboard"))
+    except c["aa"].ActionRefused as exc:
+        return _ads_build_html(f"<p>{__import__("html").escape(str(exc))}</p>", exc.status)
+    return _ads_build_html('<p>Removed. Nothing of it is left running in Meta.</p>'
+                           '<p><a href="/ads-brief?kind=suggest">Back to Ad suggestions</a></p>')
+
+
 @app.route("/api/meta/ads/suggestions", methods=["GET"])
 def api_ads_suggestions():
     """GET /api/meta/ads/suggestions — the same suggestions as JSON."""
