@@ -56330,14 +56330,51 @@ def moments_desk():
     return jsonify({"ok": True, "moments": fresh, "cached": False}), 200
 
 
+def _ads_suggest_docs(today):
+    """Ad suggestions per brand, worked out on each load from the files the jobs keep (nothing reaches Meta)."""
+    from _lib import ads_suggest as _sg
+    docs, missing = [], []
+    for b in _ADS_BRIEF_BRANDS:
+        outcomes = (_ads_lane_load(b, "post-outcomes.json") or {}).get("outcomes") or []
+        if not outcomes:
+            missing.append(b)
+            continue
+        docs.append(_sg.build(
+            b, outcomes=outcomes,
+            media=(_ads_lane_load(b, "ig-business-analytics.json") or {}).get("media") or [],
+            running=_ads_lane_load(b, "ads-suggest/running.json"),
+            settings=_ads_lane_load(b, "ads-budget/settings.json") or {},
+            figures=_ads_lane_load(b, "ads-budget/figures.json") or {},
+            brief=_ads_brief_load(b, "daily") or {}, today=today))
+    return docs, missing
+
+
+def _ads_suggest_page(today):
+    from _lib import ads_suggest as _sg
+    docs, missing = _ads_suggest_docs(today)
+    return _sg.render_html(docs, missing=missing)
+
+
+@app.route("/api/meta/ads/suggestions", methods=["GET"])
+def api_ads_suggestions():
+    """GET /api/meta/ads/suggestions — the same suggestions as JSON."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import ads_brief as _brief
+    docs, missing = _ads_suggest_docs(_brief.sast_today())
+    return jsonify({"ok": True, "brands": docs, "missing": missing})
+
+
 @app.route("/ads-brief", methods=["GET"])
 def ads_brief_page():
-    """GET /ads-brief[?kind=weekly|trends|research] — both brands on one page."""
+    """GET /ads-brief[?kind=weekly|trends|research|suggest] — both brands on one page."""
     if not _is_authed():
         return redirect(url_for("login_page", next=request.full_path.rstrip("?")))
     from _lib import ads_brief as _brief
     kind = request.args.get("kind")
     headers = {"Content-Type": "text/html; charset=utf-8"}
+    if kind == "suggest":
+        return _ads_suggest_page(_brief.sast_today()), 200, headers
     if kind in ("trends", "research"):
         histories = {b: _ads_lane_load(b, "ads-history/latest.json") for b in _ADS_BRIEF_BRANDS}
         if kind == "trends":

@@ -30,6 +30,8 @@ ORGANIC = "post-outcomes.json"
 HISTORY = "ads-history/weekly.json"
 HISTORY_LATEST = "ads-history/latest.json"
 TRACKING = "ads-tracking/latest.json"
+# Which posts already run as ads, so the Ad suggestions page never suggests one twice.
+RUNNING = "ads-suggest/running.json"
 # The cache warm-up only starts a refresh before this many seconds into the run (the job has 300).
 WARM_DEADLINE_SECONDS = 200
 BUDGET_FIGURES = "ads-budget/figures.json"
@@ -158,6 +160,15 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
     # What to film for each proposed card, from the brand's own idea file.
     tests = ads_ideas.attach(tests, ads_ideas.load_bank(lane_brand), win)
     daily["creative"] = ads_creative.summarise(tests, today)
+    try:
+        io.write(RUNNING, {
+            "date": today.isoformat(),
+            "bodies": sorted({ads_creative._norm((a.get("creative") or {}).get("body")) for a in full["ads"]} - {""}),
+            "post_ids": sorted({str(c.get("post_id")) for t in tests if t.get("status") in ads_creative.OPEN
+                                for c in t.get("challengers") or [] if c.get("post_id")}),
+        })
+    except Exception:
+        pass
     # Why a card has no organic reel: nothing on file, no reels, or none on theme.
     daily["creative"]["organic"] = {
         "posts_on_file": len(organic),
