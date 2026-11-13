@@ -27,7 +27,7 @@ import math
 import re
 from html import escape
 
-from . import ads_creative, ads_naming
+from . import ads_creative, ads_learn, ads_naming
 
 SCHEMA = "https://campaign-os/ads-suggest/v1"
 WINDOW_DAYS = 60
@@ -195,7 +195,7 @@ _TARGET = {"lead_form": (LEADS_PER_WEEK_TARGET, "lead"), "messages": (5, "chat")
            "awareness": (None, "view")}
 
 
-def _spend(kind: str, cost: float | None) -> dict:
+def _spend(kind: str, cost: float | None, source: str | None = None) -> dict:
     target, unit = _TARGET[kind]
     daily = FLOOR_DAILY
     if cost and target:
@@ -204,17 +204,29 @@ def _spend(kind: str, cost: float | None) -> dict:
     if cost:
         n = int(total // cost)
         each = _r(cost) if cost >= 10 else f"R{cost:.2f}"
-        text = (f"about {n:,} {unit}{'s' if n != 1 else ''} at about {each} each "
-                f"(the brand's cost per {unit} in the last 7 days)")
+        where = source or f"the brand's cost per {unit} in the last 7 days"
+        text = f"about {n:,} {unit}{'s' if n != 1 else ''} at about {each} each ({where})"
     elif kind == "awareness":
         n, text = None, ("no cost per view on record; Ads Manager shows the estimated reach on the ad set. "
                          "The real result is the audience of people who watched it")
     else:
         n, text = None, f"no cost per {unit} on record yet; this first week sets it"
-    return {"daily": daily, "days": TEST_DAYS, "total": total, "expected_results": n, "expected_text": text}
+    return {"daily": daily, "days": TEST_DAYS, "total": total, "expected_results": n, "expected_text": text,
+            "unit_cost": cost}
 
 
-def choose_type(theme, caption: str, site: dict, *, standout: bool, costs: dict) -> dict:
+def _cost_for(kind: str, theme, costs: dict, learned: dict | None) -> tuple[float | None, str | None]:
+    """What one result costs: from suggested ads that ran (same subject first, then same type), else the last 7 days."""
+    ld = learned or {}
+    for bucket in (((ld.get("by_type_theme") or {}).get(f"{kind}:{theme}")), (ld.get("by_type") or {}).get(kind)):
+        if bucket and bucket.get("cost_per_result"):
+            n = bucket["tests"]
+            return bucket["cost_per_result"], f"from {n} suggested ad{'s' if n != 1 else ''} that ran"
+    return costs.get(kind), None
+
+
+def choose_type(theme, caption: str, site: dict, *, standout: bool, costs: dict,
+                learned: dict | None = None) -> dict:
     """Score each ad type on what the post offers and what its caption asks people to do. Highest wins; on a tie,
     leads, then messages, then traffic, then awareness. Returns the type, the reason and why not the others."""
     service, product = theme in LEAD_THEMES, theme in PRODUCT_THEMES
@@ -226,6 +238,13 @@ def choose_type(theme, caption: str, site: dict, *, standout: bool, costs: dict)
         "traffic": (3 + (1 if own_page else 0)) if web and (service or product) else 0,
         "awareness": 3 if not theme and standout else 0,
     }
+    record = []
+    for k in AD_TYPES:
+        if score[k]:
+            nudge, line = ads_learn.adjust(learned, k, theme)
+            score[k] = max(0, score[k] + nudge)
+            if line:
+                record.append(line)
     kind = max(AD_TYPES, key=lambda k: (score[k], -AD_TYPES.index(k)))
     cpl = costs.get("lead_form")
     if kind == "lead_form":
@@ -242,6 +261,8 @@ def choose_type(theme, caption: str, site: dict, *, standout: bool, costs: dict)
     else:
         reason = ("Nothing to book or buy, but it clearly beat the brand's usual post. Paying for views builds an "
                   "audience of people who watched it, and the next leads or messages ad goes to them first.")
+    if record:
+        reason += " " + " ".join(record)
     leans = "Possible, but the caption leans harder towards the type chosen."
     why_not = {
         "lead_form": ("Nothing to book here, so a form has nothing to ask for." if not service else
@@ -432,7 +453,7 @@ def _checks(s: dict, caption: str) -> list[str]:
 # ── build ────────────────────────────────────────────────────────────────
 
 def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, settings: dict | None,
-          figures: dict | None, brief: dict | None, today: _dt.date) -> dict:
+          figures: dict | None, brief: dict | None, today: _dt.date, learned: dict | None = None) -> dict:
     site = SITES.get(brand_id) or {}
     by_id = {str(m.get("id")): m for m in media or [] if isinstance(m, dict)}
     used = set((running or {}).get("bodies") or []) - {""}
@@ -498,7 +519,7 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
             skip("Enough suggestions for one week.")
             continue
         seen.add(theme or "brand")
-        pick = (choose_type(theme, cap, site, standout=standout, costs=costs) if video else
+        pick = (choose_type(theme, cap, site, standout=standout, costs=costs, learned=learned) if video else
                 {"ad_type": "animated_still", "type_reason": "A product photo cannot run as it is; animated, it can "
                  "run as a messages ad.", "alternatives": []})
         kind = pick["ad_type"]
@@ -530,7 +551,7 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
             suggestions.append(s)
             continue
         runnable += 1
-        s["spend"] = _spend(kind, costs.get(kind))
+        s["spend"] = _spend(kind, *_cost_for(kind, theme, costs, learned))
         s["funding"] = _fund(s["spend"]["daily"], state)
         s["form"] = None
         if kind == "lead_form":
@@ -554,6 +575,7 @@ def build(brand_id: str, *, outcomes: list, media: list, running: dict | None, s
                    "room_before": round(max(0.0, budget - committed), 2), "room_after": round(state["room"], 2),
                    "cost_per_lead": costs.get("lead_form"), "unit_costs": costs,
                    "typical_score": typical_score},
+        "learned": learned or {},
         "posts_read": len(rows),
         "counts": {"posts": len(rows), "reels": sum(1 for r in rows if r.get("format_type") == "reel"),
                    "reels_with_reach": sum(1 for r in rows if r.get("format_type") == "reel" and (r.get("reach") or 0))},
@@ -620,6 +642,30 @@ def _card(i: int, s: dict) -> str:
     return f'<div class="sg">{head}{typ}{money}<h4>How to set it up in Ads Manager</h4>{secs}<h4>Before it goes live</h4><ul>{checks}</ul></div>'
 
 
+def _past(log: list) -> str:
+    rows = [e for e in log or [] if e.get("status") in ("RUNNING", "DONE")]
+    if not rows:
+        return ""
+    rows.sort(key=lambda e: e.get("started") or "", reverse=True)
+    body = []
+    for e in rows[:20]:
+        ex, ac = e.get("expected") or {}, e.get("actual") or {}
+        unit = ex.get("unit") or "result"
+        exp = f"{_r(ex['cost_per_result'])} a {unit}" if ex.get("cost_per_result") else "no estimate"
+        got = (f"{ac.get('results', 0)} {unit}s for {_r(ac.get('spend') or 0)}"
+               + (f" ({_r(ac['cost_per_result'])} each)" if ac.get("cost_per_result") else ""))
+        verdict = (ads_learn.VERDICT_TEXT.get(e.get("verdict"), "") if e["status"] == "DONE"
+                   else f"Running since {e.get('started')}")
+        body.append(f'<tr><td><a href="{_e(e.get("permalink"))}" target="_blank" rel="noopener">'
+                    f'{_e((e.get("caption") or "")[:60]) or "(post)"}</a><br><span class="mute">'
+                    f'{_e(TYPE_LABEL.get(e["ad_type"], e["ad_type"]))}</span></td><td>{_e(exp)}</td>'
+                    f'<td>{_e(got)}</td><td><b>{_e(verdict)}</b></td></tr>')
+    return ('<h3>How past suggestions did</h3><div class="scroll"><table><tr><th>Ad</th><th>Expected</th>'
+            '<th>Got</th><th>Verdict</th></tr>' + "".join(body) + '</table></div>'
+            '<p class="mute">Matched to the ads that ran by campaign name or caption. Judged after 7 days on the '
+            "ad's own result; bookings are not linked yet.</p>")
+
+
 def _section(doc: dict) -> str:
     brand = doc.get("brand_id")
     b = doc.get("budget") or {}
@@ -632,6 +678,7 @@ def _section(doc: dict) -> str:
     if not doc.get("running_known"):
         parts.append('<p class="mute">Could not check which posts already run as ads (the morning ads job has not '
                      'written that yet). Check in Ads Manager before building one.</p>')
+    parts.append(_past(doc.get("log")))
     sugg = doc.get("suggestions") or []
     c = doc.get("counts") or {}
     if not sugg:

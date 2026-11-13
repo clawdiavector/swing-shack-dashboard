@@ -56332,20 +56332,22 @@ def moments_desk():
 
 def _ads_suggest_docs(today):
     """Ad suggestions per brand, worked out on each load from the files the jobs keep (nothing reaches Meta)."""
-    from _lib import ads_suggest as _sg
+    from _lib import ads_learn as _ads_learn, ads_suggest as _sg
     docs, missing = [], []
     for b in _ADS_BRIEF_BRANDS:
         outcomes = (_ads_lane_load(b, "post-outcomes.json") or {}).get("outcomes") or []
         if not outcomes:
             missing.append(b)
             continue
+        log = (_ads_lane_load(b, "ads-suggest/log.json") or {}).get("entries") or []
         docs.append(_sg.build(
             b, outcomes=outcomes,
             media=(_ads_lane_load(b, "ig-business-analytics.json") or {}).get("media") or [],
             running=_ads_lane_load(b, "ads-suggest/running.json"),
             settings=_ads_lane_load(b, "ads-budget/settings.json") or {},
             figures=_ads_lane_load(b, "ads-budget/figures.json") or {},
-            brief=_ads_brief_load(b, "daily") or {}, today=today))
+            brief=_ads_brief_load(b, "daily") or {}, today=today, learned=_ads_learn.learned(log)))
+        docs[-1]["log"] = log
     return docs, missing
 
 

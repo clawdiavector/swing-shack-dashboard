@@ -15,7 +15,7 @@ import sys
 import time
 
 from _lib import ads_actions, ads_brain, ads_brief, ads_budget, ads_cache_warm, ads_cap, ads_creative, ads_history, ads_ideas
-from _lib import ads_tracking
+from _lib import ads_learn, ads_suggest, ads_tracking
 from _lib.brand_validate import validate_brand_id
 
 from ..layer1._io import as_dict, as_list, io_for_job
@@ -32,6 +32,7 @@ HISTORY_LATEST = "ads-history/latest.json"
 TRACKING = "ads-tracking/latest.json"
 # Which posts already run as ads, so the Ad suggestions page never suggests one twice.
 RUNNING = "ads-suggest/running.json"
+SUGGEST_LOG = "ads-suggest/log.json"
 # The cache warm-up only starts a refresh before this many seconds into the run (the job has 300).
 WARM_DEADLINE_SECONDS = 200
 BUDGET_FIGURES = "ads-budget/figures.json"
@@ -161,14 +162,26 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
     tests = ads_ideas.attach(tests, ads_ideas.load_bank(lane_brand), win)
     daily["creative"] = ads_creative.summarise(tests, today)
     try:
-        io.write(RUNNING, {
+        running = {
             "date": today.isoformat(),
             "bodies": sorted({ads_creative._norm((a.get("creative") or {}).get("body")) for a in full["ads"]} - {""}),
             "post_ids": sorted({str(c.get("post_id")) for t in tests if t.get("status") in ads_creative.OPEN
                                 for c in t.get("challengers") or [] if c.get("post_id")}),
-        })
-    except Exception:
-        pass
+        }
+        io.write(RUNNING, running)
+        # Learning loop: judge the suggestions that ran, then remember today's (the page shows both).
+        log = ads_learn.match(as_list(as_dict(io.read(SUGGEST_LOG, allow_flat_fallback=False)).get("entries")),
+                              full["ads"], today)
+        doc = ads_suggest.build(
+            lane_brand, outcomes=organic,
+            media=as_list(as_dict(io.read("ig-business-analytics.json", allow_flat_fallback=False)).get("media")),
+            running=running, settings=as_dict(io.read(BUDGET_SETTINGS, allow_flat_fallback=False)),
+            figures=as_dict(io.read(BUDGET_FIGURES, allow_flat_fallback=False)), brief=daily, today=today,
+            learned=ads_learn.learned(log))
+        io.write(SUGGEST_LOG, {"schema": ads_learn.SCHEMA, "date": today.isoformat(),
+                               "entries": ads_learn.remember(log, doc, today)})
+    except Exception as exc:
+        print(f"ads_brief suggestions {lane_brand}: {type(exc).__name__}: {exc}", flush=True)
     # Why a card has no organic reel: nothing on file, no reels, or none on theme.
     daily["creative"]["organic"] = {
         "posts_on_file": len(organic),
