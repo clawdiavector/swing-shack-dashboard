@@ -56349,7 +56349,47 @@ def _ads_suggest_docs(today):
             brief=_ads_brief_load(b, "daily") or {}, today=today, learned=_ads_learn.learned(log),
             audiences=_ads_learn.audiences(log, today)))
         docs[-1]["log"] = log
+        try:
+            from _lib import ads_plan as _ap
+            docs[-1]["ahead"] = _ap.upcoming(
+                b, **_ads_ahead_inputs(b, today),
+                settings=_ads_lane_load(b, "ads-budget/settings.json") or {},
+                figures=_ads_lane_load(b, "ads-budget/figures.json") or {},
+                brief=_ads_brief_load(b, "daily") or {}, learned=_ads_learn.learned(log), today=today)
+        except Exception as exc:
+            app.logger.warning("ads ahead %s: %s", b, exc)
     return docs, missing
+
+
+def _ads_ahead_inputs(brand_id, today):
+    """What the next week holds for a brand: calendar posts, plan steps, campaigns, stock. Each part optional."""
+    import datetime as _dtm
+    first, last = today, today + _dtm.timedelta(days=8)
+    posts, steps, camps, stock = [], [], [], []
+    try:
+        from _lib import clean_calendar as _cc
+        for month in sorted({first.strftime("%Y-%m"), last.strftime("%Y-%m")}):
+            for row, draft in _cc.post_rows(brand_id, month):
+                posts.append(_cc.post_entry(row, brand_id, caption=str((draft or {}).get("caption") or ""),
+                                            today=today))
+    except Exception as exc:
+        app.logger.warning("ads ahead calendar %s: %s", brand_id, exc)
+    try:
+        from _lib import campaign_plan as _cp
+        steps = _cp.month_steps(brand_id, first, last)
+    except Exception as exc:
+        app.logger.warning("ads ahead plans %s: %s", brand_id, exc)
+    try:
+        from _lib import marketing_lanes as _ml
+        camps = _ml.list_campaigns(brand_id)
+    except Exception as exc:
+        app.logger.warning("ads ahead campaigns %s: %s", brand_id, exc)
+    try:
+        from _lib import stock_pulse as _sp
+        stock = _sp.feed_candidates_for(brand_id)
+    except Exception as exc:
+        app.logger.warning("ads ahead stock %s: %s", brand_id, exc)
+    return {"posts": posts, "boost_steps": steps, "campaigns": camps, "stock": stock}
 
 
 def _ads_suggest_page(today):

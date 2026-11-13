@@ -679,6 +679,28 @@ def _past(log: list) -> str:
             "ad's own result; bookings are not linked yet.</p>")
 
 
+def _ahead(ahead: dict | None) -> str:
+    if not ahead or not (ahead.get("items") or ahead.get("stock_gaps")):
+        return ""
+    w = ahead.get("window") or {}
+    out = [f'<h3>Coming up: ads to plan for {_e(w.get("start"))} to {_e(w.get("end"))}</h3>']
+    for it in ahead.get("items") or []:
+        label = _KIND_LABEL.get(it["ad_type"], it["ad_type"])
+        cost = (f'{_r(it["spend"]["daily"])} a day from {_e(it["start"])} for {it["spend"]["days"]} days '
+                f'({_r(it["spend"]["total"])}). ' if it.get("spend") else "")
+        out.append(f'<div class="sg"><b>{_e(it["title"])}</b>: {_e(label)}'
+                   f'<p class="mute">{_e(it["why"])}</p>'
+                   + (f'<p>{_e(it["type_reason"])}</p>' if it.get("type_reason") else "")
+                   + f'<p>{cost}{_e(it["money"])}</p></div>')
+    gaps = ahead.get("stock_gaps") or []
+    if gaps:
+        lis = "".join(f'<li><b>{_e(g["name"])}</b> ({_e(g["status"])} in stock'
+                      + (f', {_e(g["qty"])} on hand' if g.get("qty") is not None else "")
+                      + f'): {_e(g["todo"])}</li>' for g in gaps)
+        out.append(f'<p><b>In stock, no post planned:</b></p><ul>{lis}</ul>')
+    return "".join(out)
+
+
 def _section(doc: dict) -> str:
     brand = doc.get("brand_id")
     b = doc.get("budget") or {}
@@ -691,6 +713,7 @@ def _section(doc: dict) -> str:
     if not doc.get("running_known"):
         parts.append('<p class="mute">Could not check which posts already run as ads (the morning ads job has not '
                      'written that yet). Check in Ads Manager before building one.</p>')
+    parts.append(_ahead(doc.get("ahead")))
     parts.append(_past(doc.get("log")))
     sugg = doc.get("suggestions") or []
     c = doc.get("counts") or {}
