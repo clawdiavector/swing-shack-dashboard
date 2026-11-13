@@ -101,8 +101,9 @@ def topics_prompt(brand: str, entries: List[Dict[str, Any]]) -> List[Dict[str, s
     return [
         {"role": "system", "content": (
             "You tell shop staff what their business is posting about online this week, so they "
-            "know what customers may ask. Reply with 3 to 5 lines, each a short plain topic of at "
-            "most 6 words, like 'Club and ball fittings' or 'The new Srixon RKT irons'. Name only "
+            "know what customers may ask. Reply with at most 5 lines, each a short plain topic of at "
+            "most 6 words, like 'Club and ball fittings' or 'The new Srixon RKT irons'. Merge posts "
+            "about the same thing into one line, most important first. Name only "
             "products, services and campaigns the posts mention. No prices, percentages, dates or "
             "other numbers. No sales language, no emoji, no intro line.")},
         {"role": "user", "content": f"{_label(brand)}'s posts this week:\n\n{posts}"},

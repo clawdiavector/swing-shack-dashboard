@@ -48273,12 +48273,15 @@ def _staff_topics(brand, entries):
     if not entries:
         return None
     text, err = _openrouter_chat_completion(
-        sm.topics_prompt(brand, entries), model=os.environ.get("STAFF_TOPICS_MODEL") or None,
+        sm.topics_prompt(brand, entries),
+        model=os.environ.get("STAFF_TOPICS_MODEL") or "anthropic/claude-sonnet-5.5",
         temperature=0.2, max_tokens=200, timeout=45)
     if err:
         _app_log.warning("staff message topics failed for %s: %s", brand, err)
         return None
-    return sm.parse_topics(text)
+    # The model sometimes gives a line or two more than asked; the first ones are the main ones.
+    lines = [ln for ln in str(text or "").splitlines() if ln.strip()]
+    return sm.parse_topics("\n".join(lines[:sm.MAX_ITEMS]))
 
 
 _STAFF_KINDS = ("week", "today", "stories", "report")
