@@ -48240,13 +48240,74 @@ def weekly_report_message_route():
         return jsonify({"ok": False, "error": "unknown brand"}), 400
     from _lib import plan_todo as pt
     today = _jhb_today()
+    links = {b: _weekly_report_link(b) for b in brands}
+    return jsonify({"ok": True, "date": today.isoformat(), "links": links,
+                    "text": pt.weekly_report_text(links, today)}), 200
+
+
+def _weekly_report_link(brand):
+    """Signed 7-day /weekly-report link for one brand; opens without a login."""
     host = request.host_url.rstrip("/")
     if host.startswith("http://") and request.host.split(":")[0] not in ("localhost", "127.0.0.1"):
         host = "https://" + host[len("http://"):]  # behind Railway's proxy the request looks like http
-    links = {b: f"{host}/weekly-report?brand={b}&share="
-                + _serializer.dumps({"scope": "weekly_report_page", "brand": b}) for b in brands}
-    return jsonify({"ok": True, "date": today.isoformat(), "links": links,
-                    "text": pt.weekly_report_text(links, today)}), 200
+    return (f"{host}/weekly-report?brand={brand}&share="
+            + _serializer.dumps({"scope": "weekly_report_page", "brand": brand}))
+
+
+def _staff_week_entries(brand, today):
+    """Calendar entries for the Monday-to-Sunday week around today (it can span two months)."""
+    from _lib import staff_messages as sm
+    monday, sunday = sm.week_bounds(today)
+    out = []
+    for month in sorted({monday.strftime("%Y-%m"), sunday.strftime("%Y-%m")}):
+        try:
+            out.extend(_clean_cal_month(brand, month).get("entries") or [])
+        except Exception:
+            _app_log.exception("staff message calendar failed for %s %s", brand, month)
+    return out
+
+
+def _staff_topics(brand, entries):
+    """Short topic lines for Monday's staff message, or None (the message then lists headlines)."""
+    from _lib import staff_messages as sm
+    if not entries:
+        return None
+    text, err = _openrouter_chat_completion(
+        sm.topics_prompt(brand, entries), model=os.environ.get("STAFF_TOPICS_MODEL") or None,
+        temperature=0.2, max_tokens=200, timeout=45)
+    if err:
+        _app_log.warning("staff message topics failed for %s: %s", brand, err)
+        return None
+    return sm.parse_topics(text)
+
+
+_STAFF_KINDS = ("week", "today", "stories", "report")
+
+
+@app.route("/api/jobs/staff-message", methods=["GET"])
+def staff_message_route():
+    """GET ?kind=week|today|stories|report&brand=stick|swing-shack|bag-drop — one facility's
+    staff message as plain text, for the agent that sends it on WhatsApp. "send" is false when
+    there is nothing worth a message. Sends nothing itself. Job bearer or session."""
+    from _lib import staff_messages as sm
+    brand = (request.args.get("brand") or "").strip()
+    kind = (request.args.get("kind") or "").strip()
+    if brand not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "brand must be one facility"}), 400
+    if kind not in _STAFF_KINDS:
+        return jsonify({"ok": False, "error": f"kind must be one of {', '.join(_STAFF_KINDS)}"}), 400
+    today = _jhb_today()
+    if kind == "week":
+        week = sm.week_entries(_staff_week_entries(brand, today), today)
+        msg = sm.week_message(brand, week, today, topics=_staff_topics(brand, week))
+    elif kind == "today":
+        msg = sm.today_message(brand, _staff_week_entries(brand, today), today)
+    elif kind == "stories":
+        from _lib import story_queue as sq
+        msg = sm.stories_message(brand, sq.list_items(brand)["open"])
+    else:
+        msg = sm.report_message(brand, _weekly_report_link(brand))
+    return jsonify({"ok": True, "kind": kind, "brand": brand, "date": today.isoformat(), **msg}), 200
 
 
 # ── Suggestions on the month calendar: faded until approved or rejected ──
