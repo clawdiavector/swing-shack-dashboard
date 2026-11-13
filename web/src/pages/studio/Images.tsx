@@ -103,7 +103,6 @@ export function Images() {
     <div className="space-y-6">
       <PageIntro here="/create" title="Images">
         Generate, lab overlay, and visual library — standalone HTML stays reachable.{' '}
-        <ClassicLink href="/?page=imagegen" label="Image gen" /> ·{' '}
         <ClassicLink href="/image-lab" label="Image lab" /> ·{' '}
         <ClassicLink href="/visualizer" label="Visual library" />
       </PageIntro>

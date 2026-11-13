@@ -1,3 +1,4 @@
+import { classicRedirect } from './classicRedirect'
 import { matchTool, toolTo } from './tools'
 
 const SPA_PREFIXES = [
@@ -38,8 +39,11 @@ export function toDesk(href: string): string {
   if (isSpaPath(url.pathname)) {
     return `${url.pathname}${url.search}`
   }
-  if (url.pathname === '/' && !url.searchParams.get('page')) {
-    return '/daily'
+  // Old Classic pages no longer exist (the server serves this app's build
+  // there), so send them to their new page instead of an empty desk frame.
+  const legacy = classicRedirect(url.pathname, url.search)
+  if (legacy) {
+    return legacy.startsWith('/app/') ? legacy.slice(4) : toDesk(legacy)
   }
   const tool = matchTool(url)
   if (tool) {

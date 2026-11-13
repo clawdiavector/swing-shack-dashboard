@@ -9,7 +9,7 @@ import { PublishNowButton } from '../components/posting/PublishNowButton'
 import '../fun.css'
 import { FunTile } from '../components/fun'
 import { burstAtPointer } from '../lib/confetti'
-import { Badge, Button, ClassicLink, IconTile, QueueItem, Tip } from '../components/ui'
+import { Badge, Button, IconTile, QueueItem, Tip } from '../components/ui'
 import {
   fetchPublishMode,
   fetchSandboxQueue,
@@ -217,9 +217,6 @@ export function Publish() {
 
       <PartialBrandLoadStrip failures={failures} onRetry={loadPanelAndQueue} />
 
-      <p className="text-sm text-tx3">
-        <ClassicLink href="/?page=publish" label="publish" />
-      </p>
 
       <div className="grid gap-3 sm:grid-cols-3">
         {countTiles(four, ['to_approve', 'scheduled', 'sent_this_week']).map((t) => (
@@ -288,9 +285,9 @@ export function Publish() {
         <h2 className="mb-3 font-display text-xl font-semibold">Channels</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <IconTile href="/publish/queue" icon={Send} label="Postiz queue" hint="Legacy flat files" />
-          <IconTile href="/?page=postiz" icon={Rocket} label="Postiz" hint="Scheduler" />
+          <IconTile href="/publish/postiz" icon={Rocket} label="Postiz" hint="Scheduler" />
           <IconTile href="/publish/gbp" icon={MapPin} label="GBP" hint="Google Business Profile" />
-          <IconTile href="/?page=gmb" icon={MapPin} label="GBP drafts" hint="Pending listings" />
+          <IconTile href="/publish/gbp?tab=drafts" icon={MapPin} label="GBP drafts" hint="Pending listings" />
           <IconTile href="/publish/socials" icon={Share2} label="Socials" hint="What went live" />
           <IconTile href="/ops?tab=accounts" icon={Link2} label="Accounts" hint="Connected channels" />
         </div>
