@@ -122,9 +122,9 @@ def test_swing_shack_has_the_progress_loyalty_price_approved():
 
 def test_check_text_splits_known_and_unknown(tmp_path):
     prices = P.price_list("swing-shack", get=fake_get, cache_dir=tmp_path, today=dt.date(2026, 11, 13))
-    res = P.check_text("Full bag fitting R2,000. Progress loyalty R22,500. Coaching R950.", prices)
+    res = P.check_text("Full bag fitting R2,000. Progress loyalty R22,500. Coaching R1,234.", prices)
     assert [k["token"] for k in res["known"]] == ["R2,000", "R22,500"]
-    assert res["unknown"] == ["R950"]
+    assert res["unknown"] == ["R1,234"]
 
 
 CAPTION = "Full bag fitting at Swing Shack, {price}.\nBook a fitting via the link in bio.\nKeep Swinging"
@@ -142,11 +142,12 @@ def test_lint_passes_a_live_price(tmp_path):
 
 def test_lint_hard_fails_a_made_up_price(tmp_path):
     prices = P.price_list("swing-shack", get=fake_get, cache_dir=tmp_path, today=dt.date(2026, 11, 13))
-    # R1,750 is in no Swing Shack list. (R1,800 looked made up but is "I Dabble", a real package.)
-    res = L.lint("swing-shack", CAPTION.format(price="R1,750"), cross_brand=False, prices=prices)
+    # R1,234 is in no Swing Shack list. R1,800 ("I Dabble"), R950 (2027 coaching) and
+    # R1,750 (2027 on-course, held) all looked made up and are real.
+    res = L.lint("swing-shack", CAPTION.format(price="R1,234"), cross_brand=False, prices=prices)
     found = _price_findings(res)
     assert found and found[0]["level"] == L.HARD
-    assert "R1,750" in found[0]["message"]
+    assert "R1,234" in found[0]["message"]
 
 
 def test_lint_only_asks_for_a_check_when_prices_could_not_be_read(tmp_path):
