@@ -2648,12 +2648,33 @@ export type TaxonomyTemplateRow = TemplateGalleryTemplate & {
   approval: TaxonomyApproval
 }
 
+export type LayoutStatus = 'has_layout' | 'partial' | 'needs_photo' | 'not_vetted' | 'not_yet' | 'not_applicable' | 'unknown'
+
+export type LayoutLedgerRow = {
+  post_type: string
+  status: LayoutStatus
+  archetype_id: string | null
+  reason: string
+  one_shot_ok: boolean
+}
+
+export type LayoutLedgerCell = {
+  status: LayoutStatus
+  label: string
+  one_shot_ok: boolean
+  rows: LayoutLedgerRow[]
+}
+
+/** Per post type, per brand: can the calendar make it today? Built from the same gate the calendar uses. */
+export type LayoutLedger = Record<string, Record<string, LayoutLedgerCell>>
+
 export type TaxonomyPayload = {
   ok?: boolean
   schema_version?: string
   brand_id?: string
   styles?: TaxonomyStyle[]
   types?: TaxonomyType[]
+  layout_ledger?: LayoutLedger
   methods?: TaxonomyMethod[]
   posts?: TaxonomyPost[]
   media_stats?: Record<string, number>

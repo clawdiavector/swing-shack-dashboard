@@ -16,6 +16,8 @@ import {
   type TaxonomyStyle,
   type TaxonomyTemplateRow,
   type TaxonomyType,
+  type LayoutLedgerCell,
+  type LayoutStatus,
   unapproveDesignTaxonomyItem,
 } from '../lib/api'
 
@@ -152,6 +154,67 @@ function Chip({
     <button type="button" onClick={onClick} className={`${cls} transition hover:border-ac/50`}>
       {body}
     </button>
+  )
+}
+
+const LEDGER_STYLE: Record<LayoutStatus, string> = {
+  has_layout: 'border-emerald-400/40 text-emerald-300',
+  partial: 'border-amber-300/40 text-amber-200',
+  needs_photo: 'border-amber-300/40 text-amber-200',
+  not_vetted: 'border-amber-300/40 text-amber-200',
+  not_yet: 'border-rose-300/40 text-rose-200',
+  not_applicable: 'border-white/10 text-tx3',
+  unknown: 'border-white/10 text-tx3',
+}
+
+const LEDGER_SHORT: Record<LayoutStatus, string> = {
+  has_layout: 'Has layout',
+  partial: 'Partly',
+  needs_photo: 'Needs photo',
+  not_vetted: 'Not vetted',
+  not_yet: 'Not yet',
+  not_applicable: 'n/a',
+  unknown: 'Unknown',
+}
+
+function LedgerBadge({ brand, cell }: { brand: string; cell: LayoutLedgerCell }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${LEDGER_STYLE[cell.status]}`}
+      title={`${brandLabel(brand)}: ${cell.label}${cell.one_shot_ok ? ' (a one-off is allowed)' : ''}`}
+    >
+      {brandLabel(brand)} · {LEDGER_SHORT[cell.status]}
+      {cell.one_shot_ok ? ' · one-off OK' : ''}
+    </span>
+  )
+}
+
+const REASON_TEXT: Record<string, string> = {
+  ok: 'renders from a locked layout',
+  no_real_photo: 'layout is ready, but no real photo is on file',
+  layout_not_vetted: 'layout exists but nobody has vetted it',
+  no_layout: 'no layout built',
+}
+
+function LedgerRows({ cell }: { cell: LayoutLedgerCell }) {
+  if (cell.status === 'not_applicable') return <p className="mb-3 text-sm text-tx3">Does not apply to this brand.</p>
+  return (
+    <div className="mb-3 rounded-xl border border-white/10 p-3">
+      <p className="mb-1 text-sm font-semibold text-tx">{cell.label}</p>
+      {cell.rows.length ? (
+        <ul className="space-y-1 text-sm text-tx2">
+          {cell.rows.map((r) => (
+            <li key={r.post_type}>
+              <span className="font-mono text-xs text-tx3">{r.post_type}</span> · {REASON_TEXT[r.reason] || r.reason}
+              {r.archetype_id ? <span className="text-tx3"> · {r.archetype_id}</span> : null}
+              {r.one_shot_ok && r.status !== 'has_layout' ? <span className="text-amber-200"> · a one-off is allowed</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-tx3">This brand has no post type for it, so the calendar shows a gap.</p>
+      )}
+    </div>
   )
 }
 
@@ -785,6 +848,9 @@ function TypeDetail({
             <h3 className="mb-2 text-sm font-semibold text-tx">
               {brandLabel(brand)} <span className="font-normal text-tx3">· {mine.length} pictures</span>
             </h3>
+            {ctx.data.layout_ledger?.[type.id]?.[brand] ? (
+              <LedgerRows cell={ctx.data.layout_ledger[type.id][brand]} />
+            ) : null}
             {ids.length ? (
               <div className="mb-3 flex flex-wrap gap-2">
                 {ids.map((id) => {
@@ -1015,6 +1081,7 @@ export function DesignTaxonomy() {
         .sort((a, b) => (ctx?.shotsByStyle.get(b.id)?.length || 0) - (ctx?.shotsByStyle.get(a.id)?.length || 0)),
     [data?.styles, inStack, ctx, isAll, hit],
   )
+  const ledger = data?.layout_ledger
   const types = useMemo(
     () => inStack(data?.types || []).filter((t) => hit(t.name, t.meaning, t.id)),
     [data?.types, inStack, hit],
@@ -1342,6 +1409,15 @@ export function DesignTaxonomy() {
                   </div>
                   <p className="text-sm text-tx3">{ty.meaning}</p>
                 </div>
+                {ledger?.[ty.id] ? (
+                  <div className="flex flex-wrap gap-1.5" aria-label="Can the calendar make this type?">
+                    {Object.entries(ledger[ty.id])
+                      .filter(([b]) => isAll || brandIds.includes(b))
+                      .map(([b, cell]) => (
+                        <LedgerBadge key={b} brand={b} cell={cell} />
+                      ))}
+                  </div>
+                ) : null}
               </button>
             )
           })}

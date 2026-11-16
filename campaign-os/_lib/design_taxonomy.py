@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from _lib import template_gallery
+from _lib.design_layout_ledger import build_layout_ledger
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_BUNDLED = _REPO_ROOT / "data"
@@ -212,6 +213,7 @@ def build_taxonomy(*, brand: str | None = None) -> dict[str, Any]:
         "brand_id": brand_id,
         "styles": styles,
         "types": types,
+        "layout_ledger": build_layout_ledger(),
         "methods": methods,
         "posts": posts,
         "media_stats": (media or {}).get("stats") or {},
