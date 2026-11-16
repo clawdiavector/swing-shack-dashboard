@@ -56305,14 +56305,154 @@ def moments_desk():
     return jsonify({"ok": True, "moments": fresh, "cached": False}), 200
 
 
+def _ads_suggest_docs(today):
+    """Ad suggestions per brand, worked out on each load from the files the jobs keep (nothing reaches Meta)."""
+    from _lib import ads_learn as _ads_learn, ads_suggest as _sg
+    docs, missing = [], []
+    for b in _ADS_BRIEF_BRANDS:
+        outcomes = (_ads_lane_load(b, "post-outcomes.json") or {}).get("outcomes") or []
+        if not outcomes:
+            missing.append(b)
+            continue
+        log = (_ads_lane_load(b, "ads-suggest/log.json") or {}).get("entries") or []
+        docs.append(_sg.build(
+            b, outcomes=outcomes,
+            media=(_ads_lane_load(b, "ig-business-analytics.json") or {}).get("media") or [],
+            running=_ads_lane_load(b, "ads-suggest/running.json"),
+            settings=_ads_lane_load(b, "ads-budget/settings.json") or {},
+            figures=_ads_lane_load(b, "ads-budget/figures.json") or {},
+            brief=_ads_brief_load(b, "daily") or {}, today=today, learned=_ads_learn.learned(log),
+            audiences=_ads_learn.audiences(log, today)))
+        docs[-1]["log"] = log
+        try:
+            from _lib import ads_plan as _ap
+            docs[-1]["ahead"] = _ap.upcoming(
+                b, **_ads_ahead_inputs(b, today),
+                settings=_ads_lane_load(b, "ads-budget/settings.json") or {},
+                figures=_ads_lane_load(b, "ads-budget/figures.json") or {},
+                brief=_ads_brief_load(b, "daily") or {}, learned=_ads_learn.learned(log), today=today)
+        except Exception as exc:
+            app.logger.warning("ads ahead %s: %s", b, exc)
+    return docs, missing
+
+
+def _ads_ahead_inputs(brand_id, today):
+    """What the next week holds for a brand: calendar posts, plan steps, campaigns, stock. Each part optional."""
+    import datetime as _dtm
+    first, last = today, today + _dtm.timedelta(days=8)
+    posts, steps, camps, stock = [], [], [], []
+    try:
+        from _lib import clean_calendar as _cc
+        for month in sorted({first.strftime("%Y-%m"), last.strftime("%Y-%m")}):
+            for row, draft in _cc.post_rows(brand_id, month):
+                posts.append(_cc.post_entry(row, brand_id, caption=str((draft or {}).get("caption") or ""),
+                                            today=today))
+    except Exception as exc:
+        app.logger.warning("ads ahead calendar %s: %s", brand_id, exc)
+    try:
+        from _lib import campaign_plan as _cp
+        steps = _cp.month_steps(brand_id, first, last)
+    except Exception as exc:
+        app.logger.warning("ads ahead plans %s: %s", brand_id, exc)
+    try:
+        from _lib import marketing_lanes as _ml
+        camps = _ml.list_campaigns(brand_id)
+    except Exception as exc:
+        app.logger.warning("ads ahead campaigns %s: %s", brand_id, exc)
+    try:
+        from _lib import stock_pulse as _sp
+        stock = _sp.feed_candidates_for(brand_id)
+    except Exception as exc:
+        app.logger.warning("ads ahead stock %s: %s", brand_id, exc)
+    return {"posts": posts, "boost_steps": steps, "campaigns": camps, "stock": stock}
+
+
+def _ads_suggest_page(today):
+    from _lib import ads_suggest as _sg
+    docs, missing = _ads_suggest_docs(today)
+    return _sg.render_html(docs, missing=missing)
+
+
+def _ads_build_html(html, status=200):
+    return html, status, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/ads-brief/build", methods=["POST"])
+def ads_build_preview_page():
+    """Preview building one suggested ad in Meta, switched off. Reads only."""
+    brand = request.form.get("brand", "")
+    err, c = _ads_actions_ctx(brand)
+    if err:
+        return err
+    from _lib import ads_brief as _brief, ads_build as _abld
+    docs, _missing = _ads_suggest_docs(_brief.sast_today())
+    doc = next((d for d in docs if d.get("brand_id") == brand), {})
+    s = next((x for x in doc.get("suggestions") or [] if str(x.get("post_id")) == request.form.get("post_id")
+              and x.get("ad_type") == request.form.get("ad_type")), None)
+    if not s:
+        return _ads_build_html("<p>That suggestion is no longer on the page. Go back and reload it.</p>", 404)
+    try:
+        p = _abld.preview(brand, s, graph=c["graph"], token=c["token"], account_id=c["account_id"],
+                          signer=c["signer"])
+    except c["aa"].ActionRefused as exc:
+        return _ads_build_html(f"<p>{__import__("html").escape(str(exc))}</p>", exc.status)
+    return _ads_build_html(_abld.render_preview(p))
+
+
+@app.route("/ads-brief/build/confirm", methods=["POST"])
+def ads_build_confirm_page():
+    """Build the previewed ad in Meta, every part switched off, and log it with undo."""
+    brand = request.form.get("brand", "")
+    err, c = _ads_actions_ctx(brand)
+    if err:
+        return err
+    from _lib import ads_build as _abld
+    try:
+        entry = _abld.apply(brand, request.form.get("ticket", ""), graph=c["graph"], token=c["token"],
+                            account_id=c["account_id"], signer=c["signer"], read=c["read"], write=c["write"],
+                            by=str(session.get("user") or "dashboard"))
+    except c["aa"].ActionRefused as exc:
+        return _ads_build_html(f"<p>{__import__("html").escape(str(exc))}</p>"
+                               '<p><a href="/ads-brief?kind=suggest">Back to Ad suggestions</a></p>', exc.status)
+    return _ads_build_html(_abld.render_done(brand, entry, account_id=c["account_id"]))
+
+
+@app.route("/ads-brief/build/undo", methods=["POST"])
+def ads_build_undo_page():
+    brand = request.form.get("brand", "")
+    err, c = _ads_actions_ctx(brand)
+    if err:
+        return err
+    try:
+        c["aa"].undo(brand, request.form.get("action_id", ""), graph=c["graph"], token=c["token"],
+                     account_id=c["account_id"], read=c["read"], write=c["write"],
+                     by=str(session.get("user") or "dashboard"))
+    except c["aa"].ActionRefused as exc:
+        return _ads_build_html(f"<p>{__import__("html").escape(str(exc))}</p>", exc.status)
+    return _ads_build_html('<p>Removed. Nothing of it is left running in Meta.</p>'
+                           '<p><a href="/ads-brief?kind=suggest">Back to Ad suggestions</a></p>')
+
+
+@app.route("/api/meta/ads/suggestions", methods=["GET"])
+def api_ads_suggestions():
+    """GET /api/meta/ads/suggestions — the same suggestions as JSON."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import ads_brief as _brief
+    docs, missing = _ads_suggest_docs(_brief.sast_today())
+    return jsonify({"ok": True, "brands": docs, "missing": missing})
+
+
 @app.route("/ads-brief", methods=["GET"])
 def ads_brief_page():
-    """GET /ads-brief[?kind=weekly|trends|research] — both brands on one page."""
+    """GET /ads-brief[?kind=weekly|trends|research|suggest] — both brands on one page."""
     if not _is_authed():
         return redirect(url_for("login_page", next=request.full_path.rstrip("?")))
     from _lib import ads_brief as _brief
     kind = request.args.get("kind")
     headers = {"Content-Type": "text/html; charset=utf-8"}
+    if kind == "suggest":
+        return _ads_suggest_page(_brief.sast_today()), 200, headers
     if kind in ("trends", "research"):
         histories = {b: _ads_lane_load(b, "ads-history/latest.json") for b in _ADS_BRIEF_BRANDS}
         if kind == "trends":
