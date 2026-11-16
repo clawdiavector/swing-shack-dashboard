@@ -2,7 +2,7 @@
   "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
   "brand_id": "bag-drop",
   "version": "2.0",
-  "updated": "2026-09-25T00:00:00Z",
+  "updated": "2026-11-03T00:00:00Z",
   "source": "draft",
   "canvases": {
     "ig_post": {
@@ -269,10 +269,543 @@
         "y1": 0.96
       },
       "max_total_chars": 80
+    },
+    {
+      "id": "bd-weekly-deal",
+      "name": "Weekly deal story, white top",
+      "description": "Logo band over a navy panel and a sage bar. Offer headline (e.g. 30% OFF) in wide black italic, then up to three detail lines split with '|' (what, which brands, THIS WEEK).",
+      "canvas": "ig_story",
+      "block_anchor": "top",
+      "applies_to": {
+        "channels": [
+          "instagram_story"
+        ],
+        "record_types": [
+          "moment",
+          "campaign"
+        ],
+        "needs_photo": false
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "white"
+      },
+      "zones": {
+        "panel": {
+          "kind": "band",
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.3693,
+            "x1": 1.0,
+            "y1": 0.9328
+          },
+          "fill": "bd_navy"
+        },
+        "bar": {
+          "kind": "band",
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.9333,
+            "x1": 1.0,
+            "y1": 1.0
+          },
+          "fill": "bd_sage"
+        },
+        "logo": {
+          "kind": "image",
+          "source": "asset",
+          "asset": "logos/bagdrop-on-white.png",
+          "rect": {
+            "x0": 0.1889,
+            "y0": 0.1219,
+            "x1": 0.812,
+            "y1": 0.2703
+          },
+          "fit": "aspect_fit",
+          "align": "center",
+          "valign": "center"
+        },
+        "headline": {
+          "kind": "text",
+          "source": "headline",
+          "font_role": "deal_headline",
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.5958,
+            "x1": 0.95,
+            "y1": 0.6536
+          },
+          "max_lines": 1,
+          "max_chars_per_line": 14,
+          "max_font_px": 124,
+          "min_font_px": 74,
+          "line_height": 1.0,
+          "h_scale": 1.105,
+          "align": "center",
+          "colour": "white",
+          "text_transform": "uppercase"
+        },
+        "deal_detail": {
+          "kind": "text",
+          "source": "deal_detail",
+          "font_role": "deal_detail",
+          "wrap": "explicit",
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.6578,
+            "x1": 0.95,
+            "y1": 0.774
+          },
+          "max_lines": 3,
+          "max_font_px": 71,
+          "min_font_px": 39,
+          "line_height": 1.17,
+          "h_scale": 1.045,
+          "align": "center",
+          "colour": "white",
+          "text_transform": "uppercase"
+        }
+      },
+      "fields": {
+        "headline": "the offer, e.g. 20% OFF",
+        "deal_detail": "up to 3 lines split with |, e.g. PUTTERS|THIS WEEK"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.0,
+        "x1": 0.95,
+        "y1": 1.0
+      },
+      "template_pack": "templates/weekly-deal",
+      "post_type": "weekly_deal",
+      "measured_from": [
+        "templates/weekly-deal/references/ref-03.jpg",
+        "templates/weekly-deal/references/ref-06.jpg"
+      ],
+      "reference_size": {
+        "w": 1080,
+        "h": 1920
+      },
+      "vetted": true
+    },
+    {
+      "id": "bd-weekly-deal-navy",
+      "name": "Weekly deal story, navy top",
+      "description": "Logo band over a white panel and a navy bar. Offer headline (e.g. 30% OFF) in wide black italic, then up to three detail lines split with '|' (what, which brands, THIS WEEK).",
+      "canvas": "ig_story",
+      "block_anchor": "top",
+      "applies_to": {
+        "channels": [
+          "instagram_story"
+        ],
+        "record_types": [
+          "moment",
+          "campaign"
+        ],
+        "needs_photo": false
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "bd_navy"
+      },
+      "zones": {
+        "panel": {
+          "kind": "band",
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.3693,
+            "x1": 1.0,
+            "y1": 0.9328
+          },
+          "fill": "white"
+        },
+        "bar": {
+          "kind": "band",
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.9333,
+            "x1": 1.0,
+            "y1": 1.0
+          },
+          "fill": "bd_navy"
+        },
+        "logo": {
+          "kind": "image",
+          "source": "asset",
+          "asset": "logos/bagdrop-on-navy.png",
+          "rect": {
+            "x0": 0.1889,
+            "y0": 0.1219,
+            "x1": 0.812,
+            "y1": 0.2703
+          },
+          "fit": "aspect_fit",
+          "align": "center",
+          "valign": "center"
+        },
+        "headline": {
+          "kind": "text",
+          "source": "headline",
+          "font_role": "deal_headline",
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.5958,
+            "x1": 0.95,
+            "y1": 0.6536
+          },
+          "max_lines": 1,
+          "max_chars_per_line": 14,
+          "max_font_px": 124,
+          "min_font_px": 74,
+          "line_height": 1.0,
+          "h_scale": 1.105,
+          "align": "center",
+          "colour": "bd_sage",
+          "text_transform": "uppercase"
+        },
+        "deal_detail": {
+          "kind": "text",
+          "source": "deal_detail",
+          "font_role": "deal_detail",
+          "wrap": "explicit",
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.6578,
+            "x1": 0.95,
+            "y1": 0.774
+          },
+          "max_lines": 3,
+          "max_font_px": 71,
+          "min_font_px": 39,
+          "line_height": 1.17,
+          "h_scale": 1.045,
+          "align": "center",
+          "colour": "bd_sage",
+          "text_transform": "uppercase"
+        }
+      },
+      "fields": {
+        "headline": "the offer, e.g. 20% OFF",
+        "deal_detail": "up to 3 lines split with |, e.g. PUTTERS|THIS WEEK"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.0,
+        "x1": 0.95,
+        "y1": 1.0
+      },
+      "template_pack": "templates/weekly-deal",
+      "post_type": "weekly_deal",
+      "measured_from": [
+        "templates/weekly-deal/references/ref-04.jpg",
+        "templates/weekly-deal/references/ref-05.jpg"
+      ],
+      "reference_size": {
+        "w": 1080,
+        "h": 1920
+      },
+      "vetted": true
+    },
+    {
+      "id": "bd-weekly-deal-makers",
+      "name": "Weekly deal story, white top, maker logos",
+      "description": "Logo band over a navy panel and a sage bar. Two maker logos stacked above the offer. Offer headline (e.g. 30% OFF) in wide black italic, then up to three detail lines split with '|' (what, which brands, THIS WEEK).",
+      "canvas": "ig_story",
+      "block_anchor": "top",
+      "applies_to": {
+        "channels": [
+          "instagram_story"
+        ],
+        "record_types": [
+          "moment",
+          "campaign"
+        ],
+        "needs_photo": false
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "white"
+      },
+      "zones": {
+        "panel": {
+          "kind": "band",
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.3693,
+            "x1": 1.0,
+            "y1": 0.9328
+          },
+          "fill": "bd_navy"
+        },
+        "bar": {
+          "kind": "band",
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.9333,
+            "x1": 1.0,
+            "y1": 1.0
+          },
+          "fill": "bd_sage"
+        },
+        "logo": {
+          "kind": "image",
+          "source": "asset",
+          "asset": "logos/bagdrop-on-white.png",
+          "rect": {
+            "x0": 0.1889,
+            "y0": 0.1219,
+            "x1": 0.812,
+            "y1": 0.2703
+          },
+          "fit": "aspect_fit",
+          "align": "center",
+          "valign": "center"
+        },
+        "maker_1": {
+          "kind": "image",
+          "source": "vendor_logo",
+          "vendor_field": "vendor_name",
+          "tint": "bd_sage",
+          "rect": {
+            "x0": 0.2954,
+            "y0": 0.4318,
+            "x1": 0.7046,
+            "y1": 0.5052
+          }
+        },
+        "maker_2": {
+          "kind": "image",
+          "source": "vendor_logo",
+          "vendor_field": "vendor_name_2",
+          "tint": "bd_sage",
+          "rect": {
+            "x0": 0.3481,
+            "y0": 0.5547,
+            "x1": 0.6519,
+            "y1": 0.6516
+          }
+        },
+        "headline": {
+          "kind": "text",
+          "source": "headline",
+          "font_role": "deal_headline",
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.7339,
+            "x1": 0.95,
+            "y1": 0.7786
+          },
+          "max_lines": 1,
+          "max_chars_per_line": 14,
+          "max_font_px": 96,
+          "min_font_px": 57,
+          "line_height": 1.0,
+          "h_scale": 1.105,
+          "align": "center",
+          "colour": "white",
+          "text_transform": "uppercase"
+        },
+        "deal_detail": {
+          "kind": "text",
+          "source": "deal_detail",
+          "font_role": "deal_detail",
+          "wrap": "explicit",
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.7823,
+            "x1": 0.95,
+            "y1": 0.874
+          },
+          "max_lines": 3,
+          "max_font_px": 55,
+          "min_font_px": 30,
+          "line_height": 1.18,
+          "h_scale": 1.02,
+          "align": "center",
+          "colour": "white",
+          "text_transform": "uppercase"
+        }
+      },
+      "fields": {
+        "headline": "the offer, e.g. 20% OFF",
+        "deal_detail": "up to 3 lines split with |, e.g. PUTTERS|THIS WEEK",
+        "vendor_name": "first maker (logos/vendors/<slug>.png)",
+        "vendor_name_2": "second maker"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.0,
+        "x1": 0.95,
+        "y1": 1.0
+      },
+      "template_pack": "templates/weekly-deal",
+      "post_type": "weekly_deal",
+      "measured_from": [
+        "templates/weekly-deal/references/ref-01.jpg"
+      ],
+      "reference_size": {
+        "w": 1080,
+        "h": 1920
+      },
+      "vetted": true
+    },
+    {
+      "id": "bd-weekly-deal-makers-navy",
+      "name": "Weekly deal story, navy top, maker logos",
+      "description": "Logo band over a white panel and a navy bar. Two maker logos stacked above the offer. Offer headline (e.g. 30% OFF) in wide black italic, then up to three detail lines split with '|' (what, which brands, THIS WEEK).",
+      "canvas": "ig_story",
+      "block_anchor": "top",
+      "applies_to": {
+        "channels": [
+          "instagram_story"
+        ],
+        "record_types": [
+          "moment",
+          "campaign"
+        ],
+        "needs_photo": false
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "bd_navy"
+      },
+      "zones": {
+        "panel": {
+          "kind": "band",
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.3693,
+            "x1": 1.0,
+            "y1": 0.9328
+          },
+          "fill": "white"
+        },
+        "bar": {
+          "kind": "band",
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.9333,
+            "x1": 1.0,
+            "y1": 1.0
+          },
+          "fill": "bd_navy"
+        },
+        "logo": {
+          "kind": "image",
+          "source": "asset",
+          "asset": "logos/bagdrop-on-navy.png",
+          "rect": {
+            "x0": 0.1889,
+            "y0": 0.1219,
+            "x1": 0.812,
+            "y1": 0.2703
+          },
+          "fit": "aspect_fit",
+          "align": "center",
+          "valign": "center"
+        },
+        "maker_1": {
+          "kind": "image",
+          "source": "vendor_logo",
+          "vendor_field": "vendor_name",
+          "tint": "bd_navy",
+          "rect": {
+            "x0": 0.2954,
+            "y0": 0.4318,
+            "x1": 0.7046,
+            "y1": 0.5052
+          }
+        },
+        "maker_2": {
+          "kind": "image",
+          "source": "vendor_logo",
+          "vendor_field": "vendor_name_2",
+          "tint": "bd_navy",
+          "rect": {
+            "x0": 0.3481,
+            "y0": 0.5547,
+            "x1": 0.6519,
+            "y1": 0.6516
+          }
+        },
+        "headline": {
+          "kind": "text",
+          "source": "headline",
+          "font_role": "deal_headline",
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.7339,
+            "x1": 0.95,
+            "y1": 0.7786
+          },
+          "max_lines": 1,
+          "max_chars_per_line": 14,
+          "max_font_px": 96,
+          "min_font_px": 57,
+          "line_height": 1.0,
+          "h_scale": 1.105,
+          "align": "center",
+          "colour": "bd_sage",
+          "text_transform": "uppercase"
+        },
+        "deal_detail": {
+          "kind": "text",
+          "source": "deal_detail",
+          "font_role": "deal_detail",
+          "wrap": "explicit",
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.7823,
+            "x1": 0.95,
+            "y1": 0.874
+          },
+          "max_lines": 3,
+          "max_font_px": 55,
+          "min_font_px": 30,
+          "line_height": 1.18,
+          "h_scale": 1.02,
+          "align": "center",
+          "colour": "bd_sage",
+          "text_transform": "uppercase"
+        }
+      },
+      "fields": {
+        "headline": "the offer, e.g. 20% OFF",
+        "deal_detail": "up to 3 lines split with |, e.g. PUTTERS|THIS WEEK",
+        "vendor_name": "first maker (logos/vendors/<slug>.png)",
+        "vendor_name_2": "second maker"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.0,
+        "x1": 0.95,
+        "y1": 1.0
+      },
+      "template_pack": "templates/weekly-deal",
+      "post_type": "weekly_deal",
+      "measured_from": [
+        "templates/weekly-deal/references/ref-02.jpg"
+      ],
+      "reference_size": {
+        "w": 1080,
+        "h": 1920
+      },
+      "vetted": true
     }
   ],
   "selection": {
     "default": "bd-member-moment",
-    "rules": []
+    "rules": [
+      {
+        "when": {
+          "post_type_in": [
+            "weekly_deal",
+            "deal",
+            "offer"
+          ]
+        },
+        "use": "bd-weekly-deal"
+      }
+    ]
   }
 }

@@ -114,11 +114,12 @@ def test_unified_approve_session_ok(inbox_bearer_app):
     assert resp.get_json().get("ok") is True
 
 
-def test_unified_stubs_still_session_only(inbox_bearer_app):
+def test_unified_stubs_bearer_allowed(inbox_bearer_app):
+    # 2026-10-23: the job bearer counts as signed in on every /api/ route (agents).
     client, _, _, _ = inbox_bearer_app
     for path in ("/api/inbox/unified/postiz-reschedule", "/api/inbox/unified/reorder"):
-        resp = client.post(path, headers=_auth(), json={})
-        assert resp.status_code == 401
+        assert client.post(path, headers=_auth(), json={}).status_code != 401
+        assert client.post(path, json={}).status_code == 401
 
 
 def test_bad_bearer_token_401(inbox_bearer_app):

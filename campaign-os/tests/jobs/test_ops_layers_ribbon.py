@@ -156,11 +156,13 @@ def test_layers_api_schema(job_app):
             assert layer.get("agents", 0) >= 1
 
 
-def test_layers_api_bearer_not_widened_to_other_ops(job_app):
+def test_layers_api_bearer_reaches_other_ops(job_app):
     _, app_module, _ = job_app
     anon = app_module.app.test_client(cos_anon=True)
+    # 2026-10-23: the job bearer counts as signed in on every /api/ route (agents).
     for path in ("/api/ops/errors", "/api/ops/runbook", "/api/ops/llm-spend"):
-        assert anon.get(path, headers=_auth()).status_code == 401
+        assert anon.get(path, headers=_auth()).status_code != 401
+        assert anon.get(path).status_code == 401
 
 
 def test_layers_l2_watch_and_queue_empty(job_app):

@@ -34,7 +34,7 @@ import { Photos } from './pages/Photos'
 import { Todo } from './pages/Todo'
 import { WeekBoard } from './pages/WeekBoard'
 import { Week } from './pages/results/Week'
-import { Templates } from './pages/results/Templates'
+import { DesignTaxonomy } from './pages/DesignTaxonomy'
 import { Worked } from './pages/results/Worked'
 import { BrandVisuals } from './pages/BrandVisuals'
 import { Archive } from './pages/Archive'
@@ -43,6 +43,8 @@ import GEO from './pages/GEO'
 import { ReachPage } from './pages/ReachPage'
 import { SeoPage } from './pages/SeoPage'
 import { TrendsPage } from './pages/TrendsPage'
+import { PasswordSettings } from './pages/settings/PasswordSettings'
+import { UsersSettings } from './pages/settings/UsersSettings'
 
 export default function App() {
   return (
@@ -84,11 +86,17 @@ export default function App() {
         <Route path="results" element={<Results />} />
         <Route path="results/week" element={<Week />} />
         <Route path="results/worked" element={<Worked />} />
-        <Route path="results/templates" element={<Templates />} />
+        <Route
+          path="results/templates"
+          element={<Navigate to="/design?section=templates" replace />}
+        />
+        <Route path="design" element={<DesignTaxonomy />} />
         <Route path="results/seo" element={<SeoPage />} />
         <Route path="results/reach" element={<ReachPage />} />
         <Route path="results/trends" element={<TrendsPage />} />
         <Route path="ops" element={<Ops />} />
+        <Route path="settings/password" element={<PasswordSettings />} />
+        <Route path="settings/users" element={<UsersSettings />} />
         <Route path="geo" element={<GEO />} />
         <Route path="other" element={<Other />} />
         <Route path="desk" element={<Desk />} />

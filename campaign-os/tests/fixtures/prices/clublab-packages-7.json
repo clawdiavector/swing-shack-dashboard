@@ -1,0 +1,143 @@
+{
+  "success": true,
+  "data": {
+    "facilityId": 7,
+    "facilityName": "Stick",
+    "items": [
+      {
+        "id": 17,
+        "facilityId": 7,
+        "name": "10x 30min Coaching Sessions",
+        "credits": 10,
+        "items": [
+          {
+            "serviceId": 30,
+            "serviceTitle": "30-min Private Coaching Session",
+            "quantity": 10
+          }
+        ],
+        "priceCents": 590000,
+        "currency": "ZAR",
+        "validityDays": 9,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-24T13:19:38.1869707",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 14,
+        "facilityId": 7,
+        "name": "10x 60min Coaching Sessions",
+        "credits": 10,
+        "items": [
+          {
+            "serviceId": 29,
+            "serviceTitle": "60-min Private Coaching Session",
+            "quantity": 10
+          }
+        ],
+        "priceCents": 850000,
+        "currency": "ZAR",
+        "validityDays": 9,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-24T13:18:10.6194808",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 15,
+        "facilityId": 7,
+        "name": "3x 30min Coaching Sessions",
+        "credits": 3,
+        "items": [
+          {
+            "serviceId": 30,
+            "serviceTitle": "30-min Private Coaching Session",
+            "quantity": 3
+          }
+        ],
+        "priceCents": 195000,
+        "currency": "ZAR",
+        "validityDays": 6,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-24T13:18:51.7578652",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 12,
+        "facilityId": 7,
+        "name": "3x 60min Coaching Sessions",
+        "credits": 3,
+        "items": [
+          {
+            "serviceId": 29,
+            "serviceTitle": "60-min Private Coaching Session",
+            "quantity": 3
+          }
+        ],
+        "priceCents": 285000,
+        "currency": "ZAR",
+        "validityDays": 6,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-24T13:16:52.1302831",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 16,
+        "facilityId": 7,
+        "name": "5x 30min Coaching Sessions",
+        "credits": 5,
+        "items": [
+          {
+            "serviceId": 30,
+            "serviceTitle": "30-min Private Coaching Session",
+            "quantity": 5
+          }
+        ],
+        "priceCents": 310000,
+        "currency": "ZAR",
+        "validityDays": 6,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-24T13:19:17.2571918",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 13,
+        "facilityId": 7,
+        "name": "5x 60min Coaching Sessions",
+        "credits": 5,
+        "items": [
+          {
+            "serviceId": 29,
+            "serviceTitle": "60-min Private Coaching Session",
+            "quantity": 5
+          }
+        ],
+        "priceCents": 450000,
+        "currency": "ZAR",
+        "validityDays": 6,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-24T13:17:31.0916792",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      }
+    ]
+  },
+  "requestId": "20261113-121118-57adfb82",
+  "timestamp": "2026-11-13T12:11:18.8498577+02:00"
+}

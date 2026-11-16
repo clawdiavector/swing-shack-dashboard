@@ -22,6 +22,7 @@ from . import (
     post_conversion_score,
     reddit_trends,
     seo_rankings,
+    shopify_stock,
     site_audit,
     social_ingest,
     windsor_refresh,
@@ -45,11 +46,14 @@ LAYER1_JOB_NAMES: tuple[str, ...] = (
     "insights_reco",
     "social_ingest",
     "geo_observe",
+    "shopify_stock",
 )
 
 _ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
 _SS_ONLY = ("swing-shack",)
 _SS_AND_STICK = ("swing-shack", "stick")
+# Jobs that fit an online store as well as the venues (SEO, site audit, GEO).
+_ALL_THREE = _ALL_ACTIVE_BRANDS
 
 
 def layer1_specs() -> list[JobSpec]:
@@ -108,7 +112,7 @@ def layer1_specs() -> list[JobSpec]:
                 "ubersuggest-backlinks.json",
             ),
             brand_mode="per_brand",
-            brands=_SS_AND_STICK,
+            brands=_ALL_THREE,
             requires_integrations=("ubersuggest",),
         ),
         JobSpec(
@@ -126,6 +130,19 @@ def layer1_specs() -> list[JobSpec]:
             requires_integrations=("ga4",),
         ),
         JobSpec(
+            # The Bag Drop's stock list, read from its Shopify store (2026-11-06).
+            name="shopify_stock",
+            fn=shopify_stock.run,
+            every_seconds=86400,
+            timeout_seconds=120,
+            best_effort=True,
+            criticality="LOW",
+            retries=1,
+            writes=(shopify_stock.OUTPUT,),
+            brand_mode="per_brand",
+            brands=("bag-drop",),
+        ),
+        JobSpec(
             name="site_audit",
             fn=site_audit.run,
             every_seconds=86400,
@@ -135,7 +152,7 @@ def layer1_specs() -> list[JobSpec]:
             retries=2,
             writes=("seo-audit.json", "geo-audit.json", "seo-fix-queue.json", "seo-publish-log.json"),
             brand_mode="per_brand",
-            brands=_SS_AND_STICK,
+            brands=_ALL_THREE,
             requires_integrations=("ubersuggest",),
         ),
         JobSpec(
@@ -149,7 +166,7 @@ def layer1_specs() -> list[JobSpec]:
             credentials=("OPENAI_API_KEY",),
             writes=("geo-observe-cursor.json",),
             brand_mode="per_brand",
-            brands=_SS_AND_STICK,
+            brands=_ALL_THREE,
         ),
         JobSpec(
             name="competitor_tracker",

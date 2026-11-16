@@ -94,7 +94,7 @@ def _ig_store_stamp() -> str | None:
     return None
 
 
-def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
+def _load_ig_posts(brand_id: str | None = None, *, own_only: bool = False) -> tuple[list[dict[str, Any]], str | None]:
     """Load Instagram posts from whichever file is present on disk.
 
     The platform has had three different IG data stores over time:
@@ -105,11 +105,15 @@ def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
     We try them in priority order and normalise the post shape so callers
     can treat them uniformly. Returns (posts, source_label).
     """
-    rel_candidates = (
+    # A brand's own store (brands/<brand>/ig-analytics.json, written by
+    # meta_refresh since 18 Sep 2026) comes first; own_only stops there.
+    own = (f"brands/{brand_id}/ig-analytics.json",) if brand_id else ()
+    shared = (
         "ig-analytics.json",
         "instagram.json",
         "analytics/instagram-analytics.json",
     )
+    rel_candidates = own if own_only else own + shared
     for base in _data_roots():
         for rel in rel_candidates:
             path = base / rel
@@ -158,7 +162,7 @@ def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
                     "shares": int(p.get("shares") or 0),
                 })
             if normalised:
-                label = str(path.relative_to(base)) if path.is_relative_to(base) else str(path)
+                label = path.relative_to(base).as_posix() if path.is_relative_to(base) else str(path)
                 return normalised, label
     return [], None
 
@@ -185,6 +189,137 @@ def _spike_pct(value: float, baseline: float) -> float:
     if baseline <= 0:
         return 0.0
     return round(((value - baseline) / baseline) * 100, 1)
+
+
+# A day counts as a spike when it beats the usual day by this much AND by at
+# least MIN_EXTRA_SESSIONS visits, so a jump from 2 to 6 is not "+200%".
+SPIKE_LIFT_PCT = 40.0
+MIN_EXTRA_SESSIONS = 20
+MIN_DAYS_OF_DATA = 14
+NEIGHBOUR_DAYS = 7
+MIN_NEIGHBOURS = 6
+MIN_SIDE = 3
+
+
+def _median(values: list[float]) -> float:
+    vals = sorted(values)
+    n = len(vals)
+    if not n:
+        return 0.0
+    mid = n // 2
+    return float(vals[mid]) if n % 2 else (vals[mid - 1] + vals[mid]) / 2.0
+
+
+def _sast_date(dt: datetime) -> str:
+    from zoneinfo import ZoneInfo
+
+    return dt.astimezone(ZoneInfo("Africa/Johannesburg")).date().isoformat()
+
+
+def _correlate_posts_with_daily(posts: list[dict[str, Any]], daily: list[dict[str, Any]]) -> dict[str, Any]:
+    """Line IG post days up with GA4 visits per day.
+
+    A post "matches" when visits on its day, or the day after, beat the usual
+    day (median of the other days) by SPIKE_LIFT_PCT and MIN_EXTRA_SESSIONS.
+    Spike days with no post that day or the day before are unmatched. This is
+    timing, not proof: the verdict says "likely".
+    """
+    from datetime import date as _date, timedelta
+
+    series = {r["date"]: int(r.get("sessions") or 0) for r in daily if r.get("date")}
+    if len(series) < MIN_DAYS_OF_DATA:
+        return {
+            "matches": [],
+            "unmatched_spikes": [],
+            "reason": f"Only {len(series)} days of Google Analytics data so far; need {MIN_DAYS_OF_DATA}.",
+        }
+
+    def _next(day: str) -> str:
+        return (_date.fromisoformat(day) + timedelta(days=1)).isoformat()
+
+    posts_by_day: dict[str, list[dict[str, Any]]] = {}
+    for p in posts:
+        dt = _parse_dt(p.get("timestamp"))
+        if dt is None:
+            continue
+        posts_by_day.setdefault(_sast_date(dt), []).append(p)
+
+    def _baseline(exclude: set[str]) -> float:
+        """Usual day around the ones in `exclude`. A jump has to beat the usual level on
+        BOTH sides (median of the NEIGHBOUR_DAYS before and after, higher one wins), so
+        the edge of a plateau or a level drop is not read as a spike. Falls back to the
+        near days together, then to all days, when there are too few."""
+        refs = [_date.fromisoformat(d) for d in exclude if d in series]
+        if refs:
+            first, last = min(refs), max(refs)
+            before = [v for d, v in series.items()
+                      if d not in exclude and first - timedelta(days=NEIGHBOUR_DAYS) <= _date.fromisoformat(d) < first]
+            after = [v for d, v in series.items()
+                     if d not in exclude and last < _date.fromisoformat(d) <= last + timedelta(days=NEIGHBOUR_DAYS)]
+            if len(before) >= MIN_SIDE and len(after) >= MIN_SIDE:
+                return max(_median(before), _median(after))
+            near = before + after
+            if len(near) >= MIN_NEIGHBOURS:
+                return _median(near)
+        return _median([v for d, v in series.items() if d not in exclude])
+
+    def _is_spike(value: int, base: float) -> bool:
+        return base > 0 and value - base >= MIN_EXTRA_SESSIONS and _spike_pct(value, base) >= SPIKE_LIFT_PCT
+
+    matches: list[dict[str, Any]] = []
+    explained: set[str] = set()
+    for day, day_posts in sorted(posts_by_day.items()):
+        window = [d for d in (day, _next(day)) if d in series]
+        if not window:
+            continue
+        peak_day = max(window, key=lambda d: series[d])
+        base = _baseline(set(window))
+        peak = series[peak_day]
+        if not _is_spike(peak, base):
+            continue
+        explained.add(peak_day)
+        lift = _spike_pct(peak, base)
+        crowded = len(day_posts) > 1 or len(posts_by_day.get(_next(day), [])) > 0
+        if lift >= 100 and not crowded:
+            confidence = "high"
+        elif lift >= 60:
+            confidence = "medium"
+        else:
+            confidence = "low"
+        if crowded and confidence == "high":
+            confidence = "medium"
+        for p in sorted(day_posts, key=lambda x: float(x.get("engagementRate") or 0), reverse=True):
+            matches.append({
+                "date": peak_day,
+                "post_id": p.get("id"),
+                "post_caption_excerpt": (p.get("caption") or "")[:80],
+                "post_permalink": p.get("permalink"),
+                "post_engagement": p.get("engagementRate"),
+                "ga4_sessions_on_day": peak,
+                "ga4_sessions_baseline": round(base),
+                "lift_pct": lift,
+                "verdict": "likely content drove spike",
+                "confidence": confidence,
+            })
+    matches.sort(key=lambda m: m["lift_pct"], reverse=True)
+
+    unmatched: list[dict[str, Any]] = []
+    for day, value in sorted(series.items()):
+        if day in explained:
+            continue
+        prev = (_date.fromisoformat(day) - timedelta(days=1)).isoformat()
+        if day in posts_by_day or prev in posts_by_day:
+            continue
+        base = _baseline({day})
+        if _is_spike(value, base):
+            unmatched.append({
+                "date": day,
+                "ga4_sessions_on_day": value,
+                "ga4_sessions_baseline": round(base),
+                "lift_pct": _spike_pct(value, base),
+                "verdict": "spike not explained by content",
+            })
+    return {"matches": matches, "unmatched_spikes": unmatched, "reason": ""}
 
 
 def get_content_traffic_correlations(brand_id: str | None = None, days: int = 30) -> dict[str, Any]:
@@ -228,6 +363,26 @@ def get_content_traffic_correlations(brand_id: str | None = None, days: int = 30
                 "reason": "No IG posts found in instagram.json / analytics/instagram-analytics.json / ig-analytics.json",
             },
         }
+
+    daily = ga4.get("daily_sessions") if isinstance(ga4.get("daily_sessions"), list) else []
+    if daily:
+        joined = _correlate_posts_with_daily(posts, daily)
+        if joined["matches"] or joined["unmatched_spikes"] or not joined["reason"]:
+            return {
+                "ok": True,
+                "matches": joined["matches"],
+                "unmatched_spikes": joined["unmatched_spikes"],
+                "_meta": {
+                    "posts_scanned": len(posts),
+                    "days_covered": days,
+                    "ga4_window": ga4.get("data_window"),
+                    "ga4_daily_window": ga4.get("daily_window"),
+                    "ga4_total_sessions": ga4.get("total_sessions"),
+                    "top_pages": [{"path": p.get("path"), "sessions": p.get("sessions"),
+                                    "engagement": p.get("engRate")} for p in pages[:10]],
+                    "reason": "",
+                },
+            }
 
     # No daily time-series GA4 data → use the 7-day totals as proxy.
     # Tell the user clearly in _meta that the verdict is "directional" only.
@@ -591,6 +746,11 @@ def _external_publications() -> dict[str, dict[str, Any]]:
     return {}
 
 
+def brand_has_own_ig(brand_id: str | None) -> bool:
+    """True when brands/<brand>/ig-analytics.json holds posts for this brand."""
+    return bool(brand_id) and bool(_load_ig_posts(brand_id, own_only=True)[0])
+
+
 def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict[str, Any]:
     """Surface top IG posts with thumbnails + engagement + plain-English verdict.
 
@@ -609,13 +769,23 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
         _meta: { total_scanned, average_engagement, source }
       }
     """
-    ig_data = _read_json(_data_dir() / "instagram.json") or {}
-    if not isinstance(ig_data, dict):
-        ig_data = {}
-    # Prefer the larger/more-complete IG store if it exists on disk.
-    _fallback_posts, ig_source = _load_ig_posts()
-    if _fallback_posts and (not ig_data.get("posts") or len(_fallback_posts) > len(ig_data.get("posts", []))):
-        ig_data = {"posts": _fallback_posts, "updated": _ig_store_stamp()}
+    own_posts, own_source = _load_ig_posts(brand_id, own_only=True) if brand_id else ([], None)
+    if own_posts:
+        ig_data: dict[str, Any] = {"posts": own_posts}
+        ig_source = own_source
+        for base in _data_roots():
+            stamp = _read_json(base / str(own_source))
+            if isinstance(stamp, dict):
+                ig_data["updated"] = stamp.get("updated") or stamp.get("fetched_at")
+                break
+    else:
+        ig_data = _read_json(_data_dir() / "instagram.json") or {}
+        if not isinstance(ig_data, dict):
+            ig_data = {}
+        # Prefer the larger/more-complete IG store if it exists on disk.
+        _fallback_posts, ig_source = _load_ig_posts()
+        if _fallback_posts and (not ig_data.get("posts") or len(_fallback_posts) > len(ig_data.get("posts", []))):
+            ig_data = {"posts": _fallback_posts, "updated": _ig_store_stamp()}
     posts = ig_data.get("posts", []) if isinstance(ig_data, dict) else []
     # Track the actual source so the response is honest about where data came from.
     actual_source = ig_source or "instagram.json"

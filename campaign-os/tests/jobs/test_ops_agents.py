@@ -116,11 +116,13 @@ def test_agents_session_ok(job_app):
     assert resp.status_code == 200
 
 
-def test_bearer_not_widened(job_app):
+def test_bearer_reaches_other_ops(job_app):
     _, app_module, _ = job_app
     anon = app_module.app.test_client(cos_anon=True)
+    # 2026-10-23: the job bearer counts as signed in on every /api/ route (agents).
     for path in ("/api/ops/errors", "/api/ops/runbook", "/api/ops/llm-spend"):
-        assert anon.get(path, headers=_auth()).status_code == 401
+        assert anon.get(path, headers=_auth()).status_code != 401
+        assert anon.get(path).status_code == 401
 
 
 def test_ops_page_still_session_only(job_app):

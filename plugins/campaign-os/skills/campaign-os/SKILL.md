@@ -31,6 +31,7 @@ If Kyle said a **story / Telegram link**: `modules/operator-story.md`.
 | [modules/agents.md](modules/agents.md) | Mac fleet roster, heartbeat, queue, crons |
 | [modules/api.md](modules/api.md) | Bearer curl recipes for ops + scout |
 | [modules/operator-post.md](modules/operator-post.md) | Lodge one dated post → calendar + Create queue (not Review) |
+| [modules/operator-plan.md](modules/operator-plan.md) | Approve / place / unplace / retitle a campaign plan: show, ask, then `plan_action.py --yes` |
 | [modules/operator-story.md](modules/operator-story.md) | Telegram link → Stories list on Today (tap, share to story, tick off) |
 | [modules/ops-ui.md](modules/ops-ui.md) | `/ops` ribbon tabs and deep links |
 | [modules/jobs.md](modules/jobs.md) | Run jobs, check verdicts, read output JSON |
@@ -59,6 +60,7 @@ If Kyle said a **story / Telegram link**: `modules/operator-story.md`.
 ## Foreman rules
 
 - **Named window / Suggest Date / TEST n / Brief** — skill `campaign-os-campaign` (not a module here). Run `suggest_campaign.py`. Do not lodge.
+- **Approve or place a plan, retitle its steps** — `modules/operator-plan.md`. Show with `plan_action.py` (no `--yes`), ask the person, run with `--yes` only after a clear yes. Campaign OS is built for agents: confirm, then act; don't refuse.
 - **Story repost link** — `modules/operator-story.md`. Ask **brand** if omitted. `POST /api/stories`; never download or publish.
 - **Lodge a post / load a post for a date** — `modules/operator-post.md`. Ask **brand** if omitted. Calendar **and** caption+image queue. Do not run Create unless Kyle says run now. Do not point at Review until the pair is complete. `event_key` must be `{brand}:…`.
 - **Prod checks** — bearer or session; never print token values

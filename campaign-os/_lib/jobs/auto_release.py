@@ -14,6 +14,16 @@ _SAST = ZoneInfo("Africa/Johannesburg")
 _HELD_WITHOUT_OWN_KEY = ("bag-drop",)
 
 
+def _held_without_own_key(brand_id: str) -> bool:
+    """Held until the brand has its own Postiz or Zernio key."""
+    from _lib.postiz_client import has_brand_key  # noqa: PLC0415
+    from _lib import zernio_client  # noqa: PLC0415
+
+    if brand_id not in _HELD_WITHOUT_OWN_KEY:
+        return False
+    return not (has_brand_key(brand_id) or zernio_client.has_brand_key(brand_id))
+
+
 def _auto_release_enabled() -> bool:
     raw = (os.environ.get("CAMPAIGN_OS_AUTO_RELEASE") or "").strip().lower()
     return raw in ("1", "true", "yes", "on")
@@ -60,7 +70,6 @@ def run(*, brand: str | None = None, now: datetime | None = None) -> dict[str, A
     from _lib.marketing_calendar import VALID_BRAND_IDS, canonical_records  # noqa: PLC0415
     from _lib import unified_inbox  # noqa: PLC0415
     from _lib.publish_sandbox import release_moment  # noqa: PLC0415
-    from _lib.postiz_client import has_brand_key  # noqa: PLC0415
 
     now_local = (now or datetime.now(timezone.utc)).astimezone(_SAST)
     today = now_local.date()
@@ -71,7 +80,7 @@ def run(*, brand: str | None = None, now: datetime | None = None) -> dict[str, A
     for brand_id in brands:
         if brand_id not in VALID_BRAND_IDS:
             continue
-        if brand_id in _HELD_WITHOUT_OWN_KEY and not has_brand_key(brand_id):
+        if _held_without_own_key(brand_id):
             held.append(brand_id)
             continue
         hour_gate = _brand_release_hour(brand_id)

@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/shop-floor/2026-09-23__shop-floor__tv-and-display-cabinet__01.jpg",
+  "layer1_metadata": {
+    "filename": "2026-09-23__shop-floor__tv-and-display-cabinet__01.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 1946209,
+    "modified": 1794189932.8365936,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#312e26",
+        "rgb": [
+          49,
+          46,
+          38
+        ],
+        "share": 0.1922
+      },
+      {
+        "hex": "#3f372b",
+        "rgb": [
+          63,
+          55,
+          43
+        ],
+        "share": 0.18
+      },
+      {
+        "hex": "#675946",
+        "rgb": [
+          103,
+          89,
+          70
+        ],
+        "share": 0.1458
+      },
+      {
+        "hex": "#100f0c",
+        "rgb": [
+          16,
+          15,
+          12
+        ],
+        "share": 0.1457
+      },
+      {
+        "hex": "#8a7e6a",
+        "rgb": [
+          138,
+          126,
+          106
+        ],
+        "share": 0.1267
+      },
+      {
+        "hex": "#c0b79f",
+        "rgb": [
+          192,
+          183,
+          159
+        ],
+        "share": 0.1165
+      },
+      {
+        "hex": "#454962",
+        "rgb": [
+          69,
+          73,
+          98
+        ],
+        "share": 0.0917
+      },
+      {
+        "hex": "#222945",
+        "rgb": [
+          34,
+          41,
+          69
+        ],
+        "share": 0.0014
+      }
+    ],
+    "mean_brightness": 79.6,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 94.2,
+    "brightness_bottom": 61.7,
+    "edge_density_grid": [
+      [
+        7.68,
+        5.42,
+        6.54
+      ],
+      [
+        9.22,
+        5.23,
+        9.62
+      ],
+      [
+        8.43,
+        4.12,
+        11.31
+      ]
+    ],
+    "subject_estimate_position": "bottom-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 2,
+    "text_preview": "MILESEEY \"Goi,"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 17,
+    "median_text_height_px": 17,
+    "likely_heading_text": "MILESEEY",
+    "is_all_caps": true,
+    "sample_text_colour": "#393220"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#312e26",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "bottom-right",
+      "ocr_text": "MILESEEY \"Goi,",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Mileseey"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

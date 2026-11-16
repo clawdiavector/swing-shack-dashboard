@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useBrandScope } from '../../components/BrandSwitch'
 import { PageIntro } from '../../components/chrome'
-import { Badge, ClassicLink, Tip } from '../../components/ui'
+import { Badge, Tip } from '../../components/ui'
 import {
   fetchPostizChannels,
   fetchPostizStatus,
@@ -146,7 +146,6 @@ export function PostizPage() {
         )}
       </section>
 
-      <ClassicLink href="/?page=postiz" label="Postiz" />
     </div>
   )
 }

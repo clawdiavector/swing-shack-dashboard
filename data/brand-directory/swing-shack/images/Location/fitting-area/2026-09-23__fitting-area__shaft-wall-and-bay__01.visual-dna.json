@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/fitting-area/2026-09-23__fitting-area__shaft-wall-and-bay__01.jpg",
+  "layer1_metadata": {
+    "filename": "2026-09-23__fitting-area__shaft-wall-and-bay__01.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 2554351,
+    "modified": 1794189887.439565,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#bdb5a6",
+        "rgb": [
+          189,
+          181,
+          166
+        ],
+        "share": 0.1421
+      },
+      {
+        "hex": "#0c0c0d",
+        "rgb": [
+          12,
+          12,
+          13
+        ],
+        "share": 0.1307
+      },
+      {
+        "hex": "#cbc9bb",
+        "rgb": [
+          203,
+          201,
+          187
+        ],
+        "share": 0.13
+      },
+      {
+        "hex": "#665d52",
+        "rgb": [
+          102,
+          93,
+          82
+        ],
+        "share": 0.128
+      },
+      {
+        "hex": "#837f73",
+        "rgb": [
+          131,
+          127,
+          115
+        ],
+        "share": 0.1278
+      },
+      {
+        "hex": "#242228",
+        "rgb": [
+          36,
+          34,
+          40
+        ],
+        "share": 0.1206
+      },
+      {
+        "hex": "#443b32",
+        "rgb": [
+          68,
+          59,
+          50
+        ],
+        "share": 0.1202
+      },
+      {
+        "hex": "#a99a82",
+        "rgb": [
+          169,
+          154,
+          130
+        ],
+        "share": 0.1007
+      }
+    ],
+    "mean_brightness": 107.1,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 138.3,
+    "brightness_bottom": 79.9,
+    "edge_density_grid": [
+      [
+        8.31,
+        9.32,
+        6.7
+      ],
+      [
+        17.29,
+        38.1,
+        11.7
+      ],
+      [
+        15.79,
+        22.42,
+        14.82
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 120,
+    "text_preview": "| ey am SS \u2014 | |e 2/9 a ) Tr alta | | i \u2014\u2014\u2014 = at) MD Wenyaly | \\ a \\ unt Be = \u2014 Be Y] 1 2 Oa .S: | = = . _ j: \\y Py. | Sle j hy i al 5 bein = = =. in = y if / fel = = ; / ff een ll] \u2014\u2014\u2014<$<$<$<__\u2014\u2014_ , je lt = = : =\u2014 : : a al \u2014 = i} 1} Gio. == = | = \u2014 = ; | rc \u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014 * = | a : a > ee \\ a | vi) me "
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 58,
+    "median_text_height_px": 9,
+    "likely_heading_text": "=\u2014 \u2014",
+    "is_all_caps": true,
+    "sample_text_colour": "#080a05"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#bdb5a6",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "| ey am SS \u2014 | |e 2/9 a ) Tr alta | | i \u2014\u2014\u2014 = at) MD Wenyaly | \\ a \\ unt Be = \u2014 Be Y] 1 2 Oa .S: | = = . _ j: \\y Py. | Sle j hy i al 5 bein = = =. in = y if / fel = = ; / ff een ll] \u2014\u2014\u2014<$<$<$<__\u2014\u2014_ , je lt = = : =\u2014 : : a al \u2014 = i} 1} Gio. == = | = \u2014 = ; | rc \u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014 * = | a : a > ee \\ a | vi) me = \u2014\u2014\u2014\u2014er ae a = 1 _\u2014\u2014\u2014\u2014_\u2014\u2014 = = ai! a = ig =",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

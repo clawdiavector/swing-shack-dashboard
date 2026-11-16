@@ -451,7 +451,14 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
     from _lib import daily_target  # noqa: PLC0415
 
     split = daily_target.target_for(brand_id)
-    targets = daily_target.day_progress(entries, split, first, month_bounds(month)[1]) if split else {}
+    month_end = month_bounds(month)[1]
+    try:  # a reshare (a link shared to a story) is a made placement; a bad list must not break the calendar
+        from _lib import story_queue  # noqa: PLC0415
+
+        shares = story_queue.shares(brand_id, first, month_end)
+    except Exception:
+        shares = []
+    targets = daily_target.day_progress(entries, split, first, month_end, shares=shares) if split else {}
     if targets:
         leads = daily_target.day_leads(brand_id, first, month_bounds(month)[1], sum(split.values()))
         for day, t in targets.items():
@@ -532,20 +539,41 @@ def _provider(row: dict[str, Any]) -> str:
     return next((name for needle, name in _PROVIDERS if needle in ident), "Instagram")
 
 
+def postiz_settings(row: dict[str, Any]) -> dict[str, Any]:
+    """A Postiz post's settings as a dict. Postiz sends them as JSON text (seen on live,
+    10 Nov 2026); older rows had a dict. Anything unreadable is an empty dict, so one
+    odd post never drops the rest of the month."""
+    raw = row.get("settings")
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str) and raw.strip():
+        try:
+            parsed = json.loads(raw)
+        except ValueError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
 def postiz_entries(rows: list[dict[str, Any]], brand_id: str, *, linked_ids: set[str],
                    month: str) -> list[dict[str, Any]]:
-    """Postiz posts in the month that Campaign OS has no record of."""
+    """Postiz posts in the month that Campaign OS has no record of. Postiz lists every
+    post of the brand for each channel asked about, so each post is kept once."""
     first, last = month_bounds(month)
     out = []
+    seen: set[str] = set()
     for row in rows:
         pid = str(row.get("id") or row.get("postId") or "")
+        if pid in seen:
+            continue
+        seen.add(pid)
         state = str(row.get("state") or row.get("status") or "").upper()
         day = _postiz_day(row.get("publishDate"))
         if not pid or pid in linked_ids or state == "PUBLISHED" or day is None or not first <= day <= last:
             continue
         caption = _plain(row.get("content"))
         media = postiz_media(row)
-        post_type = str((row.get("settings") or {}).get("post_type") or "").lower()
+        post_type = str(postiz_settings(row).get("post_type") or "").lower()
         story = post_type == "story"
         channel = {"Google": "gbp"}.get(_provider(row), _provider(row).lower())
         if state == "DRAFT":
@@ -576,7 +604,7 @@ def schedule_postiz_draft(pz: Any, brand_id: str, row: dict[str, Any]) -> tuple[
     integration = str((row.get("integration") or {}).get("id") or "")
     if not integration:
         return False, "This Postiz post has no channel. Schedule it in Postiz."
-    settings = row.get("settings") if isinstance(row.get("settings"), dict) else None
+    settings = postiz_settings(row) or None
     _, err = pz.create_post(integration, str(row.get("content") or ""), media=postiz_media(row),
                             brand_id=brand_id, publish_date=row.get("publishDate"),
                             platform_settings=settings, draft=False)
@@ -685,11 +713,24 @@ def plan_step_entries(steps: list[dict[str, Any]], brand_id: str) -> list[dict[s
     return out
 
 
+def _campaign_when(plan: dict[str, Any]) -> str:
+    """When the campaign's posts and stories run; the plan's event date when it has none."""
+    days = sorted(
+        str(it.get("due") or "")[:10]
+        for it in plan.get("items") or []
+        if isinstance(it, dict) and it.get("kind") in ("post", "story")
+        and it.get("status") != "removed" and it.get("due")
+    )
+    if not days:
+        return _when(plan.get("event_date"))
+    return _when(days[0]) if days[0] == days[-1] else f"{_when(days[0])} to {_when(days[-1])}"
+
+
 def campaign_list(plans: list[dict[str, Any]]) -> list[dict[str, Any]]:
     live = [p for p in plans if p.get("status") not in ("superseded", "archived")]
     live.sort(key=lambda p: str(p.get("event_date") or ""))
     return [{"plan_id": p.get("plan_id"), "title": p.get("event_name") or "Untitled campaign",
-             "event_date": p.get("event_date"), "when": _when(p.get("event_date")), "status": p.get("status")}
+             "event_date": p.get("event_date"), "when": _campaign_when(p), "status": p.get("status")}
             for p in live]
 
 
@@ -855,7 +896,7 @@ def comments_by_key(brand_id: str) -> dict[str, list[dict[str, Any]]]:
 _VIEWS = (
     ("approval", "Needs your OK", "Ready posts waiting for a yes. Read it, look at the picture, then choose."),
     ("ideas", "Ideas", "Ideas only, nothing made yet. Approve one and the post gets made, then comes back under Needs your OK."),
-    ("scheduled", "Scheduled", "Already approved and set to go out on these days. Comment if something should change."),
+    ("scheduled", "Approved", "Approved for these days, including posts that already went out. Comment if something should change."),
 )
 
 _LABELS = {"approve": "Approve", "comment": "Comment", "reject": "Reject"}

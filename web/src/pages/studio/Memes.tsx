@@ -74,9 +74,8 @@ export function Memes() {
   return (
     <div className="space-y-6">
       <PageIntro here="/create" title="Memes">
-        Meme Lord and template lab — classic desks stay on disk.{' '}
-        <ClassicLink href="/?page=memes" label="Meme Lord" /> ·{' '}
-        <ClassicLink href="/meme-lab" label="Meme lab" />
+        Make a meme from a brief, or browse the meme library.{' '}
+        <ClassicLink href="/meme-lab" label="Meme lab" text="Open the meme library" />
       </PageIntro>
 
       <FilterChips value={tab} options={TAB_OPTIONS} onChange={setTab} />

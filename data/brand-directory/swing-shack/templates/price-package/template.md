@@ -22,4 +22,4 @@ Tag calendar records `post_type: price_package` (or pin `template_id: ss-price-p
 
 ## Assets
 
-Logo reused from `templates/did-you-know/assets/logo-white.png`. Background photos are did-you-know stand-ins until raw venue shots are added.
+Logo reused from `logos/swing-shack-logo-white.png`. Background photos are did-you-know stand-ins until raw venue shots are added.

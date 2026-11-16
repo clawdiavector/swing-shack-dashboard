@@ -71,12 +71,18 @@ if PRODUCTION_ENV_HINT and not _os.environ.get('CAMPAIGN_OS_SECRET', '').strip()
     )
 
 SESSION_COOKIE = 'cos_session'
-SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+SESSION_MAX_AGE = 60 * 60 * 24 * 365  # one year from sign-in
 # v2026-08-13: signed share-token TTL for the auth-optional markdown export.
 # 24 hours is enough for a same-day Slack/email share; longer than a day
 # invites stale-data sharing and stale links accumulating in docs.
 SHARE_TOKEN_MAX_AGE = 60 * 60 * 24
 _serializer = URLSafeTimedSerializer(SESSION_SECRET)
+
+try:
+    from _lib import users as _users_boot
+    _users_boot.ensure_bootstrap()
+except Exception as _users_boot_err:
+    print(f"[boot] users bootstrap skipped: {_users_boot_err}", flush=True, file=sys.stderr)
 
 # Routes that never require auth (login + the static asset paths needed to render login)
 PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/api/live', '/api/ready', '/livez', '/readyz', '/favicon.ico'}
@@ -224,19 +230,105 @@ def admin_client_log():
 
 
 def _is_authed():
-    """Check request cookie for a valid signed session token."""
+    """Check request cookie for a valid signed session token.
+
+    Agents (Kyle's and Christelle's Claude, Hermes) use the app through the API with
+    COS_JOB_TOKEN, so a valid job bearer counts as signed in on /api/ routes. The agent
+    skills confirm with the person before anything that approves, publishes or deletes.
+    """
     # Set only by the /share/calendar/<token>/act route, after it has checked the
     # token, for the one approve it hands to the session-only approval path.
     if getattr(g, "calendar_share_authed", False):
         return True
+    if (request.path or "").startswith("/api/") and COS_JOB_TOKEN:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer ") and auth[len("Bearer "):] == COS_JOB_TOKEN:
+            return True
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
         return False
     try:
-        _serializer.loads(token, max_age=SESSION_MAX_AGE)
-        return True
+        data = _serializer.loads(token, max_age=SESSION_MAX_AGE)
     except (BadSignature, SignatureExpired):
         return False
+    if isinstance(data, dict):
+        uid = data.get("uid")
+        if uid:
+            from _lib import users
+
+            user = _cached_user(str(uid))
+            if not user or user.get("disabled"):
+                return False
+    return True
+
+
+def _cached_user(uid: str) -> dict | None:
+    """users.json read once per request, however many checks ask."""
+    cache = getattr(g, "_cos_users", None)
+    if cache is None:
+        cache = {}
+        g._cos_users = cache
+    if uid not in cache:
+        from _lib import users
+
+        cache[uid] = users.get_user(uid)
+    return cache[uid]
+
+
+def _session_payload() -> dict | None:
+    token = request.cookies.get(SESSION_COOKIE)
+    if not token:
+        return None
+    try:
+        data = _serializer.loads(token, max_age=SESSION_MAX_AGE)
+        return data if isinstance(data, dict) else None
+    except (BadSignature, SignatureExpired):
+        return None
+
+
+def current_user() -> dict | None:
+    """The named account behind this cookie, if any. Shared-password sessions have no uid."""
+    payload = _session_payload()
+    uid = (payload or {}).get("uid")
+    if not uid:
+        return None
+    user = _cached_user(str(uid))
+    if user and user.get("disabled"):
+        return None
+    return user
+
+
+def _actor_name(
+    *,
+    use_header: bool = True,
+    body: dict | None = None,
+    default: str = "operator",
+) -> str:
+    """Signed-in name wins. Otherwise match each route's old header/body/default behaviour."""
+    user = current_user()
+    if user:
+        return str(user.get("name") or "").strip() or default
+    payload = body if body is not None else (request.get_json(silent=True) or {})
+    actor = str(payload.get("actor") or "").strip()
+    if actor:
+        return actor
+    if use_header:
+        header = (request.headers.get("X-Actor-Display-Name") or "").strip()
+        if header:
+            return header
+    return default
+
+
+def _user_forbid(action: str):
+    """403 when a named login may not do this. Shared password and job bearer skip checks."""
+    user = current_user()
+    if not user:
+        return None
+    from _lib import users
+
+    if users.can(user, action):
+        return None
+    return jsonify({"ok": False, "error": "Your login cannot do that. Ask Kyle."}), 403
 
 
 def _is_admin() -> bool:
@@ -384,6 +476,16 @@ def _gate():
         if _cc.read_share_token(_serializer, path[len('/share/calendar/'):].split('/', 1)[0]):
             return None
         return _cc.render_bad_link_page(), 404, {'Content-Type': 'text/html; charset=utf-8'}
+    # A client's review-pack link (_lib/review_pack.py): no login, but only with a good
+    # signed token for one pack. Checked BEFORE the static-extension rule below, so an
+    # uploaded .jpg cannot be fetched without its link.
+    if path.startswith('/review-pack/'):
+        from _lib import review_pack as _rp_gate
+
+        tok = path[len('/review-pack/'):].split('/', 1)[0]
+        if _rp_token_ok(tok):
+            return None
+        return _rp_gate.render_bad_link_page(), 404, {'Content-Type': 'text/html; charset=utf-8'}
     # Allow static asset extensions (CSS, JS, images, fonts) needed to render login page.
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
@@ -419,21 +521,26 @@ def login_page():
 
 @app.route('/login', methods=['POST'])
 def login_submit():
+    email = (request.form.get('email') or '').strip().lower()
     pw = request.form.get('password') or ''
-    if not pw:
-        # also accept JSON for fetch() fallback
-        try:
-            data = request.get_json(silent=True) or {}
-            pw = data.get('password') or ''
-        except Exception:
-            pass
-    # constant-time-ish compare (string compare is fine for shared password)
-    if not pw or hashlib.sha256(pw.encode()).hexdigest() != hashlib.sha256(SHARED_PASSWORD.encode()).hexdigest():
-        return jsonify({'ok': False, 'error': 'Wrong password. Try again.'}), 401
-    token = _serializer.dumps({'authed': True})
+    if not pw and not email:
+        data = request.get_json(silent=True) or {}
+        email = (data.get('email') or '').strip().lower()
+        pw = data.get('password') or ''
     next_url = request.args.get('next') or request.form.get('next') or '/'
     if not next_url.startswith('/'):
         next_url = '/'
+    if email:
+        from _lib import users
+
+        user = users.authenticate(email, pw)
+        if not user:
+            return jsonify({'ok': False, 'error': 'Wrong email or password. Try again.'}), 401
+        token = _serializer.dumps({'authed': True, 'uid': user['id']})
+    else:
+        if not pw or hashlib.sha256(pw.encode()).hexdigest() != hashlib.sha256(SHARED_PASSWORD.encode()).hexdigest():
+            return jsonify({'ok': False, 'error': 'Wrong password. Try again.'}), 401
+        token = _serializer.dumps({'authed': True})
     resp = make_response(jsonify({'ok': True, 'next': next_url}))
     resp.set_cookie(SESSION_COOKIE, token, max_age=SESSION_MAX_AGE, httponly=True, samesite='Lax', path='/')
     return resp
@@ -444,6 +551,140 @@ def logout():
     resp = make_response(redirect(url_for('login_page')))
     resp.set_cookie(SESSION_COOKIE, '', max_age=0, path='/')
     return resp
+
+
+@app.route('/api/me', methods=['GET'])
+def api_me():
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    user = current_user()
+    shared = user is None and bool(_session_payload())
+    payload = {
+        'ok': True,
+        'signed_in': True,
+        'shared': shared,
+        'user': None,
+    }
+    if user:
+        payload['user'] = {
+            'id': user['id'],
+            'name': user['name'],
+            'role': user['role'],
+            'brands': user.get('brands') or [],
+        }
+    resp = make_response(jsonify(payload), 200)
+    # Opening the app calls this. Refresh the browser cookie so a sign-in
+    # already in progress picks up the one-year lifetime. The token itself
+    # still expires one year after it was issued.
+    token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        resp.set_cookie(SESSION_COOKIE, token, max_age=SESSION_MAX_AGE, httponly=True, samesite='Lax', path='/')
+    return resp
+
+
+@app.route('/api/me/password', methods=['POST'])
+def api_me_password():
+    """A named login changes their own password. They must know the current one.
+    This never accepts another person's id. Resetting someone else stays on
+    /api/users/<id>/password, which only an admin (or the shared team password) can call."""
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    user = current_user()
+    if not user:
+        return jsonify({'ok': False, 'error': 'Sign in with your email to change your password.'}), 400
+    from _lib import users
+
+    body = request.get_json(silent=True) or {}
+    if not users.authenticate(str(user.get('email') or ''), str(body.get('current') or '')):
+        return jsonify({'ok': False, 'error': 'That is not your current password.'}), 400
+    try:
+        users.set_password(str(user['id']), str(body.get('password') or ''))
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+    return jsonify({'ok': True}), 200
+
+
+def _users_admin_forbid():
+    """Logins are managed by Kyle's admin login, or by anyone signed in with the shared
+    team password (so the first logins can be made right after a deploy, with no
+    environment change). A named non-admin login and a job token cannot."""
+    user = current_user()
+    from _lib import users
+
+    if user and users.can(user, 'users_admin'):
+        return None
+    payload = _session_payload()
+    if user is None and isinstance(payload, dict) and payload.get('authed') and not payload.get('uid'):
+        return None
+    return jsonify({'ok': False, 'error': 'Only an admin can manage logins.'}), 403
+
+
+@app.route('/api/users', methods=['GET'])
+def api_users_list():
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    bad = _users_admin_forbid()
+    if bad:
+        return bad
+    from _lib import users
+
+    return jsonify({'ok': True, 'users': users.list_users()}), 200
+
+
+@app.route('/api/users', methods=['POST'])
+def api_users_create():
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    bad = _users_admin_forbid()
+    if bad:
+        return bad
+    from _lib import users
+
+    body = request.get_json(silent=True) or {}
+    try:
+        row = users.create_user(
+            str(body.get('name') or ''),
+            str(body.get('email') or ''),
+            str(body.get('role') or 'contributor'),
+            list(body.get('brands') or []),
+            str(body.get('password') or ''),
+        )
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+    return jsonify({'ok': True, 'user': row}), 200
+
+
+@app.route('/api/users/<user_id>', methods=['PATCH'])
+def api_users_patch(user_id):
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    bad = _users_admin_forbid()
+    if bad:
+        return bad
+    from _lib import users
+
+    try:
+        row = users.update_user(user_id, request.get_json(silent=True) or {})
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+    return jsonify({'ok': True, 'user': row}), 200
+
+
+@app.route('/api/users/<user_id>/password', methods=['POST'])
+def api_users_password(user_id):
+    if not _is_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    bad = _users_admin_forbid()
+    if bad:
+        return bad
+    from _lib import users
+
+    body = request.get_json(silent=True) or {}
+    try:
+        users.set_password(user_id, str(body.get('password') or ''))
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+    return jsonify({'ok': True}), 200
 
 
 _FAVICON_SVG = (
@@ -1827,6 +2068,7 @@ def visual_dna_scrape_and_dissect(brand_id):
         if scripts_dir not in _sys.path:
             _sys.path.insert(0, scripts_dir)
         from ingest_public_drive_folder import (  # noqa: PLC0415
+            BRAND_EXTRA_SOURCES,
             BRAND_PUBLIC_ROOTS,
             run_ingest,
         )
@@ -1856,6 +2098,21 @@ def visual_dna_scrape_and_dissect(brand_id):
             dry_run=bool(body.get("dry_run")),
             data_dir=data_dir,
         )
+        # The brand's other folders (Stick's Shot List) come along unless one folder was asked for.
+        if not body.get("folder_id"):
+            summary["sources"] = []
+            for label, extra_id in BRAND_EXTRA_SOURCES.get(brand_id, {}).items():
+                extra = run_ingest(
+                    brand_id,
+                    extra_id,
+                    limit=body.get("limit"),
+                    dry_run=bool(body.get("dry_run")),
+                    data_dir=data_dir,
+                    folder_prefix=label,
+                )
+                summary["sources"].append({"label": label, "folder_id": extra_id, **extra})
+                summary["downloaded"] += extra.get("downloaded", 0)
+                summary["download_errors"] = summary.get("download_errors", []) + extra.get("download_errors", [])
         summary["ok"] = not summary.get("download_errors")
         summary["target"] = target
         summary["data_dir"] = str(data_dir)
@@ -2032,6 +2289,30 @@ def image_portal_submit():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+def _brand_image_thumb(brand_id, src, w):
+    """A cached JPEG of `src` no wider than `w` (64-1600 px), or None if it can't be made.
+
+    Kept under DATA_DIR/thumbs/<brand>/<w>/ and rebuilt when the photo is newer.
+    """
+    from pathlib import Path as _P
+    import hashlib
+    w = max(64, min(int(w), 1600))
+    out = _P(DATA_DIR) / 'thumbs' / brand_id / str(w) / (hashlib.md5(str(src).encode('utf-8')).hexdigest() + '.jpg')
+    try:
+        if not out.exists() or out.stat().st_mtime < src.stat().st_mtime:
+            from PIL import Image, ImageOps
+            out.parent.mkdir(parents=True, exist_ok=True)
+            with Image.open(src) as im:
+                im = ImageOps.exif_transpose(im).convert('RGB')
+                im.thumbnail((w, w * 4))
+                tmp = out.with_suffix('.tmp')
+                im.save(tmp, 'JPEG', quality=82)
+            os.replace(tmp, out)
+        return out
+    except Exception:
+        return None
+
+
 @app.route('/brand-images/<brand_id>/<path:filename>', methods=['GET'])
 def brand_image_serve(brand_id, filename):
     """GET /brand-images/<brand>/ — serve a brand-directory image.
@@ -2081,6 +2362,12 @@ def brand_image_serve(brand_id, filename):
         except ValueError:
             return jsonify({"error": "path traversal denied"}), 403
         if target.exists() and target.is_file():
+            # ?w=N: a small cached preview for the library grid instead of the full photo.
+            w = request.args.get('w', type=int)
+            if w and target.suffix.lower() in _VL_IMAGE_EXTS:
+                thumb = _brand_image_thumb(brand_id, target, w)
+                if thumb is not None:
+                    return send_from_directory(str(thumb.parent), thumb.name)
             return send_from_directory(str(target.parent), target.name)
 
     for root in _brand_directory_roots():
@@ -2162,6 +2449,55 @@ def asset_serve(filename):
     return jsonify({"error": "not found", "filename": filename}), 404
 
 
+_VL_IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.webp')
+
+
+def _visual_library_index(brand_id):
+    """The brand's Visual Library index, or None when it has no photos at all.
+
+    The bundled visual-dna-index.json, plus every photo the Drive ingest scanned
+    onto the live disk (DATA_DIR/brand-directory/<brand>/images/<folder>/). The
+    live index has no by_filename list of its own, so those are found by their
+    .visual-dna.json files and keyed by their path under images/.
+    """
+    from pathlib import Path as _P
+    bundled_dir = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id
+    idx = {}
+    index_path = bundled_dir / 'visual-dna-index.json'
+    if index_path.exists():
+        try:
+            idx = json.loads(index_path.read_text())
+        except Exception:
+            idx = {}
+    by_fn = dict(idx.get('by_filename') or {})
+    bundled_names = {_P(k).name for k in by_fn}
+    live = _P(DATA_DIR) / 'brand-directory' / brand_id / 'images'
+    if live.is_dir() and live.resolve() != (bundled_dir / 'images').resolve():
+        for dna_p in sorted(live.rglob('*.visual-dna.json')):
+            stem = dna_p.name[:-len('.visual-dna.json')]
+            img = next((c for c in sorted(dna_p.parent.glob(glob.escape(stem) + '.*'))
+                        if c.suffix.lower() in _VL_IMAGE_EXTS), None)
+            if img is None or img.name in bundled_names:
+                continue
+            by_fn.setdefault(img.relative_to(live).as_posix(), {'dna_path': str(dna_p), 'score': 0})
+    if not index_path.exists() and not by_fn:
+        return None
+    idx = dict(idx)
+    idx['by_filename'] = by_fn
+    idx['image_count'] = len(by_fn)
+    return idx
+
+
+def _visual_library_brand_ids():
+    """Every brand with a bundled index or a live images folder, sorted."""
+    from pathlib import Path as _P
+    ids = set()
+    for root in (_P(BUNDLED_DATA_DIR) / 'brand-directory', _P(DATA_DIR) / 'brand-directory'):
+        if root.is_dir():
+            ids.update(p.name for p in root.iterdir() if p.is_dir() and p.name != '_system')
+    return sorted(ids)
+
+
 @app.route('/api/visual-library/<brand_id>/images', methods=['GET'])
 def visual_library_images(brand_id):
     """GET /api/visual-library/<brand>/images — full image roster with DNA preview.
@@ -2175,20 +2511,34 @@ def visual_library_images(brand_id):
       min_score — only images with brand-alignment score >= N (0.0-1.0)
       sort      — score | filename | modified (default score desc)
       limit     — cap results (default 200)
+      folder    — only photos in this folder or under it (e.g. "Shot List/Bags")
+      offset    — skip this many matching photos ("Load more")
     """
     try:
         from pathlib import Path as _P
         import re, base64 as _b64
-        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
-        if not index_path.exists():
+        from urllib.parse import quote as _quote
+        idx = _visual_library_index(brand_id)
+        if idx is None:
             return jsonify({"error": f"no visual-dna index for {brand_id}"}), 404
-        idx = json.loads(index_path.read_text())
         by_filename = idx.get("by_filename", {})
 
         product_filter = request.args.get("product", "").strip()
         min_score = float(request.args.get("min_score", "0") or "0")
         sort_by = request.args.get("sort", "score")
         limit = min(int(request.args.get("limit", "200") or "200"), 500)
+        folder = request.args.get("folder", "").strip().strip("/")
+        try:
+            offset = max(int(request.args.get("offset", "0") or "0"), 0)
+        except ValueError:
+            offset = 0
+        # Every folder (and each parent) with how many photos sit in it or under it.
+        from collections import Counter as _Counter
+        folder_counts = _Counter()
+        for _fn in by_filename:
+            _parts = _fn.split("/")[:-1]
+            for _i in range(1, len(_parts) + 1):
+                folder_counts["/".join(_parts[:_i])] += 1
 
         # Canonical images dir relative to BUNDLED_DATA_DIR — used for both jpg and DNA JSON
         images_dir = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images'
@@ -2220,6 +2570,8 @@ def visual_library_images(brand_id):
             # Primary location: the requested brand
             if (images_dir / filename).exists():
                 return True
+            if (_P(DATA_DIR) / 'brand-directory' / brand_id / 'images' / filename).is_file():
+                return True
             # Sibling brands (orphan DNA fallback path)
             stem = _P(filename).name  # strip any path prefix safely
             for sib in _sibling_brands:
@@ -2230,6 +2582,8 @@ def visual_library_images(brand_id):
 
         out = []
         for fn, meta in by_filename.items():
+            if folder and not fn.startswith(folder + "/"):
+                continue
             dna_p = _resolve_dna(meta.get("dna_path", ""), fn)
             if dna_p is None:
                 continue
@@ -2286,10 +2640,13 @@ def visual_library_images(brand_id):
             # WITHOUT firing a doomed network request.
             _has_thumb = bool(dna.get("thumbnail_b64"))
             _on_disk = _image_on_disk(fn)
+            # Live-disk photos carry no inline thumbnail; point the grid at a small preview.
+            _live_thumb = (None if _has_thumb or not (_P(DATA_DIR) / 'brand-directory' / brand_id / 'images' / fn).is_file()
+                           else f"/brand-images/{brand_id}/{_quote(fn)}?w=480")
             _image_missing = (not _has_thumb) and (not _on_disk)
             entry = {
                 "filename": fn,
-                "url": (None if _image_missing else f"/brand-images/{brand_id}/{fn}"),
+                "url": (None if _image_missing else f"/brand-images/{brand_id}/{_quote(fn)}"),
                 "image_missing": _image_missing,
                 "dna_url": f"/brand-images/{brand_id}/{fn.replace('.jpg', '.visual-dna.json').replace('.jpeg', '.visual-dna.json').replace('.png', '.visual-dna.json')}",
                 "score": round(score, 3),
@@ -2314,7 +2671,7 @@ def visual_library_images(brand_id):
                 # Inline thumbnail (data URL) so the grid works on Railway without the
                 # actual jpg files. The images dir is gitignored; thumbnails are embedded
                 # in each DNA JSON at build time.
-                "thumbnail_data_url": (f"data:image/jpeg;base64,{dna['thumbnail_b64']}" if dna.get("thumbnail_b64") else None),
+                "thumbnail_data_url": (f"data:image/jpeg;base64,{dna['thumbnail_b64']}" if dna.get("thumbnail_b64") else _live_thumb),
                 "thumbnail_w": dna.get("thumbnail_w"),
                 "thumbnail_h": dna.get("thumbnail_h"),
                 # Searchable blob (lowercase) for client-side text matching
@@ -2336,11 +2693,16 @@ def visual_library_images(brand_id):
             out.sort(key=lambda x: x["filename"].lower())
         elif sort_by == "modified":
             out.sort(key=lambda x: x["filename"].lower(), reverse=True)
-        out = out[:limit]
+        total_matching = len(out)
+        out = out[offset:offset + limit]
         return jsonify({
             "brand": brand_id,
             "total": len(out),
-            "filters": {"product": product_filter, "min_score": min_score, "sort": sort_by},
+            "total_matching": total_matching,
+            "offset": offset,
+            "has_more": offset + len(out) < total_matching,
+            "folders": [{"path": f, "count": c} for f, c in sorted(folder_counts.items(), key=lambda x: x[0].lower())],
+            "filters": {"product": product_filter, "min_score": min_score, "sort": sort_by, "folder": folder},
             "products_available": sorted(set(p for e in out for p in e["products"])),
             "images": out,
         })
@@ -2359,10 +2721,9 @@ def visual_library_stats(brand_id):
     try:
         from pathlib import Path as _P
         from collections import Counter
-        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
-        if not index_path.exists():
+        idx = _visual_library_index(brand_id)
+        if idx is None:
             return jsonify({"error": f"no visual-dna index for {brand_id}"}), 404
-        idx = json.loads(index_path.read_text())
         by_filename = idx.get("by_filename", {})
 
         product_counts = Counter()
@@ -2441,6 +2802,7 @@ def visual_library_search():
     """
     try:
         from pathlib import Path as _P
+        from urllib.parse import quote
         q = (request.args.get('q') or '').strip()
         if len(q) < 2:
             return jsonify({"ok": False, "error": "q must be 2+ chars", "results": [], "count": 0}), 400
@@ -2462,20 +2824,16 @@ def visual_library_search():
 
         # Decide which brands to search
         if brand_filter and brand_filter != 'all':
-            brand_dirs = [brand_root / brand_filter] if (brand_root / brand_filter).is_dir() else []
+            brand_dirs = [brand_root / brand_filter]
         else:
-            brand_dirs = sorted([p for p in brand_root.iterdir() if p.is_dir()])
+            brand_dirs = [brand_root / b for b in _visual_library_brand_ids()]
 
         results = []
         seen = set()
         for brand_dir in brand_dirs:
             bid = brand_dir.name
-            idx_path = brand_dir / 'visual-dna-index.json'
-            if not idx_path.exists():
-                continue
-            try:
-                idx = json.loads(idx_path.read_text())
-            except Exception:
+            idx = _visual_library_index(bid)
+            if idx is None:
                 continue
             # Canonical images dir relative to BUNDLED_DATA_DIR — same fallback
             # strategy used by /api/visual-library/<brand>/images.
@@ -2586,8 +2944,8 @@ def visual_library_search():
                 results.append({
                     'brand': bid,
                     'filename': fn,
-                    'url': f"/brand-images/{bid}/{fn}",
-                    'thumbnail_url': f"/brand-images/{bid}/{fn}",
+                    'url': f"/brand-images/{bid}/{quote(fn)}",
+                    'thumbnail_url': f"/brand-images/{bid}/{quote(fn)}",
                     'score': round(score, 3),
                     'products': prod_names[:5],
                     'ocr_snippet': ocr_text[:140],
@@ -2618,14 +2976,9 @@ def visual_library_brands():
         if not brand_root.exists():
             return jsonify({'brands': []})
         out = []
-        for brand_dir in sorted([p for p in brand_root.iterdir() if p.is_dir()]):
-            bid = brand_dir.name
-            idx_path = brand_dir / 'visual-dna-index.json'
-            if not idx_path.exists():
-                continue
-            try:
-                idx = json.loads(idx_path.read_text())
-            except Exception:
+        for bid in _visual_library_brand_ids():
+            idx = _visual_library_index(bid)
+            if idx is None:
                 continue
             by_fn = idx.get('by_filename', {}) or {}
             out.append({
@@ -6910,7 +7263,12 @@ def photos_review_set():
     file = str(body.get("file") or "")
     if status not in pm.STATUSES or not file:
         return jsonify({"ok": False, "error": "file and a valid status required"}), 400
-    if not pm.set_status(brand_id, file, status, "dashboard"):
+    from _lib.image_library import RightsNotCleared
+    try:
+        found = pm.set_status(brand_id, file, status, "dashboard")
+    except RightsNotCleared as e:
+        return jsonify({"ok": False, "error": str(e)}), 409
+    if not found:
         return jsonify({"ok": False, "error": "no such photo on the map"}), 404
     return jsonify({"ok": True, "file": file, "status": status})
 
@@ -7727,6 +8085,86 @@ def brand_template_gallery(brand_id):
         return jsonify({"ok": False, "error": str(e)}), 404
     except Exception as e:
         _app_log.exception("brand_template_gallery failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+from _lib import design_taxonomy as _design_taxonomy  # noqa: E402
+
+
+def _taxonomy_actor() -> str:
+    user = current_user()
+    if user:
+        return str(user.get("name") or "").strip() or "Kyle"
+    auth = request.headers.get("Authorization", "")
+    if COS_JOB_TOKEN and auth.startswith("Bearer ") and auth[len("Bearer "):] == COS_JOB_TOKEN:
+        return "Kyle"
+    return _actor_name(default="Kyle")
+
+
+@app.route('/api/design/taxonomy', methods=['GET'])
+def design_taxonomy_get():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = (request.args.get("brand") or "").strip() or None
+    try:
+        payload = _design_taxonomy.build_taxonomy(brand=brand)
+        return jsonify({"ok": True, **payload}), 200
+    except FileNotFoundError as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    except Exception as e:
+        _app_log.exception("design_taxonomy_get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/design/media/<name>', methods=['GET'])
+def design_media(name):
+    """Small WebP copies of post images for the Taxonomy of Design page."""
+    import re as _re
+
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _re.fullmatch(r"[0-9a-f]{12}-[tm]\.webp", name or ""):
+        return jsonify({"error": "not found"}), 404
+    resp = send_from_directory(str(_design_taxonomy.media_dir()), name, mimetype="image/webp")
+    resp.headers["Cache-Control"] = "private, max-age=31536000, immutable"
+    return resp
+
+
+@app.route('/api/design/taxonomy/approve', methods=['POST'])
+def design_taxonomy_approve():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    section = str(body.get("section") or "").strip()
+    item_id = str(body.get("id") or "").strip()
+    try:
+        approval = _design_taxonomy.set_approval(
+            section, item_id, approve=True, actor=_taxonomy_actor()
+        )
+        return jsonify({"ok": True, "section": section, "id": item_id, "approval": approval}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("design_taxonomy_approve failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/design/taxonomy/unapprove', methods=['POST'])
+def design_taxonomy_unapprove():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    section = str(body.get("section") or "").strip()
+    item_id = str(body.get("id") or "").strip()
+    try:
+        approval = _design_taxonomy.set_approval(
+            section, item_id, approve=False, actor=_taxonomy_actor()
+        )
+        return jsonify({"ok": True, "section": section, "id": item_id, "approval": approval}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("design_taxonomy_unapprove failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -10243,8 +10681,8 @@ def visual_library_image_detail(brand_id, filename):
                 break
         else:
             dna_filename = filename + ".visual-dna.json"
-        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
-        idx = json.loads(index_path.read_text())
+        from urllib.parse import quote
+        idx = _visual_library_index(brand_id) or {}
         meta = idx.get("by_filename", {}).get(filename)
         if not meta:
             return jsonify({"error": f"image {filename} not in index"}), 404
@@ -10255,7 +10693,7 @@ def visual_library_image_detail(brand_id, filename):
         return jsonify({
             "brand": brand_id,
             "filename": filename,
-            "image_url": f"/brand-images/{brand_id}/{filename}",
+            "image_url": "/brand-images/%s/%s" % (brand_id, quote(filename)),
             "score": meta.get("score"),
             "dna": dna,
         })
@@ -13053,10 +13491,12 @@ def insights_top_instagram_posts():
         from _lib import insights_correlator as _ic
         limit = min(int(request.args.get("limit", 8)), 25)
         bid = request.args.get("brand_id") or get_brand_id()
-        data_bid = resolve_data_brand(bid)
-        # The IG stores hold one account (@swingshack). Never show it under a
-        # brand whose own Instagram handle is a different account.
-        reason = _top_posts_brand_mismatch_reason(bid)
+        # A brand with its own Instagram file (brands/<brand>/ig-analytics.json)
+        # reads that. Otherwise the shared store holds one account (@swingshack):
+        # never show it under a brand whose own handle is a different account.
+        own_ig = _ic.brand_has_own_ig(bid)
+        data_bid = bid if own_ig else resolve_data_brand(bid)
+        reason = None if own_ig else _top_posts_brand_mismatch_reason(bid)
         if reason:
             return jsonify({
                 "ok": True,
@@ -14574,11 +15014,23 @@ def _per_channel_prompts(idea: str, *, brand_id: str, voice: Optional[str], tone
     if not body_core.endswith("?") and not body_core.endswith("!"):
         body_core += "."
 
-    domain = "swingshack.co.za"
-    if brand_voice_tag == "stick":
-        domain = "sticksa.co.za"
-    elif brand_voice_tag == "bag-drop":
-        domain = "bagdropgolf.co.za"
+    from _lib.brand_scope import BRAND_DOMAINS as _domains
+    domain = _domains.get(brand_voice_tag, _domains["swing-shack"])
+
+    if brand_voice_tag != "swing-shack":
+        # The channel copy below is Swing Shack's (TrackMan, Westcliff, R250 first
+        # session). Stick and The Bag Drop got it word for word, with a made-up website.
+        # Until they have their own, give them the idea and their real website only.
+        return {
+            "instagram": {"name": body_core[:120], "caption": f"{base_hook}\n\n{body_core}\n\nLink in bio.",
+                          "cta": "Link in bio", "hashtags": []},
+            "facebook": {"name": body_core[:80], "caption": f"{body_core}\n\n{domain}", "cta": domain,
+                         "hashtags": []},
+            "x": {"name": body_core[:60], "caption": f"{body_core} {domain}", "cta": f"Read more → {domain}",
+                  "hashtags": []},
+            "tiktok": {"name": body_core[:60], "caption": f"{base_hook}\n\n{body_core}", "cta": "",
+                       "hashtags": []},
+        }
 
     per_channel = {
         # Google Business Profile (formerly Google My Business)
@@ -15356,7 +15808,8 @@ def stories_suggestion_route():
 
     from _lib import story_settings as ss
 
-    brands = [request.args['brand']] if request.args.get('brand') else ['swing-shack', 'stick']
+    from _lib.brand_scope import OPERATING_BRANDS as _ops
+    brands = [request.args['brand']] if request.args.get('brand') else list(_ops)
     day = datetime.now(ZoneInfo('Africa/Johannesburg')).date()
     out = []
     for b in brands:
@@ -15536,7 +15989,10 @@ def posts_lodge_route():
     # The V2.6 write-gate (_v26_wrapped_upsert_event) only books an approved
     # slot for a request that names its person in this header. Checked here
     # so the caller gets the fix, not a PermissionError from three layers down.
-    actor = (request.headers.get('X-Actor-Display-Name') or '').strip()
+    upload_denied = _user_forbid('upload')
+    if upload_denied:
+        return upload_denied
+    actor = _actor_name(use_header=True, default="")
     if not actor:
         return jsonify({"ok": False, "error": (
             "send your name in the X-Actor-Display-Name header -- the calendar "
@@ -16677,8 +17133,8 @@ def gbp_daily_poster_pending_route():
     integration_error = None
     try:
         from _lib import postiz_client as _pc
-        if _pc and _pc._credentials_present():
-            integrations, err = _pc.list_integrations()
+        if _pc and _pc._credentials_present(brand_id):
+            integrations, err = _pc.list_integrations(brand_id=brand_id)
             if err:
                 integration_ok = False
                 integration_error = str(err)
@@ -18837,6 +19293,23 @@ def weekly_report_share():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@app.route('/api/counts', methods=['GET'])
+def four_counts_route():
+    """GET /api/counts?brand=<id|all> — To approve, Dates to decide, Scheduled, Sent this week."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import four_counts as _four_counts
+
+        brand = (request.args.get("brand") or "all").strip()
+        return jsonify({"ok": True, **_four_counts.counts(brand)}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("four_counts failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/today/panel', methods=['GET'])
 def today_panel():
     brief, status = _intel('morning_brief')
@@ -18922,8 +19395,8 @@ def today_panel():
                         configured_int_id = profile.get("postiz_gbp_integration_id")
                         try:
                             from _lib import postiz_client as _pc
-                            if _pc and _pc._credentials_present():
-                                _ints, _err = _pc.list_integrations()
+                            if _pc and _pc._credentials_present(active_brand_id):
+                                _ints, _err = _pc.list_integrations(brand_id=active_brand_id)
                                 if _err:
                                     integration_verified = False
                                     integration_error = str(_err)
@@ -25962,7 +26435,8 @@ def report_v1_brand(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
+    from _lib.brand_scope import OPERATING_BRANDS as _ops
+    if brand_id not in _ops:
         return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
     if _ri is None:
         return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
@@ -25995,8 +26469,9 @@ def report_v1_portfolio():
     days = int(request.args.get("days", 31))
     cookie = request.headers.get("Cookie", "")
     try:
+        from _lib.brand_scope import OPERATING_BRANDS as _ops
         reports = {bid: _ri.build_brand_report(bid, days, cookie=cookie)
-                   for bid in ("stick", "swing-shack")}
+                   for bid in _ops}
         if fmt == "json":
             return jsonify({"ok": True, "reports": reports}), 200
         html = _ri.render_portfolio_summary_html(reports)
@@ -26397,7 +26872,8 @@ def plan_v1_edit_item(brand_id, plan_id, item_id):
     if bad:
         return bad
     body = request.get_json(silent=True) or {}
-    actor = body.pop("actor", "operator") or "operator"
+    actor = _actor_name(body=body)
+    body = {k: v for k, v in body.items() if k != "actor"}
     try:
         r = _plan_import().edit_item(brand_id, plan_id, item_id, body, actor)
     except ValueError as e:
@@ -26411,7 +26887,8 @@ def plan_v1_add_item(brand_id, plan_id):
     if bad:
         return bad
     body = request.get_json(silent=True) or {}
-    actor = body.pop("actor", "operator") or "operator"
+    actor = _actor_name(body=body)
+    body = {k: v for k, v in body.items() if k != "actor"}
     try:
         r = _plan_import().add_item(brand_id, plan_id, body, actor)
     except ValueError as e:
@@ -26425,11 +26902,13 @@ def plan_v1_approve(brand_id, plan_id):
     bad = _plan_guard(brand_id)
     if bad:
         return bad
+    denied = _user_forbid('approve')
+    if denied:
+        return denied
     body = request.get_json(silent=True) or {}
     try:
         _plan_sync(brand_id, _plan_import().get_plan(brand_id, plan_id))
-        r = _plan_import().approve_plan(brand_id, plan_id,
-                                        body.get("actor") or "operator")
+        r = _plan_import().approve_plan(brand_id, plan_id, _actor_name(body=body))
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
     return jsonify(r), (200 if r.get("ok") else 400)
@@ -26443,7 +26922,10 @@ def plan_v1_place(brand_id, plan_id):
     bad = _plan_guard(brand_id)
     if bad:
         return bad
-    actor = (request.headers.get('X-Actor-Display-Name') or '').strip()
+    denied = _user_forbid('move')
+    if denied:
+        return denied
+    actor = _actor_name(use_header=True, default="")
     if not actor:
         return jsonify({"ok": False, "error": (
             "send your name in the X-Actor-Display-Name header -- the calendar "
@@ -26461,10 +26943,12 @@ def plan_v1_unplace(brand_id, plan_id):
     bad = _plan_guard(brand_id)
     if bad:
         return bad
+    denied = _user_forbid('move')
+    if denied:
+        return denied
     body = request.get_json(silent=True) or {}
     try:
-        r = _plan_import().take_off_calendar(
-            brand_id, plan_id, body.get("actor") or "operator")
+        r = _plan_import().take_off_calendar(brand_id, plan_id, _actor_name(body=body))
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
     return jsonify(r), (200 if r.get("ok") else 400)
@@ -26478,7 +26962,7 @@ def plan_v1_draft(brand_id, plan_id, item_id):
     if bad:
         return bad
     body = request.get_json(silent=True) or {}
-    actor = (request.headers.get('X-Actor-Display-Name') or body.get("actor") or "operator")
+    actor = _actor_name(body=body)
     try:
         r = _plan_import().request_draft(brand_id, plan_id, item_id, str(actor).strip() or "operator")
     except ValueError as e:
@@ -26494,7 +26978,7 @@ def plan_v1_draft_all(brand_id, plan_id):
     if bad:
         return bad
     body = request.get_json(silent=True) or {}
-    actor = (request.headers.get('X-Actor-Display-Name') or body.get("actor") or "operator")
+    actor = _actor_name(body=body)
     try:
         r = _plan_import().request_all_drafts(brand_id, plan_id, str(actor).strip() or "operator")
     except ValueError as e:
@@ -26507,13 +26991,29 @@ def plan_v1_reopen(brand_id, plan_id):
     bad = _plan_guard(brand_id)
     if bad:
         return bad
+    denied = _user_forbid('approve')
+    if denied:
+        return denied
     body = request.get_json(silent=True) or {}
     try:
-        r = _plan_import().reopen_plan(brand_id, plan_id,
-                                       body.get("actor") or "operator")
+        r = _plan_import().reopen_plan(brand_id, plan_id, _actor_name(body=body))
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
     return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/plan/v1/<brand_id>/<plan_id>/catalog', methods=['POST'])
+def plan_v1_catalog(brand_id, plan_id):
+    bad = _plan_guard(brand_id)
+    if bad:
+        return bad
+    from _lib import catalog as cat
+    try:
+        out = cat.ensure_for_plan(brand_id, plan_id)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    counts = cat.counts(out["pack_id"])
+    return jsonify({"ok": True, "pack_id": out["pack_id"], "url": f"/catalog/{out['pack_id']}", "counts": counts})
 
 
 @app.route('/api/brief/v1/<brand_id>/<brief_id>', methods=['GET'])
@@ -29300,9 +29800,10 @@ def seo_refresh():
         # Resolve brand + domain (default swing-shack, support stick)
         brand = (request.get_json(silent=True) or {}).get("brand") or "swing-shack"
         brand = brand.strip().lower()
-        if brand not in ("swing-shack", "stick"):
+        from _lib.brand_scope import BRAND_DOMAINS as _domains
+        if brand not in _domains:
             return jsonify({"ok": False, "error": f"unsupported brand: {brand}"}), 400
-        domain = "stickgolf.co.za" if brand == "stick" else "swingshack.co.za"
+        domain = _domains[brand]
         # Per-brand output suffix
         if brand == "swing-shack":
             file_suffix = ""  # backwards-compat
@@ -39301,49 +39802,21 @@ def _write_products(brand_id, data):
     return True
 
 
-def _seed_swing_shack_products():
-    """Seed swing-shack products with verified ZAR prices.
-    Mirrors data/product-priority.json IDs but adds verified pricing.
-    Idempotent: only seeds if the file doesn't exist.
+@app.route("/api/faq/questions", methods=["GET"])
+def faq_questions_route():
+    """GET /api/faq/questions?brand=<id>[&refresh=1] — questions people ask Google.
+
+    Plan > Ideas shows these as post ideas. Read from Google's public search
+    suggestions at most once a week per brand (see _lib/faq_questions.py).
     """
-    p = _products_path("swing-shack")
-    if os.path.exists(p):
-        return False
-    seed = {
-        "brand_id": "swing-shack",
-        "currency": "ZAR",
-        "market": "ZA",
-        "source": "internal seed 2026-09-04 — verify before publishing",
-        "products": [
-            {"id": "p-1", "name": "Full Bag Fitting", "type": "service",
-             "price_zar": 1500, "per": "session", "duration_min": 90,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-2", "name": "TPI Assessment", "type": "service",
-             "price_zar": 950, "per": "session", "duration_min": 60,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-3", "name": "Practice Pack (5 sessions)", "type": "membership",
-             "price_zar": 2200, "per": "pack", "duration_min": 5,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-4", "name": "Club Fitting Starter Pack", "type": "service",
-             "price_zar": 850, "per": "session", "duration_min": 45,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-6", "name": "Social Play (4 Players + Beer)", "type": "service",
-             "price_zar": 600, "per": "session", "duration_min": 90,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-7", "name": "Birdie Hunter Coaching", "type": "service",
-             "price_zar": 1200, "per": "session", "duration_min": 60,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-8", "name": "TrackMan Session (single)", "type": "service",
-             "price_zar": 350, "per": "session", "duration_min": 30,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-9", "name": "Monthly Membership", "type": "membership",
-             "price_zar": 1800, "per": "month", "duration_min": None,
-             "verified": True, "source": "internal 2026-Q3"},
-        ],
-        "_seed": True,
-        "_seeded_at": _now_iso(),
-    }
-    return _write_products("swing-shack", seed)
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import faq_questions  # noqa: PLC0415
+    brand = (request.args.get("brand") or "").strip()
+    if brand not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False, "error": "pick a brand: stick, swing-shack or bag-drop"}), 400
+    res = faq_questions.questions_for(brand, refresh=request.args.get("refresh") == "1")
+    return jsonify({"ok": True, **res}), 200
 
 
 @app.route("/api/products/line-items", methods=["GET"])
@@ -39352,9 +39825,6 @@ def products_line_items_list():
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     brand_id = (request.args.get("brand_id") or "swing-shack").strip()
-    # Auto-seed swing-shack on first hit
-    if brand_id == "swing-shack":
-        _seed_swing_shack_products()
     data = _read_products(brand_id)
     return jsonify({
         "ok": True,
@@ -39923,9 +40393,6 @@ def product_records_combined(brand_id):
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     bid = (brand_id or "swing-shack").strip()
-    # Auto-seed swing-shack on first hit
-    if bid == "swing-shack":
-        _seed_swing_shack_products()
     # Read both sources
     line_items_path = _products_path(bid)
     records_path = _product_records_path(bid)
@@ -47639,7 +48106,8 @@ def mail_intake_list():
 
 @app.route("/api/mail-intake/<item_id>/<action>", methods=["POST"])
 def mail_intake_act(item_id, action):
-    """POST status {status} | kind {kind} | plan {brand?, date?, force?} | to-calendar {brand, date}.
+    """POST status {status} | kind {kind} | plan {brand?, date?, force?} | to-calendar {brand, date}
+    | both {date?}: the idea becomes one card per brand (Stick and Swing Shack).
     plan makes the idea's proposed plan (a draft; nothing goes on the calendar). to-calendar puts
     an idea on the calendar as a faded suggestion; approving it is still a person's call."""
     if not _is_authed():
@@ -47672,6 +48140,13 @@ def mail_intake_act(item_id, action):
                 mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
             r = mi.idea_plan(item_id, _jhb_today(), force=bool(body.get("force")))
             return jsonify(r), (200 if r.get("ok") else 400)
+        elif action == "both":
+            if body.get("date") is not None:
+                mi.set_brand_date(item_id, None, body.get("date") or None)
+            items = mi.split_for_both_brands(item_id)
+            if not items:
+                return jsonify({"ok": False, "error": "not found"}), 404
+            return jsonify({"ok": True, "items": items}), 200
         elif action == "to-calendar":
             cur = mi.get_item(item_id)
             if not cur:
@@ -47888,7 +48363,10 @@ def calendar_suggestions_approve(brand_id):
     bad = _cs_guard(brand_id)
     if bad:
         return bad
-    actor = (request.headers.get('X-Actor-Display-Name') or '').strip() or "operator"
+    denied = _user_forbid('campaign_approve')
+    if denied:
+        return denied
+    actor = _actor_name()
     out, code = _cs_approve_core(brand_id, request.get_json(silent=True) or {}, actor)
     return jsonify(out), code
 
@@ -48246,6 +48724,16 @@ def _clean_cal_act(brand_id, body, who):
                 return {"ok": False, "error": "Could not reopen it. Nothing was changed."}, 500
             cc.add_comment(brand_id, key, who, "Reopened", action="reopen")
             return {"ok": True, "message": "Reopened. It is waiting for a yes again."}, 200
+        if action == "approve":
+            # Herman held this post in the campaign catalog (Maybe/No). Checked before every
+            # approve path, including a video already sitting in Postiz as a draft.
+            from _lib import catalog as cat
+
+            blocked = cat.release_blocked(brand_id, key)
+            if not blocked and row.get("catalog_hold"):
+                blocked = cat.catalog_hold_error()
+            if blocked:
+                return {"ok": False, "error": blocked}, 409
         if action not in entry["actions"]:
             return {"ok": False, "error": "This one is not waiting for a yes any more. Refresh the page."}, 409
         if action == "comment":
@@ -48267,7 +48755,9 @@ def _clean_cal_act(brand_id, body, who):
         if action == "approve":
             res = ui.approve_item(item_id, editor=who, reason=f"approved on the calendar by {who}")
             if not res.get("ok"):
-                return {"ok": False, "error": res.get("error") or "Could not approve it."}, 400
+                err = res.get("error") or "Could not approve it."
+                code = 409 if "Maybe/No" in str(err) else 400
+                return {"ok": False, "error": err}, code
             cc.add_comment(brand_id, key, who, "Approved", action="approve")
             return {"ok": True, "message": f"Approved. It goes out {entry['when']}."}, 200
         res = ui.reject_item(item_id, editor=who, reason=text)
@@ -48330,7 +48820,17 @@ def clean_calendar_act(brand_id):
     bad = _cs_guard(brand_id)
     if bad:
         return bad
-    who = (request.headers.get('X-Actor-Display-Name') or '').strip() or "Christelle"
+    body = request.get_json(silent=True) or {}
+    action = str(body.get("action") or "").strip().lower()
+    if action == "approve":
+        denied = _user_forbid('campaign_approve')
+    elif action == "move":
+        denied = _user_forbid('move')
+    else:
+        denied = _user_forbid('comment')
+    if denied:
+        return denied
+    who = _actor_name(default="Christelle")
     out, code = _clean_cal_act(brand_id, request.get_json(silent=True) or {}, who)
     return jsonify(out), code
 
@@ -48406,7 +48906,10 @@ def clean_calendar_move(brand_id):
     bad = _cs_guard(brand_id)
     if bad:
         return bad
-    who = (request.headers.get('X-Actor-Display-Name') or '').strip() or "Christelle"
+    denied = _user_forbid('move')
+    if denied:
+        return denied
+    who = _actor_name(default="Christelle")
     out, code = _clean_cal_move(brand_id, request.get_json(silent=True) or {}, who)
     return jsonify(out), code
 
@@ -48508,6 +49011,664 @@ def clean_calendar_share_act(token):
     finally:
         g.calendar_share_authed = False
     return jsonify(out), code
+
+
+# ── Review pack: a client's no-login page (_lib/review_pack.py) ──────────────
+# The client opens /review-pack/<token> with no login. Approve and Reject only RECORD
+# a decision here: nothing on these routes schedules, sends or posts anything.
+# Our side (build a pack, read what she did, reply) is under /api/jobs/review-packs,
+# which the gate already reserves for the bearer token.
+_REVIEW_PACK_LIMIT_PER_MIN = 120
+_REVIEW_PACK_UPLOAD_LIMIT_PER_MIN = 12
+_REVIEW_PACK_HITS: dict = {}
+_RP_HEADERS = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer"}
+
+
+def _review_pack_limited(token, kind, limit):
+    """True when this link has done too much in the last minute."""
+    import time as _t
+    now = _t.time()
+    ip = (request.headers.get('X-Forwarded-For') or request.remote_addr or '').split(',')[0].strip()
+    key = (token[:40], ip, kind)
+    hits = [h for h in _REVIEW_PACK_HITS.get(key, []) if now - h < 60]
+    if len(hits) >= limit:
+        _REVIEW_PACK_HITS[key] = hits
+        return True
+    hits.append(now)
+    _REVIEW_PACK_HITS[key] = hits
+    if len(_REVIEW_PACK_HITS) > 5000:
+        _REVIEW_PACK_HITS.clear()
+    return False
+
+
+def _rp_token_ok(token: str) -> bool:
+    from _lib import review_pack as rp
+
+    return bool(rp.read_token(_serializer, token))
+
+
+def _rp_share(token):
+    from _lib import review_pack as rp
+
+    return rp.read_token(_serializer, token)
+
+
+def _rp_campaign_can_approve(share: dict | None, staff: bool) -> bool:
+    """Guest approver links and signed-in approvers/editors can approve the campaign."""
+    if not share:
+        return False
+    from _lib import review_pack as rp
+    pack = rp.get_pack(share.get("pack") or "")
+    if not pack or pack.get("kind") != "catalog":
+        return False
+    if share.get("role") == "approver":
+        return True
+    if staff:
+        row = current_user()
+        if not row:
+            return True  # shared team password: free range
+        from _lib import users
+
+        return users.can(row, "campaign_approve")
+    return False
+
+
+def _catalog_user_row() -> dict | None:
+    """The named login behind this session (C1), or None for the shared password."""
+    row = current_user()
+    return row if isinstance(row, dict) else None
+
+
+def _catalog_actor_name() -> str:
+    row = _catalog_user_row()
+    if row and row.get("name"):
+        return str(row["name"]).strip()[:40]
+    return (request.headers.get("X-Actor-Display-Name") or "Team").strip()[:40] or "Team"
+
+
+def _catalog_actor_uid() -> str:
+    row = _catalog_user_row()
+    if row and row.get("id"):
+        return str(row["id"]).strip()[:80]
+    return ""
+
+
+def _rp_public_view_kwargs(share: dict | None, staff: bool) -> dict:
+    row = current_user()
+    return {
+        "campaign_can_approve": _rp_campaign_can_approve(share, staff),
+        "share_role": (share or {}).get("role"),
+        "session_user": row if isinstance(row, dict) else None,
+    }
+
+
+_RP_MIME = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
+
+
+def _rp_send(path):
+    """Serve one stored picture. Bytes, not send_file: no file handle is left open,
+    and the type comes from our own extension map, never guessed."""
+    return Response(path.read_bytes(), mimetype=_RP_MIME.get(path.suffix.lower(), "application/octet-stream"))
+
+
+_RP_GONE = {"ok": False, "error": "This link has expired. Ask for a new one."}
+_RP_SLOW = {"ok": False, "error": "That was a lot, quickly. Please wait a moment and try again."}
+
+
+@app.route("/catalog/<pack_id>", methods=["GET"])
+def catalog_page(pack_id):
+    if not _is_authed():
+        return redirect(url_for("login_page", next=request.path))
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+    pack = rp.get_pack(pack_id)
+    if not pack or pack.get("kind") != "catalog":
+        abort(404)
+    brand_id = str(pack.get("brand_id") or "")
+    plan_id = str(pack.get("plan_id") or "")
+    if brand_id and plan_id:
+        try:
+            cat.sync(brand_id, plan_id)
+        except ValueError:
+            pass
+    who = _catalog_actor_name()
+    uid = _catalog_actor_uid() or None
+    try:
+        token = rp.mint_token(_serializer, pack_id, who=who, uid=uid)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    return redirect(f"/review-pack/{token}")
+
+
+@app.route("/api/review-packs", methods=["GET"])
+def review_packs_session_list():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib import review_pack as rp
+    return jsonify({"ok": True, "packs": rp.list_packs()}), 200
+
+
+@app.route("/api/review-packs/<pack_id>/share", methods=["POST"])
+def review_packs_session_share(pack_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    denied = _user_forbid('share')
+    if denied:
+        return denied
+    from _lib import review_pack as rp
+    body = request.get_json(silent=True) or {}
+    who = str(body.get("who") or "Guest").strip()[:40] or "Guest"
+    role = "approver" if body.get("campaign_approver") or body.get("role") == "approver" else None
+    try:
+        token = rp.mint_token(_serializer, pack_id, who=who, role=role)
+    except ValueError as e:
+        return _rp_error(e)
+    scheme = (request.headers.get('X-Forwarded-Proto') or request.scheme).split(',')[0].strip()
+    expires = _dt_cls.now(_tz.utc) + _td(seconds=rp.MAX_AGE)
+    return jsonify({"ok": True, "share_url": f"{scheme}://{request.host}/review-pack/{token}",
+                    "expires_at": expires.isoformat(), "who": who, "campaign_approver": role == "approver"}), 200
+
+
+@app.route("/api/review-packs/<pack_id>/campaign-approve", methods=["POST"])
+def review_packs_campaign_approve(pack_id):
+    denied = _user_forbid("campaign_approve")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    who = _actor_name(default="Christelle")
+    uid = (_catalog_user_row() or {}).get("id")
+    try:
+        out = cat.approve_campaign(pack_id, who, str(uid) if uid else None)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({**out, "campaign_approval": rp.get_pack(pack_id).get("campaign_approval")}), 200
+
+
+@app.route("/review-pack/<token>/move-slot", methods=["POST"])
+def review_pack_move_slot(token):
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    staff = _is_authed()
+    row = current_user()
+    if not cat.staff_can_drag(staff=staff, session_user=row if isinstance(row, dict) else None, share_role=share.get("role")):
+        return jsonify({"ok": False, "error": "You cannot move posts on this page."}), 403
+    body = request.get_json(silent=True) or {}
+    item_id = str(body.get("item") or "")
+    new_date = str(body.get("date") or "")
+    who = _catalog_actor_name()
+    pack = rp.get_pack(share["pack"])
+    if not pack or pack.get("kind") != "catalog":
+        return jsonify({"ok": False, "error": "That is not a catalog pack."}), 400
+    try:
+        out = cat.move_slot_day(
+            share["pack"],
+            item_id,
+            new_date,
+            who,
+            calendar_move=lambda brand, move_body, actor: _clean_cal_move(brand, move_body, actor),
+        )
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/remake", methods=["POST"])
+def review_packs_remake(pack_id):
+    denied = _user_forbid("catalog_make")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.remake_from_notes(pack_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/show-remake", methods=["POST"])
+def review_packs_show_remake(pack_id, item_id):
+    denied = _user_forbid("catalog_make")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.show_remake_to_client(pack_id, item_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/show-all-remakes", methods=["POST"])
+def review_packs_show_all_remakes(pack_id):
+    denied = _user_forbid("catalog_make")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.show_all_remakes_to_client(pack_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/clear-hold", methods=["POST"])
+def review_packs_clear_hold(pack_id, item_id):
+    denied = _user_forbid("approve")
+    if denied:
+        return denied
+    from _lib import catalog as cat
+
+    who = _actor_name(default="Christelle")
+    try:
+        out = cat.clear_hold(pack_id, item_id, who)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify(out), 200
+
+
+@app.route("/review-pack/<token>", methods=["GET"])
+def review_pack_page(token):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return rp.render_bad_link_page(), 404, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
+    pack_now = rp.get_pack(share["pack"]) or {}
+    if pack_now.get("kind") == "catalog" and pack_now.get("brand_id") and pack_now.get("plan_id"):
+        # Guests (Herman's link) see new pictures and dates too, not only /catalog/ openers.
+        from _lib import catalog as _cat
+        try:
+            _cat.sync(str(pack_now["brand_id"]), str(pack_now["plan_id"]))
+        except Exception as e:  # noqa: BLE001 - the page still opens with what it has
+            _app_log.warning("catalog sync on guest open failed for %s: %s", share["pack"], e)
+    staff = _is_authed()
+    page = rp.render_page(
+        rp.public_view(
+            share["pack"],
+            token,
+            share["who"],
+            staff=staff,
+            **_rp_public_view_kwargs(share, staff),
+        ),
+        token=token,
+    )
+    return page, 200, {**_RP_HEADERS, "Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/review-pack/<token>/data", methods=["GET"])
+def review_pack_data(token):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    staff = _is_authed()
+    resp = jsonify(
+        rp.public_view(
+            share["pack"],
+            token,
+            share["who"],
+            staff=staff,
+            **_rp_public_view_kwargs(share, staff),
+        )
+    )
+    resp.headers.update(_RP_HEADERS)
+    return resp
+
+
+@app.route("/review-pack/<token>/image/<item>/<int:idx>", methods=["GET"])
+def review_pack_image(token, item, idx):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    size = str(request.args.get("size") or "feed").strip().lower()
+    path = rp.image_path(share["pack"], item, idx, size=size) if share else None
+    if path is None:
+        abort(404)
+    resp = _rp_send(path)
+    resp.headers.update({"Cache-Control": "private, max-age=600", "X-Robots-Tag": "noindex"})
+    return resp
+
+
+@app.route("/review-pack/<token>/file/<name>", methods=["GET"])
+def review_pack_file(token, name):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    path = rp.upload_path(share["pack"], name) if share else None
+    if path is None:
+        abort(404)
+    resp = _rp_send(path)
+    resp.headers.update({"Cache-Control": "private, max-age=600", "X-Robots-Tag": "noindex",
+                         "Content-Disposition": "inline", "X-Content-Type-Options": "nosniff"})
+    return resp
+
+
+def _rp_error(e):
+    from _lib import review_pack as rp
+    return jsonify({"ok": False, "error": str(e)}), (404 if isinstance(e, rp.NotFound) else 400)
+
+
+@app.route("/review-pack/<token>/act", methods=["POST"])
+def review_pack_act(token):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    if _review_pack_limited(token, "act", _REVIEW_PACK_LIMIT_PER_MIN):
+        return jsonify(_RP_SLOW), 429
+    body = request.get_json(silent=True) or {}
+    state = str(body.get("state") or "")
+    choice = str(body.get("choice") or "") or None
+    note = str(body.get("note") or "").strip()
+    if not state and not choice:
+        return jsonify({"ok": False, "error": "choose Approve, Reject, Hold or a design"}), 400
+    pack = rp.get_pack(share["pack"])
+    if pack and pack.get("kind") == "catalog" and state in ("hold", "reject"):
+        if not note:
+            return jsonify({"ok": False, "error": "Say what should change, so the remake gets it right."}), 400
+    try:
+        if state:
+            row = rp.record_decision(share["pack"], str(body.get("item") or ""), state, share["who"], choice=choice)
+            if pack and pack.get("kind") == "catalog" and state in ("hold", "reject") and note:
+                tag = str(body.get("tag") or "general").strip() or "general"
+                if tag not in rp.TAGS:
+                    tag = "general"
+                rp.add_comment(share["pack"], str(body.get("item") or ""), share["who"], note,
+                               role="client", tag=tag)
+            if pack and pack.get("kind") == "catalog" and state in ("approve", "hold", "reject"):
+                from _lib import catalog as cat
+
+                item_id = str(body.get("item") or "")
+                cat.feedback_from_mark(share["pack"], item_id, state, share["who"], token=token, note=note)
+        else:
+            row = rp.record_choice(share["pack"], str(body.get("item") or ""), choice, share["who"])
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "decision": row}), 200
+
+
+@app.route("/review-pack/<token>/done", methods=["POST"])
+def review_pack_done(token):
+    """She says she has finished. Recorded as a note for us; nothing is scheduled or sent."""
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    if _review_pack_limited(token, "done", _REVIEW_PACK_LIMIT_PER_MIN):
+        return jsonify(_RP_SLOW), 429
+    try:
+        row = rp.mark_done(share["pack"], share["who"])
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "done": row}), 200
+
+
+@app.route("/review-pack/<token>/comment", methods=["POST"])
+def review_pack_comment(token):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    if _review_pack_limited(token, "comment", _REVIEW_PACK_LIMIT_PER_MIN):
+        return jsonify(_RP_SLOW), 429
+    body = request.get_json(silent=True) or {}
+    try:
+        row = rp.add_comment(share["pack"], str(body.get("item") or ""), share["who"], str(body.get("text") or ""),
+                             role="client", tag=str(body.get("tag") or "general"))
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "comment": {**row, "colour": rp.colour_of(share["pack"], row.get("who", ""))}}), 200
+
+
+@app.route("/review-pack/<token>/upload", methods=["POST"])
+def review_pack_upload(token):
+    from _lib import review_pack as rp
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    if _review_pack_limited(token, "upload", _REVIEW_PACK_UPLOAD_LIMIT_PER_MIN):
+        return jsonify(_RP_SLOW), 429
+    files = request.files.getlist("files")
+    if not files:
+        return jsonify({"ok": False, "error": "Choose a photo first."}), 400
+    if len(files) > rp.MAX_UPLOADS_PER_BATCH:
+        return jsonify({"ok": False, "error": f"Only {rp.MAX_UPLOADS_PER_BATCH} photos at a time. Please choose fewer."}), 400
+    item = str(request.form.get("item") or "")
+    pack = rp.get_pack(share["pack"])
+    purpose = str(request.form.get("purpose") or "").strip()
+    text = str(request.form.get("text") or "").strip()
+    if pack and pack.get("kind") == "catalog":
+        from _lib import catalog as cat
+
+        if purpose not in cat.UPLOAD_PURPOSES:
+            return jsonify({"ok": False, "error": "Say what this photo is for: reference, element or post."}), 400
+        if not text:
+            return jsonify({"ok": False, "error": "Write a line about what this photo is for."}), 400
+    if not rp.item_exists(share["pack"], item):
+        return jsonify({"ok": False, "error": "That post is not in this pack."}), 404
+    # Check every file BEFORE keeping any, so a bad one saves nothing.
+    blobs = []
+    for f in files:
+        data = f.read(rp.MAX_UPLOAD_BYTES + 1)
+        try:
+            rp.check_upload(data)
+        except ValueError as e:
+            return jsonify({"ok": False, "error": f"{rp._clean_name(f.filename)}: {e}"}), 400
+        blobs.append((data, f.filename))
+    source = str(request.form.get("source") or "")
+    rights = str(request.form.get("rights") or "").lower() in ("1", "true", "on", "yes")
+    saved = [
+        rp.save_upload(
+            share["pack"],
+            item,
+            data,
+            original_name=name or "",
+            source=source,
+            rights=rights,
+            who=share["who"],
+            purpose=purpose,
+            text=text,
+        )
+        for data, name in blobs
+    ]
+    return jsonify({"ok": True, "uploads": saved}), 200
+
+
+@app.route("/review-pack/<token>/campaign-approve", methods=["POST"])
+def review_pack_campaign_approve(token):
+    from _lib import catalog as cat
+    from _lib import review_pack as rp
+
+    share = _rp_share(token)
+    if not share:
+        return jsonify(_RP_GONE), 404
+    if not _rp_campaign_can_approve(share, _is_authed()):
+        return jsonify({"ok": False, "error": "Your login cannot approve the campaign."}), 403
+    try:
+        out = cat.approve_campaign(share["pack"], share["who"], share.get("uid"))
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({**out, "campaign_approval": rp.get_pack(share["pack"]).get("campaign_approval")}), 200
+
+
+# Our side. Bearer token only (the gate treats /api/jobs as job-authed).
+@app.route("/api/jobs/review-packs", methods=["GET"])
+def review_packs_list():
+    from _lib import review_pack as rp
+    return jsonify({"ok": True, "packs": rp.list_packs()}), 200
+
+
+@app.route("/api/jobs/review-packs", methods=["POST"])
+def review_packs_create():
+    from _lib import review_pack as rp
+    body = request.get_json(silent=True) or {}
+    try:
+        pack = rp.create_pack(str(body.get("title") or ""), body.get("items") or [],
+                              client=str(body.get("client") or ""), theme=body.get("theme"),
+                              notice=str(body.get("notice") or ""))
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "pack_id": pack["id"], "items": [i["id"] for i in pack["items"]]}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>", methods=["GET"])
+def review_packs_view(pack_id):
+    from _lib import review_pack as rp
+    try:
+        return jsonify({"ok": True, **rp.view(pack_id)}), 200
+    except ValueError as e:
+        return _rp_error(e)
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/news", methods=["GET"])
+def review_packs_news(pack_id):
+    """What the client did since ?since=<time>: counts and plain text for the Mac watcher. Sends nothing."""
+    from _lib import review_pack as rp
+    try:
+        return jsonify({"ok": True, **rp.news(pack_id, request.args.get("since") or "")}), 200
+    except ValueError as e:
+        return _rp_error(e)
+
+
+@app.route("/api/jobs/review-packs/<pack_id>", methods=["DELETE"])
+def review_packs_delete(pack_id):
+    """Delete a pack for good. Refused (409) once she has answered it, unless ?force=1."""
+    from _lib import review_pack as rp
+    force = str(request.args.get("force") or "") in ("1", "true")
+    try:
+        gone = rp.delete_pack(pack_id, force=force)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 409
+    if not gone:
+        return jsonify({"ok": False, "error": "that pack is not there"}), 404
+    return jsonify({"ok": True, "deleted": pack_id}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/items", methods=["POST"])
+def review_packs_add_item(pack_id):
+    """Add one more post to a pack that is already live. Same links, answers untouched."""
+    from _lib import review_pack as rp
+    try:
+        item = rp.add_item(pack_id, request.get_json(silent=True) or {})
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "item_id": item["id"]}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/calendar", methods=["POST"])
+def review_packs_set_calendar(pack_id):
+    """Set (or clear with {}) the calendar grid at the top of the client's page."""
+    from _lib import review_pack as rp
+    try:
+        cal = rp.set_calendar(pack_id, request.get_json(silent=True) or {})
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "slots": len(cal.get("slots") or [])}), 200
+
+
+# Our side, from the review page itself: a signed-in teammate who opens a client's link sees
+# "Remove from pack" and "Put back". Not under /api/jobs, so the gate needs the session
+# cookie (or the bearer token, which _is_authed accepts on /api/). The client's link has
+# no route that removes anything. Removing hides a post; nothing is deleted.
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/remove", methods=["POST"])
+def review_packs_remove_item(pack_id, item_id):
+    denied = _user_forbid('approve')
+    if denied:
+        return denied
+    from _lib import review_pack as rp
+    try:
+        out = rp.remove_item(pack_id, item_id)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "removed": out}), 200
+
+
+@app.route("/api/review-packs/<pack_id>/items/<item_id>/restore", methods=["POST"])
+def review_packs_restore_item(pack_id, item_id):
+    denied = _user_forbid('approve')
+    if denied:
+        return denied
+    from _lib import review_pack as rp
+    try:
+        out = rp.restore_item(pack_id, item_id)
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "restored": out}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/items/<item_id>/image", methods=["POST"])
+def review_packs_add_image(pack_id, item_id):
+    from _lib import review_pack as rp
+    f = request.files.get("file")
+    if f is None:
+        return jsonify({"ok": False, "error": "send the picture as the 'file' field"}), 400
+    try:
+        out = rp.add_item_image(pack_id, item_id, f.read(rp.MAX_PACK_IMAGE_BYTES + 1),
+                                replace=str(request.args.get("replace") or "") in ("1", "true"))
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, **out}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/share", methods=["POST"])
+def review_packs_share(pack_id):
+    from _lib import review_pack as rp
+    body = request.get_json(silent=True) or {}
+    who = str(body.get("who") or "Chantalle")
+    role = "approver" if body.get("campaign_approver") or body.get("role") == "approver" else None
+    try:
+        token = rp.mint_token(_serializer, pack_id, who=who, role=role)
+    except ValueError as e:
+        return _rp_error(e)
+    scheme = (request.headers.get('X-Forwarded-Proto') or request.scheme).split(',')[0].strip()
+    expires = _dt_cls.now(_tz.utc) + _td(seconds=rp.MAX_AGE)
+    return jsonify({"ok": True, "share_url": f"{scheme}://{request.host}/review-pack/{token}",
+                    "expires_at": expires.isoformat(), "who": who, "campaign_approver": role == "approver"}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/reply", methods=["POST"])
+def review_packs_reply(pack_id):
+    from _lib import review_pack as rp
+    body = request.get_json(silent=True) or {}
+    try:
+        row = rp.add_comment(pack_id, str(body.get("item") or ""), str(body.get("who") or "Christelle"),
+                             str(body.get("text") or ""), role="us", tag=str(body.get("tag") or "general"))
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "comment": row}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/file/<name>", methods=["GET"])
+def review_packs_file(pack_id, name):
+    # The gate lets any URL ending in .png/.jpg through unchecked (its static-asset
+    # rule), and this one does end that way, so the handler asks for the token itself.
+    if not _is_job_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    from _lib import review_pack as rp
+    path = rp.upload_path(pack_id, name)
+    if path is None:
+        abort(404)
+    return _rp_send(path)
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/image/<item_id>/<int:idx>", methods=["GET"])
+def review_packs_image(pack_id, item_id, idx):
+    if not _is_job_authed():
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    from _lib import review_pack as rp
+    path = rp.image_path(pack_id, item_id, idx)
+    if path is None:
+        abort(404)
+    return _rp_send(path)
 
 
 @app.route("/api/calendar-suggestions/<brand_id>/swap", methods=["POST"])
@@ -53236,6 +54397,19 @@ _META_ADS_ACCOUNT_FOR_BRAND = {
     "swing-shack": "act_1024882912541604",
 }
 
+
+def _ads_brand_refusal(brand_id):
+    """None when the brand has a Meta ad account. Otherwise the response to send:
+    404 with a plain reason for one of our brands without an account (The Bag Drop,
+    2026-11-06), 400 for an unknown brand."""
+    if brand_id in _META_ADS_ACCOUNT_FOR_BRAND:
+        return None
+    from _lib.brand_scope import OPERATING_BRANDS as _ops
+    if brand_id in _ops:
+        return jsonify({"ok": False, "no_ad_account": True,
+                        "error": f"{brand_id} has no Meta ad account connected yet, so there are no ads to show."}), 404
+    return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+
 _META_ADS_ACCOUNT_NAME = {
     "act_2101557317059886": "Stick",
     "act_1024882912541604": "Swing Shack – Ad account",
@@ -53646,9 +54820,9 @@ def meta_ads_ingest(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     try:
         out = _v23_ingest_paid_media(brand_id,
                                        period_days=31, ytd=True)
@@ -53674,9 +54848,9 @@ def meta_ads_cache(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     period_days = request.args.get("period_days", 31, type=int)
     if period_days not in (7, 14, 28, 31, 90):
         period_days = 31
@@ -53817,9 +54991,9 @@ def meta_ads_campaign_adsets(brand_id, campaign_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     acc = _v23_resolve_ads_account(brand_id)
     token_label, token = _v23_resolve_ads_token(brand_id)
     if not acc or not token:
@@ -53858,9 +55032,9 @@ def meta_ads_adset_ads(brand_id, adset_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     acc = _v23_resolve_ads_account(brand_id)
     token_label, token = _v23_resolve_ads_token(brand_id)
     if not acc or not token:
@@ -53894,9 +55068,9 @@ def meta_ads_ad_insights(brand_id, ad_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     acc = _v23_resolve_ads_account(brand_id)
     _, token = _v23_resolve_ads_token(brand_id)
     if not acc or not token:
@@ -54309,8 +55483,9 @@ def meta_paid_media_audit():
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     brand = request.args.get("brand", "stick")
-    if brand not in ("stick", "swing-shack"):
-        return jsonify({"ok": False, "error": "brand must be stick or swing-shack"}), 400
+    _refusal = _ads_brand_refusal(brand)
+    if _refusal:
+        return _refusal
     acc = _v23_resolve_ads_account(brand)
     if not acc:
         return jsonify({"ok": False, "brand": brand,
@@ -54421,7 +55596,7 @@ def meta_paid_media_refresh():
     if period_days not in (7, 14, 28, 31, 90):
         period_days = 31
     out = {}
-    for brand_id in ("stick", "swing-shack"):
+    for brand_id in _META_ADS_ACCOUNT_FOR_BRAND:
         try:
             res = _v23_ingest_paid_media(brand_id, period_days,
                                             ytd=(period_days >= 31))
@@ -54441,7 +55616,7 @@ def meta_paid_media_refresh():
     # Copy canonical cache files into period-scoped caches so
     # /api/meta/ads/cache?period_days=7 hits a fresh 7-day cache.
     period_cache_paths = {}
-    for brand_id in ("stick", "swing-shack"):
+    for brand_id in _META_ADS_ACCOUNT_FOR_BRAND:
         canonical = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
         per = os.path.join(DATA_DIR, "paid-media",
                               f"{brand_id}__{period_days}d.json")
@@ -54480,9 +55655,9 @@ def meta_ads_brain(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     days = request.args.get("days", 31, type=int)
     if days not in (7, 14, 28, 31, 90):
         days = 31
@@ -54511,7 +55686,9 @@ def meta_ads_brain(brand_id):
 # by the ads_brief job (_lib/jobs/layer7/ads_brief.py); these routes only
 # read what it wrote.
 
-_ADS_BRIEF_BRANDS = ("stick", "swing-shack")
+# The brands with a Meta ad account; a new account in _META_ADS_ACCOUNT_FOR_BRAND switches
+# the brief, trends and research on for that brand.
+_ADS_BRIEF_BRANDS = tuple(_META_ADS_ACCOUNT_FOR_BRAND)
 
 
 def _ads_lane_load(brand_id, rel):
@@ -54563,9 +55740,9 @@ def meta_ads_brief(brand_id):
     """GET /api/meta/ads/brief/<brand_id>[?kind=daily|weekly] — latest brief as JSON."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     kind = "weekly" if request.args.get("kind") == "weekly" else "daily"
     brief = _ads_brief_load(brand_id, kind)
     if brief is None:
@@ -54578,9 +55755,9 @@ def meta_ads_history(brand_id):
     """GET /api/meta/ads/history/<brand_id> — weekly trends and the ads that worked."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     history = _ads_lane_load(brand_id, "ads-history/latest.json")
     if history is None:
         return jsonify({"ok": False, "error": "no history yet — run the ads_brief job"}), 404
@@ -54592,9 +55769,9 @@ def meta_ads_trends(brand_id):
     """GET /api/meta/ads/trends/<brand_id> — week-by-week totals and per-ad winners, from the last ads_brief run."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     latest = _ads_lane_load(brand_id, "ads-history/latest.json")
     if latest is None:
         return jsonify({"ok": False, "error": "no ads trends yet — run the ads_brief job"}), 404
@@ -54607,9 +55784,9 @@ def meta_ads_library(brand_id):
     """GET /api/meta/ads/library/<brand_id>[?refresh=1] — other advertisers' ads."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     library = _ads_library(brand_id, refresh=request.args.get("refresh") == "1")
     if library is None:
         return jsonify({"ok": False, "error": "not checked yet — add ?refresh=1"}), 404
@@ -54624,9 +55801,9 @@ def _ads_actions_ctx(brand_id):
     """(error_response, ctx) for the ads-actions routes."""
     if not _is_authed():
         return (jsonify({"ok": False, "error": "auth required"}), 401), None
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return (jsonify({"ok": False,
-                         "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400), None
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal, None
     _label, token = _v23_resolve_ads_token(brand_id)
     account_id = _v23_resolve_ads_account(brand_id)
     if not token or not account_id:
@@ -54689,8 +55866,9 @@ def meta_ads_guard(brand_id):
     """GET — the budget guard: on or off, the last hourly check (a dry run when off), and what it paused."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     return jsonify(_ads_guard_view(brand_id)), 200
 
 
@@ -54794,8 +55972,9 @@ def meta_ads_budget(brand_id):
     """GET — the monthly budget and where the month stands against it."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     return jsonify(_ads_budget_view(brand_id)), 200
 
 
@@ -54805,8 +55984,9 @@ def meta_ads_budget_set(brand_id):
     a "month" budget (the amount keeps its old field name). Changes nothing in Meta."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     raw = (request.get_json(silent=True) or {}).get("monthly_budget")
     try:
         amount = round(float(raw), 2)
@@ -54859,8 +56039,9 @@ def meta_ads_tracking(brand_id):
     """GET — per running ad: where it goes, what its UTMs say, what GA4 saw. From the last ads_brief run."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in _ADS_BRIEF_BRANDS:
-        return jsonify({"ok": False, "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    _refusal = _ads_brand_refusal(brand_id)
+    if _refusal:
+        return _refusal
     data = _ads_lane_load(brand_id, "ads-tracking/latest.json")
     if data is None:
         return jsonify({"ok": False, "error": "no tracking check yet — run the ads_brief job"}), 404

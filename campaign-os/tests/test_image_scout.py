@@ -1,4 +1,5 @@
 """Image scout: quality gate, size-parameter stripping, saving with provenance."""
+import importlib
 import io
 import os
 import tempfile
@@ -24,6 +25,12 @@ class ScoutTests(unittest.TestCase):
     def setUp(self):
         self.brand = "sc-" + next(tempfile._get_candidate_names())
         self.dir = Path(tempfile.mkdtemp(prefix="cos-scout-imgs-"))
+        # fetch files originals in the shared catalogue; keep that in a temp folder too.
+        # Import here, not at the top: another test purges _lib.* from sys.modules.
+        il = importlib.import_module("_lib.image_library")
+        patcher = mock.patch.object(il, "CATALOGUE", Path(tempfile.mkdtemp(prefix="cos-scout-cat-")))
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_size_parameters_are_dropped_but_the_version_stays(self):
         u = "https://x.com/cdn/shop/files/a.png?v=12&width=533&crop=center"
@@ -76,6 +83,14 @@ class ScoutTests(unittest.TestCase):
         with mock.patch.object(sc, "_get", return_value={"status": 200, "type": "image/png", "data": png(1200, 1200)}):
             sc.fetch(self.brand, row, self.dir)
         self.assertFalse(pm.load(self.brand)[0]["exact_build"])
+
+    def test_fetch_leaves_the_real_catalogue_alone(self):
+        real = Path(__file__).resolve().parents[2] / "data" / "brand-directory" / "_shared" / "catalogue" / "catalogue.json"
+        before = real.read_bytes() if real.exists() else None
+        row = sc.add(self.brand, "TS005", "Y", "https://t.com/p5", "https://t.com/i5.png")
+        with mock.patch.object(sc, "_get", return_value={"status": 200, "type": "image/png", "data": png(1200, 1200)}):
+            self.assertTrue(sc.fetch(self.brand, row, self.dir)["ok"])
+        self.assertEqual(real.read_bytes() if real.exists() else None, before)
 
 
 if __name__ == "__main__":
