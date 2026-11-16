@@ -28,12 +28,11 @@ PROBES: dict[str, dict[str, list[str] | None]] = {
         "stick": ["service_start", "service_end", "coaching_promo", "service_hero"],
         "bag-drop": None,
     },
-    "venue": {"swing-shack": ["venue_promo"], "stick": ["shop_corner", "product_lifestyle"], "bag-drop": None},
+    # "Where to find us" (location) is part of venue since 16 Nov 2026 (Christelle: 9 types, not 11).
+    "venue": {"swing-shack": ["venue_promo"], "stick": ["shop_corner", "product_lifestyle", "location"], "bag-drop": None},
     "person": {"swing-shack": [], "stick": ["staff_profile"], "bag-drop": []},
     "tip": {"swing-shack": ["tip"], "stick": [], "bag-drop": ["tip"]},
     "statement": {"swing-shack": [], "stick": ["brand_statement"], "bag-drop": []},
-    "location": {"swing-shack": [], "stick": ["location"], "bag-drop": None},
-    "generic": {"swing-shack": ["feed"], "stick": ["feed"], "bag-drop": ["feed"]},
     "condition": {"swing-shack": None, "stick": None, "bag-drop": ["condition"]},
 }
 
