@@ -15,7 +15,7 @@ import {
   type GbpStage,
   type PostHandlers,
 } from '../../components/GbpPosts'
-import { Badge, ClassicLink, Tip } from '../../components/ui'
+import { Badge, Tip } from '../../components/ui'
 import {
   approveGmbDraft,
   createGmbDraft,
@@ -428,7 +428,6 @@ export function Gbp() {
           Back to my posts
         </button>
       )}
-      <ClassicLink href="/?page=gmb" label="GMB drafts" />
     </div>
   )
 }

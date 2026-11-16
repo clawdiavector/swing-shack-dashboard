@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../../components/chrome'
-import { Badge, Button, ClassicLink, Tip } from '../../components/ui'
+import { Badge, Button, Tip } from '../../components/ui'
 import {
   fetchAssetAiDraft,
   fetchCalendarMonth,
@@ -373,9 +373,6 @@ export function BuildPost() {
       >
         One click assembles a draft package; preview then confirm queues via with-gate. No auto-publish.
         {prefillNote ? ` ${prefillNote}` : ''}
-        <span className="mt-2 block">
-          <ClassicLink href="/?page=buildpost" label="Build a post" />
-        </span>
       </PageIntro>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">

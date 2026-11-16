@@ -48,6 +48,8 @@ export type TargetSlot = {
   target: number
   done: number
   waiting: number
+  /** Included in done: links shared to a story from the reposts list. */
+  reshared?: number
 }
 
 // The day's lead category, first in `order`, and what to push for it.
@@ -60,6 +62,8 @@ export type DayTarget = {
   target: number
   done: number
   waiting: number
+  /** Included in done: links shared to a story from the reposts list. */
+  reshared?: number
   slots: TargetSlot[]
   lead?: DayLead
 }

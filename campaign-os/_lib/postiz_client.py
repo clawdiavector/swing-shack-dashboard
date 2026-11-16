@@ -536,6 +536,68 @@ def create_post(
     return _request("POST", "/posts", json_body=payload, brand_id=brand_id)
 
 
+def story_settings(provider: str | None) -> Optional[dict]:
+    """Postiz settings for a story, or None when Postiz documents no story for that channel.
+
+    Only Instagram has one (post_type "story", with its own provider name as __type). Facebook,
+    TikTok and YouTube have none, so a caller must not fall back to a feed post.
+    """
+    p = str(provider or "").strip().lower()
+    if p.startswith("instagram"):
+        return {"__type": p, "post_type": "story"}
+    return None
+
+
+def create_story(
+    integration_id: str,
+    provider: str,
+    image_path: str,
+    *,
+    brand_id: str | None = None,
+    publish_date: Optional[str] = None,
+    draft: bool = True,
+) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
+    """Upload a finished 9:16 image and create it as a story. A draft unless draft=False.
+
+    Stories carry no caption, and Postiz cannot add a link sticker. Never sent "now": create_post
+    moves a missing, past or under-5-minutes time to 5 minutes ahead.
+    """
+    settings = story_settings(provider)
+    if settings is None:
+        return None, ("400", "Postiz has no story type for %s; Instagram stories use create_story, Facebook create_facebook_story" % (provider or "this channel"))
+    return _send_story(integration_id, settings, image_path, brand_id, publish_date, draft)
+
+
+def facebook_story_settings() -> dict:
+    """Postiz settings for a Facebook Page story.
+
+    Not in Postiz's public docs: its Facebook provider reads post_type "story" and publishes through
+    photo_stories (postiz-app main, facebook.provider.ts, checked 2026-10-27). Confirm on the first live run.
+    """
+    return {"__type": "facebook", "post_type": "story"}
+
+
+def create_facebook_story(
+    integration_id: str,
+    image_path: str,
+    *,
+    brand_id: str | None = None,
+    publish_date: Optional[str] = None,
+    draft: bool = True,
+) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
+    """Upload a finished 9:16 image and create it as a Facebook Page story. A draft unless draft=False."""
+    return _send_story(integration_id, facebook_story_settings(), image_path, brand_id, publish_date, draft)
+
+
+def _send_story(integration_id, settings, image_path, brand_id, publish_date, draft):
+    up, err = upload_media(image_path, brand_id=brand_id)
+    if err or not up or not up.get("id") or not up.get("path"):
+        return None, err or ("502", "Postiz upload returned no media: %s" % (up,))
+    return create_post(
+        integration_id, "", [{"id": up["id"], "path": up["path"]}],
+        brand_id=brand_id, publish_date=publish_date, platform_settings=settings, draft=draft)
+
+
 def list_posts(
     integration_id: Optional[str] = None,
     *,

@@ -1,0 +1,180 @@
+{
+  "about": "Prices approved for posts but not (yet) in the ClubLab booking list. Each needs what it is, its source and an end date. The caption check fails any rand price that is neither live nor listed here.",
+  "prices": [
+    {
+      "rand": 22500,
+      "what": "2027 Progress membership, loyalty price (10% off R25,000)",
+      "source": "Herman with Christelle, 9 Nov 2026 (wiki research/swing-shack-2027-prices-launch-check-2026-11-06)",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 280,
+      "what": "2027 bays: 1 player: R280 per bay, per hour",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 380,
+      "what": "2027 bays: 2 players: R380 per bay, per hour",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 500,
+      "what": "2027 bays: 3 to 4 players: R500 per bay, per hour",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 665,
+      "what": "2027 coaching: Single session: R665 for 30 minutes, R950 for 60 minutes",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 875,
+      "what": "2027 juniors: Junior Saturday programme: R875 per month.",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 950,
+      "what": "2027 coaching: Single session: R665 for 30 minutes, R950 for 60 minutes",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 2200,
+      "what": "2027 practice: Unlimited individual practice: R2,200 per month",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 2500,
+      "what": "2027 carousel: Progress (new): R2,500 per month, or R25,000 annual upfront. 1 coaching session monthly, 2 practice ",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 2650,
+      "what": "2027 practice: Unlimited practice + 1 coaching session monthly: R2,650 per month",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 2945,
+      "what": "2027 coaching: 5 sessions: R2,945 for 30 minutes, R4,275 for 60 minutes",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 3200,
+      "what": "2027 practice: Unlimited practice + 4 coaching sessions monthly: R3,200 per month",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 3700,
+      "what": "2027 carousel: Complete: R3,700 per month, or R40,000 annual upfront. 1 coaching session weekly, 1 dozen balls + 1 ",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 4250,
+      "what": "2027 loyalty: 2027 annual Standard membership: R4,250. Same annual fee as 2026.",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 4275,
+      "what": "2027 coaching: 5 sessions: R2,945 for 30 minutes, R4,275 for 60 minutes",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 4800,
+      "what": "2027 carousel: Standard: R450 per month, or R4,800 annual upfront. 4 × 60-minute practice sessions monthly.",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 5605,
+      "what": "2027 coaching: 10 sessions: R5,605 for 30 minutes, R8,075 for 60 minutes",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 8075,
+      "what": "2027 coaching: 10 sessions: R5,605 for 30 minutes, R8,075 for 60 minutes",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 10545,
+      "what": "2027 corporate: 3 employees: R114,000 annual upfront, or R10,545 monthly payment",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 13764,
+      "what": "2027 corporate: 4 employees: R148,800 annual upfront, or R13,764 monthly payment",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 16650,
+      "what": "2027 corporate: 5 employees: R180,000 annual upfront, or R16,650 monthly payment",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 25000,
+      "what": "2027 carousel: Progress (new): R2,500 per month, or R25,000 annual upfront. 1 coaching session monthly, 2 practice ",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 36000,
+      "what": "2027 loyalty: Complete: R36,000",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 40000,
+      "what": "2027 carousel: Complete: R3,700 per month, or R40,000 annual upfront. 1 coaching session weekly, 1 dozen balls + 1 ",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 85500,
+      "what": "2027 loyalty: Platinum, first year: R85,500",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 95000,
+      "what": "2027 carousel: Platinum: R95,000 first year, paid upfront. R40,000 fitted club allowance.",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 114000,
+      "what": "2027 corporate: 3 employees: R114,000 annual upfront, or R10,545 monthly payment",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 148800,
+      "what": "2027 corporate: 4 employees: R148,800 annual upfront, or R13,764 monthly payment",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    },
+    {
+      "rand": 180000,
+      "what": "2027 corporate: 5 employees: R180,000 annual upfront, or R16,650 monthly payment",
+      "source": "2027 price deck (5 Nov); posts checked line by line 6 Nov; booked at Christelle's yes 9 Nov",
+      "until": "2027-12-31"
+    }
+  ],
+  "not_approved_yet": "2027 on-course prices (R1,100, R1,300, R1,650, R1,750, R1,950): held until green fees, carts and travel are confirmed (deck slide 15)."
+}
