@@ -1711,6 +1711,27 @@ def _parse_copy_package(raw: str | None) -> dict[str, str] | None:
     }
 
 
+_MAX_CAPTION_SENTENCES = 2
+
+
+def _clamp_caption_sentences(body: str, *, max_sentences: int = _MAX_CAPTION_SENTENCES) -> tuple[str, int]:
+    """Keep the first ``max_sentences`` sentences of a caption body.
+
+    The writer is told "at most 2 sentences" and "7 words or fewer per
+    sentence". It keeps the short sentences and writes three or four of them,
+    so the 2-sentence gate threw out 9 to 11 of every 12 candidates and whole
+    runs ended with "no survivors" (16 Nov 2026). Cut the extra sentences here
+    and let the gate check what is left. Returns (body, sentences_dropped).
+    """
+    text = (body or "").strip()
+    if not text:
+        return text, 0
+    parts = [p for p in re.split(r"(?<=[.!?])\s+", text) if p.strip()]
+    if len(parts) <= max_sentences:
+        return text, 0
+    return " ".join(parts[:max_sentences]).strip(), len(parts) - max_sentences
+
+
 def _check_locale(
     copy_package: dict[str, str] | None,
     *,
@@ -1974,6 +1995,7 @@ def _generate_candidate(ctx: dict, route: dict) -> dict:
             return out
 
         if pkg:
+            pkg["caption_body"], dropped = _clamp_caption_sentences(pkg["caption_body"])
             body = _finalize_caption(pkg["caption_body"])
             copy_package = {
                 **pkg,
@@ -1981,6 +2003,8 @@ def _generate_candidate(ctx: dict, route: dict) -> dict:
                 "locale": "en-ZA",
                 "source": "llm",
             }
+            if dropped:
+                copy_package["sentences_dropped"] = dropped
         else:
             prose = raw.strip().strip('"').strip("`")
             prose = re.sub(r"^(Caption|Output|Result)\s*:\s*", "", prose, flags=re.I).strip()

@@ -277,4 +277,5 @@ campaign-os/tests/test_clean_calendar_postiz_draft_settings_20261110.py
 campaign-os/tests/test_review_pack_carousel_one_card_20261113.py
 campaign-os/tests/test_design_layout_ledger_20261116.py
 campaign-os/tests/test_design_post_brand_20261116.py
+campaign-os/tests/test_caption_two_sentence_clamp_20261116.py
 campaign-os/tests/test_planning_baked_fallback_20261116.py
