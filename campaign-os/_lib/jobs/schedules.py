@@ -80,6 +80,7 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "gsc_report": _LAYER1_DAILY,
     "post_conversion_score": _LAYER1_DAILY,
     "windsor_refresh": _LAYER1_DAILY,
+    "shopify_stock": _LAYER1_DAILY,
     "competitor_tracker": {
         "scheduler": "GitHub Actions (layer1-daily-cron.yml)",
         "cron_sast": ["07:00"],
