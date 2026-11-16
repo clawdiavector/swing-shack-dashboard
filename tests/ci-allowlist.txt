@@ -148,6 +148,7 @@ campaign-os/tests/jobs/test_layer2_jobs.py
 campaign-os/tests/jobs/test_layer5_create.py
 campaign-os/tests/test_brand_lanes_p2b.py
 campaign-os/tests/test_meta_workflow_per_brand_20260923.py
+campaign-os/tests/test_ig_image_reach_no_impressions.py
 self-tests/test_cos_job_summary_self.py
 campaign-os/tests/test_v2026_10_07_drive_client_path_no_secret.py
 scripts/tests/test_agent_hooks.py
