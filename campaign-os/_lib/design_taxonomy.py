@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -153,6 +154,38 @@ def _templates_with_approval(brand_id: str, overlays: dict[str, dict[str, Any]])
     return out
 
 
+# Brand corrections for the Design page (16 Nov 2026, Christelle's check).
+# 17 Stick / Swing Shack posts sat under Bag Drop (they were published through
+# Bag Drop's Postiz key before PR #289), and 27 animation-experiment pictures
+# had no brand at all. Fixed here, where the page reads the data, so a rebuilt
+# index cannot bring them back.
+_STICK_VOICE = re.compile(r"\bat\s+Stick\b|\bStick\s+(?:Golf|Paarl)\b", re.I)
+_SWING_SHACK_VOICE = re.compile(r"\bat\s+Swing\s+Shack\b", re.I)
+_EXPERIMENT_STICK = re.compile(r"callaway|ripit|takomo|vice|retail|hero", re.I)
+_EXPERIMENT_SWING_SHACK = re.compile(r"\b(?:bay|iron)\b", re.I)
+_EXPERIMENT_COLLECTION = "Post animation experiments"
+
+
+def correct_post_brand(row: dict[str, Any]) -> dict[str, Any]:
+    """Return the row with its brand fixed when the evidence in the row is plain."""
+    brand = str(row.get("brand") or "")
+    text = f"{row.get('title') or ''} {row.get('caption') or ''}"
+    fixed = brand
+    if brand == "bag-drop":
+        stick, shack = bool(_STICK_VOICE.search(text)), bool(_SWING_SHACK_VOICE.search(text))
+        if stick and not shack:
+            fixed = "stick"
+        elif shack and not stick:
+            fixed = "swing-shack"
+    elif not brand and str(row.get("campaign") or "").startswith(_EXPERIMENT_COLLECTION):
+        title = str(row.get("title") or "")
+        if _EXPERIMENT_STICK.search(title):
+            fixed = "stick"
+        elif _EXPERIMENT_SWING_SHACK.search(title):
+            fixed = "swing-shack"
+    return row if fixed == brand else {**row, "brand": fixed}
+
+
 def build_taxonomy(*, brand: str | None = None) -> dict[str, Any]:
     seed = load_seed()
     approvals = load_approvals()
@@ -167,6 +200,7 @@ def build_taxonomy(*, brand: str | None = None) -> dict[str, Any]:
         posts = _section_rows({"posts": media["posts"]}, "posts", approvals["posts"])
     else:
         posts = _section_rows(seed, "posts", approvals["posts"])
+    posts = [correct_post_brand(r) for r in posts]
     # all brands: styles are shared across brands, so the page filters posts itself
 
     templates: list[dict[str, Any]] = []
