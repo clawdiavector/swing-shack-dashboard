@@ -469,7 +469,8 @@ def render_html(briefs: list, kind: str, missing: list | None = None) -> str:
 
 _TABS = (("daily", "Daily", "/ads-brief"), ("weekly", "Weekly", "/ads-brief?kind=weekly"),
          ("trends", "Trends", "/ads-brief?kind=trends"),
-         ("research", "What works", "/ads-brief?kind=research"))
+         ("research", "What works", "/ads-brief?kind=research"),
+         ("suggest", "Ad suggestions", "/ads-brief?kind=suggest"))
 
 
 def _page(title: str, kind: str, sub: str, body: str) -> str:
