@@ -4,10 +4,10 @@
   "pillars": [
     {
       "pillar_id": "bags-retail",
-      "name": "Bags Retail",
+      "name": "Online store",
       "always_active": true,
       "colour": "#6B5B95",
-      "objective": "Test brand-switch — bag-drop retail only",
+      "objective": "Sell demo and pre-owned golf gear on thebagdrop.co.za",
       "north_star_metric": "bag_sales_per_month",
       "north_star_target": {
         "monthly_target_zar": 50000,
@@ -19,8 +19,18 @@
   ],
   "scouting_profile": {
     "interests": [
-      {"label": "Travel bags", "weight": 1.0},
-      {"label": "Luggage", "weight": 0.7}
+      {
+        "label": "Demo golf clubs",
+        "weight": 1.0
+      },
+      {
+        "label": "Pre-owned golf gear",
+        "weight": 0.9
+      },
+      {
+        "label": "Golf essentials (balls, gloves, grips)",
+        "weight": 0.6
+      }
     ]
   },
   "lead_time_rules": {

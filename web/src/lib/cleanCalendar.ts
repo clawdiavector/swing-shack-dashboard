@@ -79,8 +79,8 @@ export type CleanMonth = {
 export const VIEWS: { id: CleanView; label: string; hint: string }[] = [
   {
     id: 'scheduled',
-    label: 'Scheduled',
-    hint: 'Approved and set to go out on these days. Nothing to do.',
+    label: 'Approved',
+    hint: 'Approved for these days, including posts that already went out. Nothing to do.',
   },
   {
     id: 'approval',
@@ -155,6 +155,12 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Pr
       error: e instanceof Error ? e.message : 'Network problem.',
     } as T
   }
+}
+
+/** The line under an empty list: "loading" until this month's data is in, then "nothing here". */
+export function monthListNote(data: { month?: string } | null, month: string, shown: number): string {
+  if (!data || data.month !== month) return 'Loading this month…'
+  return shown === 0 ? 'Nothing here this month.' : ''
 }
 
 const base = (brand: string) => `/api/clean-calendar/${encodeURIComponent(brand)}`

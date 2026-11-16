@@ -1,0 +1,19 @@
+{
+  "about": "Topics we ask Google's search suggestions about, for Plan > Ideas 'Questions people ask'. area: places this brand serves (a question naming another SA place is dropped; 'any' keeps all). drop_words: suggestions containing these are dropped.",
+  "queries": [
+    "how to choose a golf bag",
+    "stand bag vs cart bag",
+    "which golf bag should i buy",
+    "golf bags south africa",
+    "how many clubs in a golf bag",
+    "what to keep in a golf bag",
+    "golf travel bag"
+  ],
+  "area": [
+    "any"
+  ],
+  "drop_words": [
+    "golf course",
+    "golf courses"
+  ]
+}

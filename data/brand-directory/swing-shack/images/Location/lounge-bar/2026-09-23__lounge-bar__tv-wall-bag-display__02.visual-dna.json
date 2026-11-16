@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/lounge-bar/2026-09-23__lounge-bar__tv-wall-bag-display__02.jpg",
+  "layer1_metadata": {
+    "filename": "2026-09-23__lounge-bar__tv-wall-bag-display__02.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 2036324,
+    "modified": 1794189897.5977545,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#303031",
+        "rgb": [
+          48,
+          48,
+          49
+        ],
+        "share": 0.216
+      },
+      {
+        "hex": "#beb49d",
+        "rgb": [
+          190,
+          180,
+          157
+        ],
+        "share": 0.1374
+      },
+      {
+        "hex": "#1a1e22",
+        "rgb": [
+          26,
+          30,
+          34
+        ],
+        "share": 0.1268
+      },
+      {
+        "hex": "#4e4c4f",
+        "rgb": [
+          78,
+          76,
+          79
+        ],
+        "share": 0.1245
+      },
+      {
+        "hex": "#25292e",
+        "rgb": [
+          37,
+          41,
+          46
+        ],
+        "share": 0.1205
+      },
+      {
+        "hex": "#06080d",
+        "rgb": [
+          6,
+          8,
+          13
+        ],
+        "share": 0.105
+      },
+      {
+        "hex": "#577a9e",
+        "rgb": [
+          87,
+          122,
+          158
+        ],
+        "share": 0.0932
+      },
+      {
+        "hex": "#224976",
+        "rgb": [
+          34,
+          73,
+          118
+        ],
+        "share": 0.0766
+      }
+    ],
+    "mean_brightness": 73.8,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 78.0,
+    "brightness_bottom": 63.4,
+    "edge_density_grid": [
+      [
+        8.14,
+        11.37,
+        10.9
+      ],
+      [
+        7.27,
+        7.22,
+        10.46
+      ],
+      [
+        9.43,
+        9.94,
+        9.21
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 17,
+    "text_preview": "i |-1s) Caan) ; | 4 = (aeneaerea | i _ : BLE. N fy lo PAU"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 61,
+    "median_text_height_px": 24,
+    "likely_heading_text": "| |",
+    "is_all_caps": true,
+    "sample_text_colour": "#666c6c"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#303031",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top",
+      "ocr_text": "i |-1s) Caan) ; | 4 = (aeneaerea | i _ : BLE. N fy lo PAU",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

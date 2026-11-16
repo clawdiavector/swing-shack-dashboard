@@ -31,6 +31,9 @@ from _lib.visual_dna_query import tag_directory  # noqa: E402
 #   stick        306 images  Location/{In Store Photos for walkthrough,Photos of iron sets}, Other, Products, Services
 #   swing-shack  136 images  Products, Services, Swing Shack RAW, Others
 #
+# Stick also reads its Shot List (BRAND_EXTRA_SOURCES below): 560 images by line,
+# filed under images/Shot List/.
+#
 # A third id, 1FYeac0rVLezYFcS_02Yqsn7fOw1ecghd, appears in
 # tests/test_google_drive_public.py as SERVICES_FOLDER_ID. It is NOT a third
 # root: it is Stick's own Services subfolder (all 34 of its images are a strict
@@ -39,10 +42,65 @@ from _lib.visual_dna_query import tag_directory  # noqa: E402
 BRAND_PUBLIC_ROOTS = {
     "stick": "1k5icaxY3AKBD9z2-oIO6i42PUnq1gYUG",
     "swing-shack": "1n9pHD6hwr7oEfRBAGBriRrsqv_I-qGge",
+    # "Bagdrop" (Five Friday), link-viewable since 2026-11-05: webp edits (own
+    # club cut-outs), New Logo, and Generic Bagdrop, which is skipped below.
+    "bag-drop": "1bBToPcp6xKchcATcyrmIEpbXnUVVaOnc",
 }
+
+# Folders inside a root that are never ingested. Generic Bagdrop holds club images
+# saved from other websites (Amazon, demo shops, retailers), which are not cleared
+# to use (Christelle, 2026-11-05); the scout fetches maker-site images instead.
+BRAND_SKIP_FOLDERS = {
+    "bag-drop": ("Generic Bagdrop",),
+}
+
+
+def skipped_folders(brand: str) -> tuple[str, ...]:
+    return BRAND_SKIP_FOLDERS.get(brand, ())
 
 # Back-compat for callers that imported the old single-brand constant.
 STICK_PUBLIC_ROOT = BRAND_PUBLIC_ROOTS["stick"]
+
+# Folders a brand owns outside its root, read where they live and filed under
+# images/<label>/ (Christelle, 2026-11-05). Stick's Shot List belongs to
+# info@stickgolf.co.za; copying its ~6 GB into the Five Friday root would fill that
+# Drive and drift from new shots. Never put a brand root or the catalogue here.
+BRAND_EXTRA_SOURCES = {
+    "stick": {"Shot List": "11VFWJOrRi6B3MYjCB78Qew4QXe1D7NSx"},
+}
+
+
+def brand_sources(brand: str) -> list[tuple[str, str]]:
+    """[(folder label, Drive id)] to ingest for a brand: its root first (label ""), then extras."""
+    root = BRAND_PUBLIC_ROOTS.get(brand)
+    if not root:
+        return []
+    return [("", root)] + list(BRAND_EXTRA_SOURCES.get(brand, {}).items())
+
+
+# iPhone photos arrive as HEIC, which browsers and the dissector cannot open unless
+# pillow-heif is installed. They are filed as JPEG instead (Christelle, 2026-11-05);
+# the original stays on Drive. Long edge capped at 4000px, quality 90.
+_HEIC_SUFFIXES = {".heic", ".heif"}
+
+
+def _is_heic(name: str) -> bool:
+    return Path(name).suffix.lower() in _HEIC_SUFFIXES
+
+
+def _heic_to_jpeg(src: Path) -> Path:
+    """Write src as a .jpg beside it, delete the HEIC, return the .jpg path."""
+    import pillow_heif
+    from PIL import Image, ImageOps
+
+    pillow_heif.register_heif_opener()
+    dst = src.with_suffix(".jpg")
+    with Image.open(src) as im:
+        im = ImageOps.exif_transpose(im).convert("RGB")
+        im.thumbnail((4000, 4000))
+        im.save(dst, "JPEG", quality=90, optimize=True)
+    src.unlink()
+    return dst
 
 
 def _manifest_key(folder: str, name: str) -> str:
@@ -83,6 +141,7 @@ def run_ingest(
     dry_run: bool = False,
     repo_root: Path | None = None,
     data_dir: Path | None = None,
+    folder_prefix: str = "",
 ) -> dict:
     # data_dir names the directory that CONTAINS brand-directory/. Locally that
     # is <repo>/data; on Railway it is the volume at $DATA_DIR, which the app
@@ -102,6 +161,19 @@ def run_ingest(
     known_md5 = _existing_md5s(manifest)
 
     all_entries = gd.list_public_folder(folder_id)
+    skip = skipped_folders(brand)
+    skipped_folder = [
+        e for e in all_entries
+        if any((e.get("folder") or "") == f or (e.get("folder") or "").startswith(f + "/") for f in skip)
+    ]
+    if skipped_folder:
+        all_entries = [e for e in all_entries if e not in skipped_folder]
+    prefix = folder_prefix.strip("/")
+    if prefix:
+        all_entries = [
+            {**e, "folder": f"{prefix}/{e['folder']}".rstrip("/") if e.get("folder") else prefix}
+            for e in all_entries
+        ]
     images = [e for e in all_entries if gd.is_public_drive_image(e)]
     skipped_non_image = [e for e in all_entries if not gd.is_public_drive_image(e)]
 
@@ -134,6 +206,11 @@ def run_ingest(
             downloaded.append(key)
             continue
 
+        # A HEIC filed earlier now lives as its .jpg.
+        if _is_heic(name) and dest.with_suffix(".jpg").exists():
+            skipped_dedupe.append(key)
+            continue
+
         if dest.exists() and dest.stat().st_size > 0:
             md5 = hashlib.md5(dest.read_bytes()).hexdigest()
             if md5.lower() in known_md5:
@@ -147,6 +224,15 @@ def run_ingest(
                 skipped_dedupe.append(key)
                 continue
             known_md5.add(md5.lower())
+            row = {}
+            if _is_heic(name):
+                # A file the reader cannot open is kept as it came, not lost.
+                try:
+                    dest = _heic_to_jpeg(dest)
+                    key = _manifest_key(folder, dest.name)
+                    row["converted_from"] = name
+                except Exception as exc:  # noqa: BLE001
+                    row["convert_error"] = str(exc)
             manifest["images"][key] = {
                 "drive_id": entry["id"],
                 "size": str(dest.stat().st_size),
@@ -154,6 +240,7 @@ def run_ingest(
                 "modified": None,
                 "folder": folder,
                 "ingested": time.time(),
+                **row,
             }
             downloaded.append(key)
             new_for_dissect.append(dest)
@@ -231,6 +318,7 @@ def run_ingest(
         "downloaded": len(downloaded),
         "skipped_dedupe": len(skipped_dedupe),
         "skipped_non_image": len(skipped_non_image),
+        "skipped_folder": len(skipped_folder),
         "download_errors": download_errors,
         "re_dissected": re_dissected,
         "dissect_errors": dissect_errors,
@@ -241,6 +329,51 @@ def run_ingest(
             if str(e.get("name", "")).lower().endswith(".ai")
         ],
     }
+
+
+def convert_existing_heic(
+    brand: str,
+    *,
+    repo_root: Path | None = None,
+    data_dir: Path | None = None,
+) -> dict:
+    """Convert HEIC files already on disk to JPEG, move their manifest rows and re-dissect them."""
+    root = repo_root or REPO_ROOT
+    base = Path(data_dir) if data_dir else (root / "data")
+    brand_dir = base / "brand-directory" / brand
+    images_root = brand_dir / "images"
+    manifest_path = brand_dir / "ingest-manifest.json"
+    bible_path = brand_dir / "bible-visual.json"
+    bible = bible_path if bible_path.exists() else None
+    manifest = _load_manifest(manifest_path, brand) if manifest_path.exists() else {"images": {}}
+    images = manifest.setdefault("images", {})
+
+    converted: list[str] = []
+    errors: list[dict] = []
+    for src in sorted(p for p in images_root.rglob("*") if p.is_file() and _is_heic(p.name)):
+        old_key = src.relative_to(images_root).as_posix()
+        try:
+            dst = _heic_to_jpeg(src)
+        except Exception as exc:  # noqa: BLE001
+            errors.append({"file": old_key, "error": str(exc)})
+            continue
+        new_key = dst.relative_to(images_root).as_posix()
+        row = images.pop(old_key, None)
+        if row is not None:
+            row["size"] = str(dst.stat().st_size)
+            row["converted_from"] = src.name
+            images[new_key] = row
+        try:
+            dna = dissect(dst, bible)
+            (dst.parent / f"{dst.stem}.visual-dna.json").write_text(json.dumps(dna, indent=2))
+        except Exception as exc:  # noqa: BLE001
+            errors.append({"file": new_key, "error": f"dissect: {exc}"})
+        converted.append(new_key)
+
+    if converted:
+        manifest_path.write_text(json.dumps(manifest, indent=2))
+        tag_directory(brand, base_dir=base / "brand-directory")
+    return {"brand": brand, "converted": converted, "errors": errors}
 
 
 def main() -> int:
@@ -260,27 +393,43 @@ def main() -> int:
              "On Railway pass $DATA_DIR (/data/campaign-os) so the ingest fills "
              "the volume, which the image routes resolve before the repo copy.",
     )
+    parser.add_argument(
+        "--convert-existing-heic",
+        action="store_true",
+        help="Convert HEIC files already on disk to JPEG and re-dissect them, then stop.",
+    )
     args = parser.parse_args()
+
+    if args.convert_existing_heic:
+        got = convert_existing_heic(
+            args.brand, data_dir=Path(args.data_dir) if args.data_dir else None
+        )
+        print(json.dumps({**got, "converted": len(got["converted"])}, indent=2))
+        return 1 if got["errors"] else 0
 
     # Never fall back to another brand's root: that silently files one brand's
     # imagery under the other, and md5 dedupe is per-brand so nothing catches it.
-    folder_id = args.folder_id or BRAND_PUBLIC_ROOTS.get(args.brand)
-    if not folder_id:
+    sources = [("", args.folder_id)] if args.folder_id else brand_sources(args.brand)
+    if not sources:
         parser.error(
             f"no canonical Drive root for brand {args.brand!r}. "
             f"Known: {', '.join(sorted(BRAND_PUBLIC_ROOTS))}. "
             f"Pass --folder-id explicitly to ingest something else."
         )
 
-    summary = run_ingest(
-        args.brand,
-        folder_id,
-        limit=args.limit,
-        dry_run=args.dry_run,
-        data_dir=Path(args.data_dir) if args.data_dir else None,
-    )
-    print(json.dumps(summary, indent=2))
-    return 1 if summary.get("download_errors") else 0
+    failed = False
+    for prefix, folder_id in sources:
+        summary = run_ingest(
+            args.brand,
+            folder_id,
+            limit=args.limit,
+            dry_run=args.dry_run,
+            data_dir=Path(args.data_dir) if args.data_dir else None,
+            folder_prefix=prefix,
+        )
+        print(json.dumps(summary, indent=2))
+        failed = failed or bool(summary.get("download_errors"))
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

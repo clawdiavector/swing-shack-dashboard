@@ -124,27 +124,41 @@ def _ext(content_type: str, url: str) -> str:
 
 
 def fetch(brand_id: str, row: Dict[str, Any], images: Optional[Path] = None) -> Dict[str, Any]:
-    """Download one candidate, gate its quality, save it as SKU__view.<ext>, put it on the photo map."""
+    """Download one candidate, gate its quality, save it as SKU__view.<ext>, put it on the photo map.
+
+    The original is filed once in the shared catalogue; a second brand stocking the same
+    product gets it from there instead of downloading it again."""
+    from _lib import image_library as il
     from _lib import photo_map as pm
     images = images or pm.images_dir(brand_id)
-    try:
-        got = _get(row["image_url"], row.get("page_url", ""))
-    except Exception as e:
-        return {"ok": False, "reason": f"download failed: {e}"}
+    known = il.find_in_catalogue(row["image_url"])
+    data = il.catalogue_bytes(known) if known else None
+    if data is not None:
+        got = {"data": data, "type": "image/" + Path(known["file"]).suffix.lstrip(".").replace("jpg", "jpeg")}
+    else:
+        try:
+            got = _get(row["image_url"], row.get("page_url", ""))
+        except Exception as e:
+            return {"ok": False, "reason": f"download failed: {e}"}
     qc = check(got["data"], got["type"])
     if not qc["ok"]:
         return qc
+    ext = _ext(got["type"], row["image_url"])
+    maker = (known or {}).get("maker") or il.maker_for_url(row["image_url"]) or il.maker_for_url(row.get("page_url", ""))
+    if not known:
+        il.add_to_catalogue(maker or "unknown", row["product"], row.get("page_url", ""), row["image_url"],
+                            got["data"], ext, exact_build=row.get("exact_build", True))
     folder = images / "Products"
     folder.mkdir(parents=True, exist_ok=True)
     safe_sku = re.sub(r"[^A-Za-z0-9\-_]", "", row["sku"]) or "NOSKU"
-    name = f"{safe_sku}{pm.SEP}{row['view']}{_ext(got['type'], row['image_url'])}"
+    name = f"{safe_sku}{pm.SEP}{row['view']}{ext}"
     dest = folder / name
     if dest.exists():
         qc["ok"], qc["reason"] = False, f"{name} already exists, not overwritten"
         return qc
     dest.write_bytes(got["data"])
     pm.add_entry(brand_id, f"Products/{name}", row["sku"], row["product"], row["view"], source="official-site",
-                 source_url=row["page_url"], image_url=row["image_url"], note=row.get("note", ""),
+                 source_url=row["page_url"], image_url=row["image_url"], note=row.get("note", ""), maker=maker,
                  exact_build=row.get("exact_build", True))
     qc["file"] = f"Products/{name}"
     return qc

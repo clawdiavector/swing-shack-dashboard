@@ -13,6 +13,7 @@ import {
   makeShareLink,
   moveEntry,
   monthCells,
+  monthListNote,
   pickStartView,
   shiftMonth,
   thisMonth,
@@ -972,7 +973,11 @@ export function CleanCalendar() {
 
         {/* A plain list on phones. */}
         <div className="space-y-2 md:hidden">
-          {inView.length === 0 ? <p className="py-6 text-center text-sm text-tx3">Nothing here this month.</p> : null}
+          {monthListNote(campaignEntries ? { month } : data, month, inView.length) ? (
+            <p className="py-6 text-center text-sm text-tx3">
+              {monthListNote(campaignEntries ? { month } : data, month, inView.length)}
+            </p>
+          ) : null}
           {inView.map((e) => (
             <div key={e.key}>
               <p className="mb-1 text-xs font-semibold text-tx3">{e.when}</p>

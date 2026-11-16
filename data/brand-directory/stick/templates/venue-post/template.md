@@ -14,7 +14,7 @@ The photograph owns the canvas; a navy plate in the lower right carries the make
 
 | Field | Zone | Notes |
 |---|---|---|
-| `vendor_name` | `partner_logo` | Maker logo from `stick/logos/vendors/<slug>.png`, tinted white, fitted into the plate. **Required** |
+| `vendor_name` | `partner_logo` | Maker logo from `_shared/maker-logos/<slug>.png`, tinted white, fitted into the plate. **Required** |
 | `vendor_label` | `headline` | Optional text beside a small logo mark (L.A.B. style). ≤ 12 chars. Leave empty when the logo is a wordmark |
 | photo | full bleed | Cover-cropped to 4:5. Keep the lower-right quarter calm: the plate covers it |
 

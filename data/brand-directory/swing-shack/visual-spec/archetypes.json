@@ -263,7 +263,7 @@
           },
           "kind": "image",
           "source": "asset",
-          "asset": "templates/did-you-know/assets/logo-white.png",
+          "asset": "logos/swing-shack-logo-white.png",
           "fit": "aspect_fit",
           "align": "right",
           "valign": "top"
@@ -354,7 +354,7 @@
             },
             "kind": "image",
             "source": "asset",
-            "asset": "templates/did-you-know/assets/logo-white.png",
+            "asset": "logos/swing-shack-logo-white.png",
             "fit": "aspect_fit",
             "align": "right",
             "valign": "top"
@@ -498,7 +498,7 @@
           },
           "kind": "image",
           "source": "asset",
-          "asset": "templates/did-you-know/assets/logo-white.png",
+          "asset": "logos/swing-shack-logo-white.png",
           "fit": "aspect_fit",
           "align": "left",
           "valign": "top"
@@ -766,7 +766,7 @@
           },
           "kind": "image",
           "source": "asset",
-          "asset": "templates/did-you-know/assets/logo-white.png",
+          "asset": "logos/swing-shack-logo-white.png",
           "fit": "aspect_fit",
           "align": "left",
           "valign": "top"
@@ -982,7 +982,7 @@
           },
           "kind": "image",
           "source": "asset",
-          "asset": "templates/sale-offer/assets/logo-white.png",
+          "asset": "logos/swing-shack-logo-white.png",
           "fit": "aspect_fit",
           "align": "right",
           "valign": "top"
@@ -1086,7 +1086,7 @@
             },
             "kind": "image",
             "source": "asset",
-            "asset": "templates/sale-offer/assets/logo-white.png",
+            "asset": "logos/swing-shack-logo-white.png",
             "fit": "aspect_fit",
             "align": "right",
             "valign": "top"
@@ -1241,7 +1241,7 @@
           },
           "kind": "image",
           "source": "asset",
-          "asset": "templates/discount-code/assets/logo-white.png",
+          "asset": "logos/swing-shack-logo-white.png",
           "fit": "aspect_fit",
           "align": "center",
           "valign": "middle"
@@ -1429,7 +1429,7 @@
             },
             "kind": "image",
             "source": "asset",
-            "asset": "templates/discount-code/assets/logo-white.png",
+            "asset": "logos/swing-shack-logo-white.png",
             "fit": "aspect_fit",
             "align": "center",
             "valign": "middle"
@@ -1945,7 +1945,7 @@
           "colour": "white",
           "h_scale": 0.86,
           "inline_asset": {
-            "asset": "templates/service-promo/assets/logo-white.png",
+            "asset": "logos/swing-shack-logo-white.png",
             "height_px": 63,
             "gap_px": 42,
             "position": "after"
@@ -2101,7 +2101,7 @@
             "colour": "white",
             "h_scale": 0.86,
             "inline_asset": {
-              "asset": "templates/service-promo/assets/logo-white.png",
+              "asset": "logos/swing-shack-logo-white.png",
               "height_px": 63,
               "gap_px": 42,
               "position": "after"
@@ -2238,7 +2238,7 @@
           },
           "kind": "image",
           "source": "asset",
-          "asset": "templates/lesson-corner/assets/logo-white.png",
+          "asset": "logos/swing-shack-logo-white.png",
           "fit": "aspect_fit",
           "align": "right",
           "valign": "top"

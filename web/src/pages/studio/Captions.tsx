@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../../components/chrome'
-import { Badge, ClassicLink, Tip } from '../../components/ui'
+import { Badge, Tip } from '../../components/ui'
 import { getJson, postJson } from '../../lib/api'
 
 type Survivor = {
@@ -105,8 +105,7 @@ export function Captions() {
   return (
     <div className="space-y-6">
       <PageIntro here="/create" title="Captions">
-        v2 caption studio — five survivors, per-card actions, voice bible on the side.{' '}
-        <ClassicLink href="/?page=captions" label="Captions" />
+        v2 caption studio — five survivors, per-card actions, voice bible on the side.
       </PageIntro>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">

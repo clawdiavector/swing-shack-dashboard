@@ -9,6 +9,20 @@ from zoneinfo import ZoneInfo
 
 _SAST = ZoneInfo("Africa/Johannesburg")
 
+# Brands with no Instagram account or Postiz key of their own yet. Without its own key a
+# post would go out through another brand's channel, so they wait (Bag Drop bible decision 17).
+_HELD_WITHOUT_OWN_KEY = ("bag-drop",)
+
+
+def _held_without_own_key(brand_id: str) -> bool:
+    """Held until the brand has its own Postiz or Zernio key."""
+    from _lib.postiz_client import has_brand_key  # noqa: PLC0415
+    from _lib import zernio_client  # noqa: PLC0415
+
+    if brand_id not in _HELD_WITHOUT_OWN_KEY:
+        return False
+    return not (has_brand_key(brand_id) or zernio_client.has_brand_key(brand_id))
+
 
 def _auto_release_enabled() -> bool:
     raw = (os.environ.get("CAMPAIGN_OS_AUTO_RELEASE") or "").strip().lower()
@@ -62,8 +76,12 @@ def run(*, brand: str | None = None, now: datetime | None = None) -> dict[str, A
     brands = [brand] if brand else list(VALID_BRAND_IDS)
 
     candidates: list[str] = []
+    held: list[str] = []
     for brand_id in brands:
         if brand_id not in VALID_BRAND_IDS:
+            continue
+        if _held_without_own_key(brand_id):
+            held.append(brand_id)
             continue
         hour_gate = _brand_release_hour(brand_id)
         if now_local.hour < hour_gate:
@@ -95,6 +113,7 @@ def run(*, brand: str | None = None, now: datetime | None = None) -> dict[str, A
             "gated": True,
             "reason": _auto_release_reason(),
             "candidates": candidates,
+            "held": held,
         }
 
     released_count = 0
@@ -119,5 +138,6 @@ def run(*, brand: str | None = None, now: datetime | None = None) -> dict[str, A
         "released": released_count,
         "gated": False,
         "candidates": candidates,
+        "held": held,
         "errors": errors[:20],
     }

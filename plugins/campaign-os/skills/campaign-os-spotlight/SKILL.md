@@ -82,7 +82,7 @@ contact shadow, never hovers. Stories go to Postiz with `scripts/send_story.py`.
 | Hero (slide 1, no text) | Krea MCP connector, `google/nano-banana-pro`, the real photo uploaded via `get_upload_url` and passed as `image_urls`, `aspect_ratio: "4:5"`, `resolution: "2K"`. Prompt: "extreme macro close-up of this exact …, keep the logo shape exactly, no text". Run `preflight: true` first | ~111 credits a try |
 | Cut-outs | `rembg` with `birefnet-general-lite` (separate venv: `pip install "rembg[cpu]"`). Threshold the alpha (<60 → 0) before compositing; pad any drop-shadow canvas or it shows as a box | free |
 | Catalogue slide | Cut-outs of one line on the brand's navy fade, offer or line name on top, logo at the bottom. Two tall items (bags) side by side; four only if short (polos, tees, caps) | free |
-| Single | `render_post.py` maker stack (`stick-product-post`, needs `logos/vendors/<maker>.png`) or partner plate (`stick-venue-post`) | free |
+| Single | `render_post.py` maker stack (`stick-product-post`, needs `_shared/maker-logos/<maker>.png`) or partner plate (`stick-venue-post`) | free |
 | Badge close-up post | `scripts/badge_post.py`: straightens and centres the badge, white text with black outline, 4:5 plus a 4:3 on a blurred fill | free |
 | Caption | `caption_lint.py <brand> --file caption.txt`: 0 hard fails | free |
 | Lodge | `lodge_post.py --brand … --slug … --date … --image … --caption-file … --channels instagram,facebook --no-approve` | free |

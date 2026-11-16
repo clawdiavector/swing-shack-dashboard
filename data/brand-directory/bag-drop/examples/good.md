@@ -1,45 +1,45 @@
-# Bag Drop — Examples
+# The Bag Drop | Examples
+
+Real captions from `@the_bagdrop_za` and the store, from `BRAND-BIBLE.md` section 15.
+Each needs the fix noted before it is used again.
 
 ## ✅ Good (nailed the brand)
 
-### "Leave the bag. Play lighter. Apologise never."
+### "Old balls do old-ball things. Scuffs, damaged covers and tired dimples can cost distance, spin and feel."
 **Why this worked:**
-- Three short lines, parallel rhythm.
-- Names the specific service (leave the bag) in the first beat.
-- Warmth comes from the third line, not a stock phrase.
-- Tone: relatable, confident.
-- No em dashes, no banned phrases.
+- A dry hook and a true, useful reason.
+- Problem first, one idea.
+- Lane: SMALL WINS.
+- **Fix:** add a price and `Shop balls. Link in bio.`
 
-### "When your mate says 'I'll fix it myself'. We've all been there. Almost."
+### "Old wedges cost shots. Fresh grooves give you more control where it matters most."
 **Why this worked:**
-- Opens with the moment every member has seen on a Thursday.
-- The "Almost." lands the joke without sarcasm.
-- Inclusive voice (we, not you).
-- Pairs with the Bag Drop service: the bag lives at the club, fixing is on us.
-- Tone: relatable.
+- Names a real cost in three words.
+- Lane: SMALL WINS.
+- **Fix:** add a price and a link-in-bio CTA.
 
-### "You joined for the data. You stayed for the people."
+### "Callaway Ai Smoke Triple Diamond demo driver head. Low-spin driver head."
 **Why this worked:**
-- Reframes the Swing Shack → Bag Drop ladder.
-- Two sentences, no sell.
-- Pairs with CTA `Drop your bag on the way in. It's waiting when you finish the round.`.
-- Tone: warm, confident.
+- The right ingredients: model, loft, condition, price.
+- Lane: THE DROP.
+- **Fix:** write the spec line properly: `Loft: 11°. Condition: [grade]. Price: R5,000.`
+  then `Shop the drop. Link in bio.`
 
-### "Member bay priority. Your slot, your time."
+### "Running low on golf balls? Bag Drop stocks balls for the range, the course and the days when the water hazard starts collecting rent."
 **Why this worked:**
-- States the value plainly. No adjective stacking.
-- Reads as fact, not promise.
-- Tone: confident, educational.
+- A line only a golf store could write. The humour is about the water, not the golfer.
+- **Fix:** add a price range and a link.
 
-### "The bag that lives at Swing Shack. The one you forgot was yours."
+### "Putters are personal. Shop putters on The Bag Drop."
 **Why this worked:**
-- Specific, warm, mildly funny.
-- Implies membership without saying "join our family."
-- Pairs with the Thursday social archetype.
-- Tone: relatable, warm.
+- Four words of belief, one CTA.
+- **Fix:** `Shop putters. Link in bio.`
 
-## 📌 Inspiration (do not copy)
+### "Golf clubs do not enjoy being treated like loose biltong in a box."
+**Why this worked:**
+- From the refund policy. Dry, local, useful. The tone to copy.
 
-- Peloton community posts: the reader as part of the group, not the subject. Pattern adopted for `bagdrop-thursday-invite` archetype.
-- Lululemon regional community captions: place-first, member-first, no corporate warmth. Pattern adopted for the `relatable` tone.
-- Local golf club Instagram accounts (Rivonia, Royal JHB) that lean member moments over score moments. Pattern adopted for the `warm` tone.
+## 📌 What every good one has
+- A real product or a real golfer problem in the first line.
+- The price, grade and specs from the live listing.
+- One CTA that tells the reader where to go.

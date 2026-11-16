@@ -1,0 +1,1392 @@
+{
+ "images": [
+  {
+   "file": "images/callaway/callaway-chrome-tour-chrome-tour__1.jpg",
+   "maker": "Callaway",
+   "product": "Callaway Chrome Tour (Chrome Tour)",
+   "page_url": "https://www.callawaygolf.com/chrome-tour-2026",
+   "image_url": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792042806975/sits/balls-2026-chrome-tour/balls-2026-chrome-tour_2___1.jpg?sw=2000&bgcolor=F7F7F7&sfrm=png",
+   "sha256": "1b4ed20e6e35007516632dd133a12e1bdc7be5f6371a3c93e4ec0d6eff4b2729",
+   "added": "2026-11-03T15:29:13.759712+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/CT__front.jpg",
+    "swing-shack:Products/CT001__front.jpg"
+   ],
+   "drive_id": "1sS9axspSfjdOyYe14zjrqftb7TK0PS6r"
+  },
+  {
+   "file": "images/callaway/callaway-chrome-tour-chrome-tour-x__1.jpg",
+   "maker": "Callaway",
+   "product": "Callaway Chrome Tour (Chrome Tour X)",
+   "page_url": "https://www.callawaygolf.com/chrome-tour-2026",
+   "image_url": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792042806975/sits/balls-2026-chrome-tour-x/balls-2026-chrome-tour-x_2___1.jpg?sw=2000&bgcolor=F7F7F7&sfrm=png",
+   "sha256": "bf8dac462ff7d0f4051b1d2199caca05a74767c869805e022ab867f57e51d9b0",
+   "added": "2026-11-03T15:29:13.809304+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/X__front.jpg",
+    "swing-shack:Products/CTX001__front.jpg"
+   ],
+   "drive_id": "1PLOm3tVy4cRYzTBIDxNUtiOnPDZuKOh4"
+  },
+  {
+   "file": "images/callaway/callaway-chrome-tour-chrome-tour-triple-diamond__1.jpg",
+   "maker": "Callaway",
+   "product": "Callaway Chrome Tour (Chrome Tour Triple Diamond)",
+   "page_url": "https://www.callawaygolf.com/chrome-tour-2026",
+   "image_url": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792042806975/sits/balls-2026-chrome-tour-td/balls-2026-chrome-tour-td_2___1.jpg?sw=2000&bgcolor=F7F7F7&sfrm=png",
+   "sha256": "b64768cbc92a825436a3d63052fe0654055f3fce6515e00f8ac2dd4b647df40d",
+   "added": "2026-11-03T15:29:13.857011+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/CTTD__front.jpg",
+    "swing-shack:Products/CTTD001__front.jpg"
+   ],
+   "drive_id": "1ycGH9rnNTYaSN2jnXQPDeocmjzqJcqKa"
+  },
+  {
+   "file": "images/callaway/callaway-chrome-soft__1.jpg",
+   "maker": "Callaway",
+   "product": "Callaway Chrome Soft",
+   "page_url": "https://www.callawaygolf.com/golf-balls/chrome-soft",
+   "image_url": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792042806975/sits/balls-2026-chrome-soft/balls-2026-chrome-soft_2___1.jpg?sw=2000&bgcolor=F7F7F7&sfrm=png",
+   "sha256": "156ff8260cdc20e11a4a63f22d2ce83629422f998343d750216b0c3415b1b80c",
+   "added": "2026-11-03T15:29:13.903009+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/CS001__front.jpg",
+    "swing-shack:Products/CS001__front.jpg"
+   ],
+   "drive_id": "1GDLRaXKiVRwlN9Ntrl6_IciiAz3sNXnh"
+  },
+  {
+   "file": "images/vice-golf/vice-pro-white-sleeve__1.jpg",
+   "maker": "Vice Golf",
+   "product": "Vice Pro + White Sleeve",
+   "page_url": "https://www.vicegolf.com/golf-balls/vice-golf-pro-plus-white",
+   "image_url": "https://cdn.shopify.com/s/files/1/0563/0227/2645/files/vice-golf_Product_Balls_Pro_Plus_White_Dozen_Ball_Badge.jpg?v=1776745321",
+   "sha256": "99e720c06f49c39ee4b9a82906b0dbe3cd4bb202f5a00531c0b0b4e606db9f09",
+   "added": "2026-11-03T15:29:13.959158+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/VPWS001__front.jpg"
+   ],
+   "drive_id": "1cGMVNlbzmKguETYK3jzI0TFWctDWlO1l"
+  },
+  {
+   "file": "images/vice-golf/vice-pro-air-white-sleeve__1.jpg",
+   "maker": "Vice Golf",
+   "product": "Vice Pro Air White Sleeve",
+   "page_url": "https://www.vicegolf.com/golf-balls/vice-golf-pro-air-white",
+   "image_url": "https://cdn.shopify.com/s/files/1/0563/0227/2645/files/vice-golf_Product_Balls_Pro_Air_White_Dozen_Ball_Badge.jpg?v=1776697359",
+   "sha256": "88a649ffa224eef2d4b2e1fad257eccae54feb74ab924b21ee6df79354bda88d",
+   "added": "2026-11-03T15:29:14.012777+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/VPAWS001__front.jpg"
+   ],
+   "drive_id": "1LjfUoA3MbT8rNzlExGG5WmVokhD6CX9u"
+  },
+  {
+   "file": "images/vice-golf/vice-tour-white-sleeve__1.jpg",
+   "maker": "Vice Golf",
+   "product": "Vice Tour White Sleeve",
+   "page_url": "https://www.vicegolf.com/golf-balls/vice-golf-tour-white",
+   "image_url": "https://cdn.shopify.com/s/files/1/0563/0227/2645/files/Shopify_Product_Balls_Tour_White_Dozen_Ball.jpg?v=1776694920",
+   "sha256": "3b66fb96d045af5d049a79fc4fcdc2ed055b05c166cba3383f23a9b56e628106",
+   "added": "2026-11-03T15:29:14.061074+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/VTWS001__front.jpg"
+   ],
+   "drive_id": "1ioDykI0ie0sBPj5DA6Rb2wRJNsMCnu-d"
+  },
+  {
+   "file": "images/vice-golf/vice-drive-white-sleeve__1.jpg",
+   "maker": "Vice Golf",
+   "product": "Vice Drive White Sleeve",
+   "page_url": "https://www.vicegolf.com/golf-balls/vice-golf-drive-white",
+   "image_url": "https://cdn.shopify.com/s/files/1/0563/0227/2645/files/vice-golf-balls-packaging-Drive-White-Dozen-Ball.jpg?v=1776705736",
+   "sha256": "3309d88da6e66e909f64041e311f679b51b85d185de5116fd2cf299c4abb8c10",
+   "added": "2026-11-03T15:29:14.108997+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/VDWS001__front.jpg"
+   ],
+   "drive_id": "1F2M8as7ZzrP-YvqIEv3sTXUN-FxjB7Cz"
+  },
+  {
+   "file": "images/vice-golf/vice-pro-tracer-white-sleeve__1.png",
+   "maker": "Vice Golf",
+   "product": "Vice Pro Tracer White Sleeve",
+   "page_url": "https://www.vicegolf.com/golf-balls/vice-pro-plus-tracer-offwhite",
+   "image_url": "https://cdn.shopify.com/s/files/1/0563/0227/2645/files/vg-pdp-offwhite-tracer-proplus-dozen-ball.png?v=1790861521",
+   "sha256": "144878b9f32eeee46a192d2148a9781c32175923d9131c5fc7d33411bd4dc042",
+   "added": "2026-11-03T15:29:14.233373+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/VPTWS001__front.png"
+   ],
+   "drive_id": "1Fw9-m4pPOxtkbtRbDRgNbs9H777LKnFv"
+  },
+  {
+   "file": "images/takomo/takomo-sf002__1.png",
+   "maker": "Takomo",
+   "product": "Takomo SF002",
+   "page_url": "https://takomogolf.com/products/skyforger-002-wedges",
+   "image_url": "https://takomogolf.com/cdn/shop/files/squarecard-sf002.png?v=1779896986",
+   "sha256": "61c0c7b2ff3a70b165287486554555b6f1adcdde31ad723bdb9220991b8d2799",
+   "added": "2026-11-03T15:29:14.321954+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/TS001__front.png",
+    "swing-shack:Products/TNSW001__front.png"
+   ],
+   "drive_id": "1mHQLNKjDojigS9xlraGic4X8vZbnZorT"
+  },
+  {
+   "file": "images/takomo/takomo-101-mk2__1.png",
+   "maker": "Takomo",
+   "product": "Takomo 101 MK2",
+   "page_url": "https://takomogolf.com/products/iron-101-mkii",
+   "image_url": "https://takomogolf.com/cdn/shop/files/squarecard-iron-101-mk2-alt.png?v=1785765350",
+   "sha256": "e6cfa6caa4eb367f138fec5dcdaa6ae2f9721b5a95d33cacf71cbb0494b76f36",
+   "added": "2026-11-03T15:29:14.395936+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/T1M001__front.png"
+   ],
+   "drive_id": "1RDyHlMtGGToGs6YQlk9p21P7VNv0mZK-"
+  },
+  {
+   "file": "images/takomo/takomo-101u__1.png",
+   "maker": "Takomo",
+   "product": "Takomo 101U",
+   "page_url": "https://takomogolf.com/products/iron-101u",
+   "image_url": "https://takomogolf.com/cdn/shop/files/squarecard-iron-101u.png?v=1779896810",
+   "sha256": "7410ad22cf2151660df76c1c8b57e7c36c900f59e5607dbecf0d994deab12ec1",
+   "added": "2026-11-03T15:29:14.458979+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/T1001__front.png"
+   ],
+   "drive_id": "19zv_-6aWwYF_wUuTkAbN_jw-PdMLwN9Z"
+  },
+  {
+   "file": "images/takomo/takomo-glove-100__1.png",
+   "maker": "Takomo",
+   "product": "Takomo Glove 100",
+   "page_url": "https://takomogolf.com/products/glove-100",
+   "image_url": "https://takomogolf.com/cdn/shop/files/takomo-glove-100-transparent.png?v=1779800872",
+   "sha256": "a936f4ab100a8f189408300cf1ef6e6f9c76392b5ea0122bfb8f30ff9b4b0c96",
+   "added": "2026-11-03T15:29:14.523383+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/GLV100M__front.png",
+    "swing-shack:Products/TG001-ML__front.png"
+   ],
+   "drive_id": "1WTfOG4YZKrzUPLdcsFjNH-8spBGmaOdT"
+  },
+  {
+   "file": "images/lab-golf/lab-mezz-1-black__1.png",
+   "maker": "L.A.B. Golf",
+   "product": "L.A.B MEZZ 1 BLACK",
+   "page_url": "https://labgolf.com/pages/mezz-1-putter",
+   "image_url": "https://labgolf.com/cdn/shop/files/MEZZ.1-Black_5ba41201-9925-4ac2-a8aa-2f1c1199a681.png?v=1778590472",
+   "sha256": "3c1bd97aad5e658b7c65550ac210866ec51e5c5bbab5eff13ee01b51476d6a72",
+   "added": "2026-11-03T15:29:14.585869+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/LM1B001__front.png",
+    "swing-shack:Products/LPM1S001__front.png"
+   ],
+   "drive_id": "100MFbpogUv-l9TWAxP5wjOTdsLuCIJn1"
+  },
+  {
+   "file": "images/lab-golf/lab-oz1-stock__1.png",
+   "maker": "L.A.B. Golf",
+   "product": "L.A.B O.Z.1 STOCK",
+   "page_url": "https://labgolf.com/pages/oz",
+   "image_url": "https://labgolf.com/cdn/shop/files/OZ.1-Black_9eb5d7ed-b487-4063-b4b8-92eb436f4197.png?v=1778590272",
+   "sha256": "00fcece29404c03786f105ad364578ac10d740dc0d1de27551c53f32c5d25526",
+   "added": "2026-11-03T15:29:14.651707+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/LOS001__front.png",
+    "stick:Products/LOCAB001__front.png",
+    "stick:Products/LOAB001__front.png",
+    "swing-shack:Products/LPOS001__front.png",
+    "swing-shack:Products/LPOC001__front.png"
+   ],
+   "drive_id": "1Zdc681gSde0U94pFlnU-UN5YAqgv5GAd"
+  },
+  {
+   "file": "images/lab-golf/lab-oz-1i-stock-hs__1.png",
+   "maker": "L.A.B. Golf",
+   "product": "L.A.B O.Z 1I STOCK HS",
+   "page_url": "https://labgolf.com/pages/oz1i-hs",
+   "image_url": "https://labgolf.com/cdn/shop/files/OZ1i_HS-Black_1c6aa13c-6e4a-43b5-8da1-36a9c3f6531f.png?v=1778590068",
+   "sha256": "9568febbb5c6ef6729a5e384e83b38bf33c4585768842f65e7905140fa5b8069",
+   "added": "2026-11-03T15:29:14.721644+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/LO1SH001__front.png",
+    "stick:Products/LOHCAP001__front.png",
+    "swing-shack:Products/LOH001__front.png"
+   ],
+   "drive_id": "1EpxasLGiAOeEc7Z1kfT-aSKp6taXT564"
+  },
+  {
+   "file": "images/lab-golf/lab-link-22-stock__1.png",
+   "maker": "L.A.B. Golf",
+   "product": "L.A.B LINK 2.2 STOCK",
+   "page_url": "https://labgolf.com/pages/link-2",
+   "image_url": "https://labgolf.com/cdn/shop/files/LINK.2.2_f69897a6-694f-4476-ab48-dd3c1fc7b038.png?v=1778603206",
+   "sha256": "1ca2cddf6481f3bc804ec54ccbbc47fcd2c2a6f0659f9b1695ef6f8359ce376c",
+   "added": "2026-11-03T15:29:14.789341+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/LL2S002__front.png",
+    "stick:Products/LL2C002__front.png",
+    "swing-shack:Products/LPL2001__front.png",
+    "swing-shack:Products/LPLS002__front.png"
+   ],
+   "drive_id": "1XX9F8nWe8Gtq0az5pm7ugZD66h2acDBZ"
+  },
+  {
+   "file": "images/lab-golf/lab-df3i-stock-black__1.png",
+   "maker": "L.A.B. Golf",
+   "product": "L.A.B DF3I STOCK BLACK",
+   "page_url": "https://labgolf.com/pages/df3-putter",
+   "image_url": "https://labgolf.com/cdn/shop/files/DF3-Black_c236eb63-5e03-4894-ac4d-2b8922fc3709.png?v=1778590341",
+   "sha256": "edf0667397bfd657d84db98c46b5f11262e3a053a933e3f5a054c47f66c5d671",
+   "added": "2026-11-03T15:29:14.914901+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/LDSB001__front.png",
+    "stick:Products/LDSB002__front.png",
+    "stick:Products/LDCAG001__front.png",
+    "swing-shack:Products/LPDS001__front.png",
+    "swing-shack:Products/LPD3C001__front.png"
+   ],
+   "drive_id": "1bpWRixMCLjpP6v5sa_7FLwxrzM9y85aN"
+  },
+  {
+   "file": "images/lab-golf/lab-vzn1i-custom-accra__1.jpg",
+   "maker": "L.A.B. Golf",
+   "product": "L.A.B VZN.1i CUSTOM ACCRA",
+   "page_url": "https://labgolf.com/pages/vzn",
+   "image_url": "https://labgolf.com/cdn/shop/files/VZN.1i-black.jpg?v=1779879505",
+   "sha256": "0dbcbe6e8d5be3e4f6acb90fed5fe1124873eeeb8f0cdf892b1e805a63b20501",
+   "added": "2026-11-03T15:29:15.020270+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/LVCA001__front.jpg"
+   ],
+   "drive_id": "1IdSw-H8QjMaGHNJaRb6bow0df8uFrAsi"
+  },
+  {
+   "file": "images/vessel/vessel-player-v-stand-white__1.png",
+   "maker": "Vessel",
+   "product": "Vessel Player V Stand White",
+   "page_url": "https://vesselgolf.com/products/player-v-stand-white",
+   "image_url": "https://cdn.shopify.com/s/files/1/3102/5646/files/WhitePlayerVHero1.png?v=1782842187",
+   "sha256": "9eec4e8b9003656faef47245c32258b0f7cfbf50fd3bedb9cc4454578f87c7d4",
+   "added": "2026-11-03T15:29:15.319145+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/VPVSW001__front.png"
+   ],
+   "drive_id": "12rO2TQLR7I98cAkF4SGQsfes9sUcikdJ"
+  },
+  {
+   "file": "images/vessel/vessel-prime-20-staff-black__1.jpg",
+   "maker": "Vessel",
+   "product": "Vessel Prime 2.0 Staff Black",
+   "page_url": "https://vesselgolf.com/products/prime-2-0-staff",
+   "image_url": "https://cdn.shopify.com/s/files/1/3102/5646/files/Product-Prime-2.0-Black-01_674bbe10-0e5c-4b37-a49f-917276db464e.jpg?v=1757520503",
+   "sha256": "f8c6fe09ac2c0532a4985b8b7c01650f5f4a3e4fabb2c777c0bd4a395e0321d1",
+   "added": "2026-11-03T15:29:15.393707+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/P2SB001__front.jpg"
+   ],
+   "drive_id": "1mbVGGTSeYcUCqQXSQ2XZ3xI9CT4MxF0p"
+  },
+  {
+   "file": "images/vessel/vessel-prime-20-staff-white__1.jpg",
+   "maker": "Vessel",
+   "product": "Vessel Prime 2.0 Staff White",
+   "page_url": "https://vesselgolf.com/products/custom-prime-staff-2-0",
+   "image_url": "https://cdn.shopify.com/s/files/1/3102/5646/files/Product-Prime-2.0-White-01.jpg?v=1757520503",
+   "sha256": "6ede8e8596f6d2203b6dabbdd4f88dad7eb84441019acadaa6e7ba680dd1da3e",
+   "added": "2026-11-03T15:29:15.463501+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/P2SW001__front.jpg"
+   ],
+   "drive_id": "1PxFlR0gP964BSxNPO2QUm4nr4J0TAxDN"
+  },
+  {
+   "file": "images/gripdrip/grip-drip-par-3-grey-white-carolina-blue__1.jpg",
+   "maker": "GripDrip",
+   "product": "GRIP DRIP Par 3 - Grey, White, Carolina Blue",
+   "page_url": "https://gripdripgolf.com/products/iron-grip-light-blue",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/IMG_1730.jpg?v=1705084499&width=2400",
+   "sha256": "04d496dc30236c8d62c4252818d41a81d53532374e46ab03ab1bb32331f36252",
+   "added": "2026-11-03T15:29:15.521638+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/GDP3-GWCB001__front.jpg",
+    "swing-shack:Products/GDP3GG001__front.jpg"
+   ],
+   "drive_id": "1MZFBJ6FhiwV6CdgmHbzcYV5l60xhBBU2"
+  },
+  {
+   "file": "images/gripdrip/grip-drip-par-3-true-blue-grey-red__1.jpg",
+   "maker": "GripDrip",
+   "product": "GRIP DRIP Par 3 - True Blue, Grey, Red",
+   "page_url": "https://gripdripgolf.com/products/par-3-swing-grip-true-blue-grey-red",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/Par3SwingGripTrueBlue1stPic.jpg?v=1698701498&width=2400",
+   "sha256": "330251e04160fd38933d142b866f3f6187b0035f8256da38ecb2173a87e5efc3",
+   "added": "2026-11-03T15:29:15.582433+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/GDP3-TBGR001__front.jpg",
+    "swing-shack:Products/GDP3GTB001__front.jpg"
+   ],
+   "drive_id": "1nddl1NSDLP4KhgguYbzlOq5I3Fpth-ga"
+  },
+  {
+   "file": "images/gripdrip/grip-drip-par-3-white-black-red__1.jpg",
+   "maker": "GripDrip",
+   "product": "GRIP DRIP Par 3 - White, Black, Red",
+   "page_url": "https://gripdripgolf.com/products/par-3-swing-grip-white-black-red",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/PhotoRoom_20231030_163020.jpg?v=1698701536&width=2400",
+   "sha256": "ab3306b569c8d3a828496e709b9aaacaacabefdc76db9ef6d62d9d19a8e4c6cf",
+   "added": "2026-11-03T15:29:15.642357+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/GDP3-WBR001__front.jpg",
+    "swing-shack:Products/GDP3GW001__front.jpg"
+   ],
+   "drive_id": "15rDg9HbFxjEW4VCZvWBtlSn5m3XkhpgC"
+  },
+  {
+   "file": "images/gripdrip/grip-drip-chevron-carolina-blue__1.jpg",
+   "maker": "GripDrip",
+   "product": "GRIP DRIP Chevron - Carolina Blue",
+   "page_url": "https://gripdripgolf.com/products/chevron-swing-grip-carolina-blue",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/IMG_1726.jpg?v=1705083294&width=2400",
+   "sha256": "4a3898b14df26af6c4f02e95dfe51f50f912bafeb9aeb3d3e40417349db70d41",
+   "added": "2026-11-03T15:29:15.691712+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/GDC-CB001__front.jpg",
+    "swing-shack:Products/CGCB001__front.jpg"
+   ],
+   "drive_id": "1S4jr5iLMfHJgJURhIUIqi96tLJPg6ien"
+  },
+  {
+   "file": "images/gripdrip/grip-drip-chevron-augusta__1.jpg",
+   "maker": "GripDrip",
+   "product": "GRIP DRIP Chevron - Augusta",
+   "page_url": "https://gripdripgolf.com/products/chevron-swing-grip-augusta",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/DSC01343.jpg?v=1709312089&width=2400",
+   "sha256": "9146075e7eea73bbdd11f70fc5d106da903318bcfed828e6503a6e88a30d7a36",
+   "added": "2026-11-03T15:29:15.744316+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/GDGDC-A001__front.jpg",
+    "swing-shack:Products/CSG-A001__front.jpg"
+   ],
+   "drive_id": "1YPQF7nxZFlqb7BSpxlzfDGgeOSIs70k8"
+  },
+  {
+   "file": "images/gripdrip/grip-drip-chevron-white-red-blue__1.jpg",
+   "maker": "GripDrip",
+   "product": "GRIP DRIP Chevron - White, Red, Blue",
+   "page_url": "https://gripdripgolf.com/products/chevron-swing-grip-white-red-blue",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/whiteredblue1stimage.jpg?v=1698701129&width=2400",
+   "sha256": "e5a0a64f668ca5fa19c25f8f343eecf27a7859ee30185ad63d277683db7f5e73",
+   "added": "2026-11-03T15:29:15.813558+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/GDC-WRB001__front.jpg",
+    "swing-shack:Products/GDC001__front.jpg"
+   ],
+   "drive_id": "1fylJHtHXf-hBoxyxhsN34pV3FXZ0Anp-"
+  },
+  {
+   "file": "images/gripdrip/grip-drip-zen-swing-plum__1.jpg",
+   "maker": "GripDrip",
+   "product": "GRIP DRIP Zen Swing - Plum",
+   "page_url": "https://gripdripgolf.com/products/zen-grip-plum",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/ZenPlumWebsite.jpg?v=1713919936&width=2400",
+   "sha256": "96fb4c6964dcf81a1c528ab44fe104bbe2b45adc4b670ec19073174345f37a9c",
+   "added": "2026-11-03T15:29:15.884391+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/GDZS-P001__front.jpg",
+    "swing-shack:Products/GDZGP001__front.jpg"
+   ],
+   "drive_id": "1vbeC-7bTDVRlUhzAe5_xeyKCmYOCp1a7"
+  },
+  {
+   "file": "images/ripit/ripit-grips-stripe-blue__1.jpg",
+   "maker": "RipIt",
+   "product": "Ripit Grips Stripe - Blue",
+   "page_url": "https://ripitgrips.com/products/striped",
+   "image_url": "https://cdn.shopify.com/s/files/1/0273/2700/4749/files/Magnolia.jpg?v=1776580299&width=2400",
+   "sha256": "7308e75ea4e24f1ccb502a65b8c1a0f193fe0d7d497296c5755fa5be651402df",
+   "added": "2026-11-03T15:29:15.945969+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/RGS-B001__front.jpg"
+   ],
+   "drive_id": "1OnISmVA3xRi-drqe5XWO6eXvoLcMPCBz"
+  },
+  {
+   "file": "images/ripit/ripit-grips-marilyn-20-ivory__1.png",
+   "maker": "RipIt",
+   "product": "Ripit Grips Marilyn 2.0 - Ivory",
+   "page_url": "https://ripitgrips.com/products/marilyn2-0",
+   "image_url": "https://cdn.shopify.com/s/files/1/0273/2700/4749/files/Marilyn-Khaki-Golf-Grip-Front.png?v=1764735084&width=2400",
+   "sha256": "8efcc7fda9fb2304f28c29cb04cb9cc731198a8386b8921bca11a3d7b546149b",
+   "added": "2026-11-03T15:29:16.027654+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/RGM2-I001__front.png"
+   ],
+   "drive_id": "1XYmt9Q0WgmZGac4kmtD2xGPgvoVpz6c9"
+  },
+  {
+   "file": "images/ripit/ripit-grips-ripitman-black__1.jpg",
+   "maker": "RipIt",
+   "product": "Ripit Grips Ripitman - Black",
+   "page_url": "https://ripitgrips.com/products/ripit-man",
+   "image_url": "https://cdn.shopify.com/s/files/1/0273/2700/4749/files/Ripit-Man-Golf-Grip-Front.jpg?v=1709595172&width=2400",
+   "sha256": "4cd848aa6863cf7e658179d184f90bbdba6407783fd71bdb309f329020bafacc",
+   "added": "2026-11-03T15:29:16.106831+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/RGR-B001__front.jpg"
+   ],
+   "drive_id": "1qf01LTz8Y2ELs1s15sSbjlIzRKIKxXHv"
+  },
+  {
+   "file": "images/ripit/ripit-grips-flower-of-life-clay-cream__1.jpg",
+   "maker": "RipIt",
+   "product": "Ripit Grips Flower of Life - Clay/Cream",
+   "page_url": "https://ripitgrips.com/products/flower-of-life",
+   "image_url": "https://cdn.shopify.com/s/files/1/0273/2700/4749/files/Chocolate-_-pink.jpg?v=1747261777&width=2400",
+   "sha256": "00d49936d94a59582c64a6b34bed82bc4c6db0dc8be6c53ff583a5e421cb52a1",
+   "added": "2026-11-03T15:29:16.169273+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/RGFOL-C001__front.jpg",
+    "stick:Products/RGFOL-C002__front.jpg",
+    "stick:Products/RGFOL-T001__front.jpg",
+    "stick:Products/RGFOL-P001__front.jpg",
+    "stick:Products/RGFOL-L001__front.jpg"
+   ],
+   "drive_id": "1eAYzGSHg9SviETiUorQAEF9_KuSxxtuz"
+  },
+  {
+   "file": "images/ripit/ripit-grips-squiggle-pink__1.png",
+   "maker": "RipIt",
+   "product": "Ripit Grips Squiggle - Pink",
+   "page_url": "https://ripitgrips.com/products/the-squiggle",
+   "image_url": "https://cdn.shopify.com/s/files/1/0273/2700/4749/files/Squiggle-Golf-Grip-Aqua-2.png?v=1758688611&width=2400",
+   "sha256": "d44e7192ff65f83f7d51cb24c1f61538ddd0b090ce6d02fce4b9426405128f78",
+   "added": "2026-11-03T15:29:16.385721+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/RGS-P001__front.png",
+    "stick:Products/RGS-L001__front.png",
+    "stick:Products/RGS-L002__front.png",
+    "stick:Products/RGS-P002__front.png",
+    "stick:Products/RGS-T001__front.png"
+   ],
+   "drive_id": "1bz8X1ys0iPMAdQY1mxhckmc-yYIlxMM9"
+  },
+  {
+   "file": "images/psycho-bunny/mens-classic-polo-white__1.jpg",
+   "maker": "Psycho Bunny",
+   "product": "Mens Classic Polo (White)",
+   "page_url": "https://psychobunny.com/products/mens-classic-pique-polo-b6k001f200-031-white-cap-gray",
+   "image_url": "https://cdn.shopify.com/s/files/1/2304/1219/files/B6K001F200-WCG_F1.jpg?v=1757078556&width=2400",
+   "sha256": "552d4618b5b641de40f9327ac6afed81f5be7a13a76351d0c6d45a8ac97929ad",
+   "added": "2026-11-03T15:29:16.650676+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/B6K001ARPC-WHITE-3-W4__front.jpg"
+   ],
+   "drive_id": "1tGMCN-mHX6WUxJTGvT1LKNjTqZQCrQ7b"
+  },
+  {
+   "file": "images/psycho-bunny/mens-classic-polo-black__1.jpg",
+   "maker": "Psycho Bunny",
+   "product": "Mens Classic Polo (Black)",
+   "page_url": "https://psychobunny.com/products/mens-classic-polo-b6k001arpc-001-black",
+   "image_url": "https://cdn.shopify.com/s/files/1/2304/1219/files/B6K001ARPC-BLK_F1_c80f250b-b76b-4cc3-9126-4912bb352f82.webp?v=1758290460&width=2400",
+   "sha256": "c67f5ce425b07b91aff60b786ad98cfca5f2e26c8d358e3165ed1e5c4797e4af",
+   "added": "2026-11-03T15:29:16.717525+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/B6K001ARPC-WHITE-3-B3__front.jpg"
+   ],
+   "drive_id": "1lcMXBDOVZCMJStwKHsmyEEhumsbrzPjy"
+  },
+  {
+   "file": "images/psycho-bunny/samos-hydrochromic-printed-swim-trunk-black-2__1.jpg",
+   "maker": "Psycho Bunny",
+   "product": "Samos Hydrochromic Printed Swim Trunk (Black 2)",
+   "page_url": "https://psychobunny.com/products/mens-samos-hydrochromic-printed-swim-trunk-b6w453f200-002-black-2",
+   "image_url": "https://cdn.shopify.com/s/files/1/2304/1219/files/B6W453F200-BLK_2.jpg?v=1771445105&width=2400",
+   "sha256": "e51438f00998eff4e25af6f91d6de7431f21309db24739858c93ab72c61d8324",
+   "added": "2026-11-03T15:29:16.773052+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/B6W453F200-BLACK2-XS-BX__front.jpg"
+   ],
+   "drive_id": "1BYEzoeG7fAyu-dPJPRzLgQvdyqTFw5O3"
+  },
+  {
+   "file": "images/psycho-bunny/mens-classic-crew-neck-tee-white__1.jpg",
+   "maker": "Psycho Bunny",
+   "product": "Mens Classic Crew Neck Tee (White)",
+   "page_url": "https://psychobunny.com/products/mens-classic-crew-neck-tee-b6u014f200-031-white-cap-gray",
+   "image_url": "https://cdn.shopify.com/s/files/1/2304/1219/files/B6U014F200-WHITECAPGREY_2.webp?v=1790347162&width=2400",
+   "sha256": "42dd4922b9dac4d5e51c5403ec1aaa44947b806d63b1bce931357d79cc109741",
+   "added": "2026-11-03T15:29:16.837388+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/B6U014CRPC-WHITE-4-W4__front.jpg"
+   ],
+   "drive_id": "1PTNSoPYxikqUqYT-zTedx5MBBnSvsr1r"
+  },
+  {
+   "file": "images/psycho-bunny/mens-classic-crew-neck-tee-black__1.jpg",
+   "maker": "Psycho Bunny",
+   "product": "Mens Classic Crew Neck Tee (Black)",
+   "page_url": "https://psychobunny.com/products/mens-classic-crew-neck-tee-b6u014crpc-001-black",
+   "image_url": "https://cdn.shopify.com/s/files/1/2304/1219/files/B6U014CRPC-BLK_F1_b5551790-95c3-4dd7-8a85-3d56bef9927f.webp?v=1789410069&width=2400",
+   "sha256": "f1a18fe7d4402dd97316f197fbc9f389c3288665ca240efafcf247477215a781",
+   "added": "2026-11-03T15:29:16.908845+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/B6U014CRPC-WHITE-4-B4__front.jpg"
+   ],
+   "drive_id": "1wUd1jZcyI8E-GB-UbYDOxNt0UoyzCNMa"
+  },
+  {
+   "file": "images/psycho-bunny/mens-classic-crew-neck-tee-evening-blue__1.jpg",
+   "maker": "Psycho Bunny",
+   "product": "Mens Classic Crew Neck Tee (Evening Blue)",
+   "page_url": "https://psychobunny.com/products/mens-classic-crew-neck-tee-b6u014crpc-419-evening-blue",
+   "image_url": "https://cdn.shopify.com/s/files/1/2304/1219/files/B6U014CRPC-EVB_F1_e476b82e-ca3d-487f-9acd-84de3856c4c0.webp?v=1787768642&width=2400",
+   "sha256": "5300214b10465a273c6b2aaf58dbfefc0216d27e14f8259298a2e768ae036022",
+   "added": "2026-11-03T15:29:16.963796+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/B6U014CRPC-WHITE-4-E4__front.jpg"
+   ],
+   "drive_id": "12hNMQJ-vM4nX6tBg8LpsnLZxo6qC8di1"
+  },
+  {
+   "file": "images/psycho-bunny/maverick-10k-step-pant-black-black__1.jpg",
+   "maker": "Psycho Bunny",
+   "product": "Maverick 10K Step Pant - Black (Black)",
+   "page_url": "https://psychobunny.com/products/mens-10k-step-pant-b6p788d200-001-black",
+   "image_url": "https://cdn.shopify.com/s/files/1/2304/1219/files/B6P788D200-BLK_1_75988612-4e9c-428b-83ba-fc08704fefb0.webp?v=1781622252&width=2400",
+   "sha256": "11a70305c01a1150b1ea40693bf27922b3f359d71aaa7669619007d0824855ff",
+   "added": "2026-11-03T15:29:17.036244+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/black10k32__front.jpg"
+   ],
+   "drive_id": "11oMqdVpqbVgfwlLKD4Nn87iOob4lPS0H"
+  },
+  {
+   "file": "images/psycho-bunny/maverick-10k-step-pant-baritone-blue-baritone-blue__1.jpg",
+   "maker": "Psycho Bunny",
+   "product": "Maverick 10K Step Pant - Baritone Blue (Baritone Blue)",
+   "page_url": "https://psychobunny.com/products/mens-maverick-10k-step-pant-b6p788d200-423-baritone-blue",
+   "image_url": "https://cdn.shopify.com/s/files/1/2304/1219/files/B6P788D200-BARITONEBLUE_1.webp?v=1785765497&width=2400",
+   "sha256": "dda292a154b9ff1bbc642343138418565280fa59300cd8e4fa29970a92d524fc",
+   "added": "2026-11-03T15:29:17.098824+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/blue10k32__front.jpg"
+   ],
+   "drive_id": "1Gf-qk3nsOnqObjiaLXjR_YHV2mfUaOvO"
+  },
+  {
+   "file": "images/herschel/herschel-watt-light-stand-bag__1.jpg",
+   "maker": "Herschel",
+   "product": "Herschel Watt Light Stand Bag",
+   "page_url": "https://herschel.com/products/herschel-watt-light-stand-bag",
+   "image_url": "https://cdn.shopify.com/s/files/1/0662/0541/7724/files/11804-00001-os-01-rJbDWqt3.jpg?v=1781468570&width=2400",
+   "sha256": "515027586af43814843b2acdf6dbcc00c7a5f3a93ff1db0fa2e9c86eb8385a8e",
+   "added": "2026-11-03T15:29:17.177795+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/HWLSB001__front.jpg"
+   ],
+   "drive_id": "1RgoM9_2umF9jpVO1TMlwK7L4uuMj4bvS"
+  },
+  {
+   "file": "images/mileseey/mileseey-gene-pro-g1__1.png",
+   "maker": "Mileseey",
+   "product": "Mileseey Gene Pro G1",
+   "page_url": "https://mileseeygolf.com/products/mileseey-genepro-g1-touchscreen-gps-rangefinder",
+   "image_url": "https://img-va.myshopline.com/image/store/1733562268557/Mask-group-(1)-12.png?w=1600&h=1600",
+   "sha256": "22746338c318d51412c7b6385b55bfefd1435f83eea342d20ddccae57e4912cb",
+   "added": "2026-11-03T15:29:17.261732+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/GGP001__front.png"
+   ],
+   "drive_id": "1nqzJVvrhfy2wwu2mnu7RERdaC2JarXEN"
+  },
+  {
+   "file": "images/mileseey/mileseey-genesonic-pro__1.png",
+   "maker": "Mileseey",
+   "product": "Mileseey GeneSonic Pro",
+   "page_url": "https://mileseeygolf.com/products/mileseey-genesonic-pro-detachable-gps-speaker",
+   "image_url": "https://img-va.myshopline.com/image/store/1733562268557/20260717-182038.png?w=1600&h=1600",
+   "sha256": "cd1043a63a4e9b248baa992782fbf0b5223ed6d8d825ccfe1833b8752972e4b3",
+   "added": "2026-11-03T15:29:17.354859+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/GP001__front.png",
+    "swing-shack:Products/MGGP-RF001__front.png"
+   ],
+   "drive_id": "1gNaxv7ykbCddjAGvdF5Xr1hWiFI6FvWV"
+  },
+  {
+   "file": "images/mileseey/mileseey-ionme-2__1.png",
+   "maker": "Mileseey",
+   "product": "Mileseey IONME 2",
+   "page_url": "https://mileseeygolf.com/products/mileseey-ionme2-golf-laser-rangefinder",
+   "image_url": "https://img-va.myshopline.com/image/store/1733562268557/IONME2.png?w=1600&h=1600",
+   "sha256": "d07789490ca8ed0828790cfeabc0ac525481cb839bff557db750bdeab34dc1fe",
+   "added": "2026-11-03T15:29:17.434050+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/I2001__front.png",
+    "swing-shack:Products/MGI-RF001__front.png"
+   ],
+   "drive_id": "1_50-jsGoW7KenOfrRhmdYQDSioUnSsOe"
+  },
+  {
+   "file": "images/mileseey/mileseey-gene-pro-s1__1.png",
+   "maker": "Mileseey",
+   "product": "Mileseey Gene Pro S1",
+   "page_url": "https://mileseeygolf.com/products/genepro-s1-golf-rangefinder",
+   "image_url": "https://img-va.myshopline.com/image/store/1733562268557/Group-2085661738-(1).png?w=1600&h=1600",
+   "sha256": "b65f1706d962f66d737863f0672cdc056c5a64f05863c9377e925e77c57701a3",
+   "added": "2026-11-03T15:29:17.517527+00:00",
+   "exact_build": true,
+   "used_by": [
+    "stick:Products/MGPS001__front.png",
+    "swing-shack:Products/MGGS001__front.png"
+   ],
+   "drive_id": "1stKGGKB-8bmZl7EZN69-ROYaqDMwUqbb"
+  },
+  {
+   "file": "images/callaway/quantam-mini-driver__1.png",
+   "maker": "Callaway",
+   "product": "Quantam Mini Driver",
+   "page_url": "https://www.callawaygolf.com/golf-clubs/drivers/drivers-2026-quantum-mini.html",
+   "image_url": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792127106237/sits/drivers-2026-quantum-mini/drivers-2026-quantum-mini___1.png?sw=2000",
+   "sha256": "075dcbf7abd8c836ea1b5b7f3ccc0a03900c9103aea18a161175a151dc41b682",
+   "added": "2026-11-03T15:29:17.588154+00:00",
+   "exact_build": false,
+   "used_by": [
+    "stick:Products/QMD001__front.png",
+    "swing-shack:Products/CQM001__front.png"
+   ],
+   "drive_id": "1NaMXlSER6CYAzwv8OqONKu_THIoJeHmW"
+  },
+  {
+   "file": "images/srixon/srixon-z-star-xv__1.jpg",
+   "maker": "Srixon",
+   "product": "Srixon Z- Star XV",
+   "page_url": "https://ca.dunlopsports.com/products/srixon-z-star-xv-golf-balls-1",
+   "image_url": "https://cdn.shopify.com/s/files/1/0693/2601/2728/files/SX25-Balls-ZSTRXV9-Pure-White-1.jpg?v=1736196456",
+   "sha256": "60cb6dd99da9d7474b48beae2214f3972739e8a6c486cec5f28bc27fe74e1560",
+   "added": "2026-11-03T15:29:17.653520+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/SZSXS001__front.jpg"
+   ],
+   "drive_id": "1ecMVz73ttbZLWNhiI6o41cacGmh-5z-o"
+  },
+  {
+   "file": "images/srixon/srixon-z-star-9__1.jpg",
+   "maker": "Srixon",
+   "product": "Srixon Z star 9",
+   "page_url": "https://ca.dunlopsports.com/products/srixon-z-star-golf-ball",
+   "image_url": "https://cdn.shopify.com/s/files/1/0693/2601/2728/files/SX25-Balls-ZSTR9-Pure-White-1.jpg?v=1736195474",
+   "sha256": "907a6788f16fa5a23d40c59a83212551a817a431e2e2e35262ad272b92c6a1cb",
+   "added": "2026-11-03T15:29:17.716265+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/ZS9001__front.jpg"
+   ],
+   "drive_id": "12d7QUOd70-aZQ28AkAcX0ThQHi5nOPh6"
+  },
+  {
+   "file": "images/srixon/srixon-z-star-diamond-3__1.jpg",
+   "maker": "Srixon",
+   "product": "Srixon Z-Star Diamond 3",
+   "page_url": "https://ca.dunlopsports.com/products/srixon-z-star-diamond-golf-balls",
+   "image_url": "https://cdn.shopify.com/s/files/1/0693/2601/2728/files/SX25-Balls-ZSTR9-DIAMOND3-Pure-White-1.jpg?v=1736786796",
+   "sha256": "376e6cc0e6281dafe63f0ed8fab6a6dad5a738ff0cfba53127318eab21d176a5",
+   "added": "2026-11-03T15:29:17.782592+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/ZD3001__front.jpg"
+   ],
+   "drive_id": "1rLcQuR6eB62inF5eyC5lWMZVFzsZ31XW"
+  },
+  {
+   "file": "images/srixon/srixon-q-star-5__1.jpg",
+   "maker": "Srixon",
+   "product": "Srixon Q-Star 5",
+   "page_url": "https://ca.dunlopsports.com/products/srixon-q-star-golf-balls",
+   "image_url": "https://cdn.shopify.com/s/files/1/0693/2601/2728/files/SX22-Balls-Q-Star-Pure-White-1_b969177f-5de5-4a5e-8e5e-4cc6b74ca684.jpg?v=1689347950",
+   "sha256": "9a70714c1cfc02cc8c0ad642260dcc63a846038a256acc7c23fdf3ff3f976827",
+   "added": "2026-11-03T15:29:17.845239+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/Q5001__front.jpg"
+   ],
+   "drive_id": "1ioM09d0kIVQoj_iDJFe_ZcZu4Kk3HIpK"
+  },
+  {
+   "file": "images/srixon/srixon-soft-feel-14__1.jpg",
+   "maker": "Srixon",
+   "product": "Srixon Soft Feel 14",
+   "page_url": "https://ca.dunlopsports.com/products/srixon-soft-feel-14-golf-ball",
+   "image_url": "https://cdn.shopify.com/s/files/1/0693/2601/2728/files/SX25-Balls-SF14-Soft-White-1.jpg?v=1740582661",
+   "sha256": "0a20ffddfc4850f3e3e6f857ab2f57a70d85acc7746d043fbd49f6fd2dd6c7c3",
+   "added": "2026-11-03T15:29:17.909688+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/SSF1001__front.jpg"
+   ],
+   "drive_id": "1sBB73un6r_JqkF38P0GOJau27SMYayXo"
+  },
+  {
+   "file": "images/lab-golf/lab-putters-link-1__1.png",
+   "maker": "L.A.B. Golf",
+   "product": "L.A.B Putters: Link 1",
+   "page_url": "https://labgolf.com/pages/link-1-0-putter",
+   "image_url": "https://labgolf.com/cdn/shop/files/LINK.1_353f6497-f205-4b74-8436-976982d2db18.png?v=1778590801",
+   "sha256": "19d80f184b647bf5eea661a71dd2386fef4a7b0831c91271ba2bf0862ae15a42",
+   "added": "2026-11-03T15:29:18.208823+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/LPLS001__front.png"
+   ],
+   "drive_id": "1OXEaGYxZayPoGtXOZjCoYVZHuBn1KDWi"
+  },
+  {
+   "file": "images/lab-golf/lab-putter-link-21-accra-shaft__1.png",
+   "maker": "L.A.B. Golf",
+   "product": "L.A.B Putter: Link 2.1 Accra Shaft",
+   "page_url": "https://labgolf.com/pages/link-2",
+   "image_url": "https://labgolf.com/cdn/shop/files/LINK.2.1_2aa8dffa-c454-48d2-bea5-e875c471cc92.png?v=1778590749",
+   "sha256": "aad23bfe7e83010aa8b8c3def869a631820485451f1a252c6fc3ad54a2424bfe",
+   "added": "2026-11-03T15:29:18.594311+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/LPL2AS001__front.png"
+   ],
+   "drive_id": "1h53IRKjbc4MsfvYStGy7syY82to2kNmo"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-bandana-magnet-towel__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Bandana - Magnet Towel",
+   "page_url": "https://gripdripgolf.com/products/bandana-magnet-towel",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/IMG_1500.jpg?v=1703027718&width=2400",
+   "sha256": "6b732aa67414a2614288fa0375b862f6c37941190deca44f719f6bfab487102f",
+   "added": "2026-11-03T15:29:18.736111+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDB001__front.jpg"
+   ],
+   "drive_id": "1N82czxHI3nhYZQPcuezcS0HDgkV7oraR"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-grey-camo-magnet-towel__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Grey Camo - Magnet Towel",
+   "page_url": "https://gripdripgolf.com/products/grey-camo-1",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/GreyCamoFront.jpg?v=1687111608&width=2400",
+   "sha256": "65c8e5f6ddc1224b80238ade0d8db3701f2a5acee725d9b5dd7da97b7f627bb0",
+   "added": "2026-11-03T15:29:18.801155+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDGCT001__front.jpg"
+   ],
+   "drive_id": "1f8aHeCTIOK0iZyAdZvuLJ90-v0-seZs6"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-serape-magnet-towel__1.png",
+   "maker": "GripDrip",
+   "product": "GripDrip Serape - Magnet Towel",
+   "page_url": "https://gripdripgolf.com/products/serape",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/SerapeFront.png?v=1687111867&width=2400",
+   "sha256": "d068e6371e3453e92e9837800f7c87df8f5f8e2c153197a83ab699adfd039823",
+   "added": "2026-11-03T15:29:18.917895+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDST001__front.png"
+   ],
+   "drive_id": "1wCI-853WSB_k5nwDTzpoWX3lo6Qdqb95"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-par-3-red-magnet-towel__1.png",
+   "maker": "GripDrip",
+   "product": "GripDrip Par 3 - Red - Magnet Towel",
+   "page_url": "https://gripdripgolf.com/products/magnetic-towel-red",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/products/IMG_2925.png?v=1661367278&width=2400",
+   "sha256": "d6ba80d13cc121b026be7bb00ee232ae7c25f82f7e42518f026ff0964311259f",
+   "added": "2026-11-03T15:29:18.992929+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDP3RT001__front.png"
+   ],
+   "drive_id": "1zxyuowNxJzMxPW_Q57EfFiHFRzIONULh"
+  },
+  {
+   "file": "images/gripdrip/tropical-vibes-magnet-towel__1.jpg",
+   "maker": "GripDrip",
+   "product": "Tropical Vibes - Magnet Towel",
+   "page_url": "https://gripdripgolf.com/products/tropical-vibes",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/PacificVibesFront.jpg?v=1687110326&width=2400",
+   "sha256": "ab85a8c077274d1d0ff19a885938bf914e1a6e127119f24cce901b7191b91c87",
+   "added": "2026-11-03T15:29:19.054750+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDTVT001__front.jpg"
+   ],
+   "drive_id": "19Eg6k7MPn7Uaa00rsG_GhqFFiZ7uqlHd"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-duck-camo-magnet-towel__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Duck Camo - Magnet Towel",
+   "page_url": "https://gripdripgolf.com/products/duck-camo",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/DuckCamoFront.jpg?v=1687111035&width=2400",
+   "sha256": "cfd8d3e0d0c4e04be289bde8c3214a62c5547f7b2492305b9b586513e5248248",
+   "added": "2026-11-03T15:29:19.131100+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDDCT001__front.jpg"
+   ],
+   "drive_id": "1BjCo7J01pfynfCvFDVgzDZV-5vj6Fct4"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-par-3-white-black-magnet-towel__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Par 3 - White, Black - Magnet Towel",
+   "page_url": "https://gripdripgolf.com/products/par-3-white-black",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/IMG_9486.jpg?v=1687808990&width=2400",
+   "sha256": "01d009f715c340d06595b2fd8c48e02b202700cc0a96a71f2432e7a2fc335c0f",
+   "added": "2026-11-03T15:29:19.192126+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDP3WABT001__front.jpg"
+   ],
+   "drive_id": "1_EVhylDCGlFqYX_4oz5fE-T05X4DR0Hx"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-chevron-swing-grip-navy-blue-light-blue-grey__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Chevron Swing Grip- Navy, Blue, Light Blue, Grey",
+   "page_url": "https://gripdripgolf.com/products/chevron-swing-grip-navy-blue-light-blue-grey",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/BlueGrey1stimage.jpg?v=1698701086&width=2400",
+   "sha256": "d682e9de424744bfe2c9f5e075131b3c6f63d1b17c1966a8236565aa9807785d",
+   "added": "2026-11-03T15:29:19.257203+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDCNB001__front.jpg"
+   ],
+   "drive_id": "1s1C9lOE5jBp4mJyhafgi12uhwFrbwYFH"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-chevron-swing-grip-blue-red-orange-yellow__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Chevron Swing Grip- Blue, Red, Orange, Yellow",
+   "page_url": "https://gripdripgolf.com/products/chevron-swing-grip-blue-red-orang-yellow",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/blueredyelloorangefirstimage.jpg?v=1698701163&width=2400",
+   "sha256": "b8507913351671b6db2e2333993be58893b79f6ed4dcac9ac4da8a8efbfb5c7a",
+   "added": "2026-11-03T15:29:19.333101+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDCBR001__front.jpg"
+   ],
+   "drive_id": "1U9IWVASe63RNqipp0DQo5RJhjalv43vT"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-par-3-swing-grip-black-white-lucky-green__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Par 3 Swing Grip - Black, White, Lucky Green",
+   "page_url": "https://gripdripgolf.com/products/par-3-swing-grip-white-black-green",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/IMG_1731.jpg?v=1705084449&width=2400",
+   "sha256": "aad1fc30eac8a893578991b56ad546a01bb18bb428cc0ca3382e4134cf52e8aa",
+   "added": "2026-11-03T15:29:19.553722+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDP3GB001__front.jpg"
+   ],
+   "drive_id": "1F3wa4_3nj40ERgMLnt6oh9spX9DK0o2B"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-zen-swing-grip-sky__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Zen Swing Grip - Sky",
+   "page_url": "https://gripdripgolf.com/products/zen-grip-sky",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/ZenSkyWebsite.jpg?v=1713919971&width=2400",
+   "sha256": "5f5c55ddea974d2b4e0a1d308b09834f1cd459f34a38cf2b49b915bbd02bd44e",
+   "added": "2026-11-03T15:29:19.674790+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDZGS001__front.jpg"
+   ],
+   "drive_id": "1sew6uaHMcHLB8PPTt8mSwsmC3kwnqoSU"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-zen-swing-grip-ocean__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Zen Swing Grip - Ocean",
+   "page_url": "https://gripdripgolf.com/products/zen-grip-ocean",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/ZenOceanWebsite.jpg?v=1713919914&width=2400",
+   "sha256": "ae820c86fa974839f2924beead7287bd348a30f8bdc84720cad6085a3ff4d6d4",
+   "added": "2026-11-03T15:29:19.784958+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDZGO001__front.jpg"
+   ],
+   "drive_id": "19XhH9ehnZ1W7ayFesnTnY39nd4nVE_90"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-zen-swing-grip-cherry__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Zen Swing Grip - Cherry",
+   "page_url": "https://gripdripgolf.com/products/zen-grip-cherry",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/ZenCherryWebsite.jpg?v=1713919890&width=2400",
+   "sha256": "dfe89cf1bdc6f2be3a7f3d99cd4944e00410d535d725a5e289a965b887adb2c5",
+   "added": "2026-11-03T15:29:19.869371+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDZGC001__front.jpg"
+   ],
+   "drive_id": "191Y4Yb_sF3rJ5JJi9VmoJhX0-xPl6Ti_"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-par-3-swing-grip-bred__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Par 3 Swing Grip- BRED",
+   "page_url": "https://gripdripgolf.com/products/par-3-swing-grip-bred",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/Par3SwingGrip-BRED1stpic.jpg?v=1698701564&width=2400",
+   "sha256": "cde639956897e6f8698bc0d909759816bedc4c38c95a96164a98f2312ae24db8",
+   "added": "2026-11-03T15:29:19.946649+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/P3SGB001__front.jpg"
+   ],
+   "drive_id": "1tk87tl_Mp5BTvI1gszSNXRdih_AfZc_s"
+  },
+  {
+   "file": "images/gripdrip/gripdrip-zen-swing-grip-mint__1.jpg",
+   "maker": "GripDrip",
+   "product": "GripDrip Zen Swing Grip- Mint",
+   "page_url": "https://gripdripgolf.com/products/zen-grip-mint",
+   "image_url": "https://cdn.shopify.com/s/files/1/0555/6761/4035/files/ZenMintWebsite.jpg?v=1713919856&width=2400",
+   "sha256": "3f50a95e8f394947acfab5828920163a07ee256e52c2d39b5efacf0d30aad5b0",
+   "added": "2026-11-03T15:29:20.015753+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/GDZGM002__front.jpg"
+   ],
+   "drive_id": "1-x8HfXGXznRm9AnGsoGyxhgq66qATIwV"
+  },
+  {
+   "file": "images/herschel/herschel-golf-bag-stand__1.jpg",
+   "maker": "Herschel",
+   "product": "Herschel golf bag (stand)",
+   "page_url": "https://herschel.com/products/herschel-watt-stand-bag",
+   "image_url": "https://cdn.shopify.com/s/files/1/0662/0541/7724/files/11803-00001-os-01-OvbiAZkI.jpg?v=1781468566&width=2400",
+   "sha256": "35836e53e6178ec85db49055327d1c11c02ba2c8f10144dab0177e817e27cf7e",
+   "added": "2026-11-03T15:29:20.142150+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/HGB002__front.jpg"
+   ],
+   "drive_id": "1m_qxftqb3v9RN4_xd0ySBFgoafZ_WA80"
+  },
+  {
+   "file": "images/herschel/herschel-golf-bag-sunday__1.jpg",
+   "maker": "Herschel",
+   "product": "Herschel golf bag (sunday)",
+   "page_url": "https://herschel.com/products/herschel-watt-sunday-bag",
+   "image_url": "https://cdn.shopify.com/s/files/1/0662/0541/7724/files/11805-00001-os-0-B2kqQDz9.jpg?v=1781468625&width=2400",
+   "sha256": "ea4b45cd3167ebf6fbf654ec352e9fad51fa8901677780a80ba8390db7e741e6",
+   "added": "2026-11-03T15:29:20.217398+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/HGB003__front.jpg"
+   ],
+   "drive_id": "1n2r3AiSp97pNuNRTXLJyuWfdUpjPqBMF"
+  },
+  {
+   "file": "images/herschel/herschel-golf-bag-camo__1.jpg",
+   "maker": "Herschel",
+   "product": "Herschel golf bag (camo)",
+   "page_url": "https://herschel.com/products/realtree-herschel-watt-stand-bag",
+   "image_url": "https://cdn.shopify.com/s/files/1/0662/0541/7724/files/11862-07175-os-0-nLiAsSfC.jpg?v=1781468660&width=2400",
+   "sha256": "001b66e82bd2b592840c4186e2d47b87b21ac7c8ae824b2e5fc7009cb4e0911e",
+   "added": "2026-11-03T15:29:20.279956+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/HGB001__front.jpg"
+   ],
+   "drive_id": "1yWCdYmUQf09MjkI5kZH-ovidBnppYazj"
+  },
+  {
+   "file": "images/callaway/odyssey-ai-one-double-wide__1.png",
+   "maker": "Callaway",
+   "product": "Odyssey Ai-One Double Wide",
+   "page_url": "https://odyssey.callawaygolf.com/putters/ai-one/putters-2024-ai-one-double-wide-ch.html",
+   "image_url": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792127106237/sits/putters-2024-ai-one-double-wide-ch/putters-2024-ai-one-double-wide-ch___1.png?sw=2000",
+   "sha256": "f4417ac931892cd07165ef4de51b5b25e461f57a027fade9d840cce4bf074c95",
+   "added": "2026-11-03T15:29:20.498714+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/OADW001__front.png"
+   ],
+   "drive_id": "1nifmCcwSSJDSsUDFfAAVbRjkkK-P3rT1"
+  },
+  {
+   "file": "images/callaway/odyssey-ai-one-milled-seven-t__1.png",
+   "maker": "Callaway",
+   "product": "Odyssey Ai-One Milled Seven T",
+   "page_url": "https://odysseyeu.callawaygolf.com/en/gb/odyssey/odyssey-putters/ai-one-milled/putters-2024-ai-one-milled-seven-t-db.html",
+   "image_url": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792127106237/sits/putters-2024-ai-one-milled-seven-t-db/putters-2024-ai-one-milled-seven-t-db___1.png?sw=2000",
+   "sha256": "5449f00a3288f4ddc272bb8a845d97894ba77da358436778c6607d0265618914",
+   "added": "2026-11-03T15:29:20.579939+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/OAMST001__front.png"
+   ],
+   "drive_id": "14P0DMAig3-4sbfOaFJHtL-wV0ByNGEfo"
+  },
+  {
+   "file": "images/callaway/odyssey-ai-one-rossie__1.png",
+   "maker": "Callaway",
+   "product": "Odyssey Ai-One Rossie",
+   "page_url": "https://odyssey.callawaygolf.com/putters/ai-one/putters-2024-ai-one-rossie-db.html",
+   "image_url": "https://prd-sfcc.callawaygolf.com/dw/image/v2/AADH_PRD/on/demandware.static/-/Sites-CGI-ItemMaster/en_US/v1792127106237/sits/putters-2024-ai-one-rossie-db/putters-2024-ai-one-rossie-db___1.png?sw=2000",
+   "sha256": "bf8ed305ac78bbaee6c91698b642dbc0df83e899ca8eedd3d7135ad42b0170c7",
+   "added": "2026-11-03T15:29:20.663887+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/OAR001__front.png"
+   ],
+   "drive_id": "1mkBqDuM7ULlg4qOg1gMaR2Z-VtlcxIkW"
+  },
+  {
+   "file": "images/ping/ping-answer-2d__1.png",
+   "maker": "Ping",
+   "product": "Ping Answer 2D",
+   "page_url": "https://ping.com/en-us/golf-clubs/putters/2024-2023-anser-2d-putter",
+   "image_url": "https://api.next.ping.com/media/catalog/product/c/l/clubs.putters.ping.2023.anser_2d_address_view_1600x1600_f770.png",
+   "sha256": "63f9869274c534c7b41394350739622723b8125dfc0051b314164e05b2be99db",
+   "added": "2026-11-03T15:29:20.783984+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/PA2001__address-2023.png"
+   ],
+   "drive_id": "1i_T1Oio1MMhKUqajIM0yZrw3KMPgea06"
+  },
+  {
+   "file": "images/ping/ping-answer-2d__2.png",
+   "maker": "Ping",
+   "product": "Ping Answer 2D",
+   "page_url": "https://ping.com/en-us/golf-clubs/putters/scottsdale-anser-2d-putter",
+   "image_url": "https://api.next.ping.com/media/catalog/product/c/l/clubs.putters.scottsdale.anser_2d_address_view_1600x1600_43f6.png",
+   "sha256": "74f4df00aa6c2d0473349f3da63b3eeccac5d1550424e481111b01bf67624dd6",
+   "added": "2026-11-03T15:29:20.867403+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/PA2001__address-scottsdale.png"
+   ],
+   "drive_id": "1hO2HRTAk4Eh6j5pKU2aKOGz5uwh5Stbf"
+  },
+  {
+   "file": "images/ping/ping-answer-2d__3.png",
+   "maker": "Ping",
+   "product": "Ping Answer 2D",
+   "page_url": "https://ping.com/en-us/clubs/putters/pld-milled-plus/anser-2d",
+   "image_url": "https://api.next.ping.com/media/catalog/product/c/l/clubs.putters.pld_milled.anser_2d_gunmetal_face_1600x1600_8778.png",
+   "sha256": "d183b4734564a16e077238c907efbb006ddc5dae8ff256cb247fb481e78a48ea",
+   "added": "2026-11-03T15:29:20.948658+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/PA2001__face-pld-milled.png"
+   ],
+   "drive_id": "1hTx8CTlWPVKUHkD5pqu2P0rsPBi9OaZ-"
+  },
+  {
+   "file": "images/ping/ping-ds-72__1.png",
+   "maker": "Ping",
+   "product": "Ping DS 72",
+   "page_url": "https://ping.com/en-us/golf-clubs/putters/2024-2023/2024-2023-ds72-putter",
+   "image_url": "https://api.next.ping.com/media/catalog/product/c/l/clubs.putters.ping.2023.ds72_address_view_1600x1600_8efe.png",
+   "sha256": "d2e8f41b8d79f09e4dfdd9749163a4bf2f3baa19c6973e58854fd8356d956b5f",
+   "added": "2026-11-03T15:29:21.033942+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/PD001__address-2023.png"
+   ],
+   "drive_id": "1Sxc0-0-7tqWz6C9X7gtBPfJSYwbZnNsV"
+  },
+  {
+   "file": "images/ping/ping-ds-72__2.png",
+   "maker": "Ping",
+   "product": "Ping DS 72",
+   "page_url": "https://ping.com/en-us/golf-clubs/putters/scottsdale/scottsdale-ds72-putter",
+   "image_url": "https://api.next.ping.com/media/catalog/product/c/l/clubs.putters.scottsdale.ds72_address_view_1600x1600_dac8.png",
+   "sha256": "d67383e57cbc5eabce171206d7b915831bba8e88389109eb859c2b7074f30678",
+   "added": "2026-11-03T15:29:21.129953+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/PD001__address-scottsdale.png"
+   ],
+   "drive_id": "1xvrwbYLvPmuD9eV_-yl7HdTGY-94mL16"
+  },
+  {
+   "file": "images/ping/ping-ds-72__3.png",
+   "maker": "Ping",
+   "product": "Ping DS 72",
+   "page_url": "https://ping.com/en-us/clubs/putters/pld-milled-plus/ds72",
+   "image_url": "https://api.next.ping.com/media/catalog/product/c/l/clubs.putters.pld_milled.ds72_gunmetal_face_1600x1600_731f.png",
+   "sha256": "40b90acc69b9f2efd75f3d526ab7fa59d80da9fa408dbe3aea1225093840c227",
+   "added": "2026-11-03T15:29:21.217300+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/PD001__face-pld-milled.png"
+   ],
+   "drive_id": "1WdVnEquW2ctY1TMmX_HyuAXL2bkA-uoa"
+  },
+  {
+   "file": "images/la-golf/la-golf-putter-belair-2__1.jpg",
+   "maker": "LA Golf",
+   "product": "LA Golf Putter: BelAir 2",
+   "page_url": "https://lagolfglobal.co.uk/products/bel-air-ii",
+   "image_url": "https://cdn.shopify.com/s/files/1/0755/6107/4976/files/Untitleddesign_17.jpg?v=1755610487",
+   "sha256": "05f522098130d58809bde7b0d6936393c53d65cf824379a4c9296a5021800e0a",
+   "added": "2026-11-03T15:29:21.295756+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/LGPB2001__front.jpg"
+   ],
+   "drive_id": "14Fp1zc9kN43KqwVD-onWLFNHZY_5R-j_"
+  },
+  {
+   "file": "images/la-golf/la-golf-putter-belair-xt__1.png",
+   "maker": "LA Golf",
+   "product": "LA Golf Putter: BelAir XT",
+   "page_url": "https://lagolfglobal.co.uk/products/bel-air-xt-putter",
+   "image_url": "https://cdn.shopify.com/s/files/1/0755/6107/4976/files/Untitleddesign_65.png?v=1751367596",
+   "sha256": "5bf7a33058273e19e539ff3ba47ca98375a96c60c5f23e879c889c84ef0f31ce",
+   "added": "2026-11-03T15:29:21.372470+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/LGPBX001__front.png"
+   ],
+   "drive_id": "1JuDE0VwL_a0eCgL5hdXhTH0HBrGfoFpd"
+  },
+  {
+   "file": "images/titleist/titleist-avx-2026__1.png",
+   "maker": "Titleist",
+   "product": "Titleist AVX 2026",
+   "page_url": "https://www.titleist.com/product/avx/26AVX.html",
+   "image_url": "https://www.titleist.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-titleist-master/default/dw74fb51c1/T9015S_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "ecaf92736e08e4214490a7795c053effa54a6b317f477758e60cfa458c133806",
+   "added": "2026-11-03T15:29:21.516147+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/AVX002__front.png",
+    "swing-shack:Products/AVX001__front.png"
+   ],
+   "drive_id": "13ZecqiNeawMoZNe_UoE9sSZG_J_Zem10"
+  },
+  {
+   "file": "images/titleist/titleist-tour-soft-2025__1.png",
+   "maker": "Titleist",
+   "product": "Titleist Tour Soft 2025",
+   "page_url": "https://www.titleist.com/product/tour-soft/26TSOFT.html",
+   "image_url": "https://www.titleist.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-titleist-master/default/dw9b35694f/T4015S_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "fb7bb3059a871b5e807176f1c86cf63ac217b70b1a30b54993b69dfe0f647cf4",
+   "added": "2026-11-03T15:29:21.761733+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/YS001__front.png",
+    "swing-shack:Products/2TS-Y001__front.png"
+   ],
+   "drive_id": "1YhaBf1V0a6Jt1ES4DM7mfXDIZGwnxSC6"
+  },
+  {
+   "file": "images/titleist/titleist-velocity-2025__1.png",
+   "maker": "Titleist",
+   "product": "Titleist Velocity 2025",
+   "page_url": "https://www.titleist.com/product/velocity/26VEL.html",
+   "image_url": "https://www.titleist.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-titleist-master/default/dw094cd68b/T8027S_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "29d47ec5bdef673ad0b0e045c32992739a50e934ed7a5522d1c22ba4ea00f967",
+   "added": "2026-11-03T15:29:21.948590+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/VEL001__front.png",
+    "swing-shack:Products/TV2-W001__front.png"
+   ],
+   "drive_id": "1ZAkDvfe6USmI8e1VB80U26s9CeYi2uuY"
+  },
+  {
+   "file": "images/titleist/titleist-tru-feel-2026__1.png",
+   "maker": "Titleist",
+   "product": "Titleist Tru Feel 2026",
+   "page_url": "https://www.titleist.com/product/trufeel/26TFEEL.html",
+   "image_url": "https://www.titleist.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-titleist-master/default/dwa7370c10/T6036S-2_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "c6b09f3b24b2796cf83a799a22da50ff3dd19e106447d1e14ad43bd2d17423e5",
+   "added": "2026-11-03T15:29:22.129826+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/TF001__front.png"
+   ],
+   "drive_id": "1MZ3h5UTEYXheE4_AqOFfn2SJQX4Zt9W7"
+  },
+  {
+   "file": "images/titleist/titleist-pro-v1-yellow__1.png",
+   "maker": "Titleist",
+   "product": "Titleist Pro V1 Yellow",
+   "page_url": "https://www.titleist.com/product/pro-v1/005PV1T.html",
+   "image_url": "https://www.titleist.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-titleist-master/default/dw5f9812c2/005PV1T/T2029S_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "60741e77acc613228c9e3f07a18b558663d7df541986e5654c2a5fd688f525e5",
+   "added": "2026-11-03T15:29:22.243122+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/PV004__front.png",
+    "swing-shack:Products/PVS2001__front.png"
+   ],
+   "drive_id": "1xm5l0mQWfYbhrbs6LaUDUL0MFsgSZMfW"
+  },
+  {
+   "file": "images/titleist/titleist-pro-v1-x-2025__1.png",
+   "maker": "Titleist",
+   "product": "Titleist Pro V1 x 2025",
+   "page_url": "https://www.titleist.com/product/pro-v1x/005PVXT.html",
+   "image_url": "https://www.titleist.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-titleist-master/default/dwd3d6b855/005PVXT/T2049S_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "defe59980c0aadd074144c00d80d5929c12fc39b9755ed7a49ea4999eb87baa0",
+   "added": "2026-11-03T15:29:22.477187+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/PVS2002__front.png",
+    "swing-shack:Products/2PVX-Y001__front.png"
+   ],
+   "drive_id": "1m78vHq4Xl3VaPy54ZPPEOVCvcPUXYAqo"
+  },
+  {
+   "file": "images/titleist/titleist-pro-v1x-left-dash-white__1.png",
+   "maker": "Titleist",
+   "product": "Titleist Pro V1x - Left Dash White",
+   "page_url": "https://www.titleist.com/product/pro-v1x-left-dash/26PVLD.html",
+   "image_url": "https://www.titleist.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-titleist-master/default/dw51fd87cf/T204L9S_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "1aa2078ca2ad884bca0e44a06c7dda2c1cc61566333b6e23a4f7ea888f6e64ac",
+   "added": "2026-11-03T15:29:22.689917+00:00",
+   "exact_build": true,
+   "used_by": [
+    "swing-shack:Products/-V001__front.png"
+   ],
+   "drive_id": "1taUd2_ZnawgbBGReH6-uVNQpxvISdj8H"
+  },
+  {
+   "file": "images/footjoy/foot-joy-stasof__1.png",
+   "maker": "FootJoy",
+   "product": "Foot Joy StaSof",
+   "page_url": "https://www.footjoy.com/product/men/gloves-men/stasof/006STA.html",
+   "image_url": "https://www.footjoy.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-footjoy-master/default/dwd70337da/FJ_66770-301_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "b2f29b96c9e859d90e50c369240586d6e426679d20d13dac1f39fb5bba4d2343",
+   "added": "2026-11-03T15:29:22.827238+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/FJSL001-S__front.png"
+   ],
+   "drive_id": "15j-r3pyhIlwXd-qkohHq5HFlxSFtYKAO"
+  },
+  {
+   "file": "images/footjoy/foot-joy-weathersoft__1.png",
+   "maker": "FootJoy",
+   "product": "Foot Joy WeatherSoft",
+   "page_url": "https://www.footjoy.com/product/men/gloves-men/weathersof/091AUS.html",
+   "image_url": "https://www.footjoy.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-footjoy-master/default/dwff13cd1d/FJ_66159E_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "0367b8b784e089dac374d6327ca82cb856b0e54167c53ec1211f7ceee9e9a716",
+   "added": "2026-11-03T15:29:23.090277+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/FJWL001-S__front.png"
+   ],
+   "drive_id": "1w5Ou-kEC2QGFq2jEO34i7vMkObNnUcYd"
+  },
+  {
+   "file": "images/footjoy/foot-joy-raingrip__1.png",
+   "maker": "FootJoy",
+   "product": "Foot Joy RainGrip",
+   "page_url": "https://www.footjoy.com/product/men/gloves-men/raingrip-pair/004RAI.html",
+   "image_url": "https://www.footjoy.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-footjoy-master/default/dwf9bf6b24/FJ_66092_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "f6daba2b1e533e20a431dd3aa935ec9fd322aac0f352ab3cfb8cef9e9e633068",
+   "added": "2026-11-03T15:29:23.235837+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/FJRL001-S__front.png"
+   ],
+   "drive_id": "1XQC0nYrlW6XgH-D4qFMudWAqAGNCi48j"
+  },
+  {
+   "file": "images/footjoy/foot-joy-sofjoy__1.png",
+   "maker": "FootJoy",
+   "product": "Foot Joy SofJoy",
+   "page_url": "https://www.footjoy.com/product/men/gloves-men/sofjoy/030SOF.html",
+   "image_url": "https://www.footjoy.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-footjoy-master/default/dw9a8c8db9/FJ_68796_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "7911f05fcd74c892f56a99ea61d6cb78b833ab0c782b8f57238c0b450ef870d9",
+   "added": "2026-11-03T15:29:23.345162+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/FJS003M__front.png"
+   ],
+   "drive_id": "1qGP6l4Vs7YPmM8ofWGKznmFFMjRzxYj_"
+  },
+  {
+   "file": "images/footjoy/foot-joy-sciflex__1.png",
+   "maker": "FootJoy",
+   "product": "Foot Joy SciFLEX",
+   "page_url": "https://www.footjoy.com/product/men/gloves-men/sciflex/000SCI.html",
+   "image_url": "https://www.footjoy.com/dw/image/v2/AAZW_PRD/on/demandware.static/-/Sites-footjoy-master/default/dwfa9a5f98/FJ_68200_01.png?sw=2000&sh=2000&sm=fit&sfrm=png",
+   "sha256": "64302a971b6ba1a03f18faabbc6864768abe32f1702f44603003137c63c73816",
+   "added": "2026-11-03T15:29:23.459535+00:00",
+   "exact_build": false,
+   "used_by": [
+    "swing-shack:Products/FJS004S__front.png"
+   ],
+   "drive_id": "1nkUisvLysC8RUMwcOqx3zSmehgY4XLE3"
+  }
+ ]
+}

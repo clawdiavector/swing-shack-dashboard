@@ -18,6 +18,7 @@ export default defineConfig({
       '/logout': apiTarget,
       '/assets': apiTarget,
       '/brand-images': apiTarget,
+      '/brand-directory-media': apiTarget,
     },
   },
 })

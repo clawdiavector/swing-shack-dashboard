@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Brand/Logos/swingshack_dark@0.5x.png",
+  "layer1_metadata": {
+    "filename": "swingshack_dark@0.5x.png",
+    "format": "PNG",
+    "mode": "RGBA",
+    "width_px": 960,
+    "height_px": 454,
+    "aspect_ratio": 2.1145,
+    "orientation": "landscape",
+    "file_size_bytes": 24704,
+    "modified": 1794189821.6516101,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#ffffff",
+        "rgb": [
+          255,
+          255,
+          255
+        ],
+        "share": 0.6861
+      },
+      {
+        "hex": "#1e1e1e",
+        "rgb": [
+          30,
+          30,
+          30
+        ],
+        "share": 0.1469
+      },
+      {
+        "hex": "#151515",
+        "rgb": [
+          21,
+          21,
+          21
+        ],
+        "share": 0.0347
+      },
+      {
+        "hex": "#f4f4f4",
+        "rgb": [
+          244,
+          244,
+          244
+        ],
+        "share": 0.0298
+      },
+      {
+        "hex": "#2f2f2f",
+        "rgb": [
+          47,
+          47,
+          47
+        ],
+        "share": 0.0273
+      },
+      {
+        "hex": "#5d5d5d",
+        "rgb": [
+          93,
+          93,
+          93
+        ],
+        "share": 0.0269
+      },
+      {
+        "hex": "#1a1a1a",
+        "rgb": [
+          26,
+          26,
+          26
+        ],
+        "share": 0.026
+      },
+      {
+        "hex": "#b7b7b7",
+        "rgb": [
+          183,
+          183,
+          183
+        ],
+        "share": 0.0223
+      }
+    ],
+    "mean_brightness": 196.3,
+    "luminance_category": "light"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 2.115,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 223.6,
+    "brightness_bottom": 209.6,
+    "edge_density_grid": [
+      [
+        7.13,
+        6.57,
+        7.12
+      ],
+      [
+        8.83,
+        8.08,
+        8.34
+      ],
+      [
+        6.14,
+        10.5,
+        12.23
+      ]
+    ],
+    "subject_estimate_position": "bottom-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": null,
+      "white_text_or_border_present": true,
+      "headings_all_caps": null,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#ffffff",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "bottom-right",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

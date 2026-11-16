@@ -133,6 +133,9 @@ def set_status(brand_id: str, file: str, status: str, by: str = "christelle") ->
     hit = False
     for e in entries:
         if e["file"] == file or Path(e["file"]).name == file:
+            if status == "approved":
+                from _lib.image_library import check_can_approve
+                check_can_approve(e)
             e["status"] = status
             e["reviewed_by"] = by
             e["reviewed_on"] = datetime.now(timezone.utc).isoformat()
