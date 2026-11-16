@@ -417,7 +417,9 @@ def _observed_from_postiz(row: dict[str, Any]) -> ObservedPost | None:
         content = " ".join(str(x) for x in content)
     when = row.get("publishDate") or row.get("publishedAt") or row.get("createdAt") or ""
     link = row.get("releaseURL") or row.get("releaseUrl") or row.get("permalink") or ""
-    provider = str(row.get("_postiz_provider") or ((row.get("integration") or {}).get("providerIdentifier")) or "")
+    # Postiz answers every post for the brand whatever account is asked for, so the
+    # post's own account wins over the one it was listed under.
+    provider = str(((row.get("integration") or {}).get("providerIdentifier")) or row.get("_postiz_provider") or "")
     target = next((name for needle, name in _POSTIZ_TARGETS if needle in provider.lower()), "")
     settings = row.get("settings") or {}
     if isinstance(settings, str):
