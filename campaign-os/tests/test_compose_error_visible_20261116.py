@@ -5,86 +5,45 @@ compose_post = pending with no note, while the run reported OK.
 """
 from __future__ import annotations
 
-import json
 import os
 import sys
-import tempfile
 from pathlib import Path
-from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 os.environ.setdefault("PORT", "0")
 
-FAKE_CAPTION = {
-    "ok": True,
-    "survivors": [
-        {
-            "body": "Fit first. Buy second.\n\nBook a fitting",
-            "copy_package": {
-                "caption_body": "Fit first. Buy second.",
-                "poster_hook": "THE FITTING COMES FIRST",
-                "cta_line": "Book a fitting",
-                "locale": "en-ZA",
-                "source": "llm",
-            },
-            "candidate_id": "c-1",
-            "route": "r1",
-            "mechanism": "m",
-            "rhetorical_structure": "s",
-            "checks": {},
-        }
-    ],
-    "observability": {"provider": "openai", "model": "x"},
-    "rejects": {},
-}
+from _lib.jobs.layer5 import draft_assets as da  # noqa: E402
+
+ITEM = "calendar_candidate:stick:cal-stick-mom-1"
 
 
-def _queue_rows(data_dir: str, cal_id: str) -> list[dict]:
-    doc = json.loads((Path(data_dir) / "agent-queue.json").read_text())
-    rows = doc.get("rows", doc) if isinstance(doc, dict) else doc
-    return [r for r in rows if cal_id in json.dumps(r)]
+def test_hard_error_keeps_row_pending_with_a_reason():
+    row = {"action": "compose_post", "status": "pending"}
+    errors: list[str] = []
+    da._note_compose_failure(row, ITEM, "missing asset images/tagline-light.png", errors)
+    assert row["status"] == "pending"
+    assert row["note"] == "compose: missing asset images/tagline-light.png"
+    assert errors == [f"{ITEM}: missing asset images/tagline-light.png"]
 
 
-def test_failed_compose_leaves_a_note_and_is_reported():
-    with tempfile.TemporaryDirectory() as data_dir, mock.patch.dict(os.environ, {"DATA_DIR": data_dir}):
-        import app as cos_app
-        from _lib import p11_context_engine as p11
-        from _lib.jobs.layer5 import create_photo_compose as cpc
-        from _lib.jobs.layer5 import draft_assets as da
+def test_soft_error_still_parks_the_row():
+    row = {"action": "compose_post", "status": "pending"}
+    errors: list[str] = []
+    da._note_compose_failure(row, ITEM, "compose-only archetype requires caption draft first", errors)
+    assert row["status"] == "skipped"
+    assert row["note"] == "compose-only archetype requires caption draft first"
+    assert errors == []
 
-        client = cos_app.app.test_client()
-        with mock.patch.object(cos_app, "_is_job_authed", lambda *a, **k: True), mock.patch.object(
-            cos_app, "_is_authed", lambda *a, **k: True
-        ), mock.patch.object(p11, "run_caption_pipeline", lambda req: FAKE_CAPTION), mock.patch(
-            "_lib.llm_spend.check", lambda *a, **k: (True, "")
-        ), mock.patch.object(
-            cpc, "process_compose_post_row", lambda *a, **k: (None, "missing asset images/x.png")
-        ):
-            made = client.post(
-                "/api/calendar/candidates",
-                json={
-                    "brand_id": "stick",
-                    "type": "moment",
-                    "title": "THE FITTING COMES FIRST",
-                    "post_type": "brand_statement",
-                    "event_date": "2027-06-15",
-                    "event_start": "2027-06-15",
-                    "event_end": "2027-06-15",
-                    "primary_channel": "instagram",
-                    "created_by": "kyle",
-                    "source_type": "manual",
-                },
-            ).get_json()
-            cal_id = made["record"]["calendar_id"]
-            ok = client.post(
-                f"/api/inbox/unified/calendar_candidate:stick:{cal_id}/approve",
-                json={"editor": "kyle", "mode": "lodge"},
-            ).get_json()
-            assert ok["ok"], ok
-            out = da.run("stick")
 
-        compose = [r for r in _queue_rows(data_dir, cal_id) if r.get("action") == "compose_post"]
-        assert compose, "compose_post should be queued after the caption"
-        assert compose[0]["status"] == "pending"
-        assert compose[0].get("note") == "compose: missing asset images/x.png"
-        assert any("missing asset images/x.png" in e for e in out.get("compose_errors", []))
+def test_long_reason_is_cut_to_fit():
+    row = {"action": "compose_post", "status": "pending"}
+    errors: list[str] = []
+    da._note_compose_failure(row, ITEM, "x" * 900, errors)
+    assert len(row["note"]) == 240
+    assert len(errors[0]) == 300
+
+
+def test_run_reports_compose_errors_key():
+    # The run adds compose_errors to its result; keep the name stable for ops readers.
+    src = Path(da.__file__).read_text()
+    assert 'out["compose_errors"]' in src

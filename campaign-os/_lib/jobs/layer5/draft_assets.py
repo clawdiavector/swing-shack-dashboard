@@ -1244,6 +1244,27 @@ def _is_row_soft_error(err: str | None) -> bool:
     return any(token in err for token in _ROW_SOFT_ERRORS)
 
 
+def _note_compose_failure(
+    compose_row: dict[str, Any],
+    item_id: str,
+    err: str,
+    compose_errors: list[str],
+) -> None:
+    """Say why a poster did not build.
+
+    A failed compose_post row used to stay "pending" with no reason while the
+    run said OK (G4 test, 16 Nov 2026). Soft errors still park the row as gap
+    or skipped. Anything else keeps it pending, with the reason on the row and
+    in the run result.
+    """
+    if _is_row_soft_error(err):
+        compose_row["status"] = "gap" if str(err).startswith("gap:") else "skipped"
+        compose_row["note"] = err[:240]
+        return
+    compose_row["note"] = f"compose: {err}"[:240]
+    compose_errors.append(f"{item_id}: {err}"[:300])
+
+
 def _apply_stop_error(
     err: str,
     *,
@@ -1912,14 +1933,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
                     asset_id, err = None, _exc_label(exc)
                 if err:
                     skipped += 1
-                    # Say why on the row. A poster that failed to build used to
-                    # stay "pending" with no reason, and the run still said OK.
-                    compose_row["note"] = f"compose: {err}"[:240]
-                    if _is_row_soft_error(err):
-                        compose_row["status"] = "gap" if str(err).startswith("gap:") else "skipped"
-                        compose_row["note"] = err[:240]
-                    else:
-                        compose_errors.append(f"{item_id}: {err}"[:300])
+                    _note_compose_failure(compose_row, item_id, err, compose_errors)
                 elif asset_id:
                     compose_row["status"] = "done"
                     compose_row.pop("note", None)
