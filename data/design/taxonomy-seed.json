@@ -624,6 +624,190 @@
         "swing-shack",
         "stick"
       ]
+    },
+    {
+      "id": "editorial-shadow",
+      "name": "Editorial shadow",
+      "summary": "Product in hard window light on warm concrete, small label bottom-left",
+      "method_id": "krea-restyle",
+      "candidate": true,
+      "added": "2026-11-16 from the picture breakdown",
+      "roles": {
+        "fixed": {
+          "composition": "Product in hard window light on warm concrete, small label bottom-left"
+        }
+      },
+      "checks": [],
+      "examples": [],
+      "brands_used": [
+        "stick"
+      ],
+      "approval": {
+        "status": "not_approved",
+        "by": null,
+        "at": null
+      }
+    },
+    {
+      "id": "badge-macro",
+      "name": "Badge macro",
+      "summary": "Close-up of the stitched badge filling the frame, maker name and @ stick",
+      "method_id": "krea-restyle",
+      "candidate": true,
+      "added": "2026-11-16 from the picture breakdown",
+      "roles": {
+        "fixed": {
+          "composition": "Close-up of the stitched badge filling the frame, maker name and @ stick"
+        }
+      },
+      "checks": [],
+      "examples": [],
+      "brands_used": [
+        "stick"
+      ],
+      "approval": {
+        "status": "not_approved",
+        "by": null,
+        "at": null
+      }
+    },
+    {
+      "id": "deal-carousel",
+      "name": "Deal carousel",
+      "summary": "Relit product or venue in a thin frame, slanted white headline with a purple echo, orange second line",
+      "method_id": "code-script",
+      "candidate": true,
+      "added": "2026-11-16 from the picture breakdown",
+      "roles": {
+        "fixed": {
+          "composition": "Relit product or venue in a thin frame, slanted white headline with a purple echo, orange second line"
+        }
+      },
+      "checks": [],
+      "examples": [],
+      "brands_used": [
+        "swing-shack"
+      ],
+      "approval": {
+        "status": "not_approved",
+        "by": null,
+        "at": null
+      }
+    },
+    {
+      "id": "abstract",
+      "name": "Abstract",
+      "summary": "Type and shapes only on a dark gradient, made for motion",
+      "method_id": "code-script",
+      "candidate": true,
+      "added": "2026-11-16 from the picture breakdown",
+      "roles": {
+        "fixed": {
+          "composition": "Type and shapes only on a dark gradient, made for motion"
+        }
+      },
+      "checks": [],
+      "examples": [],
+      "brands_used": [
+        "swing-shack"
+      ],
+      "approval": {
+        "status": "not_approved",
+        "by": null,
+        "at": null
+      }
+    },
+    {
+      "id": "teal-reel",
+      "name": "Teal reel",
+      "summary": "Real photo fading into a teal gradient, short mint or white line, made for motion",
+      "method_id": "code-script",
+      "candidate": true,
+      "added": "2026-11-16 from the picture breakdown",
+      "roles": {
+        "fixed": {
+          "composition": "Real photo fading into a teal gradient, short mint or white line, made for motion"
+        }
+      },
+      "checks": [],
+      "examples": [],
+      "brands_used": [
+        "stick"
+      ],
+      "approval": {
+        "status": "not_approved",
+        "by": null,
+        "at": null
+      }
+    },
+    {
+      "id": "photo-band",
+      "name": "Photo band",
+      "summary": "Full-width photo with a teal band and a big offer line across the bottom",
+      "method_id": "code-template",
+      "candidate": true,
+      "added": "2026-11-16 from the picture breakdown",
+      "roles": {
+        "fixed": {
+          "composition": "Full-width photo with a teal band and a big offer line across the bottom"
+        }
+      },
+      "checks": [],
+      "examples": [],
+      "brands_used": [
+        "stick"
+      ],
+      "approval": {
+        "status": "not_approved",
+        "by": null,
+        "at": null
+      }
+    },
+    {
+      "id": "clean-product",
+      "name": "Clean product",
+      "summary": "One product on a pale or teal field, one big word, small line under it",
+      "method_id": "code-script",
+      "candidate": true,
+      "added": "2026-11-16 from the picture breakdown",
+      "roles": {
+        "fixed": {
+          "composition": "One product on a pale or teal field, one big word, small line under it"
+        }
+      },
+      "checks": [],
+      "examples": [],
+      "brands_used": [
+        "stick"
+      ],
+      "approval": {
+        "status": "not_approved",
+        "by": null,
+        "at": null
+      }
+    },
+    {
+      "id": "wood-sign",
+      "name": "Wood sign",
+      "summary": "Words or logo cut into lit plywood",
+      "method_id": "krea-restyle",
+      "candidate": true,
+      "added": "2026-11-16 from the picture breakdown",
+      "roles": {
+        "fixed": {
+          "composition": "Words or logo cut into lit plywood"
+        }
+      },
+      "checks": [],
+      "examples": [],
+      "brands_used": [
+        "swing-shack"
+      ],
+      "approval": {
+        "status": "not_approved",
+        "by": null,
+        "at": null
+      }
     }
   ],
   "types": [
