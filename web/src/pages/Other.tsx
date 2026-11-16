@@ -1,10 +1,14 @@
 import { MoreHorizontal, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { PageIntro } from '../components/chrome'
 import { IconTile, PressIcon } from '../components/ui'
+import { retiredLabel } from '../lib/classicRedirect'
 import { OTHER_GROUPS } from '../lib/nav'
 
 export function Other() {
+  const [params] = useSearchParams()
+  const retired = params.get('retired')
   const [q, setQ] = useState('')
   const query = q.trim().toLowerCase()
 
@@ -19,8 +23,14 @@ export function Other() {
   return (
     <div className="space-y-6">
       <PageIntro icon={MoreHorizontal} badge="Leftovers" here="/other" title="Everything else">
-        Brand settings, labs and older tools. Nothing here is deleted, it just lives down here. Jobs, agents and accounts are under Ops.
+        Labs and older tools. Jobs, agents and accounts are under Ops.
       </PageIntro>
+
+      {retired ? (
+        <p className="rounded-2xl border-[1.5px] border-yel/40 px-4 py-3 text-sm">
+          The old “{retiredLabel(retired)}” page was retired and no longer opens. What is still in use is listed below.
+        </p>
+      ) : null}
 
       <label className="glass flex items-center gap-3 rounded-2xl border-[1.5px] border-white/10 px-4 py-3 backdrop-blur-xl">
         <PressIcon icon={Search} className="h-4 w-4" />

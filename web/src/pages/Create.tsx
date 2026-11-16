@@ -14,7 +14,7 @@ import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import '../fun.css'
 import { FunTile } from '../components/fun'
 import { FilterChips, HeroPanel, PageIntro } from '../components/chrome'
-import { Button, ClassicLink, IconTile } from '../components/ui'
+import { Button, IconTile } from '../components/ui'
 import { countTiles, useFourCounts } from '../lib/fourCounts'
 
 const TOOLS: {
@@ -59,9 +59,6 @@ export function Create() {
     <div className="space-y-6">
       <PageIntro icon={Sparkles} badge="Studio" here="/create" title="Make a draft">
         One studio for everything you make. Captions, images and memes all open from here.
-        <span className="mt-2 block">
-          <ClassicLink href="/?page=buildpost" label="Build a post (classic)" />
-        </span>
       </PageIntro>
 
       <div className="grid gap-3 sm:grid-cols-3">
