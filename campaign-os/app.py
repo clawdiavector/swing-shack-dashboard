@@ -45245,14 +45245,19 @@ LANE_TYPES = [
 
 
 def _read_planning(brand_id):
-    p = os.path.join(_planning_dir(), f"{brand_id}.json")
-    if not os.path.exists(p):
-        return None
-    try:
-        with open(p, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return None
+    """Brand planning file. Checks the volume first, then the copy baked into
+    the image, per file: a brand added to the repo after the volume was seeded
+    (Bag Drop) has no file on the volume and must still load."""
+    for d in (PLANNING_DIR, PLANNING_DIR_BAKED):
+        p = os.path.join(d, f"{brand_id}.json")
+        if not os.path.exists(p):
+            continue
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            continue
+    return None
 
 
 def _read_important_dates(year):
