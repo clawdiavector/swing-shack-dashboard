@@ -673,7 +673,7 @@
     },
     {
       "id": "deal-carousel",
-      "name": "Deal carousel",
+      "name": "Purple echo",
       "summary": "Relit product or venue in a thin frame, slanted white headline with a purple echo, orange second line",
       "method_id": "code-script",
       "candidate": true,
@@ -696,7 +696,7 @@
     },
     {
       "id": "abstract",
-      "name": "Abstract",
+      "name": "Dark type-hero",
       "summary": "Type and shapes only on a dark gradient, made for motion",
       "method_id": "code-script",
       "candidate": true,
@@ -719,14 +719,14 @@
     },
     {
       "id": "teal-reel",
-      "name": "Teal reel",
-      "summary": "Real photo fading into a teal gradient, short mint or white line, made for motion",
+      "name": "Photo fade",
+      "summary": "Real photo fading into a gradient, short pale or white line, made for motion",
       "method_id": "code-script",
       "candidate": true,
       "added": "2026-11-16 from the picture breakdown",
       "roles": {
         "fixed": {
-          "composition": "Real photo fading into a teal gradient, short mint or white line, made for motion"
+          "composition": "Real photo fading into a gradient, short pale or white line, made for motion"
         }
       },
       "checks": [],
@@ -743,13 +743,13 @@
     {
       "id": "photo-band",
       "name": "Photo band",
-      "summary": "Full-width photo with a teal band and a big offer line across the bottom",
+      "summary": "Full-width photo with a navy (#003D54) band and a big offer line across the bottom",
       "method_id": "code-template",
       "candidate": true,
       "added": "2026-11-16 from the picture breakdown",
       "roles": {
         "fixed": {
-          "composition": "Full-width photo with a teal band and a big offer line across the bottom"
+          "composition": "Full-width photo with a navy (#003D54) band and a big offer line across the bottom"
         }
       },
       "checks": [],
@@ -766,13 +766,13 @@
     {
       "id": "clean-product",
       "name": "Clean product",
-      "summary": "One product on a pale or teal field, one big word, small line under it",
+      "summary": "One product on a grey (#D2D2D2) or navy (#003D54) field, one big word, small line under it",
       "method_id": "code-script",
       "candidate": true,
       "added": "2026-11-16 from the picture breakdown",
       "roles": {
         "fixed": {
-          "composition": "One product on a pale or teal field, one big word, small line under it"
+          "composition": "One product on a grey (#D2D2D2) or navy (#003D54) field, one big word, small line under it"
         }
       },
       "checks": [],
@@ -902,7 +902,7 @@
     {
       "id": "venue",
       "name": "Venue",
-      "meaning": "The place itself",
+      "meaning": "The place itself, and where to find us",
       "needs_photo": true,
       "templates": {
         "swing-shack": [
@@ -910,7 +910,8 @@
         ],
         "stick": [
           "stick-venue-post",
-          "stick-shop-corner"
+          "stick-shop-corner",
+          "stick-location-drive"
         ],
         "bag-drop": []
       },
@@ -968,46 +969,6 @@
         ],
         "bag-drop": [
           "bd-warm-quote"
-        ]
-      },
-      "approval": {
-        "status": "not_approved",
-        "by": null,
-        "at": null
-      }
-    },
-    {
-      "id": "location",
-      "name": "Location",
-      "meaning": "Where to find us",
-      "needs_photo": true,
-      "templates": {
-        "swing-shack": [],
-        "stick": [
-          "stick-location-drive"
-        ],
-        "bag-drop": []
-      },
-      "approval": {
-        "status": "not_approved",
-        "by": null,
-        "at": null
-      }
-    },
-    {
-      "id": "generic",
-      "name": "Generic",
-      "meaning": "Fallback photo post",
-      "needs_photo": true,
-      "templates": {
-        "swing-shack": [
-          "ss-photo-post"
-        ],
-        "stick": [
-          "stick-photo-band-post"
-        ],
-        "bag-drop": [
-          "bd-member-moment"
         ]
       },
       "approval": {
