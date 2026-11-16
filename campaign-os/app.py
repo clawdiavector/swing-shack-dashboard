@@ -39802,49 +39802,21 @@ def _write_products(brand_id, data):
     return True
 
 
-def _seed_swing_shack_products():
-    """Seed swing-shack products with verified ZAR prices.
-    Mirrors data/product-priority.json IDs but adds verified pricing.
-    Idempotent: only seeds if the file doesn't exist.
+@app.route("/api/faq/questions", methods=["GET"])
+def faq_questions_route():
+    """GET /api/faq/questions?brand=<id>[&refresh=1] — questions people ask Google.
+
+    Plan > Ideas shows these as post ideas. Read from Google's public search
+    suggestions at most once a week per brand (see _lib/faq_questions.py).
     """
-    p = _products_path("swing-shack")
-    if os.path.exists(p):
-        return False
-    seed = {
-        "brand_id": "swing-shack",
-        "currency": "ZAR",
-        "market": "ZA",
-        "source": "internal seed 2026-09-04 — verify before publishing",
-        "products": [
-            {"id": "p-1", "name": "Full Bag Fitting", "type": "service",
-             "price_zar": 1500, "per": "session", "duration_min": 90,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-2", "name": "TPI Assessment", "type": "service",
-             "price_zar": 950, "per": "session", "duration_min": 60,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-3", "name": "Practice Pack (5 sessions)", "type": "membership",
-             "price_zar": 2200, "per": "pack", "duration_min": 5,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-4", "name": "Club Fitting Starter Pack", "type": "service",
-             "price_zar": 850, "per": "session", "duration_min": 45,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-6", "name": "Social Play (4 Players + Beer)", "type": "service",
-             "price_zar": 600, "per": "session", "duration_min": 90,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-7", "name": "Birdie Hunter Coaching", "type": "service",
-             "price_zar": 1200, "per": "session", "duration_min": 60,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-8", "name": "TrackMan Session (single)", "type": "service",
-             "price_zar": 350, "per": "session", "duration_min": 30,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-9", "name": "Monthly Membership", "type": "membership",
-             "price_zar": 1800, "per": "month", "duration_min": None,
-             "verified": True, "source": "internal 2026-Q3"},
-        ],
-        "_seed": True,
-        "_seeded_at": _now_iso(),
-    }
-    return _write_products("swing-shack", seed)
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import faq_questions  # noqa: PLC0415
+    brand = (request.args.get("brand") or "").strip()
+    if brand not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False, "error": "pick a brand: stick, swing-shack or bag-drop"}), 400
+    res = faq_questions.questions_for(brand, refresh=request.args.get("refresh") == "1")
+    return jsonify({"ok": True, **res}), 200
 
 
 @app.route("/api/products/line-items", methods=["GET"])
@@ -39853,9 +39825,6 @@ def products_line_items_list():
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     brand_id = (request.args.get("brand_id") or "swing-shack").strip()
-    # Auto-seed swing-shack on first hit
-    if brand_id == "swing-shack":
-        _seed_swing_shack_products()
     data = _read_products(brand_id)
     return jsonify({
         "ok": True,
@@ -40424,9 +40393,6 @@ def product_records_combined(brand_id):
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     bid = (brand_id or "swing-shack").strip()
-    # Auto-seed swing-shack on first hit
-    if bid == "swing-shack":
-        _seed_swing_shack_products()
     # Read both sources
     line_items_path = _products_path(bid)
     records_path = _product_records_path(bid)
@@ -48140,7 +48106,8 @@ def mail_intake_list():
 
 @app.route("/api/mail-intake/<item_id>/<action>", methods=["POST"])
 def mail_intake_act(item_id, action):
-    """POST status {status} | kind {kind} | plan {brand?, date?, force?} | to-calendar {brand, date}.
+    """POST status {status} | kind {kind} | plan {brand?, date?, force?} | to-calendar {brand, date}
+    | both {date?}: the idea becomes one card per brand (Stick and Swing Shack).
     plan makes the idea's proposed plan (a draft; nothing goes on the calendar). to-calendar puts
     an idea on the calendar as a faded suggestion; approving it is still a person's call."""
     if not _is_authed():
@@ -48173,6 +48140,13 @@ def mail_intake_act(item_id, action):
                 mi.set_brand_date(item_id, body.get("brand") or None, body.get("date") or None)
             r = mi.idea_plan(item_id, _jhb_today(), force=bool(body.get("force")))
             return jsonify(r), (200 if r.get("ok") else 400)
+        elif action == "both":
+            if body.get("date") is not None:
+                mi.set_brand_date(item_id, None, body.get("date") or None)
+            items = mi.split_for_both_brands(item_id)
+            if not items:
+                return jsonify({"ok": False, "error": "not found"}), 404
+            return jsonify({"ok": True, "items": items}), 200
         elif action == "to-calendar":
             cur = mi.get_item(item_id)
             if not cur:
@@ -49588,6 +49562,17 @@ def review_packs_add_item(pack_id):
     except ValueError as e:
         return _rp_error(e)
     return jsonify({"ok": True, "item_id": item["id"]}), 200
+
+
+@app.route("/api/jobs/review-packs/<pack_id>/calendar", methods=["POST"])
+def review_packs_set_calendar(pack_id):
+    """Set (or clear with {}) the calendar grid at the top of the client's page."""
+    from _lib import review_pack as rp
+    try:
+        cal = rp.set_calendar(pack_id, request.get_json(silent=True) or {})
+    except ValueError as e:
+        return _rp_error(e)
+    return jsonify({"ok": True, "slots": len(cal.get("slots") or [])}), 200
 
 
 # Our side, from the review page itself: a signed-in teammate who opens a client's link sees

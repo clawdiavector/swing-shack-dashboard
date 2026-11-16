@@ -2,7 +2,7 @@ import { Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { FilterChips, PageIntro } from '../../components/chrome'
-import { Badge, ClassicLink, Tip } from '../../components/ui'
+import { Badge, Tip } from '../../components/ui'
 import {
   cancelPostizPost,
   fetchPostizOverview,
@@ -164,8 +164,7 @@ export function Queue() {
 
       {highlightKey === 'missing' && (highlightItem || highlightAsset) ? (
         <p className="text-sm text-yel">
-          That item is not in the first {tab === 'published' ? 20 : 30} rows — open{' '}
-          <ClassicLink href="/?page=publish" label="publish queue" /> for the full list.
+          That item is not in the first {tab === 'published' ? 20 : 30} rows.
         </p>
       ) : null}
 
@@ -234,7 +233,6 @@ export function Queue() {
         </ul>
       )}
 
-      <ClassicLink href="/?page=publish" label="publish queue" />
     </div>
   )
 }

@@ -434,8 +434,28 @@ def _other_brand_lines(brand: str) -> list[tuple[str, str, str]]:
 # --------------------------------------------------------------------------- #
 # The linter
 # --------------------------------------------------------------------------- #
+def _check_prices(F: Findings, plain: str, prices: dict) -> None:
+    """Every rand price must be live (ClubLab, the shop) or in prices-approved.json."""
+    from _lib.price_truth import check_text  # noqa: PLC0415
+    res = check_text(plain, prices)
+    if not res["unknown"]:
+        return
+    listed = ", ".join(res["unknown"])[:80]
+    if res["errors"]:
+        F.add("price-figure", CHECK,
+              f"Couldn't read every price source ({'; '.join(res['errors'])[:120]}). Check by hand: {listed}", "")
+        return
+    F.add("price-figure", HARD,
+          f"Not a live or approved price: {listed}. Fix it, or add it to prices-approved.json with its source.", "")
+
+
 def lint(brand: str, text: str, *, rules: dict | None = None, lane: str | None = None,
-         when: dt.date | None = None, cross_brand: bool = True) -> dict:
+         when: dt.date | None = None, cross_brand: bool = True, prices: dict | None = None) -> dict:
+    """Lint one caption. Returns {"brand", "hard", "warn", "check", "findings": [...]}.
+
+    prices: price_truth.price_list(brand). Given, each rand price is checked against it;
+    left out, every price is only flagged for a person to check (the old behaviour).
+    """
     """Lint one caption. Returns {"brand", "hard", "warn", "check", "findings": [...]}."""
     rules = rules or load_rules(brand)
     F = Findings()
@@ -748,9 +768,11 @@ def lint(brand: str, text: str, *, rules: dict | None = None, lane: str | None =
     figs = re.findall(r"\d[\d,.]*\s?(?:%|percent|m\b|metres|meters|km/h|mph|rpm|shots|yards|yds|°)", plain, re.I)
     if figs and rules.get("numbers_require_proof_row", True):
         F.add("figure", CHECK, "Every figure needs a row in the Proof bank: " + ", ".join(dict.fromkeys(f.strip() for f in figs))[:80], "")
-    prices = re.findall(r"\bR\s?\d[\d,. ]*", plain)
-    if prices:
-        F.add("price-figure", CHECK, "Check each price against the live listing or price list: " + ", ".join(dict.fromkeys(p.strip() for p in prices))[:80], "")
+    found_prices = re.findall(r"\bR\s?\d[\d,. ]*", plain)
+    if found_prices and prices is None:
+        F.add("price-figure", CHECK, "Check each price against the live listing or price list: " + ", ".join(dict.fromkeys(p.strip() for p in found_prices))[:80], "")
+    elif found_prices:
+        _check_prices(F, plain, prices)
     m = re.search(r"\b(?:the best|best in|first and only|the first|number one|#1|leading|premier|the only)\b", plain, re.I)
     if m:
         F.add("superlative", CHECK, "A superlative needs evidence a stranger could check", snippet(plain, m.start(), m.end()))
@@ -882,6 +904,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--since", help="with --audit: only captions posted on or after this ISO date")
     ap.add_argument("--until", help="with --audit: only captions posted on or before this ISO date")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--no-live-prices", action="store_true",
+                    help="don't read ClubLab and the shop; only flag prices for a person to check")
     ap.add_argument("--list-rules", action="store_true")
     a = ap.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):   # emoji in a Windows console
@@ -906,7 +930,12 @@ def main(argv: list[str] | None = None) -> int:
     else:
         ap.error("give --text, --file, stdin or --audit")
     when = dt.date.fromisoformat(a.date) if a.date else None
-    res = lint(a.brand, text, rules=rules, lane=a.lane, when=when)
+    prices = None
+    if not a.no_live_prices:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        from _lib.price_truth import price_list  # noqa: PLC0415
+        prices = price_list(a.brand)
+    res = lint(a.brand, text, rules=rules, lane=a.lane, when=when, prices=prices)
     if a.json:
         print(json.dumps(res, indent=1, ensure_ascii=False))
     else:

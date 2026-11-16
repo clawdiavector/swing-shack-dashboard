@@ -1,0 +1,553 @@
+{
+  "success": true,
+  "data": {
+    "facilityId": 6,
+    "facilityName": "Swing Shack",
+    "groups": [
+      {
+        "id": 1,
+        "name": "Coaching",
+        "displayOrder": 0,
+        "serviceCount": 2
+      },
+      {
+        "id": 2,
+        "name": "Practice",
+        "displayOrder": 1,
+        "serviceCount": 1
+      },
+      {
+        "id": 3,
+        "name": "Social Play",
+        "displayOrder": 2,
+        "serviceCount": 4
+      },
+      {
+        "id": 4,
+        "name": "Club Fitting",
+        "displayOrder": 3,
+        "serviceCount": 11
+      },
+      {
+        "id": 5,
+        "name": "Assessments",
+        "displayOrder": 4,
+        "serviceCount": 4
+      }
+    ],
+    "items": [
+      {
+        "id": 43,
+        "title": "Ball Fitting Assessment (1h)",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 80000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 12,
+        "title": "Club Assessment",
+        "durationMinutes": 30,
+        "bufferMinutes": 0,
+        "priceCents": 0,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 5,
+        "groupName": "Assessments",
+        "staffResourceIds": [
+          4,
+          6
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 26,
+        "title": "Coaching Session (30 Min)",
+        "durationMinutes": 30,
+        "bufferMinutes": 0,
+        "priceCents": 54000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 1,
+        "groupName": "Coaching",
+        "staffResourceIds": [
+          5,
+          6,
+          37,
+          38
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 25,
+        "title": "Coaching Session (60 Mins)",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 82000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 1,
+        "groupName": "Coaching",
+        "staffResourceIds": [
+          5,
+          6,
+          37,
+          38
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 21,
+        "title": "Distance Gapping Assessment (1.5h)",
+        "durationMinutes": 90,
+        "bufferMinutes": 0,
+        "priceCents": 150000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6,
+          38
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 18,
+        "title": "Driver and Woods Fitting Assessment (2h)",
+        "durationMinutes": 120,
+        "bufferMinutes": 0,
+        "priceCents": 150000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6,
+          38
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 7,
+        "title": "Driver Fitting Assessment (1.5h)",
+        "durationMinutes": 90,
+        "bufferMinutes": 0,
+        "priceCents": 100000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6,
+          38
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 16,
+        "title": "Fairway Wood / Hybrid Fitting Assessment (1.5h)",
+        "durationMinutes": 90,
+        "bufferMinutes": 0,
+        "priceCents": 100000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 13,
+        "title": "Full Bag Fitting Assessment (2 Sessions / 3 Hours)",
+        "durationMinutes": 180,
+        "bufferMinutes": 0,
+        "priceCents": 200000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6,
+          38
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 1,
+        "title": "Individual Practice Session (1h)",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 25000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 2,
+        "groupName": "Practice",
+        "staffResourceIds": [],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 19,
+        "title": "Iron and Woods Fitting Assessment (2h)",
+        "durationMinutes": 120,
+        "bufferMinutes": 0,
+        "priceCents": 150000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 8,
+        "title": "Iron Fitting Assessment (1.5h)",
+        "durationMinutes": 90,
+        "bufferMinutes": 0,
+        "priceCents": 100000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 11,
+        "title": "Loft & Lie Assessment (1h)",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 80000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 14,
+        "title": "Putter Fitting Assessment (1h)",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 80000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 4,
+        "title": "Social Play - 2 Players (1h)",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 34000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 3,
+        "groupName": "Social Play",
+        "staffResourceIds": [],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 5,
+        "title": "Social Play - 3 - 4 Players (1h)",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 45000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 3,
+        "groupName": "Social Play",
+        "staffResourceIds": [],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 9,
+        "title": "Social Play - 4 Players & Bucket of Beer (3h)",
+        "durationMinutes": 180,
+        "bufferMinutes": 0,
+        "priceCents": 102000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 3,
+        "groupName": "Social Play",
+        "staffResourceIds": [],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 3,
+        "title": "Social Play - Individual (1h)",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 25000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 3,
+        "groupName": "Social Play",
+        "staffResourceIds": [],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 10,
+        "title": "Swing Assessment",
+        "durationMinutes": 30,
+        "bufferMinutes": 0,
+        "priceCents": 0,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 5,
+        "groupName": "Assessments",
+        "staffResourceIds": [
+          5,
+          6,
+          38
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 20,
+        "title": "TPI Assessment",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 125000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 5,
+        "groupName": "Assessments",
+        "staffResourceIds": [
+          13,
+          14
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 22,
+        "title": "TPI Assessment - Follow Up Session",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 85000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 5,
+        "groupName": "Assessments",
+        "staffResourceIds": [
+          14
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 15,
+        "title": "Wedge Fitting Assessment (1.5h)",
+        "durationMinutes": 90,
+        "bufferMinutes": 0,
+        "priceCents": 100000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 4,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          4,
+          5,
+          6
+        ],
+        "bayResourceIds": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "priceWindows": [],
+        "extras": []
+      }
+    ]
+  },
+  "requestId": "20261113-120958-158ffd9c",
+  "timestamp": "2026-11-13T12:09:58.4862364+02:00"
+}
