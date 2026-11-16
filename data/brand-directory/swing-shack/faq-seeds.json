@@ -1,0 +1,41 @@
+{
+  "about": "Topics we ask Google's search suggestions about, for Plan > Ideas 'Questions people ask'. area: places this brand serves (a question naming another SA place is dropped; 'any' keeps all). drop_words: suggestions containing these are dropped.",
+  "queries": [
+    "how much is club fitting",
+    "is club fitting worth it",
+    "what is club fitting",
+    "what is a trackman",
+    "how much is a golf simulator",
+    "golf simulator johannesburg",
+    "golf lessons johannesburg",
+    "how often should you take golf lessons",
+    "how to practice golf indoors",
+    "is a golf membership worth it"
+  ],
+  "area": [
+    "johannesburg",
+    "joburg",
+    "jhb",
+    "sandton",
+    "randburg",
+    "gauteng",
+    "south africa"
+  ],
+  "drop_words": [
+    "for home",
+    "for sale",
+    "shed",
+    "diy",
+    "setup",
+    "room",
+    "golf course",
+    "golf courses",
+    "driving range",
+    "bar",
+    "hire",
+    "build",
+    "for your home",
+    "for a business",
+    "at home"
+  ]
+}

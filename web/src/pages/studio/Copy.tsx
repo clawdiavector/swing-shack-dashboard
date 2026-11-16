@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, HeroPanel, PageIntro } from '../../components/chrome'
-import { ClassicLink, Tip } from '../../components/ui'
+import { Tip } from '../../components/ui'
 import { fetchMemeCatalog, fetchVisualLibrary, getJson, postJson } from '../../lib/api'
 
 type CopyTab = 'headlines' | 'hooks' | 'ctas' | 'hashtags' | 'library'
@@ -15,14 +15,6 @@ const TAB_OPTIONS = [
   { id: 'hashtags', label: 'Hashtags' },
   { id: 'library', label: 'Library' },
 ]
-
-const CLASSIC: Record<CopyTab, string> = {
-  headlines: '/?page=headlines',
-  hooks: '/?page=hooks',
-  ctas: '/?page=ctas',
-  hashtags: '/?page=hashtagseo',
-  library: '/?page=library',
-}
 
 const inputCls =
   'w-full rounded-xl border border-white/10 bg-bg2/80 px-3 py-2 text-sm text-tx focus:border-ac focus:outline-none'
@@ -98,8 +90,7 @@ export function Copy() {
   return (
     <div className="space-y-6">
       <PageIntro here="/create" title="Copy cluster">
-        Headlines, hooks, CTAs, hashtags, and cross-domain library — intel reads use ?brand=.{' '}
-        <ClassicLink href={CLASSIC[tab]} label={tabLabel} />
+        Headlines, hooks, CTAs, hashtags and the copy library for the brand you pick.
       </PageIntro>
 
       <FilterChips value={tab} options={TAB_OPTIONS} onChange={setTab} />

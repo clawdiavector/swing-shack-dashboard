@@ -451,7 +451,14 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
     from _lib import daily_target  # noqa: PLC0415
 
     split = daily_target.target_for(brand_id)
-    targets = daily_target.day_progress(entries, split, first, month_bounds(month)[1]) if split else {}
+    month_end = month_bounds(month)[1]
+    try:  # a reshare (a link shared to a story) is a made placement; a bad list must not break the calendar
+        from _lib import story_queue  # noqa: PLC0415
+
+        shares = story_queue.shares(brand_id, first, month_end)
+    except Exception:
+        shares = []
+    targets = daily_target.day_progress(entries, split, first, month_end, shares=shares) if split else {}
     if targets:
         leads = daily_target.day_leads(brand_id, first, month_bounds(month)[1], sum(split.values()))
         for day, t in targets.items():
@@ -532,20 +539,41 @@ def _provider(row: dict[str, Any]) -> str:
     return next((name for needle, name in _PROVIDERS if needle in ident), "Instagram")
 
 
+def postiz_settings(row: dict[str, Any]) -> dict[str, Any]:
+    """A Postiz post's settings as a dict. Postiz sends them as JSON text (seen on live,
+    10 Nov 2026); older rows had a dict. Anything unreadable is an empty dict, so one
+    odd post never drops the rest of the month."""
+    raw = row.get("settings")
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str) and raw.strip():
+        try:
+            parsed = json.loads(raw)
+        except ValueError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
 def postiz_entries(rows: list[dict[str, Any]], brand_id: str, *, linked_ids: set[str],
                    month: str) -> list[dict[str, Any]]:
-    """Postiz posts in the month that Campaign OS has no record of."""
+    """Postiz posts in the month that Campaign OS has no record of. Postiz lists every
+    post of the brand for each channel asked about, so each post is kept once."""
     first, last = month_bounds(month)
     out = []
+    seen: set[str] = set()
     for row in rows:
         pid = str(row.get("id") or row.get("postId") or "")
+        if pid in seen:
+            continue
+        seen.add(pid)
         state = str(row.get("state") or row.get("status") or "").upper()
         day = _postiz_day(row.get("publishDate"))
         if not pid or pid in linked_ids or state == "PUBLISHED" or day is None or not first <= day <= last:
             continue
         caption = _plain(row.get("content"))
         media = postiz_media(row)
-        post_type = str((row.get("settings") or {}).get("post_type") or "").lower()
+        post_type = str(postiz_settings(row).get("post_type") or "").lower()
         story = post_type == "story"
         channel = {"Google": "gbp"}.get(_provider(row), _provider(row).lower())
         if state == "DRAFT":
@@ -576,7 +604,7 @@ def schedule_postiz_draft(pz: Any, brand_id: str, row: dict[str, Any]) -> tuple[
     integration = str((row.get("integration") or {}).get("id") or "")
     if not integration:
         return False, "This Postiz post has no channel. Schedule it in Postiz."
-    settings = row.get("settings") if isinstance(row.get("settings"), dict) else None
+    settings = postiz_settings(row) or None
     _, err = pz.create_post(integration, str(row.get("content") or ""), media=postiz_media(row),
                             brand_id=brand_id, publish_date=row.get("publishDate"),
                             platform_settings=settings, draft=False)

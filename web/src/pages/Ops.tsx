@@ -191,12 +191,7 @@ function LayerRibbon({
               <p className="fun-tile__label">{layer.label || key}</p>
               <p className="fun-tile__value">{verdict}</p>
               <p className="fun-tile__hint">
-                Classic only —{' '}
-                <ClassicLink
-                  tip={false}
-                  href={layer.href || `/ops?layer=${key}`}
-                  label={layer.label || key}
-                />
+                {layer.pending != null ? `${layer.pending} pending` : 'Open Jobs'}
               </p>
             </button>
           </Tip>
@@ -795,12 +790,9 @@ export function Ops() {
         <Button
           href="/ops?layer=health"
           tone="ghost"
-          tip="Open health and digest on the Classic ops ribbon."
+          tip="Open health and digest."
         >
-          Health (Classic)
-        </Button>
-        <Button href="/?page=ops" tone="ghost" tip="Open the ops runbook in Classic.">
-          Runbook
+          Health
         </Button>
       </div>
     </div>

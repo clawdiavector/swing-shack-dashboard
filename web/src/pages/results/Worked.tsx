@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../../components/chrome'
-import { Badge, ClassicLink } from '../../components/ui'
+import { Badge } from '../../components/ui'
 import {
   fetchContentTrafficCorrelation,
   fetchLearn,
@@ -363,10 +363,6 @@ export function Worked() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-4">
-        <ClassicLink href="/?page=insights" label="Classic insights" text="Full insights" />
-        <ClassicLink href="/?page=learning" label="Classic learnings" text="Full learnings" />
-      </div>
     </div>
   )
 }
