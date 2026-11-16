@@ -2555,6 +2555,8 @@ export type TaxonomyStyle = {
   checks?: string[]
   examples?: string[]
   brands_used?: string[]
+  /** A look named during the picture breakdown, not in the first seed. */
+  candidate?: boolean
 }
 
 export type TaxonomyType = {
@@ -2581,8 +2583,17 @@ export type TaxonomyPicture = {
   mid: string | null
   video: boolean
   where: string
-  /** Looks read from this picture's own file name. */
+  /** Looks this picture carries (from the picture breakdown, else its file name). */
   styles?: string[]
+  /** What the picture is: a finished post, our own photo, a supplier product picture, a work file, a sheet. */
+  kind?: 'post' | 'photo' | 'product' | 'part' | 'sheet'
+  /** Post type read from the picture (one of the eleven). */
+  type?: string | null
+  /** Template whose layout the picture matches. */
+  template?: string | null
+  /** Pictures this one was made from: the work file first, then the real photo. */
+  sources?: { post: string; thumb: string; mid: string | null; where: string }[]
+  note?: string
 }
 
 export type TaxonomyPost = {
@@ -2602,6 +2613,14 @@ export type TaxonomyPost = {
   caption?: string
   sources?: string[]
   pictures?: TaxonomyPicture[]
+  /** What most of the row is: a finished post, or material that goes into posts. */
+  kind?: 'post' | 'photo' | 'product' | 'part' | 'sheet'
+  type_ids?: string[]
+  /** "live" = Campaign OS recorded the template on the draft. "breakdown" = read from the picture. */
+  template_recorded?: 'live' | 'breakdown'
+  /** Its picture came from the live calendar. */
+  live?: boolean
+  breakdown?: { by?: string; at?: string }
   approval: TaxonomyApproval
 }
 

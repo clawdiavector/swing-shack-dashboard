@@ -87,7 +87,33 @@ def test_style_is_read_per_picture_not_per_post(taxonomy_env):
     posts = dt.build_taxonomy()["posts"]
     for p in posts:
         for pic in p.get("pictures", []):
+            if pic.get("kind"):
+                continue  # looked at in the picture breakdown, which decides the style
             if "snap" in (pic.get("styles") or []):
                 assert "-snap" in pic["where"].lower() or "_snap" in pic["where"].lower() or "/ss-" in pic["where"].lower()
     assert any(p["id"].startswith("extra-") for p in posts)
     assert any(pic["video"] for p in posts for pic in p.get("pictures", []))
+
+
+def test_picture_breakdown_links_posts_to_style_type_template_and_source(taxonomy_env):
+    """Phase 3: the breakdown names what each picture is, so a post links to its parts."""
+    del taxonomy_env
+    payload = dt.build_taxonomy()
+    posts = payload["posts"]
+    pics = [pic for p in posts for pic in p.get("pictures", [])]
+    marked = [pic for pic in pics if pic.get("kind")]
+    assert len(marked) > 1000
+    finished = [pic for pic in marked if pic["kind"] == "post"]
+    assert sum(1 for pic in finished if pic.get("type")) > 0.95 * len(finished)
+    style_ids = {s["id"] for s in payload["styles"]}
+    type_ids = {t["id"] for t in payload["types"]}
+    template_ids = {t["id"] for t in payload["templates"]}
+    assert {s for pic in marked for s in pic.get("styles", [])} <= style_ids
+    assert {pic["type"] for pic in finished if pic.get("type")} <= type_ids
+    assert {pic["template"] for pic in finished if pic.get("template")} <= template_ids | {"stick-photo-band-post", "bd-weekly-deal"}
+    # a raw photo is never listed as a finished post, and a source link points at a real picture
+    assert not [p for p in posts if p.get("kind") in ("photo", "product", "sheet") and not p.get("reference_photo")]
+    thumbs = {pic["thumb"] for pic in pics}
+    linked = [src for pic in marked for src in pic.get("sources", [])]
+    assert linked and all(src["thumb"] in thumbs for src in linked)
+    assert any(p.get("live") and p.get("pictures") for p in posts)
