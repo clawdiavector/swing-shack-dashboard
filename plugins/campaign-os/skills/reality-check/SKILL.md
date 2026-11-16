@@ -4,9 +4,9 @@ description: >-
   Standing rule for every real-looking image (a photo, a generated scene, or a layered build
   with real products and generated people) for Stick, Swing Shack or Bag Drop: before anyone
   sees it, check real-world scale with reality_check.py, then depth, physics, light, shape,
-  stock, people, ends in frame and load. Load BEFORE showing, sending or lodging any
+  stock, people, ends in frame, load and blend. Load BEFORE showing, sending or lodging any
   photorealistic post, carousel slide, story, ad still or mockup, and whenever someone says an
-  image "looks off", "looks fake", "looks wack" or asks whether the sizes are right.
+  image "looks off", "looks fake", "looks wack", "looks plopped on" or asks whether the sizes are right.
 ---
 
 # Reality check
@@ -23,7 +23,7 @@ Applies to anything photoreal: generated scenes, layered builds, enhanced photos
 Flat graphics and pure type posts are exempt; "realistic impossibility" (visual-design
 section 13) is not: the impossible idea is fine, but everything in it still obeys these rules.
 
-## The nine checks
+## The ten checks
 
 1. **Sizes.** Measure the objects in pixels, mark one you trust as the reference (a person,
    the flagstick, the hole, a ball) and run:
@@ -57,6 +57,23 @@ section 13) is not: the impossible idea is fine, but everything in it still obey
 9. **Load.** Can the thing carry what the picture puts on it? A flagstick is a 13 mm rod loose
    in a cup: golfers hold, pull or attend the pin; they never lean on it. Picture it happening
    on a real course.
+10. **Blend.** Anything placed into a scene (a real product cut-out, a generated person, a prop)
+    must look as if it was there when the photo was taken, even when the scene itself is
+    stylised. Check it against the scene for: the same light direction and softness; the same
+    colour temperature; a dark contact shadow and ambient occlusion where it touches, with its
+    shadow falling the same way as the scene's; depth of field matching its distance (further
+    is softer); the same grain and noise (it must not be the only perfectly clean thing in the
+    frame); a reflection only on a shiny surface; and the real product's logo and print exactly
+    as on the packshot. A straight paste of a packshot fails this every time: run a harmonise
+    pass (Krea, the composite plus the real packshot as references, "relight and blend, keep size,
+    position and printing exactly"), then zoom-check the print against the packshot. If the pass
+    warms or lightens the background, keep that when it suits the moment (a festive scene can
+    stay festive); don't force it back to brand black.
+
+    How this check came about: on 13 Nov 2026 real Callaway Chrome Tour cut-outs were dropped onto
+    the Swing Shack Santa scenes with flat studio light, faint shadows and no focus fall-off.
+    Christelle: they "should not look plopped on top of an image, it should look like it's part
+    of the image." One harmonise pass fixed it and kept the Callaway print.
 
 Then look at it as a stranger would, at phone size. If anything feels off, it is off, whatever
 the numbers say.
