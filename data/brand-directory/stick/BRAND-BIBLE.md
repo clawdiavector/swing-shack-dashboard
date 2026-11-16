@@ -646,6 +646,7 @@ banned_brand:
   - "guaranteed"
   - "Hit bombs"
   - "Spoiler alert"
+  - "golf shop"          # Herman, 31 Oct 2026: Stick is never a golf shop
   - "Ever wonder"
   - "tag a"
   - "tag someone"

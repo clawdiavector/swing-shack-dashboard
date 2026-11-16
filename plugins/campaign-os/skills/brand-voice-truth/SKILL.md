@@ -1,19 +1,51 @@
 ---
 name: brand-voice-truth
 description: >-
-  Write captions and headlines in the voice a brand actually uses, not the one its
-  copy bible claims. Load BEFORE writing any caption, headline, CTA or ad copy for
-  Stick, Swing Shack or Bag Drop, and before trusting voice/, copy/ or
-  bible-visual.json. Carries the measured findings from the full Instagram audit.
+  Write captions and headlines the way Herman (CEO) wants each brand to sound: his
+  rules first, the brand bible next, the Instagram audit as evidence. Load BEFORE
+  writing any caption, headline, CTA, script or ad copy for Stick, Swing Shack or
+  Bag Drop, and before trusting voice/, copy/ or bible-visual.json.
 ---
 
-# Brand voice — what the feed actually says
+# Brand voice — what Herman wants, then what the feed shows
 
-The copy bibles in `data/brand-directory/<brand>/voice/` and `copy/` drift from the
-real feed, and prompts read the bible — so they inherit a voice the brand does not
-use. **When the audit and the bible disagree, the audit wins.**
+## Herman's rules come first (email, 31 Oct 2026)
 
-Source of truth: `data/brand-directory/<brand>/feedback/instagram-audit.json`.
+Herman Kriel is the CEO. Christelle calls these rules gold. Apply all five before
+writing a word, and never trade one away for something the feed does.
+
+1. **The brand bible beats the feed, always.** "Old doesn't mean incorrect." The
+   Instagram audit is evidence of what works, never the authority. Aim at the
+   goal, balance it with the feed, and keep pushing the boundaries.
+2. **Never call Stick or Swing Shack a "golf shop".** It puts the reader in the
+   wrong place. Stick is a fitting studio and workshop in Paarl. Swing Shack is an
+   indoor golf venue in Johannesburg (TrackMan, fitting, coaching). Both bibles ban
+   the phrase, so `caption_lint` fails it.
+3. **Stick winks, especially in video.** Facts about gear stay level and dry. The
+   human side of "the world's most gloriously frustrating game" gets plenty of
+   winks. Apparel splits the same way: quality claims stay straight, how it makes
+   you feel gets a lot of winks.
+4. **Swing Shack can be lighthearted.** The goal is engaging content. Don't hold a
+   line back because it's fun.
+5. **Sign-offs.** Stick closes on `Better begins here.` Swing Shack closes on
+   `Keep Swinging` (Herman: it "has always been" the closing line, even though the
+   feed used it once in 789 captions). Both are required last lines in the bibles.
+
+His rules sit beside Christelle's standing ones: the joke never lands on the
+golfer, confident not needy, no number without a source.
+
+Full notes: wiki `decisions/herman-tone-feedback-2026-10-31`. Tone guides:
+Stick https://claude.ai/artifact/4QHZCmQZf4JvoUGqJjyqoQ, Swing Shack
+https://claude.ai/artifact/JnPh2zio2NboUbLZq88nFM.
+
+## What the feed shows (evidence, not authority)
+
+The copy files in `data/brand-directory/<brand>/voice/` and `copy/` drift from both
+the bible and the feed. The audit below shows habits worth keeping, gaps worth
+pushing, and lanes the old files missed. Where it disagrees with the bible or
+Herman, they win.
+
+Evidence: `data/brand-directory/<brand>/feedback/instagram-audit.json`.
 Regenerate it with `/audit-social <brand>`.
 
 ## Stick — measured over all 261 posts

@@ -1,0 +1,98 @@
+{
+  "brand": "bag-drop",
+  "verified": "2026-11-06",
+  "note": "Makers are the brand collections on thebagdrop.co.za (Callaway, Cobra, TaylorMade, Titleist), pages read from each maker's own website on 2026-11-06. TaylorMade's South African site links no social pages, so it is left blank and skipped. Golf moments are public tour and golf media pages.",
+  "retail": [
+    {
+      "id": "callaway",
+      "name": "Callaway",
+      "instagram": "https://www.instagram.com/CallawayGolf",
+      "facebook": "https://www.facebook.com/Callaway",
+      "look_for": "Clubs and balls in our Callaway collection. Skip new releases we do not have."
+    },
+    {
+      "id": "cobra",
+      "name": "Cobra",
+      "instagram": "https://www.instagram.com/cobragolf",
+      "facebook": "https://www.facebook.com/cobragolf",
+      "look_for": "Drivers, woods and irons in our Cobra collection."
+    },
+    {
+      "id": "taylormade",
+      "name": "TaylorMade",
+      "instagram": null,
+      "facebook": null,
+      "look_for": "Demo heads and pre-owned clubs in our TaylorMade collection."
+    },
+    {
+      "id": "titleist",
+      "name": "Titleist",
+      "instagram": "https://www.instagram.com/titleist",
+      "facebook": "https://www.facebook.com/titleist",
+      "look_for": "Wedges, putters and balls in our Titleist collection."
+    }
+  ],
+  "services": [
+    {
+      "id": "trade-in",
+      "name": "Trade in your clubs",
+      "pairs_with": null,
+      "source": "thebagdrop.co.za (trade-ins: drivers, fairway woods, wedges, milled putters), checked 2026-10-30"
+    }
+  ],
+  "moments": [
+    {
+      "id": "pga-tour",
+      "name": "PGA Tour",
+      "instagram": "https://www.instagram.com/pgatour/",
+      "facebook": "https://www.facebook.com/PGATour",
+      "look_for": "Big tournament moments and great shots."
+    },
+    {
+      "id": "golf-digest",
+      "name": "Golf Digest",
+      "instagram": "https://www.instagram.com/golfdigest/",
+      "facebook": "https://www.facebook.com/GolfDigest/",
+      "look_for": "Instruction, equipment and culture."
+    },
+    {
+      "id": "sunshine-tour",
+      "name": "Sunshine Tour",
+      "instagram": "https://www.instagram.com/sunshinetourgolf/",
+      "facebook": null,
+      "look_for": "South African pro golf. Handle looks right but the Sunshine Tour website does not link to it."
+    },
+    {
+      "id": "sunshine-ladies-tour",
+      "name": "Sunshine Ladies Tour",
+      "instagram": "https://www.instagram.com/sunshineladiestour/",
+      "facebook": null,
+      "women": true,
+      "look_for": "South African women's golf. Everyday tour life, up-and-coming players and events, not only the winner."
+    },
+    {
+      "id": "let",
+      "name": "Ladies European Tour",
+      "instagram": "https://www.instagram.com/letgolf/",
+      "facebook": null,
+      "women": true,
+      "look_for": "Women's golf news, features and player stories, not only results."
+    },
+    {
+      "id": "lpga",
+      "name": "LPGA",
+      "instagram": "https://www.instagram.com/lpga_tour/",
+      "facebook": null,
+      "women": true,
+      "look_for": "Women's golf: tour life, features and the game, not only the big winners."
+    },
+    {
+      "id": "womens-golf-day",
+      "name": "Women's Golf Day",
+      "instagram": "https://www.instagram.com/womensgolfday/",
+      "facebook": null,
+      "women": true,
+      "look_for": "Women picking up the game and playing together. The everyday side of ladies' golf."
+    }
+  ]
+}

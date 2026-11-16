@@ -82,9 +82,11 @@ class SuggestionRouteTests(unittest.TestCase):
         c = app_module.app.test_client(cos_anon=True)
         self.assertEqual(c.get("/api/stories/suggestion").status_code, 401)
         r = c.get("/api/stories/suggestion", headers={"Authorization": "Bearer t"}).get_json()
-        self.assertEqual({s["brand"] for s in r["suggestions"]}, {"swing-shack", "stick"})
-        # 6 from the rotation, plus Stick's daily Psycho Bunny slot (2026-10-16).
-        self.assertEqual(len(r["suggestions"]), 7)
+        # Bag Drop added 2026-11-06 (PRs #341 and #344, Christelle's OK to update this test).
+        self.assertEqual({s["brand"] for s in r["suggestions"]}, {"swing-shack", "stick", "bag-drop"})
+        # 9 from the rotation (service, retail, moment per brand), plus Stick's daily
+        # Psycho Bunny slot (2026-10-16).
+        self.assertEqual(len(r["suggestions"]), 10)
         one = c.get("/api/stories/suggestion?brand=stick", headers={"Authorization": "Bearer t"}).get_json()
         self.assertEqual(len(one["suggestions"]), 4)  # service, retail, moment, daily Psycho Bunny
 

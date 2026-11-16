@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/lounge-bar/2026-09-23__lounge-bar__tv-wall-bag-display__01.jpg",
+  "layer1_metadata": {
+    "filename": "2026-09-23__lounge-bar__tv-wall-bag-display__01.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 2021229,
+    "modified": 1794189894.1106281,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#2e2f31",
+        "rgb": [
+          46,
+          47,
+          49
+        ],
+        "share": 0.2368
+      },
+      {
+        "hex": "#4f4b4c",
+        "rgb": [
+          79,
+          75,
+          76
+        ],
+        "share": 0.1394
+      },
+      {
+        "hex": "#aaa595",
+        "rgb": [
+          170,
+          165,
+          149
+        ],
+        "share": 0.1381
+      },
+      {
+        "hex": "#1e252d",
+        "rgb": [
+          30,
+          37,
+          45
+        ],
+        "share": 0.1297
+      },
+      {
+        "hex": "#407bb2",
+        "rgb": [
+          64,
+          123,
+          178
+        ],
+        "share": 0.1242
+      },
+      {
+        "hex": "#272a2f",
+        "rgb": [
+          39,
+          42,
+          47
+        ],
+        "share": 0.1203
+      },
+      {
+        "hex": "#0e121b",
+        "rgb": [
+          14,
+          18,
+          27
+        ],
+        "share": 0.0961
+      },
+      {
+        "hex": "#2e405e",
+        "rgb": [
+          46,
+          64,
+          94
+        ],
+        "share": 0.0154
+      }
+    ],
+    "mean_brightness": 72.9,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 75.7,
+    "brightness_bottom": 62.4,
+    "edge_density_grid": [
+      [
+        7.98,
+        8.19,
+        10.13
+      ],
+      [
+        7.04,
+        6.67,
+        8.41
+      ],
+      [
+        9.48,
+        7.99,
+        9.62
+      ]
+    ],
+    "subject_estimate_position": "top-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 6,
+    "text_preview": "| ONW POACHAMPIONSHIP IGS 681] CHROME"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 32,
+    "median_text_height_px": 32,
+    "likely_heading_text": "ONW",
+    "is_all_caps": true,
+    "sample_text_colour": "#90deff"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#2e2f31",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top-right",
+      "ocr_text": "| ONW POACHAMPIONSHIP IGS 681] CHROME",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

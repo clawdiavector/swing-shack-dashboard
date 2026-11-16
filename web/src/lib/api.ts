@@ -68,6 +68,8 @@ export type InboxItem = {
     asset_id?: string
     platform?: string
     primary_channel?: string
+    /** Scout suggestion set in another province than the brand (campaign-os/_lib/brand_place.py). */
+    far_from_brand?: { place?: string; home?: string } | null
     /** IG + FB targets for this draft (display + publish queue). */
     publish_targets?: string[]
     channels_available?: string[]
@@ -337,6 +339,20 @@ export type OpportunitiesPayload = {
   lead_capture_fixes?: unknown[]
   funnel_leaks?: unknown[]
   error?: string
+}
+
+export type FaqQuestionsPayload = {
+  ok: boolean
+  brand: string
+  questions: { question: string; from: string }[]
+  errors: string[]
+  generated_at?: number
+}
+
+/** Questions people ask Google about the brand's topics (Plan > Ideas). */
+export function fetchFaqQuestions(brand: string) {
+  const q = new URLSearchParams({ brand })
+  return getJson<FaqQuestionsPayload>(`/api/faq/questions?${q}`)
 }
 
 export function fetchOpportunities(brand: string) {
@@ -652,6 +668,9 @@ export type JobScheduleObject = {
 
 export type JobEntry = {
   name?: string
+  /** The freshest file this job writes, and whether "OK" hides old data (jobs/data_freshness.py). */
+  data?: { file?: string; newest_at?: string; age_days?: number } | null
+  data_stale?: boolean
   verdict?: string
   criticality?: string
   brand_mode?: string
@@ -1142,7 +1161,14 @@ export type ContentTrafficCorrelation = {
   ok?: boolean
   matches?: ContentTrafficMatch[]
   unmatched_spikes?: ContentTrafficMatch[]
-  _meta?: { fetched_at?: string; reason?: string }
+  _meta?: {
+    fetched_at?: string
+    reason?: string
+    ga4_total_sessions?: number
+    ga4_window?: string
+    ga4_daily_window?: string
+    top_pages?: { path?: string; sessions?: number; engagement?: string }[]
+  }
 }
 
 export function fetchContentTrafficCorrelation(brand: string, days = 30) {
@@ -2520,6 +2546,147 @@ export function fetchTemplateGallery(brandId: string) {
   return getJson<TemplateGalleryPayload>(
     `/api/brands/${encodeURIComponent(brandId)}/template-gallery`,
   )
+}
+
+export type TaxonomyApproval = {
+  status: 'not_approved' | 'approved'
+  by: string | null
+  at: string | null
+}
+
+export type TaxonomyStyle = {
+  id: string
+  name: string
+  summary?: string
+  approval: TaxonomyApproval
+  references?: { label: string; path?: string; url?: string; note?: string }[]
+  roles?: {
+    colour_roles?: Record<string, { from: string; role?: string; hex?: string }>
+    font_roles?: Record<string, { from: string; role?: string; family?: string }>
+    fixed?: Record<string, string>
+  }
+  method_id?: string
+  checks?: string[]
+  examples?: string[]
+  brands_used?: string[]
+  /** A look named during the picture breakdown, not in the first seed. */
+  candidate?: boolean
+}
+
+export type TaxonomyType = {
+  id: string
+  name: string
+  meaning: string
+  needs_photo: boolean
+  templates: Record<string, string[]>
+  approval: TaxonomyApproval
+}
+
+export type TaxonomyMethod = {
+  id: string
+  name: string
+  kind: string
+  tools?: string[]
+  cost_notes?: string
+  approval: TaxonomyApproval
+}
+
+export type TaxonomyPicture = {
+  role: string
+  thumb: string
+  mid: string | null
+  video: boolean
+  where: string
+  /** Looks this picture carries (from the picture breakdown, else its file name). */
+  styles?: string[]
+  /** What the picture is: a finished post, our own photo, a supplier product picture, a work file, a sheet. */
+  kind?: 'post' | 'photo' | 'product' | 'part' | 'sheet'
+  /** Post type read from the picture (one of the eleven). */
+  type?: string | null
+  /** Template whose layout the picture matches. */
+  template?: string | null
+  /** Pictures this one was made from: the work file first, then the real photo. */
+  sources?: { post: string; thumb: string; mid: string | null; where: string }[]
+  note?: string
+}
+
+export type TaxonomyPost = {
+  id: string
+  brand: string
+  campaign: string
+  date: string
+  title: string
+  status: string
+  /** The label the phase 0 index carries, or "no style". */
+  style: string
+  /** Seeded styles that label names. Empty means no style recorded. */
+  style_ids?: string[]
+  template_id?: string | null
+  /** A raw photo or source that goes into a post, not a finished post. */
+  reference_photo?: boolean
+  caption?: string
+  sources?: string[]
+  pictures?: TaxonomyPicture[]
+  /** What most of the row is: a finished post, or material that goes into posts. */
+  kind?: 'post' | 'photo' | 'product' | 'part' | 'sheet'
+  type_ids?: string[]
+  /** "live" = Campaign OS recorded the template on the draft. "breakdown" = read from the picture. */
+  template_recorded?: 'live' | 'breakdown'
+  /** Its picture came from the live calendar. */
+  live?: boolean
+  breakdown?: { by?: string; at?: string }
+  approval: TaxonomyApproval
+}
+
+export function designMediaUrl(name: string | null | undefined) {
+  return name ? `/api/design/media/${name}` : ''
+}
+
+export type TaxonomyTemplateRow = TemplateGalleryTemplate & {
+  id: string
+  brand?: string
+  approval: TaxonomyApproval
+}
+
+export type TaxonomyPayload = {
+  ok?: boolean
+  schema_version?: string
+  brand_id?: string
+  styles?: TaxonomyStyle[]
+  types?: TaxonomyType[]
+  methods?: TaxonomyMethod[]
+  posts?: TaxonomyPost[]
+  media_stats?: Record<string, number>
+  /** Pictures the seed names as examples of a style, by exact file. */
+  style_pins?: Record<string, { post: string; thumb: string; mid: string | null }[]>
+  templates?: TaxonomyTemplateRow[]
+  template_gallery?: { brand_bible?: TemplateGalleryPayload['brand_bible'] }
+  error?: string
+}
+
+export function fetchDesignTaxonomy(brandId?: string) {
+  const q = brandId ? `?brand=${encodeURIComponent(brandId)}` : ''
+  return getJson<TaxonomyPayload>(`/api/design/taxonomy${q}`)
+}
+
+export async function approveDesignTaxonomyItem(section: string, id: string) {
+  const res = await fetch('/api/design/taxonomy/approve', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ section, id }),
+  })
+  return res.json() as Promise<{ ok?: boolean; approval?: TaxonomyApproval; error?: string }>
+}
+
+export async function unapproveDesignTaxonomyItem(section: string, id: string) {
+  const res = await fetch('/api/design/taxonomy/unapprove', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ section, id }),
+  })
+  return res.json() as Promise<{ ok?: boolean; approval?: TaxonomyApproval; error?: string }>
 }
 
 export type PostStudioFieldSpec = {

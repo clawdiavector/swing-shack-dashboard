@@ -337,8 +337,11 @@ def get_access_token(brand: str | None = None) -> Optional[str]:
                 note="auto-refresh",
             )
             return merged["access_token"]
-        if err:
-            _LOG.warning("gsc_refresh_failed err=%s", err)
+        _LOG.warning("gsc_refresh_failed err=%s", err)
+        # The cached access token is at most an hour old when a refresh token exists, and a failed
+        # refresh means it has expired or been revoked. Returning it turns every call into a 401.
+        # None lets callers fall back (service account) or report "reconnect" instead.
+        return None
     return tok.get("access_token")
 
 

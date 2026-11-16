@@ -41,7 +41,7 @@ ITEM_STATUSES = ("proposed", "kept", "removed", "done")
 KIND_RANK = {k: i for i, k in enumerate(ITEM_KINDS)}
 EDITABLE_ITEM_FIELDS = (
     "title", "due", "kind", "channel", "note", "owner", "budget", "shots", "asked",
-    "operator_offer",
+    "operator_offer", "catalog_hold",
 )
 # (a post step also carries `draft`: set only by request_draft, never edited by hand)
 
@@ -553,7 +553,9 @@ def edit_item(brand_id: str, plan_id: str, item_id: str, patch: dict,
     # An approved plan is locked, except for ticking a step done and noting who was asked.
     marks_done = set(patch) == {"status"} and patch.get("status") == "done"
     marks_asked = set(patch) == {"asked"}
-    if err and not (plan and plan.get("status") == PLAN_APPROVED and (marks_done or marks_asked)):
+    marks_catalog = set(patch) <= {"catalog_hold"}
+    marks_due = set(patch) == {"due"}
+    if err and not (plan and plan.get("status") == PLAN_APPROVED and (marks_done or marks_asked or marks_catalog or marks_due)):
         return {"ok": False, "error": err}
     item = next((i for i in plan["items"] if i["item_id"] == item_id), None)
     if not item:

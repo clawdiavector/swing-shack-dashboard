@@ -110,7 +110,36 @@ _DEFAULT_WATCHLIST = {
         "golf shoes",
         "driving range near me",
     ],
-    "bag-drop": [],
+    # Online store: search terms for used and demo gear (Ubersuggest pull 2026-11-06:
+    # "second hand golf clubs" 2,400/mo, difficulty 9, and Bag Drop has no traffic yet).
+    "bag-drop": [
+        "second hand golf clubs",
+        "second hand golf clubs south africa",
+        "2nd hand golf clubs for sale",
+        "used golf clubs",
+        "used golf clubs south africa",
+        "pre owned golf clubs",
+        "pre owned golf clubs south africa",
+        "demo golf clubs",
+        "demo golf clubs south africa",
+        "golf driver heads for sale",
+        "driver head only",
+        "used drivers for sale",
+        "used putters for sale",
+        "used wedges south africa",
+        "used fairway woods",
+        "golf shafts for sale south africa",
+        "where to buy used golf clubs online",
+        "best place to buy second hand golf clubs",
+        "is it worth buying used golf clubs",
+        "golf club condition grades",
+        "sell my golf clubs",
+        "golf club trade in south africa",
+        "cheap golf balls south africa",
+        "golf grips online south africa",
+        "golf gloves online south africa",
+        "the bag drop golf",
+    ],
 }
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

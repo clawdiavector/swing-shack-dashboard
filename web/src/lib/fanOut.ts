@@ -185,12 +185,17 @@ export function mergePostingWeekPayloads(
   }
 }
 
+/** All brands can only load once the brand list is known; before that there is nothing to ask. */
+export function shelfBrandsReady(isAll: boolean, brandIds: string[]): boolean {
+  return !isAll || brandIds.length > 0
+}
+
 export function mergeShelfPayloads(
   parts: Array<{ brandId: string; payload: ShelfPayload }>,
   orderedBrandIds: string[],
 ): ShelfPayload {
   const okParts = parts.filter((p) => p.payload.ok !== false)
-  if (okParts.length === 0) {
+  if (okParts.length === 0 && parts.length > 0) {
     return { ok: false, error: parts[0]?.payload.error || 'Failed to load shelf' }
   }
   const groupMap = new Map<string, PostingWeekPost[]>()

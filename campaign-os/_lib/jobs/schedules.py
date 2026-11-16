@@ -44,7 +44,7 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     },
     "geo_observe": {
         "scheduler": "GitHub Actions (geo-observe-daily.yml)",
-        "cron_sast": ["08:00"],
+        "cron_sast": ["07:47"],
         "cadence": "daily, a few questions per brand; whole watchlist about weekly",
     },
     "freshness_scan": _LAYER1_DAILY,

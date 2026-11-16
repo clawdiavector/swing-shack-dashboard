@@ -1,0 +1,361 @@
+{
+  "brand_id": "bag-drop",
+  "schema_version": "v1_event_spine",
+  "year": 2027,
+  "status": "DRAFT",
+  "audited_at": "2026-11-09",
+  "audited_by": "christelle/claude",
+  "approval": "Draft tiers. Christelle to confirm; nothing here is on the Main Calendar until she adds it.",
+  "always_on_pillars": [
+    {
+      "id": "online-store-always-on",
+      "name": "ONLINE STORE",
+      "purpose": "Demo and pre-owned golf gear on thebagdrop.co.za, national shipping, condition grades."
+    }
+  ],
+  "events": [
+    {
+      "id": "new-season-gear-2027",
+      "name": "New season gear",
+      "tier": "B-PIN",
+      "category": "always-on-arc",
+      "start": "2027-02-01",
+      "end": "2027-03-21",
+      "public_peak": "2027-02-15",
+      "planning_start": "2027-01-22",
+      "commercial_push": "Start of the season: gear people want before competitions start.",
+      "pillars": {
+        "retail": "Season-start drops."
+      },
+      "lanes": {
+        "the-drop": "Weekly drops.",
+        "search": "Buying-guide pages."
+      },
+      "verification_sources": [
+        "stick-events-2027.json (pre-season-2027)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "valentines-day-2027",
+      "name": "Valentine's Day",
+      "tier": "B-PIN",
+      "category": "gift-moment",
+      "start": "2027-02-08",
+      "end": "2027-02-14",
+      "public_peak": "2027-02-14",
+      "planning_start": "2027-01-21",
+      "commercial_push": "Gift picks by price band.",
+      "pillars": {
+        "retail": "Gift picks."
+      },
+      "lanes": {
+        "small-wins": "Gifts under R2,000."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "easter-long-weekend-2027",
+      "name": "Easter long weekend",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-03-26",
+      "end": "2027-03-29",
+      "public_peak": "2027-03-26",
+      "planning_start": "2027-03-19",
+      "commercial_push": "Long weekend; note only.",
+      "pillars": {},
+      "lanes": {},
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "masters-week-2027",
+      "name": "Masters Week",
+      "tier": "B-PIN",
+      "category": "major",
+      "start": "2027-04-05",
+      "end": "2027-04-11",
+      "public_peak": "2027-04-11",
+      "planning_start": "2027-03-18",
+      "commercial_push": "Golf interest peaks; drop the clubs the field plays when we have them.",
+      "pillars": {
+        "retail": "Tour-brand drop."
+      },
+      "lanes": {
+        "the-drop": "Masters drop.",
+        "organic": "Reactive posts."
+      },
+      "verification_sources": [
+        "stick-events-2027.json (masters-week-2027)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "mothers-day-2027",
+      "name": "Mother's Day",
+      "tier": "B-PIN",
+      "category": "gift-moment",
+      "start": "2027-04-26",
+      "end": "2027-05-09",
+      "public_peak": "2027-05-09",
+      "planning_start": "2027-04-15",
+      "commercial_push": "Ladies' clubs and bags as gifts.",
+      "pillars": {
+        "retail": "Ladies' picks."
+      },
+      "lanes": {
+        "who-this-suits": "Ladies' gear."
+      },
+      "verification_sources": [
+        "stick-events-2027.json (mothers-day-2027)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "freedom-day-2027",
+      "name": "Freedom Day",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-04-27",
+      "end": "2027-04-27",
+      "public_peak": "2027-04-27",
+      "planning_start": "2027-04-20",
+      "commercial_push": "Note only.",
+      "pillars": {},
+      "lanes": {},
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "fathers-day-2027",
+      "name": "Father's Day",
+      "tier": "A-PIN",
+      "category": "gift-moment",
+      "start": "2027-06-07",
+      "end": "2027-06-20",
+      "public_peak": "2027-06-20",
+      "planning_start": "2027-05-09",
+      "commercial_push": "Biggest gift moment of the first half. Gift picks by price band, shipped in time.",
+      "pillars": {
+        "retail": "Father's Day gift drop."
+      },
+      "lanes": {
+        "small-wins": "Under R2,000.",
+        "who-this-suits": "By golfer type.",
+        "crm": "Last order date."
+      },
+      "verification_sources": [
+        "stick-events-2027.json (fathers-day-2027)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "youth-day-2027",
+      "name": "Youth Day",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-06-16",
+      "end": "2027-06-16",
+      "public_peak": "2027-06-16",
+      "planning_start": "2027-06-09",
+      "commercial_push": "Junior clubs angle if stock allows.",
+      "pillars": {},
+      "lanes": {},
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "womens-day-2027",
+      "name": "National Women's Day",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-08-09",
+      "end": "2027-08-09",
+      "public_peak": "2027-08-09",
+      "planning_start": "2027-08-02",
+      "commercial_push": "Ladies' gear post if stock allows.",
+      "pillars": {},
+      "lanes": {},
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "ryder-cup-2027",
+      "name": "Ryder Cup (Adare Manor)",
+      "tier": "B-PIN",
+      "category": "major",
+      "start": "2027-09-13",
+      "end": "2027-09-19",
+      "public_peak": "2027-09-19",
+      "planning_start": "2027-08-26",
+      "commercial_push": "Golf-interest weekend; drop timed to it.",
+      "pillars": {
+        "retail": "Ryder Cup weekend drop."
+      },
+      "lanes": {
+        "the-drop": "Weekend drop."
+      },
+      "verification_sources": [
+        "https://www.rydercup.com/news-media/dates-announced-for-the-2027-ryder-cup"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "heritage-day-2027",
+      "name": "Heritage Day",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-09-24",
+      "end": "2027-09-24",
+      "public_peak": "2027-09-24",
+      "planning_start": "2027-09-17",
+      "commercial_push": "Long weekend; note only.",
+      "pillars": {},
+      "lanes": {},
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "singles-day-2027",
+      "name": "Singles' Day",
+      "tier": "C-PIN",
+      "category": "shopping-moment",
+      "start": "2027-11-11",
+      "end": "2027-11-11",
+      "public_peak": "2027-11-11",
+      "planning_start": "2027-11-04",
+      "commercial_push": "Note only.",
+      "pillars": {},
+      "lanes": {},
+      "verification_sources": [
+        "swing-shack-events-2026.json"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "black-friday-2027",
+      "name": "Black Friday",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2027-11-15",
+      "end": "2027-11-28",
+      "public_peak": "2027-11-26",
+      "planning_start": "2027-10-15",
+      "commercial_push": "Biggest online sales week. Black Friday 26 Nov.",
+      "pillars": {
+        "retail": "Black Friday drop, price shown."
+      },
+      "lanes": {
+        "the-drop": "Black Friday drop.",
+        "drop-alerts": "Early warning.",
+        "paid": "Retargeting."
+      },
+      "verification_sources": [
+        "bag-drop-events-2026.json (black-friday-2026 pattern)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "festive-gifting-2027",
+      "name": "Festive Gifting",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2027-11-15",
+      "end": "2027-12-24",
+      "public_peak": "2027-12-17",
+      "planning_start": "2027-11-05",
+      "commercial_push": "Gift picks by price band; last order date for Christmas delivery.",
+      "pillars": {
+        "retail": "Gift picks."
+      },
+      "lanes": {
+        "small-wins": "Gifts under R2,000.",
+        "crm": "Last order date."
+      },
+      "verification_sources": [
+        "bag-drop-events-2026.json (festive-gifting-2026)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "cyber-monday-2027",
+      "name": "Cyber Monday",
+      "tier": "B-PIN",
+      "category": "shopping-moment",
+      "start": "2027-11-29",
+      "end": "2027-11-29",
+      "public_peak": "2027-11-29",
+      "planning_start": "2027-11-05",
+      "commercial_push": "Online last call.",
+      "pillars": {
+        "retail": "Last call."
+      },
+      "lanes": {
+        "drop-alerts": "Last call."
+      },
+      "verification_sources": [
+        "bag-drop-events-2026.json"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "christmas-2027",
+      "name": "Christmas",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-12-25",
+      "end": "2027-12-25",
+      "public_peak": "2027-12-25",
+      "planning_start": "2027-12-18",
+      "commercial_push": "Greeting only.",
+      "pillars": {},
+      "lanes": {
+        "organic": "Greeting post."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "new-year-new-bag-2027",
+      "name": "New Year / New Bag",
+      "tier": "B-PIN",
+      "category": "sustained-arc shopping-moment",
+      "start": "2027-12-27",
+      "end": "2028-01-31",
+      "public_peak": "2028-01-09",
+      "planning_start": "2027-12-16",
+      "commercial_push": "Upgrade season.",
+      "pillars": {
+        "retail": "New-year drop."
+      },
+      "lanes": {
+        "the-drop": "New-year drop."
+      },
+      "verification_sources": [
+        "bag-drop-events-2026.json"
+      ],
+      "shopping_moment": true
+    }
+  ],
+  "research_leads": [
+    "Courier cut-off for Christmas and Father's Day delivery: ask the owners.",
+    "Whether Bag Drop runs its own Black Friday offer or only the weekly deals: ask Jason."
+  ],
+  "business": "Online store for demo and pre-owned golf gear (thebagdrop.co.za). No fitting, coaching or bay services."
+}

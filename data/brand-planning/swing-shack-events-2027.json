@@ -1,0 +1,520 @@
+{
+  "brand_id": "swing-shack",
+  "schema_version": "v1_event_spine",
+  "year": 2027,
+  "status": "DRAFT",
+  "audited_at": "2026-11-09",
+  "audited_by": "christelle/claude",
+  "approval": "Draft tiers. Christelle to confirm; nothing here is on the Main Calendar until she adds it.",
+  "always_on_pillars": [
+    {
+      "id": "fitting-always-on",
+      "name": "FITTING",
+      "purpose": "TrackMan fitting, putter then iron then driver."
+    },
+    {
+      "id": "coaching-always-on",
+      "name": "COACHING",
+      "purpose": "Lesson packages and junior coaching."
+    },
+    {
+      "id": "membership-always-on",
+      "name": "MEMBERSHIP",
+      "purpose": "Bay membership. Price compared to an everyday thing (Herman, 5 Nov 2026)."
+    }
+  ],
+  "events": [
+    {
+      "id": "new-season-new-swing-2027",
+      "name": "New Season, New Swing",
+      "tier": "A-PIN",
+      "category": "always-on-arc",
+      "start": "2027-02-01",
+      "end": "2027-03-21",
+      "public_peak": "2027-02-15",
+      "planning_start": "2027-01-04",
+      "commercial_push": "Q1 anchor after New Year / New Bag. Fitting first, coaching goals, membership for the season.",
+      "pillars": {
+        "fitting": "Full-bag fitting as the year's first decision.",
+        "coaching": "Goal-setting lesson packs.",
+        "membership": "Season membership push."
+      },
+      "lanes": {
+        "campaign": "'New Season, New Swing' series.",
+        "crm": "Voucher redemption from Festive.",
+        "search": "'golf lessons Johannesburg' pages."
+      },
+      "verification_sources": [
+        "swing-shack-events-2026.json (New Year / New Bag carries into Feb)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "valentines-day-2027",
+      "name": "Valentine's Day",
+      "tier": "B-PIN",
+      "category": "gift-moment",
+      "start": "2027-02-08",
+      "end": "2027-02-14",
+      "public_peak": "2027-02-14",
+      "planning_start": "2027-01-21",
+      "commercial_push": "Couples' bay session and lesson vouchers. Golf first, no drinks angle.",
+      "pillars": {
+        "coaching": "Lesson voucher as a gift.",
+        "membership": "Bay time for two."
+      },
+      "lanes": {
+        "crm": "Voucher reminder.",
+        "paid": "Gift-intent audiences."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "sa-open-2027",
+      "name": "Investec SA Open (Stellenbosch)",
+      "tier": "C-PIN",
+      "category": "tour-moment",
+      "start": "2027-03-04",
+      "end": "2027-03-07",
+      "public_peak": "2027-03-07",
+      "planning_start": "2027-02-28",
+      "commercial_push": "Talking point only: what the winner's numbers say, checked on TrackMan.",
+      "pillars": {
+        "fitting": "Tour-spec talking point."
+      },
+      "lanes": {
+        "organic": "Reactive post on the final round."
+      },
+      "verification_sources": [
+        "data/brand-planning/swing-shack-candidates-2026-2027.json"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "joburg-open-2027",
+      "name": "Joburg Open",
+      "tier": "B-PIN",
+      "category": "tour-moment",
+      "start": "2027-03-11",
+      "end": "2027-03-14",
+      "public_peak": "2027-03-14",
+      "planning_start": "2027-02-18",
+      "commercial_push": "The tour is in Johannesburg. Fitting and lessons ride the local interest.",
+      "pillars": {
+        "fitting": "'Play like the field' fitting hook.",
+        "coaching": "Course-strategy lesson."
+      },
+      "lanes": {
+        "organic": "Week-of posts and stories.",
+        "paid": "Local golf-interest audiences."
+      },
+      "verification_sources": [
+        "data/brand-planning/swing-shack-candidates-2026-2027.json"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "easter-school-holiday-2027",
+      "name": "Easter long weekend + school holiday",
+      "tier": "B-PIN",
+      "category": "school-holiday family",
+      "start": "2027-03-20",
+      "end": "2027-04-05",
+      "public_peak": "2027-03-26",
+      "planning_start": "2027-03-02",
+      "commercial_push": "Term 1 ends 19 Mar, Term 2 starts 6 Apr. Junior coaching and family bay time; Good Friday 26 Mar, Family Day 29 Mar.",
+      "pillars": {
+        "coaching": "Junior holiday clinics.",
+        "membership": "Family bay bookings."
+      },
+      "lanes": {
+        "crm": "Parents list.",
+        "organic": "Holiday booking posts."
+      },
+      "verification_sources": [
+        "https://www.education.gov.za/portals/0/documents/publications/2025/Published 2027 School Calendar.pdf",
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "human-rights-day-2027",
+      "name": "Human Rights Day (Mon 22 Mar)",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-03-22",
+      "end": "2027-03-22",
+      "public_peak": "2027-03-22",
+      "planning_start": "2027-03-15",
+      "commercial_push": "Public holiday: opening-hours post only.",
+      "pillars": {},
+      "lanes": {
+        "organic": "Hours post."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "masters-week-2027",
+      "name": "Masters Week",
+      "tier": "A-PIN",
+      "category": "major",
+      "start": "2027-04-05",
+      "end": "2027-04-11",
+      "public_peak": "2027-04-11",
+      "planning_start": "2027-02-28",
+      "commercial_push": "Biggest golf-interest week of the year. Augusta numbers on TrackMan; fitting and lessons ride it.",
+      "pillars": {
+        "fitting": "'What the winner plays' fitting hook.",
+        "coaching": "Short-game lesson tie-in.",
+        "membership": "Bay time during the Masters."
+      },
+      "lanes": {
+        "organic": "Daily posts Thu-Sun.",
+        "paid": "Golf-interest boost on the best post."
+      },
+      "verification_sources": [
+        "stick-events-2027.json (masters-week-2027)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "mothers-day-2027",
+      "name": "Mother's Day",
+      "tier": "B-PIN",
+      "category": "gift-moment",
+      "start": "2027-04-26",
+      "end": "2027-05-09",
+      "public_peak": "2027-05-09",
+      "planning_start": "2027-04-15",
+      "commercial_push": "Ladies' lessons and fitting as the gift.",
+      "pillars": {
+        "coaching": "Ladies' lesson pack.",
+        "fitting": "Ladies' fitting."
+      },
+      "lanes": {
+        "crm": "Gift reminder.",
+        "paid": "Gift-intent audiences."
+      },
+      "verification_sources": [
+        "stick-events-2027.json (mothers-day-2027)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "freedom-day-2027",
+      "name": "Freedom Day (Tue 27 Apr)",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-04-27",
+      "end": "2027-04-27",
+      "public_peak": "2027-04-27",
+      "planning_start": "2027-04-20",
+      "commercial_push": "Public holiday: hours post only.",
+      "pillars": {},
+      "lanes": {
+        "organic": "Hours post."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "fathers-day-2027",
+      "name": "Father's Day",
+      "tier": "A-PIN",
+      "category": "gift-moment",
+      "start": "2027-06-07",
+      "end": "2027-06-20",
+      "public_peak": "2027-06-20",
+      "planning_start": "2027-05-09",
+      "commercial_push": "Biggest gift moment of the first half. Fitting, lesson and membership vouchers.",
+      "pillars": {
+        "fitting": "Fitting voucher.",
+        "coaching": "Lesson voucher.",
+        "membership": "Membership gift."
+      },
+      "lanes": {
+        "crm": "Gift reminder.",
+        "paid": "Gift-intent audiences.",
+        "organic": "Two-week run-up."
+      },
+      "verification_sources": [
+        "stick-events-2027.json (fathers-day-2027)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "youth-day-2027",
+      "name": "Youth Day (Wed 16 Jun)",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-06-16",
+      "end": "2027-06-16",
+      "public_peak": "2027-06-16",
+      "planning_start": "2027-06-09",
+      "commercial_push": "Public holiday: junior golf angle.",
+      "pillars": {
+        "coaching": "Junior coaching."
+      },
+      "lanes": {
+        "organic": "Juniors post."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "winter-school-holiday-2027",
+      "name": "Winter school holiday",
+      "tier": "B-PIN",
+      "category": "school-holiday family",
+      "start": "2027-06-26",
+      "end": "2027-07-19",
+      "public_peak": "2027-06-28",
+      "planning_start": "2027-06-04",
+      "commercial_push": "Term 2 ends 25 Jun. Indoor bays in winter; junior clinics and family bookings.",
+      "pillars": {
+        "coaching": "Junior winter clinics.",
+        "membership": "Indoor winter golf."
+      },
+      "lanes": {
+        "crm": "Parents list.",
+        "organic": "Holiday booking posts."
+      },
+      "verification_sources": [
+        "https://www.education.gov.za/portals/0/documents/publications/2025/Published 2027 School Calendar.pdf"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "womens-day-2027",
+      "name": "National Women's Day (Mon 9 Aug)",
+      "tier": "B-PIN",
+      "category": "public-holiday",
+      "start": "2027-08-02",
+      "end": "2027-08-09",
+      "public_peak": "2027-08-09",
+      "planning_start": "2027-07-16",
+      "commercial_push": "Ladies' week: ladies' fitting and lesson packs.",
+      "pillars": {
+        "coaching": "Ladies' lessons.",
+        "fitting": "Ladies' fitting."
+      },
+      "lanes": {
+        "organic": "Ladies' week posts.",
+        "paid": "Women golfers."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "ryder-cup-2027",
+      "name": "Ryder Cup (Adare Manor)",
+      "tier": "B-PIN",
+      "category": "major",
+      "start": "2027-09-13",
+      "end": "2027-09-19",
+      "public_peak": "2027-09-19",
+      "planning_start": "2027-08-26",
+      "commercial_push": "Team golf talking point; matchplay in the bays.",
+      "pillars": {
+        "membership": "Matchplay in the bays."
+      },
+      "lanes": {
+        "organic": "Fri-Sun reactive posts."
+      },
+      "verification_sources": [
+        "https://www.rydercup.com/news-media/dates-announced-for-the-2027-ryder-cup"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "heritage-day-2027",
+      "name": "Heritage Day (Fri 24 Sep)",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-09-24",
+      "end": "2027-09-24",
+      "public_peak": "2027-09-24",
+      "planning_start": "2027-09-17",
+      "commercial_push": "Public holiday: long-weekend bay bookings.",
+      "pillars": {
+        "membership": "Long-weekend bookings."
+      },
+      "lanes": {
+        "organic": "Hours post."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "black-friday-2027",
+      "name": "Black Friday + Cyber Monday",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2027-10-11",
+      "end": "2027-11-29",
+      "public_peak": "2027-11-26",
+      "planning_start": "2027-10-15",
+      "commercial_push": "Biggest retail window. Black Friday 26 Nov, Cyber Monday 29 Nov. Offers set by Herman.",
+      "pillars": {
+        "membership": "Next-year membership offer.",
+        "fitting": "Fitting bonus.",
+        "retail": "Bags and gear."
+      },
+      "lanes": {
+        "campaign": "Teaser, reveal, live, last call.",
+        "paid": "Retargeting.",
+        "crm": "Early access by DM."
+      },
+      "verification_sources": [
+        "swing-shack-events-2026.json (black-friday-2026 pattern)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "singles-day-2027",
+      "name": "Singles' Day",
+      "tier": "C-PIN",
+      "category": "shopping-moment",
+      "start": "2027-11-11",
+      "end": "2027-11-11",
+      "public_peak": "2027-11-11",
+      "planning_start": "2027-11-04",
+      "commercial_push": "Not pushed; note only.",
+      "pillars": {},
+      "lanes": {},
+      "verification_sources": [
+        "swing-shack-events-2026.json"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "festive-gifting-2027",
+      "name": "Festive Gifting",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2027-11-15",
+      "end": "2027-12-24",
+      "public_peak": "2027-12-22",
+      "planning_start": "2027-11-10",
+      "commercial_push": "Vouchers for fitting, lessons and membership. Runs on from Black Friday.",
+      "pillars": {
+        "fitting": "Fitting voucher.",
+        "coaching": "Lesson voucher.",
+        "membership": "Membership gift."
+      },
+      "lanes": {
+        "campaign": "Gift guide.",
+        "crm": "Last-day-to-buy reminder."
+      },
+      "verification_sources": [
+        "swing-shack-events-2026.json (festive-gifting-2026)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "december-school-holiday-2027",
+      "name": "December school holiday / family golf",
+      "tier": "B-PIN",
+      "category": "school-holiday family",
+      "start": "2027-12-08",
+      "end": "2027-12-15",
+      "public_peak": "2027-12-10",
+      "planning_start": "2027-11-16",
+      "commercial_push": "Term 4 ends 8 or 10 Dec (sources differ). Junior clinics and family bay time.",
+      "pillars": {
+        "coaching": "Junior clinics.",
+        "membership": "Family bookings."
+      },
+      "lanes": {
+        "crm": "Parents list."
+      },
+      "verification_sources": [
+        "https://www.education.gov.za/portals/0/documents/publications/2025/Published 2027 School Calendar.pdf"
+      ],
+      "shopping_moment": false,
+      "notes": "Term 4 end date differs between the gov.za summary (10 Dec) and other sources (8 Dec). Check the gazette."
+    },
+    {
+      "id": "day-of-reconciliation-2027",
+      "name": "Day of Reconciliation (Thu 16 Dec)",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2027-12-16",
+      "end": "2027-12-16",
+      "public_peak": "2027-12-16",
+      "planning_start": "2027-12-09",
+      "commercial_push": "Public holiday: hours post only.",
+      "pillars": {},
+      "lanes": {
+        "organic": "Hours post."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "christmas-2027",
+      "name": "Christmas",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2027-12-24",
+      "end": "2027-12-25",
+      "public_peak": "2027-12-25",
+      "planning_start": "2027-11-13",
+      "commercial_push": "Last-minute vouchers, then greetings.",
+      "pillars": {
+        "membership": "Last-minute voucher."
+      },
+      "lanes": {
+        "organic": "Greeting post."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "new-year-new-bag-2027",
+      "name": "New Year / New Bag",
+      "tier": "A-PIN",
+      "category": "sustained-arc shopping-moment",
+      "start": "2027-12-27",
+      "end": "2028-01-31",
+      "public_peak": "2028-01-09",
+      "planning_start": "2027-11-28",
+      "commercial_push": "Fitting first, coaching goals, voucher redemption.",
+      "pillars": {
+        "fitting": "Full-bag fitting.",
+        "coaching": "New-year packs."
+      },
+      "lanes": {
+        "crm": "Voucher redemption.",
+        "search": "New-year lesson search."
+      },
+      "verification_sources": [
+        "swing-shack-events-2026.json (new-year-new-bag-2026)"
+      ],
+      "shopping_moment": true
+    }
+  ],
+  "research_leads": [
+    "Joburg Ladies Open 2027 at Randpark: the 2026 edition was A-PIN; 2027 dates not found yet.",
+    "Saints Sports Festival 2027 (St Stithians): date not found yet.",
+    "Spring school holiday (end of Term 3): sources disagree (22 Sep or 1 Oct). Check the gazette."
+  ]
+}

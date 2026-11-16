@@ -36,6 +36,14 @@ PAGES_BY_BRAND = {
         {"url_suffix": "/club-fitting-at-stick", "name": "Club Fitting"},
         {"url_suffix": "/coaching-at-stick", "name": "Coaching"},
     ),
+    # The Bag Drop is a Shopify store: home, its two biggest collections, and the
+    # condition guide (all 200, checked live 2026-11-06).
+    "bag-drop": (
+        {"url_suffix": "", "name": "Homepage"},
+        {"url_suffix": "/collections/demo-clubs", "name": "Demo Clubs"},
+        {"url_suffix": "/collections/head-only", "name": "Head Only"},
+        {"url_suffix": "/pages/condition-guide", "name": "Condition Guide"},
+    ),
 }
 
 _DESC = re.compile(r'<meta[^>]*name="description"[^>]*content="([^"]+)"', re.I)

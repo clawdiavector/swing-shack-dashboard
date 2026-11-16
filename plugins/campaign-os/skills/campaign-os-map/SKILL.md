@@ -56,13 +56,25 @@ photos and golden renders under `templates/<name>/`.
 
 **Stick retail templates (PR #201):** `stick-product-post` (maker stack: maker logo,
 product name, AVAILABLE @ stick, cut-out on the navy fade; needs
-`logos/vendors/<maker>.png`) and `stick-venue-post` (partner plate: full photo, navy
+`_shared/maker-logos/<maker>.png`) and `stick-venue-post` (partner plate: full photo, navy
 plate with the partner's logo @ stick). `stick-photo-band-post` shows the stick logo
 twice when there's no partner logo; avoid it until fixed. The flat-navy offer card is
 still not templated. `campaign-os-template` measures new ones from reference images.
 
 **Campaigns, spotlights, carousels, heroes, badge posts, posts for later:** see the
 `campaign-os-spotlight` skill.
+
+## Where every image and logo lives
+
+`data/brand-directory/_system/IMAGES.md` is the one-page map: own photos on Drive,
+brand logos in `<brand>/logos/` (+ `logos.json`), maker logos once in
+`_shared/maker-logos/`, official maker images in the shared catalogue
+`_shared/catalogue/` (index in git, pictures not; master copy in the Drive
+**Catalogue** folder `1Aj6BzbUFVvpmG3g-fpQuHc0l-xBxIX9R`, a third child of the
+parent next to the two brand roots, synced with `scripts/sync_catalogue.py`; it is
+not a brand ingest root), rights per maker in
+`_system/image-sources.json`. `_lib/image_library.py` resolves them; a sourced photo
+cannot be approved until its maker's rights are `cleared`.
 
 ## Brand imagery — canonical Drive roots
 
@@ -82,6 +94,8 @@ logos and other non-images were not counted):
 | Parent. The share link. Not an ingest root. | `1-zxzR3aYVgfIgLGF-nHHssM_N6zunGOL` | 442 images. Set equals the union of the two children. |
 | Ingest root, stick | `1k5icaxY3AKBD9z2-oIO6i42PUnq1gYUG` | 306 images, all inside the parent. `Products` 182, `Other` 54, `Services` 34, `Location/In Store Photos for walkthrough` 24 (HEIC), `Location/Photos of iron sets` 12. |
 | Ingest root, swing-shack | `1n9pHD6hwr7oEfRBAGBriRrsqv_I-qGge` | 136 images, all inside the parent. Zero files shared with Stick. `Products` 66, `Services` 54, `Swing Shack RAW` 14, `Others` 2. |
+| Extra source, stick: Shot List | `11VFWJOrRi6B3MYjCB78Qew4QXe1D7NSx` | Owned by info@stickgolf.co.za, outside the parent. 560 own product photos by line (Golf Balls 153, Putters 81, Takomo 68, Bags/Vessel 48, Mileseey 46, Vice 38, ...) + 116 videos. Read where it lives (`BRAND_EXTRA_SOURCES`), filed under `images/Shot List/<line>/`; never copied into the root (2026-11-05). |
+| Ingest root, bag-drop | `1bBToPcp6xKchcATcyrmIEpbXnUVVaOnc` | "Bagdrop", owned by fivefridaymarketing, outside the parent; link-viewable since 2026-11-05. `webp edits` 185 own club cut-outs (one folder per listing, e.g. `qi35 max 10.5`), `New Logo` 6. `Generic Bagdrop` (77 images saved from other websites, not cleared) is skipped by `BRAND_SKIP_FOLDERS`. |
 
 `drive.map_names_roots` in `scripts/verify_specs.py` fails if this skill drops
 any of those three ids, or drops an id that `BRAND_PUBLIC_ROOTS` still has.

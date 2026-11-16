@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/fitting-area/2026-09-23__fitting-area__shaft-rack__01.jpg",
+  "layer1_metadata": {
+    "filename": "2026-09-23__fitting-area__shaft-rack__01.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 2343885,
+    "modified": 1794189884.4521701,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#7c6a55",
+        "rgb": [
+          124,
+          106,
+          85
+        ],
+        "share": 0.138
+      },
+      {
+        "hex": "#38332f",
+        "rgb": [
+          56,
+          51,
+          47
+        ],
+        "share": 0.1362
+      },
+      {
+        "hex": "#d7ccb4",
+        "rgb": [
+          215,
+          204,
+          180
+        ],
+        "share": 0.1327
+      },
+      {
+        "hex": "#23211f",
+        "rgb": [
+          35,
+          33,
+          31
+        ],
+        "share": 0.128
+      },
+      {
+        "hex": "#5d5750",
+        "rgb": [
+          93,
+          87,
+          80
+        ],
+        "share": 0.1215
+      },
+      {
+        "hex": "#0e0d0e",
+        "rgb": [
+          14,
+          13,
+          14
+        ],
+        "share": 0.1182
+      },
+      {
+        "hex": "#573e2f",
+        "rgb": [
+          87,
+          62,
+          47
+        ],
+        "share": 0.115
+      },
+      {
+        "hex": "#a29785",
+        "rgb": [
+          162,
+          151,
+          133
+        ],
+        "share": 0.1104
+      }
+    ],
+    "mean_brightness": 88.8,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 113.2,
+    "brightness_bottom": 69.2,
+    "edge_density_grid": [
+      [
+        8.74,
+        16.06,
+        8.9
+      ],
+      [
+        11.56,
+        20.54,
+        11.47
+      ],
+      [
+        5.64,
+        11.69,
+        8.43
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 6,
+    "text_preview": ": Ahh \u2014\u2014 Se SD aia"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 11,
+    "median_text_height_px": 11,
+    "likely_heading_text": ":",
+    "is_all_caps": true,
+    "sample_text_colour": "#746965"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#7c6a55",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": ": Ahh \u2014\u2014 Se SD aia",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

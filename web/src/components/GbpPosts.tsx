@@ -62,8 +62,43 @@ export function queueDates(drafts: GmbDraft[], now: Date = new Date()): Record<s
   return out
 }
 
+/** Daily GBP sending counts as paused when it has not sent for this long. */
+const PAUSED_AFTER_H = 48
+
+type GbpJobBrand = { brand?: string; last_success_age_h?: number | null; last_success_at?: string | null }
+type GbpJob = { name?: string; brands?: GbpJobBrand[] }
+
+/**
+ * When the daily send has stopped for this brand: the day it last sent, 'never',
+ * or '' when it is running (or its status is unknown). `/api/jobs/status` sends
+ * `jobs` as a list or keyed by name.
+ */
+export function gbpPausedSince(
+  status: { jobs?: GbpJob[] | Record<string, GbpJob> } | null | undefined,
+  brand: string,
+  now: Date = new Date(),
+): string {
+  const jobs = status?.jobs
+  const list = Array.isArray(jobs) ? jobs : jobs ? Object.entries(jobs).map(([name, j]) => ({ name, ...j })) : []
+  const row = list.find((j) => j.name === 'gbp_publish')?.brands?.find((b) => b.brand === brand)
+  if (!row) return ''
+  if (!row.last_success_at) return 'never'
+  const age = row.last_success_age_h ?? (now.getTime() - new Date(row.last_success_at).getTime()) / 3600000
+  if (age < PAUSED_AFTER_H) return ''
+  return new Date(new Date(row.last_success_at).getTime() + SAST_MS).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
+}
+
 /** What the person should do next, in one plain sentence. */
-export function nextStep(counts: Record<GbpStage, number>, firstGoesOut?: string): string {
+export function nextStep(counts: Record<GbpStage, number>, firstGoesOut?: string, pausedSince?: string): string {
+  if (counts.ready > 0 && pausedSince) {
+    const last = pausedSince === 'never' ? 'it has not sent any yet' : `the last one went out ${pausedSince}`
+    return `${counts.ready} post${counts.ready === 1 ? ' is' : 's are'} approved and waiting. Daily sending is paused (${last}), so nothing goes out on its own. Press Publish on a post to send it now.`
+  }
   if (counts.ready > 0)
     return `${counts.ready} post${counts.ready === 1 ? ' is' : 's are'} approved and waiting. One goes out each day at about 09:00${firstGoesOut ? `, starting ${firstGoesOut}` : ''}. Open “Ready to send” to see the order, or press Publish on a post to send it sooner.`
   if (counts.check > 0)

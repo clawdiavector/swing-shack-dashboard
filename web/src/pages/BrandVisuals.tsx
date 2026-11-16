@@ -1,6 +1,7 @@
 import { Images } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { BrandSwitch, useBrandScope } from '../components/BrandSwitch'
+import { useBrandScope } from '../components/BrandSwitch'
+import { PickBrand } from '../components/PickBrand'
 import { FilterChips, PageIntro } from '../components/chrome'
 import { Badge, QueueItemThumb } from '../components/ui'
 import {
@@ -178,12 +179,7 @@ export function BrandVisualsLayout({
       ) : null}
 
       {needBrand ? (
-        <div className="glass rounded-2xl border border-white/10 p-6">
-          <p className="text-sm text-tx2">Pick a brand to load social history, Drive assets, and references.</p>
-          <div className="mt-4">
-            <BrandSwitch variant="bar" />
-          </div>
-        </div>
+        <PickBrand message="Pick a brand to load its posts, Drive pictures and reference images." />
       ) : null}
 
       {!needBrand ? (

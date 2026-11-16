@@ -205,6 +205,12 @@ export function useMonthSuggestions(brandId: string, month: string, enabled: boo
 
 export { cardPosition } from './HoverChip'
 
+/** "New in · post 09:00-12:00" for a stock line; empty for anything without a feed job. */
+export function feedJobLine(s: Pick<Suggestion, 'job_label' | 'best_time'>): string {
+  if (!s.job_label) return ''
+  return s.best_time ? `${s.job_label} · post ${s.best_time}` : s.job_label
+}
+
 /** A faded chip for one suggestion. Hover, focus or tap opens its card. */
 export function GhostChip({
   s,
@@ -258,6 +264,7 @@ export function GhostChip({
         ) : null}
         {plainCategory(s.category) ? <span className="text-tx3">{plainCategory(s.category)}</span> : null}
       </p>
+      {feedJobLine(s) ? <p className="text-xs font-semibold text-tx2">{feedJobLine(s)}</p> : null}
       {s.why ? <p className="line-clamp-4 text-xs text-tx3">{plainNotes(s.why)}</p> : null}
       {needsPillar ? (
         <label className="block text-xs text-tx2">

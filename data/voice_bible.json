@@ -49,21 +49,21 @@
     "bag-drop": {
       "id": "bag-drop",
       "label": "Bag Drop",
-      "description": "Community-first, member energy voice. Fun, supportive, relatable. Refers to the Bag Drop service, member social, shared golfer experience.",
-      "personality": "community-first, fun, supportive, member energy",
-      "template_prefix": "🫂 Fair warning:",
-      "template_suffix": "You'll never go back.",
-      "cta_default": "Visit the online store or DM ⛳️",
+      "description": "Online store for demo and pre-owned golf gear (thebagdrop.co.za). Sharp, honest, confident, curated, clever. Dry and plain: product, condition grade and price lead.",
+      "personality": "sharp, honest, confident, curated, clever",
+      "template_prefix": "",
+      "template_suffix": "",
+      "cta_default": "Shop the drop. Link in bio.",
       "cta_alternatives": [
-        "Message us for current stock.",
-        "Message us to check what’s available.",
-        "Visit the online store or DM ⛳️"
+        "Shop the drop. Link in bio.",
+        "View the product. Link in bio.",
+        "Message us to order."
       ],
-      "allowed_tones": ["funny", "relatable", "educational", "confident"],
+      "allowed_tones": ["funny", "educational", "confident"],
       "meme_fit": ["bag-drop"],
-      "example_caption": "When your mate says 'I'll fix it myself' — we've all been there. Almost.",
-      "callout_style": "warm, community, relatable scenario",
-      "hashtag_suggestions": ["#BagDropJHB", "#GolfCommunity"]
+      "example_caption": "Old balls do old-ball things. Scuffs, damaged covers and tired dimples can cost distance, spin and feel.",
+      "callout_style": "product first, dry, price and condition stated",
+      "hashtag_suggestions": ["#TheBagDrop", "#DemoGolf", "#PreOwnedGolf"]
     }
   },
   "tones": {

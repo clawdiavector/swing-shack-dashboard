@@ -260,11 +260,13 @@ def test_learn_summary_bearer_and_session(learn_env):
     assert session.status_code == 200
 
 
-def test_learn_summary_not_widened(learn_env):
+def test_learn_summary_bearer_allowed(learn_env):
     app_module, _ = learn_env
     anon = app_module.app.test_client(cos_anon=True)
+    # 2026-10-23: the job bearer counts as signed in on every /api/ route (agents).
     for path in ("/api/ops/errors", "/api/ops/runbook", "/api/ops/llm-spend"):
-        assert anon.get(path, headers=_auth()).status_code == 401
+        assert anon.get(path, headers=_auth()).status_code != 401
+        assert anon.get(path).status_code == 401
 
 
 def test_ops_learn_tab_renders(learn_env):

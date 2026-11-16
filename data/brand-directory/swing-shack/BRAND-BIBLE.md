@@ -75,7 +75,7 @@ Until this file is `CONFIRMED`, hashtag, emoji and unlisted call-to-action hits 
 | 2 | **The voice.** Four sources, four answers. Bible v1: precise, calm, confident, warm, "the sharp performance coach who is also a great host". Workbook: warm, knowledgeable, witty, useful, confident. Old `voice/` files: "data-driven coach, no-nonsense", "not a joke brand". Feed: emoji-heavy and promotional. | Use Bible v1's description. Warm, precise, dry. Humour as understatement. | Bible v1 sections 9 and 11. The best captions in the feed already sound like this (section 15) |
 | 3 | **Emoji.** | At most one per post, from a short list, and not on most posts. | Emoji on 131 of the last 200 captions (66%), median two, 41 with three or more. Whole feed: 400 of 764 (52%). Workbook D: "occasional and intentional... never as a crutch" |
 | 4 | **Hashtags.** | Zero to three, CamelCase, relevant. | On 87 of the last 200 captions, 32 with five or more. Whole feed: 392 of 764 (51%), 171 with five or more. `#golf #golflife #coach` appears together on 19, including on fitting posts where `#coach` is wrong |
-| 5 | **Tagline and sign-off.** | Public tagline `Real golf, indoors.` Belief line `Golf is more fun when it makes sense.` Neither forced onto every caption. | Bible v1 and workbook give "Real Golf, Indoors" as the public line. Workbook B gives "Golf is more fun when it makes sense" as the belief and promise, and workbook S says to decide which leads. The feed uses neither: `Real golf` in 1 caption, the belief line in 0 |
+| 5 | **Tagline and sign-off.** | Sign-off `Keep Swinging` closes every caption (Herman, 31 Oct 2026: "the Swing Shack closing line has always been Keep Swinging"). Public tagline `Real golf, indoors.` Belief line `Golf is more fun when it makes sense.` | Bible v1 and workbook give "Real Golf, Indoors" as the public line. Workbook B gives "Golf is more fun when it makes sense" as the belief and promise, and workbook S says to decide which leads. The feed uses neither: `Real golf` in 1 caption, the belief line in 0 |
 | 6 | **Membership price.** | Confirm which is current. | 21 and 28 Dec 2024: "R3,850/year or R350/month" for 2025. 10 Jun 2026: "R2,475 for the rest of 2026". 26 Aug 2026: "For only 399/pm". The last two cannot both be right |
 | 7 | **Units.** | Metres and km/h. | 1 Apr post mixes "83 MPH" and "29 meters". 30 Mar post uses km/h and metres. "meters" 3 times, "metres" once |
 | 8 | **Currency.** | `R7,999`, as Stick. | Feed has `R7999.00`, `R7,999`, `R820`, `399/pm` |
@@ -143,7 +143,7 @@ Section status: 0 to 3 DRAFT · 4 CONFIRMED (from bible and workbook) · 5 DRAFT
 | Allowed hashtags | `#SwingShack` `#IndoorGolfJohannesburg` `#IndoorGolfSA` `#GolfJohannesburg` `#TrackMan` `#ClubFitting` `#GolfCoaching` | The seven most relevant of the feed's tags. Dropped: `#golf`, `#golflife`, `#coach`, `#golfaddict`, `#tech`, `#vibes`, `#kedezembaboss` | DRAFT |
 | Emoji (L5.9) | Max 1, optional. Allowed: 🏌️ ⛳ 📍 | See decision 3 | DRAFT |
 | Caps | Sentence case. `TrackMan`, `Swing Shack`, `Zen Swing Stage` | See section 3 | DRAFT |
-| Sign-off (L5.7) | None required. If used: `Real golf, indoors.` | See decision 5 | DRAFT |
+| Sign-off (L5.7) | `Keep Swinging`, required, on its own last line | Herman, 31 Oct 2026 (decision 5) | CONFIRMED |
 | Contact line | One CTA line, section 6 | | DRAFT |
 
 ## 3. Name registry
@@ -654,8 +654,8 @@ speed_unit: km/h
 date_format: "D MMMM"
 time_format: "HH:mm"
 time_range_separator: " to "
-signoff: ""                               # optional: "Real golf, indoors."
-signoff_required: false
+signoff: "Keep Swinging"                  # Herman, 31 Oct 2026: "the Swing Shack closing line has always been Keep Swinging"
+signoff_required: true
 ctas_allowed:                  # "*" matches any words
   - "Book a fitting. Link in bio."
   - "Book a club fitting. Link in bio."
@@ -690,6 +690,7 @@ banned_brand:
   - "perfect setup"
   - "perfect swing"
   - "Hit bombs"
+  - "golf shop"          # Herman, 31 Oct 2026: Swing Shack is never a golf shop
   - "Stick"
   - "Bag Drop"
 watch_words_max_one: [premium, proper, clean, serious, sharp]
@@ -721,11 +722,11 @@ stock_phrases:
   pre_order: "available for pre-order at Swing Shack"
 sister_brand_line_overlap_days: 90        # no shared full line with Stick inside this window
 lanes:
-  product-arrival:   {min_words: 15, max_words: 30, cta_required: true,  signoff_required: false}
-  fitting-education: {min_words: 20, max_words: 40, cta_required: true,  signoff_required: false}
-  coaching:          {min_words: 15, max_words: 30, cta_required: true,  signoff_required: false}
-  membership:        {min_words: 25, max_words: 45, cta_required: true,  signoff_required: false}
-  competition:       {min_words: 15, max_words: 40, cta_required: true,  signoff_required: false}
-  events:            {min_words: 20, max_words: 40, cta_required: true,  signoff_required: false}
-  new-team-member:   {min_words: 15, max_words: 30, cta_required: false, signoff_required: false}
+  product-arrival:   {min_words: 15, max_words: 30, cta_required: true,  signoff_required: true}
+  fitting-education: {min_words: 20, max_words: 40, cta_required: true,  signoff_required: true}
+  coaching:          {min_words: 15, max_words: 30, cta_required: true,  signoff_required: true}
+  membership:        {min_words: 25, max_words: 45, cta_required: true,  signoff_required: true}
+  competition:       {min_words: 15, max_words: 40, cta_required: true,  signoff_required: true}
+  events:            {min_words: 20, max_words: 40, cta_required: true,  signoff_required: true}
+  new-team-member:   {min_words: 15, max_words: 30, cta_required: false, signoff_required: true}
 ```
