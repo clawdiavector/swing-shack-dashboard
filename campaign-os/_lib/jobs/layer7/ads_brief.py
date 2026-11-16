@@ -76,6 +76,13 @@ def _app_module():
     return None
 
 
+def _scoring_now(today: _dt.date) -> _dt.datetime | None:
+    """Score "is this ad still running?" as of the brief's day: the clock today, start of day (SAST) otherwise."""
+    if today == ads_brief.sast_today():
+        return None
+    return _dt.datetime.combine(today, _dt.time(), _dt.timezone(_dt.timedelta(hours=2)))
+
+
 def run(*, brand: str | None = None, today: _dt.date | None = None,
         get=None, get_as=None) -> dict:
     """Build today's brief for one brand. ``today``, ``get`` and ``get_as`` are for tests."""
@@ -97,7 +104,7 @@ def run(*, brand: str | None = None, today: _dt.date | None = None,
     if not full["ads"]:
         # Nothing readable: leave yesterday's brief in place rather than blank it.
         return {"ok": False, "error": "Meta returned no ads", "errors": full["errors"][:3]}
-    scored = ads_brain.score_snapshot(full)
+    scored = ads_brain.score_snapshot(full, now=_scoring_now(today))
     recent = ads_brain.fetch_snapshot(lane_brand, account, token, days=7,
                                       insights_only=True, **kw)
 

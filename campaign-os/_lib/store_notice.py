@@ -5,7 +5,7 @@ Delete the brand's entry when the store opens, and replace it with the store lin
 from __future__ import annotations
 
 NOTICES: dict[str, str] = {
-    "stick": "Shopify store coming soon.",
+    "stick": "Shop online: shop.stickgolf.co.za",
 }
 
 # A closing signature stays last, so the notice goes above it.

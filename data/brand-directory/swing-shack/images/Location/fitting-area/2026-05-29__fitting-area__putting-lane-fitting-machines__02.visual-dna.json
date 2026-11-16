@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/fitting-area/2026-05-29__fitting-area__putting-lane-fitting-machines__02.jpg",
+  "layer1_metadata": {
+    "filename": "2026-05-29__fitting-area__putting-lane-fitting-machines__02.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 2486879,
+    "modified": 1794189869.3482764,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#242830",
+        "rgb": [
+          36,
+          40,
+          48
+        ],
+        "share": 0.1619
+      },
+      {
+        "hex": "#94816a",
+        "rgb": [
+          148,
+          129,
+          106
+        ],
+        "share": 0.1394
+      },
+      {
+        "hex": "#0e0d12",
+        "rgb": [
+          14,
+          13,
+          18
+        ],
+        "share": 0.1385
+      },
+      {
+        "hex": "#a3998b",
+        "rgb": [
+          163,
+          153,
+          139
+        ],
+        "share": 0.132
+      },
+      {
+        "hex": "#b2bdc5",
+        "rgb": [
+          178,
+          189,
+          197
+        ],
+        "share": 0.1308
+      },
+      {
+        "hex": "#43383f",
+        "rgb": [
+          67,
+          56,
+          63
+        ],
+        "share": 0.0993
+      },
+      {
+        "hex": "#18191f",
+        "rgb": [
+          24,
+          25,
+          31
+        ],
+        "share": 0.0992
+      },
+      {
+        "hex": "#5f636e",
+        "rgb": [
+          95,
+          99,
+          110
+        ],
+        "share": 0.0989
+      }
+    ],
+    "mean_brightness": 90.4,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 116.2,
+    "brightness_bottom": 54.8,
+    "edge_density_grid": [
+      [
+        6.37,
+        8.92,
+        8.46
+      ],
+      [
+        7.72,
+        20.99,
+        11.81
+      ],
+      [
+        8.61,
+        18.19,
+        10.99
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": null,
+      "white_text_or_border_present": true,
+      "headings_all_caps": null,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#242830",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

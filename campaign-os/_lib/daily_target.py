@@ -28,8 +28,9 @@ SLOT_LABELS = {
 
 DEFAULT_SPLIT = {"ig_story": 9, "fb_story": 4, "ig_feed": 2, "fb_feed": 1, "reel": 1, "google": 1, "tiktok": 2}
 
-# Brands working towards the target; Bag Drop has no posting channels yet.
-TARGET_BRANDS = ("stick", "swing-shack")
+# Brands working towards the target. Bag Drop joined 2026-11-06 (Instagram and Facebook
+# through Zernio); its own split in data/brands.json has no Google or TikTok slots.
+TARGET_BRANDS = ("stick", "swing-shack", "bag-drop")
 
 _BRANDS_FILE = Path(__file__).resolve().parents[2] / "data" / "brands.json"
 
@@ -46,6 +47,9 @@ _OFF_THE_RACK = {"putter", "wedge", "driver-wood", "iron", "shaft"}
 # Services both brands offer (service_tiein, free assessments on both booking widgets, coaching).
 SERVICES = ["Free club and swing assessment", "Club fitting", "Ball fitting", "Putter fitting",
             "Wedge gapping", "Re-grip", "Coaching"]
+# The Bag Drop is an online store: no fittings or coaching. What it offers besides stock
+# is trade-ins (thebagdrop.co.za, checked 2026-10-30).
+SERVICES_BY_BRAND = {"bag-drop": ["Trade in your clubs"]}
 _PUSH_MAX = 5
 
 
@@ -89,7 +93,7 @@ def day_leads(brand_id: str, first: date, last: date, total: int) -> dict[str, A
         names = push[group_of(str(c.get("category") or ""))]
         if c.get("name") and c["name"] not in names and len(names) < _PUSH_MAX:
             names.append(c["name"])
-    push["services"] = list(SERVICES)
+    push["services"] = list(SERVICES_BY_BRAND.get(brand_id, SERVICES))
     boost = {g: sum(1 for c in stock if group_of(str(c.get("category") or "")) == g) for g in GROUP_LABELS}
     counts = split_counts(total)
     out: dict[str, Any] = {}
@@ -139,8 +143,13 @@ def slots_of(entry: dict[str, Any]) -> list[str]:
     return out
 
 
-def day_progress(entries: list[dict[str, Any]], split: dict[str, int], first: date, last: date) -> dict[str, Any]:
-    """Per day from first to last: target, made, waiting, and each slot."""
+def day_progress(entries: list[dict[str, Any]], split: dict[str, int], first: date, last: date,
+                 shares: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Per day from first to last: target, made, waiting, and each slot.
+
+    `shares` are story reshares (story_queue.shares): each is one made placement in its story slot, shown
+    separately as "reshared" so the count can be told apart from what was scheduled.
+    """
     days: dict[str, dict[str, dict[str, int]]] = {}
     for e in entries:
         day = str(e.get("date") or "")[:10]
@@ -150,17 +159,24 @@ def day_progress(entries: list[dict[str, Any]], split: dict[str, int], first: da
                 c["done"] += 1
             else:
                 c["waiting"] += 1
+    for sh in shares or []:
+        c = days.setdefault(str(sh.get("date") or "")[:10], {}).setdefault(str(sh.get("slot")), {"done": 0, "waiting": 0})
+        c["done"] += 1
+        c["reshared"] = c.get("reshared", 0) + 1
     out: dict[str, Any] = {}
     d = first
     while d <= last:
         counts = days.get(d.isoformat(), {})
-        slots, done, ready = [], 0, 0
+        slots, done, ready, reshared = [], 0, 0, 0
         for slot, target in split.items():
             c = counts.get(slot, {"done": 0, "waiting": 0})
+            c = {"reshared": 0, **c}
+            reshared += c["reshared"]
             slots.append({"slot": slot, "label": SLOT_LABELS[slot], "target": target, **c})
             # A slot's extra posts never count towards another slot's gap.
             done += min(c["done"], target)
             ready += min(c["done"] + c["waiting"], target)
-        out[d.isoformat()] = {"target": sum(split.values()), "done": done, "waiting": ready - done, "slots": slots}
+        out[d.isoformat()] = {"target": sum(split.values()), "done": done, "waiting": ready - done,
+                              "reshared": reshared, "slots": slots}
         d += timedelta(days=1)
     return out

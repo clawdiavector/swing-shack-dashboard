@@ -451,7 +451,14 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
     from _lib import daily_target  # noqa: PLC0415
 
     split = daily_target.target_for(brand_id)
-    targets = daily_target.day_progress(entries, split, first, month_bounds(month)[1]) if split else {}
+    month_end = month_bounds(month)[1]
+    try:  # a reshare (a link shared to a story) is a made placement; a bad list must not break the calendar
+        from _lib import story_queue  # noqa: PLC0415
+
+        shares = story_queue.shares(brand_id, first, month_end)
+    except Exception:
+        shares = []
+    targets = daily_target.day_progress(entries, split, first, month_end, shares=shares) if split else {}
     if targets:
         leads = daily_target.day_leads(brand_id, first, month_bounds(month)[1], sum(split.values()))
         for day, t in targets.items():
@@ -685,11 +692,24 @@ def plan_step_entries(steps: list[dict[str, Any]], brand_id: str) -> list[dict[s
     return out
 
 
+def _campaign_when(plan: dict[str, Any]) -> str:
+    """When the campaign's posts and stories run; the plan's event date when it has none."""
+    days = sorted(
+        str(it.get("due") or "")[:10]
+        for it in plan.get("items") or []
+        if isinstance(it, dict) and it.get("kind") in ("post", "story")
+        and it.get("status") != "removed" and it.get("due")
+    )
+    if not days:
+        return _when(plan.get("event_date"))
+    return _when(days[0]) if days[0] == days[-1] else f"{_when(days[0])} to {_when(days[-1])}"
+
+
 def campaign_list(plans: list[dict[str, Any]]) -> list[dict[str, Any]]:
     live = [p for p in plans if p.get("status") not in ("superseded", "archived")]
     live.sort(key=lambda p: str(p.get("event_date") or ""))
     return [{"plan_id": p.get("plan_id"), "title": p.get("event_name") or "Untitled campaign",
-             "event_date": p.get("event_date"), "when": _when(p.get("event_date")), "status": p.get("status")}
+             "event_date": p.get("event_date"), "when": _campaign_when(p), "status": p.get("status")}
             for p in live]
 
 
@@ -855,7 +875,7 @@ def comments_by_key(brand_id: str) -> dict[str, list[dict[str, Any]]]:
 _VIEWS = (
     ("approval", "Needs your OK", "Ready posts waiting for a yes. Read it, look at the picture, then choose."),
     ("ideas", "Ideas", "Ideas only, nothing made yet. Approve one and the post gets made, then comes back under Needs your OK."),
-    ("scheduled", "Scheduled", "Already approved and set to go out on these days. Comment if something should change."),
+    ("scheduled", "Approved", "Approved for these days, including posts that already went out. Comment if something should change."),
 )
 
 _LABELS = {"approve": "Approve", "comment": "Comment", "reject": "Reject"}

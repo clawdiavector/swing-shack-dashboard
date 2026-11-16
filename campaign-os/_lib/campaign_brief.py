@@ -124,7 +124,7 @@ def _briefs_data_dir() -> str:
     In production, DATA_DIR=/data/campaign-os so briefs
     land at /data/campaign-os/briefs/<brand>/<brief_id>.json
     """
-    base = DATA_DIR_DEFAULT
+    base = os.environ.get("DATA_DIR", DATA_DIR_DEFAULT)
     out = os.path.join(base, "briefs")
     return out
 

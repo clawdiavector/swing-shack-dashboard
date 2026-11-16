@@ -13,7 +13,7 @@ Stick's own retail layout (the GTS2 / T250 / Vokey posts): navy-to-light gradien
 
 | Field | Zone | Notes |
 |---|---|---|
-| `vendor_name` | `vendor_lockup` | Maker name. The logo comes from `stick/logos/vendors/<slug>.png` (slug: lower case, dots dropped, other characters to `-`, so `L.A.B. Golf` → `lab-golf`). Tinted white. **Required**: a missing logo fails the render |
+| `vendor_name` | `vendor_lockup` | Maker name. The logo comes from `_shared/maker-logos/<slug>.png` (slug: lower case, dots dropped, other characters to `-`, so `L.A.B. Golf` → `lab-golf`). Tinted white. **Required**: a missing logo fails the render |
 | `product_name` | `headline` | 1 line, ≤ 22 chars, upper case (`101U DRIVING IRON`). Montserrat Light, centred |
 | `cta` | `cta` | ≤ 23 chars. Use `DM US FOR DETAILS` (fits the approved `DM us for *.` CTA) |
 | photo | `photo` | **Transparent cut-out** (PNG). Fitted without stretching (`fit: contain`, 86% wide, 94% high, top-aligned), transparency kept so the gradient shows through |
@@ -22,7 +22,7 @@ Stick's own retail layout (the GTS2 / T250 / Vokey posts): navy-to-light gradien
 
 - Photo: an approved photo-map image or an official maker image (`_system/image-sources.json`). Never redrawn.
 - Pack shots on white or light grey: cut them first with `python3 campaign-os/scripts/cutout_plain_bg.py in.jpg out.png --preview` and check the preview. Images that already have transparency (Vice, Takomo, L.A.B.) need no cut.
-- New maker: save the maker's own logo (header logo on their site) as a transparent PNG in `stick/logos/vendors/<slug>.png`.
+- New maker: save the maker's own logo (header logo on their site) as a transparent PNG in `_shared/maker-logos/<slug>.png`.
 
 ## Render / lodge
 

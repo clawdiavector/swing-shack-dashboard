@@ -1,0 +1,167 @@
+{
+  "brand_id": "bag-drop",
+  "schema_version": "v1_event_spine",
+  "year": 2026,
+  "status": "DRAFT",
+  "audited_at": "2026-11-09",
+  "audited_by": "christelle/claude",
+  "approval": "Draft tiers. Christelle to confirm; nothing here is on the Main Calendar until she adds it.",
+  "always_on_pillars": [
+    {
+      "id": "online-store-always-on",
+      "name": "ONLINE STORE",
+      "purpose": "Demo and pre-owned golf gear on thebagdrop.co.za, national shipping, condition grades."
+    }
+  ],
+  "events": [
+    {
+      "id": "singles-day-2026",
+      "name": "Singles' Day",
+      "tier": "C-PIN",
+      "category": "shopping-moment",
+      "start": "2026-11-11",
+      "end": "2026-11-11",
+      "public_peak": "2026-11-11",
+      "planning_start": "2026-11-04",
+      "commercial_push": "Note only; weekly deals carry the week.",
+      "pillars": {},
+      "lanes": {},
+      "verification_sources": [
+        "swing-shack-events-2026.json"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "festive-gifting-2026",
+      "name": "Festive Gifting",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2026-11-16",
+      "end": "2026-12-24",
+      "public_peak": "2026-12-18",
+      "planning_start": "2026-11-06",
+      "commercial_push": "Gift picks by price band and golfer type. Confirm the last order date for Christmas delivery with the owners.",
+      "pillars": {
+        "retail": "Gift picks by price band."
+      },
+      "lanes": {
+        "small-wins": "Gifts under R2,000.",
+        "who-this-suits": "Gift by golfer type.",
+        "crm": "Last order date."
+      },
+      "verification_sources": [
+        "swing-shack-events-2026.json (festive-gifting-2026)"
+      ],
+      "shopping_moment": true,
+      "notes": "Courier cut-off for Christmas delivery is not known. Ask the owners."
+    },
+    {
+      "id": "black-friday-2026",
+      "name": "Black Friday",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2026-11-20",
+      "end": "2026-11-29",
+      "public_peak": "2026-11-27",
+      "planning_start": "2026-10-16",
+      "commercial_push": "Biggest online sales week. Weekly deals from Jason become the Black Friday drop; price on every post.",
+      "pillars": {
+        "retail": "Black Friday drop: best-graded demo and pre-owned gear, price shown."
+      },
+      "lanes": {
+        "the-drop": "Black Friday drop.",
+        "drop-alerts": "Early warning.",
+        "paid": "Retargeting site visitors."
+      },
+      "verification_sources": [
+        "Bag Drop weekly deals plan on the live calendar (Friday deals to 25 Dec)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "cyber-monday-2026",
+      "name": "Cyber Monday",
+      "tier": "B-PIN",
+      "category": "shopping-moment",
+      "start": "2026-11-30",
+      "end": "2026-11-30",
+      "public_peak": "2026-11-30",
+      "planning_start": "2026-11-06",
+      "commercial_push": "Online-only last call on the Black Friday drop.",
+      "pillars": {
+        "retail": "Last call on what is left."
+      },
+      "lanes": {
+        "drop-alerts": "Last call.",
+        "crm": "Basket reminder."
+      },
+      "verification_sources": [
+        "Live calendar: Cyber Monday approved for Bag Drop"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "day-of-reconciliation-2026",
+      "name": "Day of Reconciliation",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2026-12-16",
+      "end": "2026-12-16",
+      "public_peak": "2026-12-16",
+      "planning_start": "2026-12-09",
+      "commercial_push": "Note only.",
+      "pillars": {},
+      "lanes": {},
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "christmas-2026",
+      "name": "Christmas",
+      "tier": "C-PIN",
+      "category": "public-holiday",
+      "start": "2026-12-25",
+      "end": "2026-12-25",
+      "public_peak": "2026-12-25",
+      "planning_start": "2026-12-18",
+      "commercial_push": "Greeting only; selling ends with Festive Gifting.",
+      "pillars": {},
+      "lanes": {
+        "organic": "Greeting post."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "new-year-new-bag-2026",
+      "name": "New Year / New Bag",
+      "tier": "B-PIN",
+      "category": "sustained-arc shopping-moment",
+      "start": "2026-12-27",
+      "end": "2027-01-31",
+      "public_peak": "2027-01-10",
+      "planning_start": "2026-12-17",
+      "commercial_push": "Upgrade season: a better club for less, new-year drops.",
+      "pillars": {
+        "retail": "New-year drop."
+      },
+      "lanes": {
+        "the-drop": "New-year drop.",
+        "condition-check": "Why a graded demo club is a smart buy."
+      },
+      "verification_sources": [
+        "swing-shack-events-2026.json (new-year-new-bag-2026)"
+      ],
+      "shopping_moment": true
+    }
+  ],
+  "research_leads": [
+    "Courier cut-off for Christmas and Father's Day delivery: ask the owners.",
+    "Whether Bag Drop runs its own Black Friday offer or only the weekly deals: ask Jason."
+  ],
+  "business": "Online store for demo and pre-owned golf gear (thebagdrop.co.za). No fitting, coaching or bay services."
+}

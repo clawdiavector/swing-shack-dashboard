@@ -88,6 +88,25 @@ c.render(s, c.Camera("iso", yaw=-35, pitch=32), style="blueprint").save("bay.png
    ```
 
    Keep any number on screen to a sourced fact; the picture says it's an illustration.
+4. **Exploded 7-iron (lots of moving parts):** `club_exploded.py` builds a 7-iron from maker specs
+   (`club-7iron.json`: 37 in, loft 30.5, lie 63, .355 in taper tip to .600 in butt, 1 in ferrule, grip
+   .600 in core and 49.5 g, each with its source), lays it corner to corner and pulls it apart into
+   head, ferrule, shaft and grip with labelled parts. `--reel` writes a 7 s 1080x1350 mp4: the club
+   turns, comes apart, then the labels arrive. The head outline is generic: a real model's head comes
+   from its maker's photos before it is shown as that product.
+
+   ```bash
+   python3 plugins/campaign-os/skills/cad-designer/scripts/club_exploded.py --out out/ --brand stick|swing-shack [--reel]
+   ```
+5. **Kitted bay:** `bay_kit.py` draws the bay pulled apart in layers like a building plan: floor; mat,
+   ball, golfer, TrackMan 4 and a bag; screen and enclosure with the real logo; projector on the
+   ceiling with its throw lines. TrackMan 4 is its real size (300 x 300 x 45 mm) and 4.7 m from the
+   screen (TrackMan's minimum); everything else says placeholder or estimate on the image until it is
+   measured. `--style blueprint|clay`, `--reel` for the bay coming apart.
+
+   ```bash
+   python3 plugins/campaign-os/skills/cad-designer/scripts/bay_kit.py --out out/ [--style clay] [--reel] [--measured ...]
+   ```
 
 ## The swing model: real anatomy
 
@@ -122,15 +141,15 @@ tilt, side, shift, squat, heel, pro). Tests pin all of it (`test_cad_designer_an
   figure, not a person. For finished
   posts the golfer comes from Krea, placed where the render puts him. It is a right-handed golfer
   only, and the swing is an illustration, not a measured swing.
-- **The top is a three-quarter swing.** With the wrist kept to side-to-side cocking (20 + 30 degrees) the
-  club stops short of level at the top. Real golfers also bend the lead wrist back (extension) to get
-  there; that is not modelled yet. The finish is the least real position.
-- **No curves, textures or club heads yet:** boxes, flat quads, capsules and image decals only.
-  3D club illustrations need a parametric club (head, loft, lie, length from real specs) first.
+- **The top is full but uses the whole wrist.** The club reaches level at the top with the lead wrist
+  bent back 70 degrees, the edge of its AAOS range; from behind, the club points a little across the
+  line. The finish is the least real position.
+- **Shapes:** boxes, quads, (tapered) cylinders (`frustum`), pushed outlines (`prism`), capsules and
+  image decals. No smooth curves or textures; club heads are generic outlines.
 - **Painter's-algorithm drawing:** big faces that cut through each other can draw in the wrong
   order. Split them into smaller boxes if a render looks wrong.
 - **Not built yet:** loading real 3D models (Krea `generate_3d` produces GLB files; reading them
-  needs a mesh library), animation to video.
+  needs a mesh library). Reels are frame-by-frame renders joined with ffmpeg.
 
 ## Measurements still needed (Swing Shack)
 

@@ -317,6 +317,20 @@ BRAND_CONFIG = {
         "lead_tracking_status": STATUS_NOT_APPLICABLE,  # not in scope
         "north_stars": _load_north_stars_from_calendar_config("swing-shack"),
     },
+    # Online store. Meta page and Instagram shared to the system user 2026-10-30
+    # (wiki decisions/bag-drop-connect-to-os-2026-10-30). No GA4 or ad account yet.
+    "bag-drop": {
+        "name": "The Bag Drop",
+        "domain": "thebagdrop.co.za",
+        "ga4_property_id": None,
+        "meta_business_id": None,
+        "facebook_page_id": "1216761101518231",
+        "instagram_business_account_id": "17841425356549616",
+        "strategy_path": "data/strategy/bag-drop.json",
+        "brand_directory": "data/brand-directory/bag-drop/palette/brand.json",
+        "lead_tracking_status": STATUS_NOT_APPLICABLE,
+        "north_stars": _load_north_stars_from_calendar_config("bag-drop"),
+    },
 }
 
 
@@ -2812,7 +2826,7 @@ def render_v21_portfolio_html(reports: dict) -> str:
     parts.append("<h1>Portfolio Management — V2.1</h1>")
     parts.append("<div class='meta'>Cross-brand management summary "
                  "(contextual, not league).</div>")
-    for bid in ("stick", "swing-shack"):
+    for bid in reports:
         r = reports.get(bid, {})
         parts.append(f"<h2>{r.get('brand_name', bid.title())} "
                      f"(<code>{bid}</code>)</h2>")
@@ -3963,7 +3977,7 @@ def render_v22_portfolio_html(reports: dict) -> str:
         _HTML_CSS, "</head><body>",
     ]
     parts.append("<h1>Portfolio — V2.2</h1>")
-    for bid in ("stick", "swing-shack"):
+    for bid in reports:
         r = reports.get(bid, {})
         parts.append(f"<h2>{r.get('brand_name', bid.title())} "
                      f"(<code>{bid}</code>)</h2>")
@@ -5950,7 +5964,7 @@ def render_portfolio_summary_html(reports: dict) -> str:
     parts.append("<h2>Brands Covered</h2>")
     parts.append("<div class='section'>")
     parts.append("<ul>")
-    for bid in ("stick", "swing-shack"):
+    for bid in reports:
         r = reports.get(bid, {})
         parts.append(f"<li><strong>{r.get('brand_name', bid)}</strong> "
                      f"(<code>{bid}</code>) · "

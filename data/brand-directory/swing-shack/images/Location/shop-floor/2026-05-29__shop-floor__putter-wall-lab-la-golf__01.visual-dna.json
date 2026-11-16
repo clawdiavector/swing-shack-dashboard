@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/shop-floor/2026-05-29__shop-floor__putter-wall-lab-la-golf__01.jpg",
+  "layer1_metadata": {
+    "filename": "2026-05-29__shop-floor__putter-wall-lab-la-golf__01.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 2392035,
+    "modified": 1794189910.835197,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#6d6e72",
+        "rgb": [
+          109,
+          110,
+          114
+        ],
+        "share": 0.1667
+      },
+      {
+        "hex": "#949089",
+        "rgb": [
+          148,
+          144,
+          137
+        ],
+        "share": 0.1314
+      },
+      {
+        "hex": "#393434",
+        "rgb": [
+          57,
+          52,
+          52
+        ],
+        "share": 0.1262
+      },
+      {
+        "hex": "#735940",
+        "rgb": [
+          115,
+          89,
+          64
+        ],
+        "share": 0.1241
+      },
+      {
+        "hex": "#515254",
+        "rgb": [
+          81,
+          82,
+          84
+        ],
+        "share": 0.1186
+      },
+      {
+        "hex": "#17171c",
+        "rgb": [
+          23,
+          23,
+          28
+        ],
+        "share": 0.1175
+      },
+      {
+        "hex": "#c1c3b9",
+        "rgb": [
+          193,
+          195,
+          185
+        ],
+        "share": 0.1129
+      },
+      {
+        "hex": "#85725f",
+        "rgb": [
+          133,
+          114,
+          95
+        ],
+        "share": 0.1027
+      }
+    ],
+    "mean_brightness": 102.1,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 117.2,
+    "brightness_bottom": 89.0,
+    "edge_density_grid": [
+      [
+        5.64,
+        6.91,
+        22.55
+      ],
+      [
+        14.83,
+        16.38,
+        13.64
+      ],
+      [
+        8.81,
+        14.74,
+        15.11
+      ]
+    ],
+    "subject_estimate_position": "top-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": null,
+      "white_text_or_border_present": true,
+      "headings_all_caps": null,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#6d6e72",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top-right",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

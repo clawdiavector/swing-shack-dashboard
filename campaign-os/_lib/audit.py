@@ -49,6 +49,7 @@ from strategy_store import (
     get_decision_queue,
     compute_strategy_density,
 )
+from brand_campaign_data import load_campaign_data as _load_campaign_data_scoped
 
 AUDIT_STATUSES = ["keep", "update", "scale", "retest", "pause", "retire", "delete"]
 
@@ -127,8 +128,10 @@ def discover_all_items(brand_id: str = "swing-shack") -> List[Dict[str, Any]]:
             "raw": b,
         })
 
-    # Campaigns (from campaign-data.json)
-    cd = _load_campaign_data()
+    # Campaigns (from campaign-data.json) — BRAND-SCOPED.
+    # A brand only sees the campaigns brands.json says it owns, so the Stick
+    # audit no longer surfaces Swing Shack's campaigns as Stick's own.
+    cd = _load_campaign_data(brand_id)
     if isinstance(cd, dict):
         for cid, c in cd.get("campaigns", {}).items():
             identity = c.get("identity", {}) or {}
@@ -190,20 +193,18 @@ def discover_all_items(brand_id: str = "swing-shack") -> List[Dict[str, Any]]:
     return items
 
 
-def _load_campaign_data() -> Optional[dict]:
-    """Load campaign-data.json from either runtime or bundled locations."""
-    for path_str in [
-        os.environ.get("DATA_DIR", "") + "/campaign-data.json",
-        str(Path(__file__).resolve().parents[2] / "data" / "campaign-data.json"),
-    ]:
-        if not path_str or path_str == "/campaign-data.json":
-            continue
-        try:
-            with open(path_str) as f:
-                return json.load(f)
-        except (OSError, json.JSONDecodeError):
-            continue
-    return None
+def _load_campaign_data(brand_id: Optional[str] = None) -> Optional[dict]:
+    """Load campaign-data.json, scoped to `brand_id`.
+
+    BRAND-SCOPED. campaign-data.json is a single shared portfolio file, so an
+    unscoped load makes every brand see every other brand's campaigns. The
+    ownership source is brands.json → brands.<id>.campaign_ids (via
+    brand_campaign_data), NOT the campaign's own brand_id field, which is
+    unreliable because data-delegation points every campaign at swing-shack.
+
+    Pass brand_id=None only for genuinely unscoped access.
+    """
+    return _load_campaign_data_scoped(brand_id)
 
 
 # ─── 6-question audit per item ──────────────────────────────────────
@@ -485,7 +486,7 @@ def _check_fatigue(item: Dict[str, Any], brand_id: str) -> Dict[str, Any]:
 
     # Content ideas: similar titles → potential duplication
     if item["item_type"] == "content_idea":
-        cd = _load_campaign_data()
+        cd = _load_campaign_data(brand_id)
         if isinstance(cd, dict):
             title_words = set((item.get("title") or "").lower().split())
             similar = []
@@ -541,7 +542,7 @@ def _check_better_version(item: Dict[str, Any], brand_id: str) -> Dict[str, Any]
 
     # Campaigns superseded by newer campaigns (same audience, newer date)
     if item["item_type"] == "campaign":
-        cd = _load_campaign_data()
+        cd = _load_campaign_data(brand_id)
         if isinstance(cd, dict):
             identity = (item.get("raw") or {}).get("identity", {}) or {}
             goal = (identity.get("goal") or "").lower()
@@ -716,9 +717,15 @@ def _build_clutter_report(audited: List[Dict[str, Any]], brand_id: str) -> Dict[
     """Categorise the audit results for the monthly STRATEGY CLUTTER REPORT."""
     total = len(audited)
     if total == 0:
-        return {"total": 0, "linked": 0, "orphaned": 0, "stale_90d": 0,
-                "duplicates": 0, "seasonal_expired": 0, "valid": 0,
-                "recommendations": []}
+        # Key names MUST match the non-empty branch below and the keys the
+        # markdown renderer reads (render_audit_markdown). The old short
+        # names (linked/valid/stale_90d) made the zero-item path raise
+        # KeyError: 'linked_to_strategy' — a brand with no OS items crashed
+        # the whole audit instead of reporting "nothing to audit".
+        return {"total": 0, "linked_to_strategy": 0, "orphaned": 0,
+                "stale_or_low_score": 0, "duplicates": 0,
+                "seasonal_expired": 0, "valid_keep": 0,
+                "recommendations": ["Strategy is empty — no items to audit."]}
 
     linked = sum(1 for a in audited if "→" in a["reason_for_existence"])
     orphaned = sum(1 for a in audited if a["audit_status"] == "retire" and "No strong reason" in a["reason_for_existence"])

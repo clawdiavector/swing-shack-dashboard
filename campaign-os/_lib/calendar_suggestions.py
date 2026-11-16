@@ -31,6 +31,54 @@ DECIDED_SOURCES = ("date", "stock")
 # A stock suggestion every other day, so a month shows a steady rhythm and not a wall.
 STOCK_EVERY_DAYS = 2
 
+# Feed rotation (wiki research/weekly-post-rotation-plan-2026-11-02). Each stock line gets
+# a job from its stock status, and the best time from Swing Shack's reach by hour band.
+# Monday is planning day and the weakest feed day, so stock is not suggested on it.
+FEED_JOBS = {
+    "new_in": ("New in", "09:00-12:00"),
+    "move_pile": ("Move the pile", "after 18:00"),
+    "tip": ("Tip with a product", "09:00-12:00"),
+}
+NO_STOCK_WEEKDAYS = (0,)
+# A product on the feed is not offered again for four weeks.
+FEED_REPEAT_DAYS = 28
+
+
+def feed_job(candidate: Dict[str, Any]) -> str:
+    """new/back stock is announced, still/stuck stock is pushed, a deep shelf gets a tip."""
+    status = str(candidate.get("status") or "")
+    if status in ("new", "back"):
+        return "new_in"
+    if status in ("stuck", "still"):
+        return "move_pile"
+    return "tip"
+
+
+def _maker(candidate: Dict[str, Any]) -> str:
+    words = str(candidate.get("name") or "").lower().split()
+    return words[0] if words else ""
+
+
+def rotate_feed(candidates: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Most urgent first, but the next line differs from the last in job, maker and
+    category where it can. Falls back step by step, so no line is ever dropped."""
+    pool = list(candidates)
+    out: List[Dict[str, Any]] = []
+    while pool:
+        if not out:
+            out.append(pool.pop(0))
+            continue
+        prev = out[-1]
+        job, maker, cat = feed_job(prev), _maker(prev), prev.get("category") or ""
+        new_job = lambda c: feed_job(c) != job  # noqa: E731
+        new_maker = lambda c: _maker(c) != maker and not (cat and (c.get("category") or "") == cat)  # noqa: E731
+        for test in (lambda c: new_job(c) and new_maker(c), new_maker, new_job, lambda c: True):
+            hit = next((i for i, c in enumerate(pool) if test(c)), None)
+            if hit is not None:
+                out.append(pool.pop(hit))
+                break
+    return out
+
 
 def month_bounds(month: str) -> tuple[_dt.date, _dt.date]:
     """(first day, last day) of 'YYYY-MM'. Raises ValueError on bad input."""
@@ -151,13 +199,16 @@ def stock_items(
     taken_days: Iterable[str],
     today: _dt.date,
     every: int = STOCK_EVERY_DAYS,
+    recent_titles: Iterable[str] = (),
 ) -> List[Dict[str, Any]]:
-    """Stock-list suggestions for `month`: one line every `every` days, from today on.
+    """Stock-list suggestions for `month`: one line every `every` days, from today on,
+    never on a Monday, rotated so jobs and makers take turns.
 
-    candidates   stock_pulse.candidates() for the brand, most urgent first
+    candidates   stock_pulse.feed_candidates() for the brand, most urgent first
     decisions    the decisions file; approved, rejected and swapped lines are left out
     approved_names names already on the calendar
     taken_days   ISO dates already holding another suggestion, so stock does not stack on them
+    recent_titles products already on the feed within FEED_REPEAT_DAYS
     """
     first, last = month_bounds(month)
     start = max(first, today)
@@ -167,7 +218,8 @@ def stock_items(
     approved = [k for k in (_key(n) for n in approved_names) if k]
     every = max(1, int(every))
     days = [start + _dt.timedelta(days=i) for i in range(0, (last - start).days + 1, every)]
-    days = [d for d in days if d.isoformat() not in taken]
+    days = [d for d in days if d.isoformat() not in taken and d.weekday() not in NO_STOCK_WEEKDAYS]
+    on_feed = approved + [k for k in (_key(t) for t in recent_titles) if k]
     open_lines = []
     for c in candidates:
         name = str(c.get("name") or "").strip()
@@ -176,14 +228,19 @@ def stock_items(
         key = stock_key(name, month)
         if (decisions.get(key) or {}).get("decision") in ("approved", "rejected", "swapped", "archived"):
             continue
-        if any(_same_event(_key(name), t) for t in approved):
+        if any(_same_event(_key(name), t) for t in on_feed):
             continue
-        open_lines.append((key, c))
+        open_lines.append(c)
     out: List[Dict[str, Any]] = []
-    for d, (key, c) in zip(days, open_lines):
+    for d, c in zip(days, rotate_feed(open_lines)):
+        key = stock_key(str(c["name"]).strip(), month)
         reason, idea = (c.get("reason") or "").strip(), (c.get("idea") or "").strip()
         why = f"{reason.rstrip('.')}. {idea}" if reason and idea else (reason or idea)
+        job = feed_job(c)
         item = {
+            "job": job,
+            "job_label": FEED_JOBS[job][0],
+            "best_time": FEED_JOBS[job][1],
             "key": key,
             "source": "stock",
             "title": c["name"],
@@ -394,10 +451,16 @@ def month_suggestions_bundle(
         brand_id, month, pending_rows, typed_by_operator, note_rows, decisions, approved_names, today
     )
     taken = [i["date"] for i in items]
-    items += stock_items(
-        brand_id, month, stock_candidates, decisions, approved_names, taken, today, stock_every
-    )
     posts_by_day = posts_by_day_for_month(brand_id, month)
+    first, _last = month_bounds(month)
+    since = (max(first, today) - _dt.timedelta(days=FEED_REPEAT_DAYS)).isoformat()
+    prev_month = (first - _dt.timedelta(days=1)).strftime("%Y-%m")
+    looked_back = {**posts_by_day_for_month(brand_id, prev_month), **posts_by_day}
+    recent = [p.get("title") or "" for iso, posts in looked_back.items() if iso >= since for p in posts]
+    items += stock_items(
+        brand_id, month, stock_candidates, decisions, approved_names, taken, today, stock_every,
+        recent_titles=recent,
+    )
     items = filter_suggestions_nearby_scheduled(items, posts_by_day, brand_id)
     items.sort(key=lambda i: (i["date"], i["title"]))
     return {"items": items, "posts_by_day": posts_by_day}

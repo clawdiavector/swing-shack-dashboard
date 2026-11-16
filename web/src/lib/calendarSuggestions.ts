@@ -24,6 +24,9 @@ export type Suggestion = {
   pillars?: string[]
   /** What kind of date it is, for its icon. */
   kind?: string
+  /** Stock lines only: the feed job (New in, Move the pile, Tip with a product) and when to post. */
+  job_label?: string
+  best_time?: string
 }
 
 export type Undo = {

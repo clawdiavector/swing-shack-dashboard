@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "data/brand-directory/swing-shack/images/Location/exterior/2026-09-23__exterior__entrance-sign__02.jpg",
+  "layer1_metadata": {
+    "filename": "2026-09-23__exterior__entrance-sign__02.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 4000,
+    "height_px": 3000,
+    "aspect_ratio": 1.3333,
+    "orientation": "landscape",
+    "file_size_bytes": 3535878,
+    "modified": 1794189862.9955406,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#4c4340",
+        "rgb": [
+          76,
+          67,
+          64
+        ],
+        "share": 0.1413
+      },
+      {
+        "hex": "#5d4b41",
+        "rgb": [
+          93,
+          75,
+          65
+        ],
+        "share": 0.1301
+      },
+      {
+        "hex": "#9b8370",
+        "rgb": [
+          155,
+          131,
+          112
+        ],
+        "share": 0.13
+      },
+      {
+        "hex": "#7f6654",
+        "rgb": [
+          127,
+          102,
+          84
+        ],
+        "share": 0.129
+      },
+      {
+        "hex": "#3e3430",
+        "rgb": [
+          62,
+          52,
+          48
+        ],
+        "share": 0.127
+      },
+      {
+        "hex": "#685951",
+        "rgb": [
+          104,
+          89,
+          81
+        ],
+        "share": 0.1215
+      },
+      {
+        "hex": "#d1cecb",
+        "rgb": [
+          209,
+          206,
+          203
+        ],
+        "share": 0.1124
+      },
+      {
+        "hex": "#1c1616",
+        "rgb": [
+          28,
+          22,
+          22
+        ],
+        "share": 0.1086
+      }
+    ],
+    "mean_brightness": 95.5,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.333,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 92.2,
+    "brightness_bottom": 90.2,
+    "edge_density_grid": [
+      [
+        19.78,
+        31.17,
+        33.04
+      ],
+      [
+        13.52,
+        19.44,
+        31.3
+      ],
+      [
+        11.09,
+        14.83,
+        19.0
+      ]
+    ],
+    "subject_estimate_position": "top-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 10,
+    "text_preview": "oF 33 53 22 ae zs \u2014) \u2014 \u2014 \\"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 55,
+    "median_text_height_px": 50,
+    "likely_heading_text": "oF 33 22",
+    "is_all_caps": false,
+    "sample_text_colour": "#d6d7db"
+  },
+  "layer8_compliance": {
+    "score": 0,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": false,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#4c4340",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top-right",
+      "ocr_text": "oF 33 53 22 ae zs \u2014) \u2014 \u2014 \\",
+      "all_caps_detected": false
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

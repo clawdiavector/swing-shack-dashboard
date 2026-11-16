@@ -42,7 +42,7 @@ from _lib.geo_runner import (
 # Schedule plan constants. These must match the cronjob definition in
 # ~/.hermes/profiles/heidi/cron/jobs.json and the canonical
 # 10 × 2 = 20 calls/week plan.
-ACTIVE_BRANDS = ("swing-shack", "stick")  # excluded: bag-drop (count=0)
+ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
 REPLICATES_PER_QUERY = 2
 
 

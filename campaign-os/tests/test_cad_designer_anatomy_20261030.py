@@ -97,17 +97,24 @@ def test_knees_bend_over_the_toes_never_backwards():
             assert np.dot(off, toes) > 0, (p, side)
 
 
-def test_the_wrist_hinge_stays_inside_the_wrist_range():
-    """The club cocks against the lead forearm by radial and ulnar deviation only: 20 + 30 degrees."""
+def test_the_wrist_stays_inside_the_wrist_range():
+    """The club moves against the lead forearm by radial and ulnar deviation (20 + 30 degrees) and by bending
+    the wrist back (extension, 70) or forward (flexion, 80); the forearm rolls up to 80 each way. The
+    measured angle between forearm and club can change by no more than the two together.
+    (Widened from deviation only with Christelle's OK, 2026-10-30, to allow a full top.)"""
     rom = ANAT["rom_deg"]
-    limit = rom["wrist_radial_deviation"] + rom["wrist_ulnar_deviation"] + 5
 
     def hinge(r):
         return angle(r["hands"] - r["lead_elbow"], r["club_head"] - r["hands"])
 
     a = hinge(rig("address"))
     for p in POSITIONS:
-        assert abs(hinge(rig(p)) - a) <= limit, p
+        r = rig(p)
+        w = r["wrist"]
+        assert abs(w["deviation"]) <= rom["wrist_radial_deviation"] + rom["wrist_ulnar_deviation"], p
+        assert -rom["wrist_flexion"] <= w["extension"] <= rom["wrist_extension"], p
+        assert abs(w["roll"]) <= rom["forearm_pronation"], p
+        assert abs(hinge(r) - a) <= abs(w["deviation"]) + abs(w["extension"]) + 5, p
 
 
 def test_address_posture_bends_forward_like_tour_players():

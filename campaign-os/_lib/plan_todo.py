@@ -9,6 +9,7 @@ Pure: the routes in app.py read the plans and the alerts and pass them in.
 from __future__ import annotations
 
 import datetime as _dt
+import re as _re
 from typing import Any, Dict, Iterable, List, Optional
 
 BUCKETS = ("overdue", "today", "this_week", "later")
@@ -133,17 +134,56 @@ def _block(heading: str, lines: List[str]) -> List[str]:
     return ["", heading, *shown, *([f"…and {more} more"] if more > 0 else [])]
 
 
+# The weekly routine (Christelle, 2 Nov 2026): one job a weekday. Links are app pages.
+DAILY_FOCUS = {
+    0: {"job": "Plan the week and stories",
+        "do": "Fill calendar gaps against the stock list, top up stories to the daily target, approve Review.",
+        "links": [("Stories", "/app/stories"), ("Review", "/app/review")]},
+    1: {"job": "Marketing report and ads",
+        "do": "Read the weekly report Foreman sends at 09:00 and act on its decisions (each has undo).",
+        "links": [("Weekly report", "/app/results/week")]},
+    2: {"job": "SEO and GEO",
+        "do": "Fix one page, check the Google Business queue, write or approve one blog.",
+        "links": [("SEO", "/app/results/seo"), ("GEO", "/app/geo"), ("Google Business", "/app/publish/gbp")]},
+    3: {"job": "Make the posts",
+        "do": "Build posts for two weeks out; design, sales and reality checks before Review.",
+        "links": [("Create", "/app/create"), ("Review", "/app/review")]},
+    4: {"job": "Replies and close-out",
+        "do": "Answer comments, DMs and reviews; check next week is approved; file what you learned.",
+        "links": [("Inbox", "/app/inbox"), ("Calendar", "/app/calendar")]},
+}
+
+
+def daily_focus(today: _dt.date) -> Optional[Dict[str, Any]]:
+    """Today's job in the weekly routine, or None at the weekend."""
+    return DAILY_FOCUS.get(today.weekday())
+
+
+def _focus_lines(today: _dt.date, base_url: str) -> List[str]:
+    focus = daily_focus(today)
+    if not focus:
+        return []
+    out = ["", f"Today: {focus['job']}.", focus["do"]]
+    if base_url:
+        root = base_url.rstrip("/")
+        out += [f"• {label}: {root}{path}" for label, path in focus["links"]]
+    return out
+
+
 def morning_text(
     sections: Dict[str, Dict[str, Any]],
     today: _dt.date,
+    base_url: str = "",
 ) -> str:
     """The message. `sections` is {brand_id: {"alerts": [...], "steps": [...]}}.
 
-    Alerts come first, because those are the dates that are close with nothing
-    ready. Then what is overdue and what is due today. This week and later are
-    left out: the message is for what needs you now. Nothing to say is said too.
+    Today's job in the weekly routine comes straight after the greeting, with links
+    when `base_url` is given. Then alerts, because those are the dates that are close
+    with nothing ready. Then what is overdue and what is due today. This week and
+    later are left out: the message is for what needs you now. Nothing to say is said too.
     """
     lines = [f"Good morning. Calendar check, {today.strftime('%a')} {today.day} {today.strftime('%b')}."]
+    lines += _focus_lines(today, base_url)
     anything = False
     for brand_id, sec in sections.items():
         alerts = sec.get("alerts") or []
@@ -175,33 +215,57 @@ def _day(d: _dt.date) -> str:
     return f"{d.strftime('%a')} {d.day} {d.strftime('%b')}"
 
 
+_GENERIC_ROW = _re.compile(r"^(instagram|facebook|tiktok)\s+(story|stories|reel|post|video)s?$", _re.I)
+_TRAILING_TAG = _re.compile(r"\s*\([^)]*\)\s*$")
+WEEKLY_SHOWN = 6
+
+
+def _plain_title(title: Any) -> Optional[str]:
+    """A calendar row's name as a person would say it, or None when it is not a name.
+
+    Left out: the generic "Instagram story" rows, caption sentences, and anything long
+    enough to be a caption. A trailing "(resend)" or "(retail B)" tag is dropped.
+    """
+    t = _TRAILING_TAG.sub("", str(title or "").strip())
+    if not t or _GENERIC_ROW.match(t) or t.endswith((".", "!", "?")) or len(t) > 60:
+        return None
+    return t
+
+
 def weekly_selling_text(sections: Dict[str, Dict[str, Any]], today: _dt.date) -> str:
-    """Monday's message: what is on each facility's calendar this week.
+    """Monday's message: what is on each facility's calendar this week, in plain words.
 
     `sections` is {brand_id: {"items": [{"date": iso, "title": str}]}}. Items outside
-    Monday to Sunday are left out; a facility with nothing says so.
+    Monday to Sunday, generic story rows, caption lines and repeats are left out, six
+    are shown per facility, and a facility with nothing says so.
     """
     monday, sunday = week_bounds(today)
-    lines = [f"Good morning. What we are selling this week, {_day(monday)} to {_day(sunday)}."]
+    lines = [f"Good morning. What we are selling this week, {_day(monday)} to {_day(sunday)}.",
+             "", "Here's what is lined up at each place."]
     for brand_id, sec in sections.items():
         week = sorted(
             ((d, i) for i in sec.get("items") or [] if (d := _parse(i.get("date"))) and monday <= d <= sunday),
             key=lambda p: (p[0], str(p[1].get("title"))),
         )
+        seen, shown = set(), []
+        for d, i in week:
+            name = _plain_title(i.get("title"))
+            if name and name.lower() not in seen:
+                seen.add(name.lower())
+                shown.append(f"• {_day(d)}: {name}")
         lines += ["", f"— {BRAND_LABEL.get(brand_id, brand_id)} —"]
-        if not week:
+        if not shown:
             lines.append("Nothing on the calendar yet.")
             continue
-        shown = [f"• {_day(d)}: {i.get('title') or '(untitled)'}" for d, i in week]
-        lines += shown[:MAX_LINES * 2]
-        if len(shown) > MAX_LINES * 2:
-            lines.append(f"…and {len(shown) - MAX_LINES * 2} more")
-    return "\n".join(lines)
+        lines += shown[:WEEKLY_SHOWN]
+        if len(shown) > WEEKLY_SHOWN:
+            lines.append(f"Plus {len(shown) - WEEKLY_SHOWN} more lined up.")
+    return "\n".join(lines + ["", "Have a good week."])
 
 
 def weekly_report_text(links: Dict[str, str], today: _dt.date) -> str:
     """Tuesday's message: one weekly report link per facility."""
-    lines = [f"Good morning. The weekly report, {_day(today)}.", ""]
+    lines = [f"Good morning. The weekly report, {_day(today)}.", "", "Here's how last week went at each place:", ""]
     lines += [f"{BRAND_LABEL.get(b, b)}: {url}" for b, url in links.items()]
     lines += ["", "Each link opens without a login and works for 7 days."]
     return "\n".join(lines)

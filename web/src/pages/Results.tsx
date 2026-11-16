@@ -8,6 +8,7 @@ import { HeroPanel, PageIntro } from '../components/chrome'
 import { WorkedLately } from '../components/WorkedLately'
 import { Button, IconTile } from '../components/ui'
 import { fetchToday, type TodayPanel } from '../lib/api'
+import { countTiles, useFourCounts } from '../lib/fourCounts'
 
 const TABS: { href: string; label: string; hint: string; icon: LucideIcon }[] = [
   { href: '/results/week', label: 'This week', hint: 'Weekly report', icon: LineChart },
@@ -34,7 +35,7 @@ export function Results() {
       .catch(() => setData(null))
   }, [brandId])
 
-  const published = data?.counts?.published ?? 0
+  const four = useFourCounts(brandId || '')
   const brand = brandLabel || data?.active_brand_label || data?.active_brand_id || 'this brand'
   // The Flask /weekly-report route is auth-gated and lives outside the
   // React router. A plain <a href> does a full-page navigation and
@@ -50,13 +51,17 @@ export function Results() {
       </PageIntro>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <FunTile
-          label="Shipped"
-          value={data ? published : '—'}
-          hint="This week’s live posts"
-          tone="green"
-          dots={data ? { on: Math.min(published, 7) } : undefined}
-        />
+        {countTiles(four, ['sent_this_week']).map((t) => (
+          <FunTile
+            key={t.key}
+            to={t.to}
+            label={t.label}
+            value={t.value}
+            hint={t.hint}
+            tone={t.tone}
+            dots={four ? { on: Math.min(four.sent_this_week, 7) } : undefined}
+          />
+        ))}
         <a href={weeklyHref} className="fun-tile" data-tone="gold" title="Opens the full weekly report (authed).">
           <p className="fun-tile__label">Open</p>
           <p className="fun-tile__value">Weekly</p>

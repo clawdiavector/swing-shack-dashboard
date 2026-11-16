@@ -1,0 +1,37 @@
+{
+ "note": "Stick's own logos. These are the masters the app uses. Colour: #003D54 navy (her colour sheet, final 3 Nov 2026).",
+ "logos": [
+  {
+   "file": "stick-logo-navy.png",
+   "what": "full logo, navy",
+   "background": "light",
+   "source": "designer's documents (PR #154, 2026-10-20)",
+   "status": "official"
+  },
+  {
+   "file": "stick-logo-white.png",
+   "what": "full logo, white",
+   "background": "dark",
+   "source": "designer's documents (PR #154, 2026-10-20)",
+   "status": "official"
+  }
+ ],
+ "copies": [
+  {
+   "file": "../logo.png",
+   "what": "small 239x85 white copy used by brand-statement, coach-profile and older code",
+   "status": "outdated",
+   "note": "low resolution; swap for stick-logo-white.png after a before/after"
+  },
+  {
+   "file": "../templates/{brand-statement,coach-profile}/assets/logo.png, ../templates/service-frame/assets/logo-wordmark-white.png",
+   "what": "same small copy inside template packs",
+   "status": "outdated"
+  },
+  {
+   "file": "vendors/*.png",
+   "what": "old home of maker logos, kept only because an older test pins it; must match _shared/maker-logos",
+   "status": "outdated"
+  }
+ ]
+}

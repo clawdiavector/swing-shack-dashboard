@@ -9,7 +9,8 @@ import { PageIntro } from '../components/chrome'
 import { PostCard } from '../components/posting/PostCard'
 import { Badge, Button } from '../components/ui'
 import { fetchPublishMode, fetchShelf, type PublishMode } from '../lib/api'
-import { fanOutPayloads, mergeShelfPayloads, type FanOutFailure } from '../lib/fanOut'
+import { shelfIntro } from '../lib/auditWording'
+import { fanOutPayloads, mergeShelfPayloads, shelfBrandsReady, type FanOutFailure } from '../lib/fanOut'
 import { useLoadGate } from '../lib/useLoadGate'
 import { formatGoesOut, type ShelfPayload } from '../lib/postingWeek'
 
@@ -23,6 +24,8 @@ export function Shelf() {
 
   const load = useCallback(() => {
     const run = async (): Promise<void> => {
+      // On first open the brand list is still empty: wait for it instead of reporting a failure.
+      if (!shelfBrandsReady(isAll, brandIds)) return
       setFailures([])
       if (isAll) {
         const { payloads, failures: fails } = await fanOutPayloads(brandIds, (brandId) => fetchShelf(brandId))
@@ -75,7 +78,7 @@ export function Shelf() {
           </div>
         }
       >
-        Approved posts with a go-live date. Release them when you’re ready. Sandbox (practice mode) only until Kyle switches on live.
+        {shelfIntro(publishMode?.mode, publishMode?.auto_release)}
       </PageIntro>
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />

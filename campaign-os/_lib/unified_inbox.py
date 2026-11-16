@@ -6,6 +6,8 @@ import hashlib
 import json
 import os
 import re
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -314,7 +316,29 @@ def _write_campaign_data(data: dict[str, Any]) -> None:
     tmp.replace(path)
 
 
+@contextmanager
+def _board_reads():
+    """Shared reads for one read-only board build (Scheduled list, This week): the drafts
+    folder, campaign-data.json, brands.json and the layouts file once, instead of once or
+    more per post (6 Nov 2026)."""
+    from _lib.board_cache import board_cache  # noqa: PLC0415
+    from _lib.jobs.layer5.draft_assets import sidecar_lookup  # noqa: PLC0415
+
+    token = _BOARD_CAMPAIGN_DATA.set(_load_campaign_data())
+    try:
+        with sidecar_lookup(), board_cache():
+            yield
+    finally:
+        _BOARD_CAMPAIGN_DATA.reset(token)
+
+
+_BOARD_CAMPAIGN_DATA: ContextVar[dict[str, Any] | None] = ContextVar("board_campaign_data", default=None)
+
+
 def _load_campaign_data() -> dict[str, Any]:
+    shared = _BOARD_CAMPAIGN_DATA.get()
+    if shared is not None:
+        return shared
     path = _data_dir() / "campaign-data.json"
     if path.is_file():
         try:
@@ -431,6 +455,7 @@ def _calendar_record_angle(record: dict[str, Any]) -> str | None:
 
 
 def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[dict[str, Any]]:
+    from _lib.brand_place import far_from_brand  # noqa: PLC0415
     from _lib.marketing_calendar import (  # noqa: PLC0415
         VALID_BRAND_IDS,
         canonical_records,
@@ -486,6 +511,11 @@ def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[di
                     "meta_slim": meta_slim,
                     "render_mode": render_mode_for_record(record),
                     "post_type": str(record.get("post_type") or "") or None,
+                    # Set in another province than the brand (Stick was offered a JHB event as local).
+                    "far_from_brand": far_from_brand(
+                        brand_id,
+                        " ".join(str(record.get(k) or "") for k in ("title", "venue", "location", "city")),
+                    ),
                 },
             })
     return out
@@ -569,6 +599,10 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
     if not isinstance(campaigns, dict):
         campaigns = {}
     out: list[dict[str, Any]] = []
+    # A draft that already went out is not waiting for a yes (Titleist, Takomo: audit 5 Nov 2026).
+    from _lib.content_archive import published_asset_ids  # noqa: PLC0415
+
+    shipped = published_asset_ids(campaigns)
     buckets = {
         "pending": inbox.get("pending") or [],
         "approved": inbox.get("approved") or [],
@@ -582,6 +616,8 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 continue
             cid = str(row.get("campaignId") or "")
             aid = str(row.get("assetId") or "")
+            if bucket_name == "pending" and aid in shipped:
+                continue
             brand_id = str(row.get("brand") or brand or "")
             ts = row.get("updatedAt")
             item_status = bucket_name if bucket_name != "pending" else "pending"
@@ -1223,7 +1259,7 @@ def _derive_post_state(
         return "scheduled", None
     from _lib.visual_gate import decide  # noqa: PLC0415
 
-    if draft is not None and decide(index.brand_id, moment_inbox_id).is_gap():
+    if draft is not None and decide(index.brand_id, moment_inbox_id, record=record).is_gap():
         if str(record.get("source_type") or "") != "operator":
             return "gap", None
     if draft and caption_ok and has_image:
@@ -1340,7 +1376,8 @@ def post_state(
     )
     from _lib.visual_gate import decide  # noqa: PLC0415
 
-    visual_decision = decide(index.brand_id, moment_inbox_id)
+    # Pass the record: without it decide reloads the whole calendar, once per post on the board.
+    visual_decision = decide(index.brand_id, moment_inbox_id, record=record)
     flags = _compute_flags(record, state=state, now=now)
     if (
         visual_decision.is_gap()
@@ -1491,6 +1528,27 @@ def week_board(
     include_undated: bool = True,
 ) -> dict[str, Any]:
     """Operator posting calendar: moments in horizon joined via post_state."""
+    # One read of the drafts folder and campaign data for the whole week, not one per post.
+    with _board_reads():
+        return _week_board(
+            brand_id=brand_id,
+            start=start,
+            days=days,
+            past_days=past_days,
+            include_candidates=include_candidates,
+            include_undated=include_undated,
+        )
+
+
+def _week_board(
+    *,
+    brand_id: str,
+    start: date | None,
+    days: int,
+    past_days: int,
+    include_candidates: bool,
+    include_undated: bool,
+) -> dict[str, Any]:
     from _lib.marketing_calendar import VALID_BRAND_IDS, canonical_records  # noqa: PLC0415
 
     if brand_id not in VALID_BRAND_IDS:
@@ -1651,6 +1709,12 @@ def week_board(
 
 def shelf_board(*, brand_id: str, include_released: bool = True) -> dict[str, Any]:
     """Committed posts grouped by go-live date: scheduled and released awaiting dispatch."""
+    # One read of the drafts folder and campaign data for the whole board, not one per post.
+    with _board_reads():
+        return _shelf_board(brand_id=brand_id, include_released=include_released)
+
+
+def _shelf_board(*, brand_id: str, include_released: bool) -> dict[str, Any]:
     from _lib.marketing_calendar import VALID_BRAND_IDS, canonical_records  # noqa: PLC0415
 
     if brand_id not in VALID_BRAND_IDS:
@@ -2051,6 +2115,23 @@ def approve_item(
     if not item:
         return {"ok": False, "error": "inbox item not found"}
     item_type, key = _parse_item_id(item_id)
+    from _lib import catalog as cat
+
+    if item_type == "draft_asset":
+        brand_id = str(item.get("brand_id") or "")
+        cal_id = str((item.get("meta") or {}).get("calendar_id") or "")
+        if not cal_id and ":" in key:
+            parts = key.split(":", 1)
+            if len(parts) == 2:
+                from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+                for rec in canonical_records(brand_id):
+                    if str(rec.get("calendar_id") or "") == parts[0]:
+                        cal_id = parts[0]
+                        break
+        blocked = cat.release_blocked(brand_id, cal_id)
+        if blocked:
+            return {"ok": False, "error": blocked}
     mode_norm = (mode or "lodge").strip().lower()
     if mode_norm not in ("lodge", "book"):
         mode_norm = "lodge"

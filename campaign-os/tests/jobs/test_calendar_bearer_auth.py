@@ -83,16 +83,17 @@ def test_v3_scout_evaluate_bearer_not_401(job_app):
     assert resp.status_code != 401
 
 
-def test_scout_simulate_unavailable_still_session_only(job_app):
+def test_scout_simulate_unavailable_bearer_allowed(job_app):
+    # 2026-10-23: the job bearer counts as signed in on every /api/ route (agents).
     client, _ = job_app
     resp = client.post("/api/calendar/v3/scout-simulate-unavailable", headers=_auth(), json={})
-    assert resp.status_code == 401
+    assert resp.status_code != 401
 
 
-def test_calendar_simulate_unavailable_still_session_only(job_app):
+def test_calendar_simulate_unavailable_bearer_allowed(job_app):
     client, _ = job_app
     resp = client.post("/api/calendar/scout-simulate-unavailable", headers=_auth(), json={})
-    assert resp.status_code == 401
+    assert resp.status_code != 401
 
 
 def test_bad_token_401(job_app):
@@ -116,10 +117,10 @@ def test_v1_candidates_anon_401(job_app):
     assert resp.status_code == 401
 
 
-def test_bearer_not_widened_to_sibling_calendar(job_app):
+def test_bearer_reaches_sibling_calendar(job_app):
     client, _ = job_app
     resp = client.get("/api/calendar/path-debug", headers=_auth())
-    assert resp.status_code == 401
+    assert resp.status_code != 401
 
 
 def test_v3_runs_post_bearer_not_401(job_app):
@@ -162,7 +163,9 @@ def test_v3_runs_is_exact_path_not_prefix(job_app):
         "/api/calendar/v3/alerts/stick/transition",
     ],
 )
-def test_v3_siblings_still_session_only(job_app, path):
+def test_v3_siblings_bearer_allowed(job_app, path):
     client, _ = job_app
     resp = client.post(path, headers=_auth(), json={})
-    assert resp.status_code == 401
+    assert resp.status_code != 401
+    anon = client.post(path, json={})
+    assert anon.status_code == 401

@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../../components/chrome'
 import { PlatformMock } from '../../components/PlatformMock'
-import { Badge, ClassicLink, Tip } from '../../components/ui'
+import { Badge, Tip } from '../../components/ui'
 import { fetchSandboxQueue, resolveAssetUrl, type SandboxQueueItem } from '../../lib/api'
 import { PLATFORM_TABS, resolvePlatformTab, type PlatformTab } from '../../lib/platformMock'
 import { matchSandboxRow, sandboxTitle } from '../../lib/sandboxRow'
@@ -99,8 +99,7 @@ export function SandboxPreview() {
 
       {missReason === 'limit' ? (
         <p className="text-sm text-yel">
-          That row is not in the first 200 pending — open{' '}
-          <ClassicLink href="/?page=publish" label="publish" /> for the full list.
+          That row is not in the first 200 pending.
         </p>
       ) : null}
 
