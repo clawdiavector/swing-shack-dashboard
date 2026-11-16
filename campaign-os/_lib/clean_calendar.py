@@ -451,7 +451,14 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
     from _lib import daily_target  # noqa: PLC0415
 
     split = daily_target.target_for(brand_id)
-    targets = daily_target.day_progress(entries, split, first, month_bounds(month)[1]) if split else {}
+    month_end = month_bounds(month)[1]
+    try:  # a reshare (a link shared to a story) is a made placement; a bad list must not break the calendar
+        from _lib import story_queue  # noqa: PLC0415
+
+        shares = story_queue.shares(brand_id, first, month_end)
+    except Exception:
+        shares = []
+    targets = daily_target.day_progress(entries, split, first, month_end, shares=shares) if split else {}
     if targets:
         leads = daily_target.day_leads(brand_id, first, month_bounds(month)[1], sum(split.values()))
         for day, t in targets.items():

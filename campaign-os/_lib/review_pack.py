@@ -927,9 +927,14 @@ body.wide .wrap{max-width:min(1560px,100%)}
 #items.cols.auto{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
 #items.cols .grid.one{grid-template-columns:minmax(0,1fr)}
 #items.cols .card h2{font-size:20px}
+.c-top,.c-media,.c-body{display:flex;flex-direction:column;gap:14px;min-width:0}
+#items.cols .card{display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:14px;align-content:start}
+#items.cols .c-top{align-self:start}
+#items.cols .head{flex-direction:column;align-items:flex-start;gap:8px}
 @media (max-width:700px){#items.cols,#items.cols.auto{grid-template-columns:minmax(0,1fr)}.layout-bar>span:first-child,.layout-bar .seg{display:none}}
 details.upl>summary{cursor:pointer;font-weight:700;padding:6px 0}
 .cell .full{position:absolute;right:10px;bottom:10px;border:0;border-radius:999px;background:rgba(18,21,40,.78);color:#fff;font:inherit;font-size:13px;font-weight:700;padding:6px 12px;min-height:34px;cursor:pointer}
+.car{position:relative;max-width:420px}.car img{width:100%;display:block;border-radius:10px;background:var(--line);aspect-ratio:4/5;object-fit:cover;cursor:zoom-in}.car .count{position:absolute;left:10px;top:10px;background:rgba(18,21,40,.78);color:#fff;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700}.car .nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;border-radius:50%;background:rgba(18,21,40,.72);color:#fff;font-size:26px;line-height:1;cursor:pointer}.car .nav:disabled{opacity:.25;cursor:default}.car .prev{left:8px}.car .next{right:8px}.car .full{position:absolute;right:10px;bottom:10px;border:0;border-radius:999px;background:rgba(18,21,40,.78);color:#fff;font:inherit;font-size:13px;font-weight:700;padding:6px 12px;min-height:34px;cursor:pointer}.dots{display:flex;gap:6px;justify-content:center;margin:10px 0 2px;max-width:420px}.dots .dot{width:9px;height:9px;padding:0;border:0;border-radius:50%;background:var(--line);cursor:pointer}.dots .dot[aria-current=true]{background:currentColor}#items.cols .car,#items.cols .dots{max-width:none}
 .cell{position:relative;min-width:0}.cell img{width:100%;display:block;border-radius:10px;background:var(--line);aspect-ratio:4/5;object-fit:cover;cursor:zoom-in}
 .pic.none{aspect-ratio:4/5;border-radius:10px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;text-align:center;padding:8px;min-height:120px}
 .size-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}
@@ -940,7 +945,7 @@ details.upl>summary{cursor:pointer;font-weight:700;padding:6px 0}
 .month-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .month-lbl{font-weight:800;font-size:14px;min-width:5rem}
 .month-days{display:flex;flex-wrap:wrap;gap:6px}
-.day-dot{font:inherit;display:inline-flex;gap:3px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:5px 9px;background:var(--card);cursor:pointer;min-height:40px}
+.day-dot{font:inherit;color:var(--ink);display:inline-flex;gap:3px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:5px 9px;background:var(--card);cursor:pointer;min-height:40px}
 .day-dot.drag-over{outline:2px dashed var(--accent)}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
 .slot-chip{cursor:grab;font-weight:700}
@@ -1007,6 +1012,17 @@ const TOKEN="__TOKEN__",BASE="/review-pack/"+TOKEN;let D=JSON.parse(document.get
 const $=id=>document.getElementById(id);const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e};
 const LBL=__LBL__;let LB={l:[],i:0,t:""};const SIZE_PICK=new Map();let UNMARKED_OK=false;
 function pickSize(item,key,img,urls){SIZE_PICK.set(item,key);document.querySelectorAll('[data-size-tab="'+item+'"]').forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===key)));if(img&&urls[key]){img.src=urls[key];img.style.aspectRatio={story:"9/16",google:"4/3"}[key]||"";img.style.objectFit=key==="feed"?"":"contain";img.style.maxHeight=key==="story"?"70vh":""}}
+function carousel(it){const n=it.images.length;let at=0;const w=el("div","car");w.setAttribute("role","group");w.setAttribute("aria-label",it.title+", carousel of "+n+" slides");
+  const im=new Image();im.alt=it.title;const cnt=el("span","count");const dots=el("div","dots");
+  const names=it.images.map((_,i)=>"Slide "+(i+1)+" of "+n);
+  const prev=el("button","nav prev","‹");prev.type="button";prev.setAttribute("aria-label","Previous slide");
+  const next=el("button","nav next","›");next.type="button";next.setAttribute("aria-label","Next slide");
+  it.images.forEach((_,i)=>{const d=el("button","dot");d.type="button";d.setAttribute("aria-label",names[i]);d.onclick=()=>go(i);dots.append(d)});
+  function go(i){at=(i+n)%n;im.src=it.images[at];cnt.textContent=names[at];prev.disabled=at===0;next.disabled=at===n-1;[...dots.children].forEach((d,k)=>d.setAttribute("aria-current",String(k===at)))}
+  prev.onclick=()=>go(at-1);next.onclick=()=>go(at+1);im.onclick=()=>openLB(it.images,at,it.title,names);
+  let x0=null;im.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});im.addEventListener("touchend",e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>40)go(at+(dx<0?1:-1))});
+  const fb=el("button","full","⤢ View full size");fb.type="button";fb.setAttribute("aria-label","View "+it.title+" full size");fb.onclick=()=>im.onclick();
+  w.append(im,cnt,prev,next,fb);const box=el("div");box.append(w,dots);go(0);return box}
 function openLB(l,i,t,names){LB={l,i,t,names};showLB();$("lb").hidden=false;$("lbx").focus()}
 function showLB(){$("lbi").src=LB.l[LB.i];$("lbc").textContent=LB.t+(LB.names&&LB.names[LB.i]?"  ·  "+LB.names[LB.i]:(LB.l.length>1?"  ·  "+(LB.i+1)+" of "+LB.l.length:""));$("lbp").hidden=$("lbn").hidden=LB.l.length<2}
 function step(d){LB.i=(LB.i+d+LB.l.length)%LB.l.length;showLB()}
@@ -1124,6 +1140,7 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
   const bd=el("span","badge");bd.dataset.badge=it.id;h.append(hh,bd);if(D.staff)h.append(teamRemove(it));c.append(h);
   if(D.can_drag&&it.due){const mv=el("div","move-row");const inp=document.createElement("input");inp.type="date";inp.value=it.due;inp.setAttribute("aria-label","Move to day");const mb=el("button","pill","Move to…");mb.type="button";mb.onclick=async()=>{if(!inp.value)return;try{await post("/move-slot",{item:it.id,date:inp.value});say("Day updated");location.reload()}catch(e){say(e.message)}};mv.append(inp,mb);c.append(mv)}
   if(it.hidden_remake){const sb=el("button","pill","Show to Herman");sb.type="button";sb.onclick=()=>showRemake(it.id).catch(e=>say(e.message));c.append(sb)}
+  if(it.kind==="carousel"&&it.images.length>1){c.append(carousel(it))}else
   if(it.images.length){const one=it.images.length===1;const g=el("div","grid"+(one?" one":"")+(it.kind==="choice"&&it.images.length>1?" choice":""));const latest=it.images.length-1;it.images.forEach((src,i)=>{const cell=el("div","cell");const im=new Image();const urls=it.size_urls||{};const isLatest=i===latest&&it.kind!=="choice";
     im.src=(isLatest&&urls.feed)?urls.feed:src;im.alt=it.title;
     if(it.kind==="choice"&&it.images.length>1){const L="ABC"[i];const o=el("button","opt");o.type="button";o.setAttribute("aria-label","Pick design option "+L);o.dataset.ch=it.id;o.dataset.v=L;o.setAttribute("aria-pressed","false");o.append(im,el("b","","Option "+L));o.onclick=()=>act(it.id,null,L);im.onclick=null;cell.append(o)}else{
@@ -1134,7 +1151,11 @@ function build(){const P=D.pack;const parts=(P.theme&&P.theme.name)?P.theme.name
   if(it.caption)c.append(el("div","cap",it.caption));if(it.note&&!(it.caption||"").includes(it.note))c.append(el("p","meta",it.note));
   const r=el("div","row");(D.labels?["approve","hold","reject"]:["approve","reject","hold"]).forEach(s=>{const b=el("button","pill "+s,LBL[s]);b.type="button";b.dataset.st=it.id;b.dataset.v=s;b.setAttribute("aria-pressed","false");b.onclick=()=>{const cur=D.decisions[it.id];act(it.id,s,cur&&cur.choice)};r.append(b)});c.append(r);
   const t=el("div","thread");t.append(el("h3","","Comments"));const tb=el("div");tb.dataset.th=it.id;t.append(tb,composer(it.id,tb));c.append(t);
-  const ug=el("div");ug.dataset.ug=it.id;const upl=document.createElement("details");upl.className="upl";upl.open=true;upl.append(el("summary","","Add a photo or a reference"),uploadBox(it.id));c.append(upl,ug);box.append(c)});applyCols(colsPref());
+  const ug=el("div");ug.dataset.ug=it.id;const upl=document.createElement("details");upl.className="upl";upl.open=true;upl.append(el("summary","","Add a photo or a reference"),uploadBox(it.id));c.append(upl,ug);
+  // Three bands (top / picture / rest) so pictures line up across a row whatever the title length.
+  const top=el("div","c-top"),media=el("div","c-media"),body=el("div","c-body");let stage=0;
+  [...c.children].forEach(k=>{if(stage===0&&(k.classList.contains("grid")||k.classList.contains("pic")))stage=1;else if(stage===1)stage=2;(stage===0?top:stage===1?media:body).append(k)});
+  c.append(top,media,body);box.append(c)});applyCols(colsPref());
  if(D.staff)$("finish").after(teamSection());
  const w=$("week");w.append(el("h2","","Your own photos for the week"),el("p","sub","Not tied to one post? Add them here."),uploadBox(""));const wg=el("div");wg.dataset.ug="";w.append(wg);
  const wt=el("div","thread");wt.append(el("h3","","General comments"));const wb=el("div");wb.dataset.th="";wt.append(wb,composer("",wb));w.append(wt);paint();const g0=document.querySelector('[data-ug=""]');if(g0){const u=uploadsGrid("");if(u)g0.append(u)};threadHTML(document.querySelector('[data-th=""]'),"")}

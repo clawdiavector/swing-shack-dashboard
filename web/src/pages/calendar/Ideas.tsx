@@ -3,9 +3,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, HeroPanel, PageIntro } from '../../components/chrome'
+import { QuestionsPeopleAsk, type PeopleAskQuestion } from '../../components/QuestionsPeopleAsk'
 import { Tip } from '../../components/ui'
 import {
   addCalendarCandidate,
+  fetchFaqQuestions,
   fetchOpportunities,
   generateIdeas,
   type OpportunitiesPayload,
@@ -73,6 +75,29 @@ export function Ideas() {
   const [genBusy, setGenBusy] = useState(false)
   const [parkMsg, setParkMsg] = useState('')
   const [parkBusy, setParkBusy] = useState<string | null>(null)
+  const [questions, setQuestions] = useState<PeopleAskQuestion[] | null>(null)
+  const [questionsError, setQuestionsError] = useState('')
+
+  useEffect(() => {
+    if (!scopeBrand) return
+    let gone = false
+    setQuestions(null)
+    setQuestionsError('')
+    fetchFaqQuestions(scopeBrand)
+      .then((payload) => {
+        if (gone) return
+        setQuestions(payload.questions || [])
+        setQuestionsError((payload.errors || [])[0] || '')
+      })
+      .catch(() => {
+        if (gone) return
+        setQuestions([])
+        setQuestionsError('Questions could not be loaded.')
+      })
+    return () => {
+      gone = true
+    }
+  }, [scopeBrand])
 
   const setTab = useCallback(
     (id: string) => {
@@ -189,6 +214,16 @@ export function Ideas() {
           </button>
         </Tip>
       </HeroPanel>
+
+      {tab === 'ideas' && scopeBrand ? (
+        <QuestionsPeopleAsk
+          questions={questions}
+          error={questionsError}
+          parkLabel={parkLabel}
+          busyTitle={parkBusy}
+          onPark={handlePark}
+        />
+      ) : null}
 
       <FilterChips options={TAB_OPTIONS} value={tab} onChange={setTab} />
 
