@@ -1,0 +1,420 @@
+{
+  "success": true,
+  "data": {
+    "facilityId": 6,
+    "facilityName": "Swing Shack",
+    "items": [
+      {
+        "id": 9,
+        "facilityId": 6,
+        "name": "10x 30 Min Coaching Sessions",
+        "credits": 10,
+        "items": [
+          {
+            "serviceId": 26,
+            "serviceTitle": "Coaching Session (30 Min)",
+            "quantity": 10
+          }
+        ],
+        "priceCents": 470000,
+        "currency": "ZAR",
+        "validityDays": 9,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-23T14:18:16.3224161",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 5,
+        "facilityId": 6,
+        "name": "10x 60 Min Coaching Sessions",
+        "credits": 10,
+        "items": [
+          {
+            "serviceId": 25,
+            "serviceTitle": "Coaching Session (60 Mins)",
+            "quantity": 10
+          }
+        ],
+        "priceCents": 720000,
+        "currency": "ZAR",
+        "validityDays": 9,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-23T14:15:37.0089188",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 20,
+        "facilityId": 6,
+        "name": "1x 30 Min Coaching Session",
+        "credits": 1,
+        "items": [
+          {
+            "serviceId": 26,
+            "serviceTitle": "Coaching Session (30 Min)",
+            "quantity": 1
+          }
+        ],
+        "priceCents": 54000,
+        "currency": "ZAR",
+        "validityDays": 2,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-09-19T11:36:13.4075654",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 19,
+        "facilityId": 6,
+        "name": "1x 60min Coaching Session",
+        "credits": 1,
+        "items": [
+          {
+            "serviceId": 25,
+            "serviceTitle": "Coaching Session (60 Mins)",
+            "quantity": 1
+          }
+        ],
+        "priceCents": 82000,
+        "currency": "ZAR",
+        "validityDays": 2,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-09-19T11:35:23.1214596",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 6,
+        "facilityId": 6,
+        "name": "20x 60 Min Coaching Sessions",
+        "credits": 20,
+        "items": [
+          {
+            "serviceId": 25,
+            "serviceTitle": "Coaching Session (60 Mins)",
+            "quantity": 20
+          }
+        ],
+        "priceCents": 1250000,
+        "currency": "ZAR",
+        "validityDays": 12,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-23T14:16:18.6327832",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 7,
+        "facilityId": 6,
+        "name": "3x 30 Min Coaching Sessions",
+        "credits": 3,
+        "items": [
+          {
+            "serviceId": 26,
+            "serviceTitle": "Coaching Session (30 Min)",
+            "quantity": 3
+          }
+        ],
+        "priceCents": 150000,
+        "currency": "ZAR",
+        "validityDays": 3,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-23T14:16:55.9299761",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 3,
+        "facilityId": 6,
+        "name": "3x 60 Min Coaching Sessions",
+        "credits": 3,
+        "items": [
+          {
+            "serviceId": 25,
+            "serviceTitle": "Coaching Session (60 Mins)",
+            "quantity": 3
+          }
+        ],
+        "priceCents": 235000,
+        "currency": "ZAR",
+        "validityDays": 3,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-23T14:11:01.384293",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 8,
+        "facilityId": 6,
+        "name": "5x 30 Min Coaching Sessions",
+        "credits": 5,
+        "items": [
+          {
+            "serviceId": 26,
+            "serviceTitle": "Coaching Session (30 Min)",
+            "quantity": 5
+          }
+        ],
+        "priceCents": 240000,
+        "currency": "ZAR",
+        "validityDays": 6,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-23T14:17:25.6502717",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 4,
+        "facilityId": 6,
+        "name": "5x 60 Min Coaching Sessions",
+        "credits": 5,
+        "items": [
+          {
+            "serviceId": 25,
+            "serviceTitle": "Coaching Session (60 Mins)",
+            "quantity": 5
+          }
+        ],
+        "priceCents": 385000,
+        "currency": "ZAR",
+        "validityDays": 6,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-23T14:14:04.6971665",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 10,
+        "facilityId": 6,
+        "name": "Birdie Hunter – One Coaching Session & Unlimited Practice",
+        "credits": 1,
+        "items": [
+          {
+            "serviceId": 25,
+            "serviceTitle": "Coaching Session (60 Mins)",
+            "quantity": 1
+          },
+          {
+            "serviceId": 1,
+            "serviceTitle": "Individual Practice Session (1h)",
+            "quantity": 0
+          }
+        ],
+        "priceCents": 230000,
+        "currency": "ZAR",
+        "validityDays": 1,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-23T14:19:51.223938",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 11,
+        "facilityId": 6,
+        "name": "I Am Golf – Weekly Coaching Session & Unlimited Practice",
+        "credits": 4,
+        "items": [
+          {
+            "serviceId": 25,
+            "serviceTitle": "Coaching Session (60 Mins)",
+            "quantity": 4
+          },
+          {
+            "serviceId": 1,
+            "serviceTitle": "Individual Practice Session (1h)",
+            "quantity": 0
+          }
+        ],
+        "priceCents": 285000,
+        "currency": "ZAR",
+        "validityDays": 1,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-23T14:20:55.7237236",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 2,
+        "facilityId": 6,
+        "name": "I Dabble - Unlimited Practice",
+        "credits": 0,
+        "items": [
+          {
+            "serviceId": 1,
+            "serviceTitle": "Individual Practice Session (1h)",
+            "quantity": 0
+          }
+        ],
+        "priceCents": 180000,
+        "currency": "ZAR",
+        "validityDays": 1,
+        "validityUnit": "Months",
+        "kind": "SessionPack",
+        "status": "Active",
+        "createdAt": "2026-06-23T12:29:32.155552",
+        "membershipDiscounts": [],
+        "membershipPurchaseDiscounts": []
+      },
+      {
+        "id": 1,
+        "facilityId": 6,
+        "name": "Monthly Membership",
+        "credits": 4,
+        "items": [
+          {
+            "serviceId": 1,
+            "serviceTitle": "Individual Practice Session (1h)",
+            "quantity": 4
+          }
+        ],
+        "priceCents": 39900,
+        "currency": "ZAR",
+        "validityDays": 1,
+        "validityUnit": "Months",
+        "kind": "Membership",
+        "status": "Active",
+        "createdAt": "2026-06-23T12:28:03.3934844",
+        "membershipDiscounts": [
+          {
+            "id": 5,
+            "serviceId": 26,
+            "serviceTitle": "Coaching Session (30 Min)",
+            "discountType": "Percentage",
+            "discountValue": 15
+          },
+          {
+            "id": 6,
+            "serviceId": 25,
+            "serviceTitle": "Coaching Session (60 Mins)",
+            "discountType": "Percentage",
+            "discountValue": 15
+          },
+          {
+            "id": 12,
+            "serviceId": 21,
+            "serviceTitle": "Distance Gapping Assessment (1.5h)",
+            "discountType": "Percentage",
+            "discountValue": 25
+          },
+          {
+            "id": 15,
+            "serviceId": 7,
+            "serviceTitle": "Driver Fitting Assessment (1.5h)",
+            "discountType": "Percentage",
+            "discountValue": 25
+          },
+          {
+            "id": 13,
+            "serviceId": 16,
+            "serviceTitle": "Fairway Wood / Hybrid Fitting Assessment (1.5h)",
+            "discountType": "Percentage",
+            "discountValue": 25
+          },
+          {
+            "id": 14,
+            "serviceId": 13,
+            "serviceTitle": "Full Bag Fitting Assessment (2 Sessions / 3 Hours)",
+            "discountType": "Percentage",
+            "discountValue": 25
+          },
+          {
+            "id": 7,
+            "serviceId": 1,
+            "serviceTitle": "Individual Practice Session (1h)",
+            "discountType": "Percentage",
+            "discountValue": 15
+          },
+          {
+            "id": 16,
+            "serviceId": 19,
+            "serviceTitle": "Iron and Woods Fitting Assessment (2h)",
+            "discountType": "Percentage",
+            "discountValue": 25
+          },
+          {
+            "id": 17,
+            "serviceId": 8,
+            "serviceTitle": "Iron Fitting Assessment (1.5h)",
+            "discountType": "Percentage",
+            "discountValue": 25
+          },
+          {
+            "id": 18,
+            "serviceId": 11,
+            "serviceTitle": "Loft & Lie Assessment (1h)",
+            "discountType": "Percentage",
+            "discountValue": 25
+          },
+          {
+            "id": 19,
+            "serviceId": 14,
+            "serviceTitle": "Putter Fitting Assessment (1h)",
+            "discountType": "Percentage",
+            "discountValue": 25
+          },
+          {
+            "id": 9,
+            "serviceId": 4,
+            "serviceTitle": "Social Play - 2 Players (1h)",
+            "discountType": "Percentage",
+            "discountValue": 15
+          },
+          {
+            "id": 10,
+            "serviceId": 5,
+            "serviceTitle": "Social Play - 3 - 4 Players (1h)",
+            "discountType": "Percentage",
+            "discountValue": 15
+          },
+          {
+            "id": 11,
+            "serviceId": 9,
+            "serviceTitle": "Social Play - 4 Players & Bucket of Beer (3h)",
+            "discountType": "Percentage",
+            "discountValue": 15
+          },
+          {
+            "id": 8,
+            "serviceId": 3,
+            "serviceTitle": "Social Play - Individual (1h)",
+            "discountType": "Percentage",
+            "discountValue": 15
+          },
+          {
+            "id": 20,
+            "serviceId": 15,
+            "serviceTitle": "Wedge Fitting Assessment (1.5h)",
+            "discountType": "Percentage",
+            "discountValue": 25
+          }
+        ],
+        "membershipPurchaseDiscounts": []
+      }
+    ]
+  },
+  "requestId": "20261113-120959-ff35773e",
+  "timestamp": "2026-11-13T12:09:59.5473008+02:00"
+}
