@@ -205,6 +205,10 @@ def set_approval(section: str, item_id: str, *, approve: bool, actor: str) -> di
         if not isinstance(rows, list):
             raise ValueError(f"unknown section {section}")
         known = {str(r.get("id") or r.get("post_id") or "") for r in rows if isinstance(r, dict)}
+        if section == "posts":
+            # the page lists the picture layer's posts, which holds more rows than the seed
+            media = _read_json(media_doc_path()) or {}
+            known |= {str(r.get("id") or "") for r in media.get("posts") or [] if isinstance(r, dict)}
         if item_id not in known:
             raise ValueError(f"unknown {section} id: {item_id}")
 
