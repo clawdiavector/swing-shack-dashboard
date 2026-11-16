@@ -1498,21 +1498,24 @@ def _metrics_for_media_type(media_type: str) -> list[str]:
     Per Meta Graph API (2026) — different media types support
     different metric sets. Requesting an unsupported metric fails
     the whole call with error 100.
+
+    Meta removed `impressions` for Instagram media (Graph v22, 2025).
+    Asking for it failed every image/carousel call, so the weekly report
+    showed reach 0 on them (found 16 Nov 2026). Never request it here.
     """
     mt = (media_type or "").upper()
     if mt in ("IMAGE", "CAROUSEL_ALBUM"):
-        # Full set including impressions, follows, profile_*
-        return ["impressions", "reach", "saved", "likes", "comments",
+        return ["reach", "saved", "likes", "comments",
                 "shares", "total_interactions", "follows",
                 "profile_visits", "profile_activity"]
-    if mt in ("VIDEO", "REEL", "IG_REEL", "CLIPS"):
-        # VIDEO doesn't support impressions/follows/profile_visits/profile_activity
-        # via /{media_id}/insights — those are only on /insights/video
-        return ["reach", "saved", "likes", "comments", "shares",
-                "total_interactions"]
-    # Default = safest minimal set
-    return ["impressions", "reach", "saved", "likes", "comments",
-            "shares", "total_interactions"]
+    # VIDEO / REELS / anything else: the set every media type accepts
+    return ["reach", "saved", "likes", "comments", "shares",
+            "total_interactions"]
+
+
+# Core metrics every IG media type accepts. Used as a retry when Meta
+# rejects one metric in the fuller set, so reach still comes through.
+_CORE_MEDIA_METRICS = ["reach", "likes", "comments", "saved", "shares"]
 
 
 def get_post_insights_for_brand(
@@ -1536,8 +1539,15 @@ def get_post_insights_for_brand(
         raise MetaAuthError(f"No Meta credentials for {brand_id}")
     metrics = _metrics_for_media_type(media_type or "")
     params = {"metric": ",".join(metrics), "period": "lifetime"}
-    out = _graph_get(f"/{media_id}/insights", params,
-                      use_page_token=False, token_override=creds["token"])
+    try:
+        out = _graph_get(f"/{media_id}/insights", params,
+                          use_page_token=False, token_override=creds["token"])
+    except MetaUpstreamError:
+        # One unsupported metric fails the whole call; retry with the core set.
+        metrics = list(_CORE_MEDIA_METRICS)
+        params = {"metric": ",".join(metrics), "period": "lifetime"}
+        out = _graph_get(f"/{media_id}/insights", params,
+                          use_page_token=False, token_override=creds["token"])
     flat: dict[str, Any] = {}
     for entry in out.get("data", []):
         name = entry.get("name", "?")
