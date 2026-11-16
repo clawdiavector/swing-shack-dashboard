@@ -79,4 +79,4 @@ def test_approving_a_draft_keeps_text_settings():
                day="2026-12-20T10:00:00.000Z")
     ok, _ = cc.schedule_postiz_draft(pz, "swing-shack", row)
     assert ok is True
-    assert (pz.created.get("settings") or {}).get("post_type") == "story"
+    assert (pz.created.get("platform_settings") or {}).get("post_type") == "story"
