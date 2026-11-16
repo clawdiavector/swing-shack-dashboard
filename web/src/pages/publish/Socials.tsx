@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../../components/chrome'
-import { Badge, ClassicLink, Tip } from '../../components/ui'
+import { Badge, Tip } from '../../components/ui'
 import {
   fetchAccounts,
   fetchSocialsOembed,
@@ -477,7 +477,6 @@ export function Socials() {
         </>
       )}
 
-      <ClassicLink href="/?page=socials" label="Socials" />
     </div>
   )
 }

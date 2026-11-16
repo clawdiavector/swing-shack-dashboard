@@ -5,7 +5,7 @@ import { useBrand } from '../components/BrandSwitch'
 import '../fun.css'
 import { FunTile } from '../components/fun'
 import { HeroPanel, MonthGrid, PageIntro } from '../components/chrome'
-import { Badge, Button, ClassicLink, IconTile, QueueItem, Tip } from '../components/ui'
+import { Badge, Button, IconTile, QueueItem, Tip } from '../components/ui'
 import {
   duplicateScheduledAsset,
   fetchCalendarMonth,
@@ -202,7 +202,6 @@ function MomentPanel({
             Dismiss
           </button>
         </Tip>
-        <ClassicLink href="/?page=calendar" label="calendar" />
       </div>
     </aside>
   )
@@ -553,7 +552,6 @@ export function CalendarPage() {
             <ChevronRight className="h-4 w-4" />
           </button>
         </Tip>
-        <ClassicLink href="/?page=calendar" label="calendar" />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">

@@ -39802,51 +39802,6 @@ def _write_products(brand_id, data):
     return True
 
 
-def _seed_swing_shack_products():
-    """Seed swing-shack products with verified ZAR prices.
-    Mirrors data/product-priority.json IDs but adds verified pricing.
-    Idempotent: only seeds if the file doesn't exist.
-    """
-    p = _products_path("swing-shack")
-    if os.path.exists(p):
-        return False
-    seed = {
-        "brand_id": "swing-shack",
-        "currency": "ZAR",
-        "market": "ZA",
-        "source": "internal seed 2026-09-04 — verify before publishing",
-        "products": [
-            {"id": "p-1", "name": "Full Bag Fitting", "type": "service",
-             "price_zar": 1500, "per": "session", "duration_min": 90,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-2", "name": "TPI Assessment", "type": "service",
-             "price_zar": 950, "per": "session", "duration_min": 60,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-3", "name": "Practice Pack (5 sessions)", "type": "membership",
-             "price_zar": 2200, "per": "pack", "duration_min": 5,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-4", "name": "Club Fitting Starter Pack", "type": "service",
-             "price_zar": 850, "per": "session", "duration_min": 45,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-6", "name": "Social Play (4 Players + Beer)", "type": "service",
-             "price_zar": 600, "per": "session", "duration_min": 90,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-7", "name": "Birdie Hunter Coaching", "type": "service",
-             "price_zar": 1200, "per": "session", "duration_min": 60,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-8", "name": "TrackMan Session (single)", "type": "service",
-             "price_zar": 350, "per": "session", "duration_min": 30,
-             "verified": True, "source": "internal 2026-Q3"},
-            {"id": "p-9", "name": "Monthly Membership", "type": "membership",
-             "price_zar": 1800, "per": "month", "duration_min": None,
-             "verified": True, "source": "internal 2026-Q3"},
-        ],
-        "_seed": True,
-        "_seeded_at": _now_iso(),
-    }
-    return _write_products("swing-shack", seed)
-
-
 @app.route("/api/faq/questions", methods=["GET"])
 def faq_questions_route():
     """GET /api/faq/questions?brand=<id>[&refresh=1] — questions people ask Google.
@@ -39870,9 +39825,6 @@ def products_line_items_list():
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     brand_id = (request.args.get("brand_id") or "swing-shack").strip()
-    # Auto-seed swing-shack on first hit
-    if brand_id == "swing-shack":
-        _seed_swing_shack_products()
     data = _read_products(brand_id)
     return jsonify({
         "ok": True,
@@ -40441,9 +40393,6 @@ def product_records_combined(brand_id):
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     bid = (brand_id or "swing-shack").strip()
-    # Auto-seed swing-shack on first hit
-    if bid == "swing-shack":
-        _seed_swing_shack_products()
     # Read both sources
     line_items_path = _products_path(bid)
     records_path = _product_records_path(bid)

@@ -1,6 +1,7 @@
 import { Check, Film, Palette, Search, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge } from '../components/ui'
 import {
@@ -762,7 +763,10 @@ function TypeDetail({
   openPost: (p: TaxonomyPost) => void
 }) {
   const shots = ctx.shotsByType.get(type.id) || []
-  const brands = Array.from(new Set([...Object.keys(type.templates || {}), ...shots.map((sh) => sh.post.brand).filter(Boolean)]))
+  const { isAll, brandIds } = useBrandScope()
+  const brands = Array.from(new Set([...Object.keys(type.templates || {}), ...shots.map((sh) => sh.post.brand).filter(Boolean)])).filter(
+    (b) => isAll || brandIds.includes(b),
+  )
   return (
     <Panel
       title={type.name}
@@ -856,10 +860,11 @@ export function DesignTaxonomy() {
   const section = (params.get('section') as SectionKey) || 'styles'
   const openId = params.get('id') || ''
   const [stack, setStack] = useState<Stack>('not_approved')
-  const [brand, setBrand] = useState('all')
+  // one brand control for the whole app: the switch in the header
+  const { isAll, brandIds } = useBrandScope()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [data, setData] = useState<TaxonomyPayload | null>(null)
+  const [rawData, setRawData] = useState<TaxonomyPayload | null>(null)
   const [q, setQ] = useState('')
   const [styleFilter, setStyleFilter] = useState('')
   const [onlyPics, setOnlyPics] = useState(true)
@@ -869,11 +874,26 @@ export function DesignTaxonomy() {
   const [tplFilter, setTplFilter] = useState('')
   const [page, setPage] = useState(0)
 
+  const brandKey = brandIds.join(',')
+  const brandOk = useCallback((b?: string) => isAll || brandIds.includes(b || ''), [isAll, brandKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  // everything below reads this: the payload cut down to the brand picked in the header
+  const data = useMemo<TaxonomyPayload | null>(
+    () =>
+      rawData
+        ? {
+            ...rawData,
+            posts: (rawData.posts || []).filter((p) => brandOk(p.brand)),
+            templates: (rawData.templates || []).filter((t) => brandOk(t.brand)),
+          }
+        : null,
+    [rawData, brandOk],
+  )
+
   const load = useCallback(() => {
     fetchDesignTaxonomy()
       .then((payload) => {
         if (payload.error && !payload.styles?.length) setError(payload.error)
-        setData(payload)
+        setRawData(payload)
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false))
@@ -980,28 +1000,53 @@ export function DesignTaxonomy() {
       rows.filter((r) => (stack === 'approved' ? r.approval.status === 'approved' : r.approval.status !== 'approved')),
     [stack],
   )
-  const brandOk = useCallback((b?: string) => brand === 'all' || (b || '') === brand, [brand])
+  // one search box for every tab; the tab counts show where the matches are
+  const needle = q.trim().toLowerCase()
+  const hit = useCallback((...parts: (string | undefined | null)[]) => !needle || parts.join(' ').toLowerCase().includes(needle), [needle])
+  const styleName = (id: string) => ctx?.styleById.get(id)?.name || id
+  const typeName = (id: string) => ctx?.typeById.get(id)?.name || id
 
   const styles = useMemo(
     () =>
-      [...inStack(data?.styles || [])].sort(
-        (a, b) => (ctx?.shotsByStyle.get(b.id)?.length || 0) - (ctx?.shotsByStyle.get(a.id)?.length || 0),
-      ),
-    [data?.styles, inStack, ctx],
+      [...inStack(data?.styles || [])]
+        // with a brand picked, only looks that brand has a picture for
+        .filter((st) => isAll || (ctx?.shotsByStyle.get(st.id)?.length || 0) > 0)
+        .filter((st) => hit(st.name, st.summary, st.id, st.method_id))
+        .sort((a, b) => (ctx?.shotsByStyle.get(b.id)?.length || 0) - (ctx?.shotsByStyle.get(a.id)?.length || 0)),
+    [data?.styles, inStack, ctx, isAll, hit],
   )
-  const types = useMemo(() => inStack(data?.types || []), [data?.types, inStack])
-  const methods = useMemo(() => inStack(data?.methods || []), [data?.methods, inStack])
+  const types = useMemo(
+    () => inStack(data?.types || []).filter((t) => hit(t.name, t.meaning, t.id)),
+    [data?.types, inStack, hit],
+  )
+  const methods = useMemo(
+    () =>
+      inStack(data?.methods || [])
+        .filter((m) => isAll || (data?.styles || []).some((st) => st.method_id === m.id && (ctx?.shotsByStyle.get(st.id)?.length || 0) > 0))
+        .filter((m) => hit(m.name, m.cost_notes, m.id, ...(m.tools || []))),
+    [data?.methods, data?.styles, inStack, ctx, isAll, hit],
+  )
   const templates = useMemo(
-    () => inStack(data?.templates || []).filter((t) => brandOk(t.brand)),
-    [data?.templates, inStack, brandOk],
+    () => inStack(data?.templates || []).filter((t) => hit(t.label, t.name, t.template_id, t.description, brandLabel(t.brand || ''))),
+    [data?.templates, inStack, hit],
   )
-  const allPosts = useMemo(
-    () => inStack(data?.posts || []).filter((p) => brandOk(p.brand)),
-    [data?.posts, inStack, brandOk],
+  const allPosts = useMemo(() => inStack(data?.posts || []), [data?.posts, inStack])
+  const postText = useCallback(
+    (p: TaxonomyPost) =>
+      [
+        p.title,
+        p.id,
+        p.campaign,
+        p.caption,
+        p.status,
+        brandLabel(p.brand),
+        ...(p.pictures || []).flatMap((x) => [...(x.styles || []).map(styleName), x.type ? typeName(x.type) : '', x.template || '']),
+      ].join(' '),
+    [ctx], // eslint-disable-line react-hooks/exhaustive-deps
   )
+  const postHits = useMemo(() => allPosts.filter((p) => hit(postText(p))), [allPosts, hit, postText])
   const posts = useMemo(() => {
-    const needle = q.trim().toLowerCase()
-    return allPosts.filter((p) => {
+    return postHits.filter((p) => {
       if (onlyPics && !pictured(p)) return false
       if (show === 'posts' && !finishedPost(p)) return false
       if (show === 'material' && finishedPost(p)) return false
@@ -1010,10 +1055,9 @@ export function DesignTaxonomy() {
       if (format !== 'all' && !p.pictures?.some(FORMAT_PIC[format])) return false
       if (styleFilter === 'none' && p.style_ids?.length) return false
       if (styleFilter && styleFilter !== 'none' && !p.style_ids?.includes(styleFilter)) return false
-      if (needle && !`${p.title} ${p.campaign} ${p.style} ${p.status}`.toLowerCase().includes(needle)) return false
       return true
     })
-  }, [allPosts, q, styleFilter, onlyPics, format, show, typeFilter, tplFilter])
+  }, [postHits, styleFilter, onlyPics, format, show, typeFilter, tplFilter])
 
   const PAGE_SIZE = 96
   const pageCount = Math.max(1, Math.ceil(posts.length / PAGE_SIZE))
@@ -1025,7 +1069,7 @@ export function DesignTaxonomy() {
         .slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
     [posts, page],
   )
-  useEffect(() => setPage(0), [q, styleFilter, onlyPics, format, brand, stack, show, typeFilter, tplFilter])
+  useEffect(() => setPage(0), [q, styleFilter, onlyPics, format, brandKey, stack, show, typeFilter, tplFilter])
 
   const tileLabel = useCallback(
     (_post: TaxonomyPost, pic: TaxonomyPicture) => {
@@ -1038,7 +1082,7 @@ export function DesignTaxonomy() {
   )
 
   const count = (k: SectionKey) =>
-    ({ styles: styles.length, templates: templates.length, types: types.length, posts: allPosts.length, methods: methods.length })[k]
+    ({ styles: styles.length, templates: templates.length, types: types.length, posts: postHits.length, methods: methods.length })[k]
 
   const btn = (on: boolean, color = 'bg-ac') =>
     `rounded-xl px-4 py-2 text-sm font-semibold ${on ? `${color} text-bg` : 'border border-white/15 text-tx2 hover:bg-white/5'}`
@@ -1048,8 +1092,37 @@ export function DesignTaxonomy() {
   const openStyle = section === 'styles' ? find(data?.styles) : undefined
   const openType = section === 'types' ? find(data?.types) : undefined
   const openMethod = section === 'methods' ? find(data?.methods) : undefined
-  const openPostRow = section === 'posts' ? find(data?.posts) : undefined
+  const openPostRow = section === 'posts' ? find(rawData?.posts) : undefined
   const openTemplate = section === 'templates' ? (data?.templates || []).find((t) => t.template_id === openId) : undefined
+
+  /** Empty tab: say why, and where the search did find something. */
+  const EmptyHint = () => {
+    const elsewhere = SECTIONS.filter((t) => t.key !== section && count(t.key) > 0)
+    return (
+      <p className="text-sm text-tx3">
+        {needle
+          ? 'Nothing matches the search here.'
+          : !isAll
+            ? `Nothing here for ${brandIds.map((b) => brandLabel(b)).join(', ')} yet. Pick All brands in the switch at the top to see everything.`
+            : 'Nothing matches the filters.'}
+        {needle && elsewhere.length ? (
+          <>
+            {' '}
+            It does match in{' '}
+            {elsewhere.map((t, i) => (
+              <span key={t.key}>
+                {i ? ', ' : ''}
+                <button type="button" className="font-semibold text-ac" onClick={() => go(t.key, '')}>
+                  {t.label} ({count(t.key)})
+                </button>
+              </span>
+            ))}
+            .
+          </>
+        ) : null}
+      </p>
+    )
+  }
 
   return (
     <div className="space-y-5">
@@ -1057,6 +1130,29 @@ export function DesignTaxonomy() {
         Every look, template and post type, shown by the posts that use it. Open a post to see its look, its type,
         its template and the photo it started from.
       </PageIntro>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="relative min-w-0 flex-1 basis-72">
+          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-tx3" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search everything: a look, a type, a template, a post, a caption"
+            aria-label="Search the Design tab"
+            className="w-full rounded-xl border border-white/15 bg-bg2 py-2 pl-9 pr-9 text-sm text-tx"
+          />
+          {q ? (
+            <button type="button" onClick={() => setQ('')} className="absolute right-2 top-2 rounded p-0.5 text-tx3 hover:text-tx" aria-label="Clear search">
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </label>
+        {!isAll ? (
+          <span className="text-sm text-tx3">
+            Showing {brandIds.map((b) => brandLabel(b)).join(', ')} only. Change it with the brand switch at the top.
+          </span>
+        ) : null}
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {SECTIONS.map((tab) => (
@@ -1073,36 +1169,10 @@ export function DesignTaxonomy() {
         <button type="button" onClick={() => setStack('approved')} className={btn(stack === 'approved', 'bg-green')}>
           Approved
         </button>
-        {section === 'posts' || section === 'templates' ? (
-          <select
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            className="ml-auto rounded-xl border border-white/15 bg-bg2 px-3 py-2 text-sm text-tx"
-            aria-label="Brand"
-          >
-            {BRANDS.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.label}
-              </option>
-            ))}
-          </select>
-        ) : null}
       </div>
 
       {section === 'posts' ? (
         <div className="flex flex-wrap items-center gap-2">
-          <label className="relative">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-tx3" />
-            <input
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value)
-                setPage(0)
-              }}
-              placeholder="Search title, campaign, status"
-              className="w-64 rounded-xl border border-white/15 bg-bg2 py-2 pl-9 pr-3 text-sm text-tx"
-            />
-          </label>
           <select
             value={styleFilter}
             onChange={(e) => setStyleFilter(e.target.value)}
@@ -1177,7 +1247,7 @@ export function DesignTaxonomy() {
             ))}
           </div>
           <p className="w-full text-sm text-tx3">
-            Showing {posts.length} of {allPosts.length}.
+            Showing {posts.length} of {allPosts.length}{needle ? ` · ${postHits.length} match the search` : ''}.
           </p>
         </div>
       ) : null}
@@ -1212,7 +1282,7 @@ export function DesignTaxonomy() {
               </button>
             )
           })}
-          {!styles.length ? <p className="text-sm text-tx3">Nothing in this stack.</p> : null}
+          {!styles.length ? <EmptyHint /> : null}
         </div>
       ) : null}
 
@@ -1249,7 +1319,7 @@ export function DesignTaxonomy() {
               </button>
             )
           })}
-          {!templates.length ? <p className="text-sm text-tx3">Nothing in this stack.</p> : null}
+          {!templates.length ? <EmptyHint /> : null}
         </div>
       ) : null}
 
@@ -1275,7 +1345,7 @@ export function DesignTaxonomy() {
               </button>
             )
           })}
-          {!types.length ? <p className="text-sm text-tx3">Nothing in this stack.</p> : null}
+          {!types.length ? <EmptyHint /> : null}
         </div>
       ) : null}
 
@@ -1300,7 +1370,7 @@ export function DesignTaxonomy() {
               </button>
             )
           })}
-          {!methods.length ? <p className="text-sm text-tx3">Nothing in this stack.</p> : null}
+          {!methods.length ? <EmptyHint /> : null}
         </div>
       ) : null}
 
@@ -1334,7 +1404,7 @@ export function DesignTaxonomy() {
               </span>
             </div>
           ) : null}
-          {!posts.length ? <p className="text-sm text-tx3">Nothing matches.</p> : null}
+          {!posts.length ? <EmptyHint /> : null}
         </>
       ) : null}
 

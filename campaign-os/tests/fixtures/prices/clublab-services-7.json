@@ -1,0 +1,322 @@
+{
+  "success": true,
+  "data": {
+    "facilityId": 7,
+    "facilityName": "Stick",
+    "groups": [
+      {
+        "id": 7,
+        "name": "Coaching",
+        "displayOrder": 1,
+        "serviceCount": 2
+      },
+      {
+        "id": 8,
+        "name": "Club Fitting",
+        "displayOrder": 2,
+        "serviceCount": 10
+      },
+      {
+        "id": 6,
+        "name": "Assessments",
+        "displayOrder": 3,
+        "serviceCount": 2
+      }
+    ],
+    "items": [
+      {
+        "id": 30,
+        "title": "30-min Private Coaching Session",
+        "durationMinutes": 30,
+        "bufferMinutes": 0,
+        "priceCents": 70000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 7,
+        "groupName": "Coaching",
+        "staffResourceIds": [
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 29,
+        "title": "60-min Private Coaching Session",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 100000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 7,
+        "groupName": "Coaching",
+        "staffResourceIds": [
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 42,
+        "title": "Ball Fitting",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 80000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 8,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 32,
+        "title": "Driver / Woods",
+        "durationMinutes": 120,
+        "bufferMinutes": 0,
+        "priceCents": 150000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 8,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 33,
+        "title": "Driver Fitting",
+        "durationMinutes": 90,
+        "bufferMinutes": 0,
+        "priceCents": 100000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 8,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 27,
+        "title": "Free Club Assessment",
+        "durationMinutes": 30,
+        "bufferMinutes": 0,
+        "priceCents": 0,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 6,
+        "groupName": "Assessments",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 28,
+        "title": "Free Swing Assessment",
+        "durationMinutes": 30,
+        "bufferMinutes": 0,
+        "priceCents": 0,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 6,
+        "groupName": "Assessments",
+        "staffResourceIds": [
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 31,
+        "title": "Full Bag (3 hrs)",
+        "durationMinutes": 180,
+        "bufferMinutes": 0,
+        "priceCents": 200000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 8,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 37,
+        "title": "Full Bag Gapping",
+        "durationMinutes": 90,
+        "bufferMinutes": 0,
+        "priceCents": 150000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 8,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 34,
+        "title": "Iron Fitting",
+        "durationMinutes": 90,
+        "bufferMinutes": 0,
+        "priceCents": 100000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 8,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 35,
+        "title": "Loft & Lie",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 80000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 8,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 39,
+        "title": "Putter Fitting",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 80000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 8,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 36,
+        "title": "Wedge Fitting",
+        "durationMinutes": 90,
+        "bufferMinutes": 0,
+        "priceCents": 100000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 8,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      },
+      {
+        "id": 38,
+        "title": "Wedge Gapping",
+        "durationMinutes": 60,
+        "bufferMinutes": 0,
+        "priceCents": 100000,
+        "currency": "ZAR",
+        "status": "Active",
+        "groupId": 8,
+        "groupName": "Club Fitting",
+        "staffResourceIds": [
+          2,
+          29,
+          36
+        ],
+        "bayResourceIds": [
+          30
+        ],
+        "priceWindows": [],
+        "extras": []
+      }
+    ]
+  },
+  "requestId": "20261113-121118-7bc71577",
+  "timestamp": "2026-11-13T12:11:18.6519911+02:00"
+}
