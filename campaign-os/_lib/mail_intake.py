@@ -320,6 +320,30 @@ def set_brand_date(item_id: str, brand: Optional[str], day: Optional[str]) -> Op
     return _update(item_id, brand=new.get("brand"), date=new.get("date"), needs=_needs(new))
 
 
+def split_for_both_brands(item_id: str) -> Optional[List[Dict[str, Any]]]:
+    """One idea for both brands: this card keeps its brand (Stick when it has neither) and its work,
+    and a copy is made for the other brand, starting clean. The brands are separate companies, so
+    each card is fleshed out and planned on its own. Splitting again changes nothing."""
+    cur = get_item(item_id)
+    if not cur:
+        return None
+    if cur.get("kind") != "idea":
+        raise ValueError("only an idea can be split for both brands")
+    pair = get_item(cur.get("pair_id") or "")
+    if pair:
+        return [cur, pair]
+    mine = cur.get("brand") if cur.get("brand") in ("stick", "swing-shack") else "stick"
+    other = "swing-shack" if mine == "stick" else "stick"
+    copy = {k: v for k, v in cur.items() if k not in ("fleshed", "plan_id", "brief_id")}
+    copy.update(id="mi-" + hashlib.sha1(f"{cur['id']}|{other}".encode()).hexdigest()[:10],
+                brand=other, calendar_id=None, pair_id=cur["id"],
+                filed_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    copy["needs"] = _needs(copy)
+    _write(_read() + [copy])
+    first = dict(cur, brand=mine)
+    return [_update(item_id, brand=mine, pair_id=copy["id"], needs=_needs(first)), copy]
+
+
 def mark_on_calendar(item_id: str, calendar_id: str) -> Optional[Dict[str, Any]]:
     return _update(item_id, calendar_id=calendar_id, needs=[])
 

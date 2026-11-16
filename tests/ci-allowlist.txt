@@ -215,6 +215,10 @@ campaign-os/tests/jobs/test_asset_qc_respects_people_20261030.py
 campaign-os/tests/test_clean_calendar_reopen_20261030.py
 campaign-os/tests/test_bag_drop_online_store.py
 campaign-os/tests/test_daily_target_outside_rows_20261030.py
+campaign-os/tests/test_postiz_image_story_20261027.py
+campaign-os/tests/test_postiz_facebook_story_20261027.py
+campaign-os/tests/test_reshares_count_20261030.py
+campaign-os/tests/test_postiz_post_own_account_20261030.py
 campaign-os/tests/test_add_sound.py
 campaign-os/tests/test_sound_library.py
 campaign-os/tests/test_herman_voice_rules_20261102.py
@@ -250,4 +254,6 @@ campaign-os/tests/test_catalog_c1_logins_r2_20261109.py
 campaign-os/tests/test_catalog_integration_20261109.py
 campaign-os/tests/test_catalog_c45_marks_and_yes_20261109.py
 campaign-os/tests/test_catalog_c67_calendar_remake_20261109.py
+campaign-os/tests/test_catalog_layout_20261110.py
 campaign-os/tests/test_design_taxonomy.py
+campaign-os/tests/test_review_pack_carousel_one_card_20261113.py
