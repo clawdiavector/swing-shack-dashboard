@@ -229,6 +229,7 @@ campaign-os/tests/test_feed_rotation_20261102.py
 campaign-os/tests/test_stock_suggestions_20261016.py
 campaign-os/tests/test_gsc_refresh_failure_no_stale_token.py
 campaign-os/tests/jobs/test_asset_qc_skips_state_files.py
+campaign-os/tests/jobs/test_on_demand_job_verdict_20261103.py
 campaign-os/tests/test_plan_action_script.py
 campaign-os/tests/test_catalog_c2_catalog_20261109.py
 campaign-os/tests/test_catalog_c3_pictures_20261109.py
