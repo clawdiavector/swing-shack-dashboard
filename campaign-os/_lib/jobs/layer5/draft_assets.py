@@ -1582,6 +1582,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
     stop_cap = False
     stop_auth = False
     rows: list[dict[str, Any]] = []
+    compose_errors: list[str] = []
 
     try:
         _backfill_draft_names(brand)
@@ -1911,11 +1912,17 @@ def run(brand: str | None = None) -> dict[str, Any]:
                     asset_id, err = None, _exc_label(exc)
                 if err:
                     skipped += 1
+                    # Say why on the row. A poster that failed to build used to
+                    # stay "pending" with no reason, and the run still said OK.
+                    compose_row["note"] = f"compose: {err}"[:240]
                     if _is_row_soft_error(err):
                         compose_row["status"] = "gap" if str(err).startswith("gap:") else "skipped"
                         compose_row["note"] = err[:240]
+                    else:
+                        compose_errors.append(f"{item_id}: {err}"[:300])
                 elif asset_id:
                     compose_row["status"] = "done"
+                    compose_row.pop("note", None)
                     drafted += 1
 
             if not _moment_has_composed(brand_id, item_id):
@@ -1963,6 +1970,8 @@ def run(brand: str | None = None) -> dict[str, Any]:
         }
 
     out: dict[str, Any] = {"ok": True, "drafted": drafted, "skipped": skipped, "rows": drafted}
+    if compose_errors:
+        out["compose_errors"] = compose_errors[:20]
     if rejected:
         out["rejected"] = rejected
     return out
