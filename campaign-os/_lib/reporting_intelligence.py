@@ -318,11 +318,12 @@ BRAND_CONFIG = {
         "north_stars": _load_north_stars_from_calendar_config("swing-shack"),
     },
     # Online store. Meta page and Instagram shared to the system user 2026-10-30
-    # (wiki decisions/bag-drop-connect-to-os-2026-10-30). No GA4 or ad account yet.
+    # (wiki decisions/bag-drop-connect-to-os-2026-10-30). GA4 property added
+    # 16 Nov 2026 (service account has Viewer). No ad account yet.
     "bag-drop": {
         "name": "The Bag Drop",
         "domain": "thebagdrop.co.za",
-        "ga4_property_id": None,
+        "ga4_property_id": "542532107",
         "meta_business_id": None,
         "facebook_page_id": "1216761101518231",
         "instagram_business_account_id": "17841425356549616",
