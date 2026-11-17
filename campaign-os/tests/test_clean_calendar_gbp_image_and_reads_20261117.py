@@ -56,3 +56,21 @@ def test_a_nested_board_reuses_the_outer_read(monkeypatch):
         with ui._board_reads():
             pass
     assert len(loads) == 1
+
+
+def test_section_times_add_up_and_format_for_the_header():
+    with cc.timings() as took:
+        with cc.timed("posts"):
+            pass
+        with cc.timed("posts"):
+            pass
+        with cc.timed("google"):
+            pass
+    assert set(took) == {"posts", "google"}
+    header = cc.server_timing(took)
+    assert header.startswith("posts;dur=") and ", google;dur=" in header
+
+
+def test_timed_outside_a_build_records_nothing():
+    with cc.timed("posts"):
+        pass  # no error, nothing collected
