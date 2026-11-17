@@ -663,6 +663,17 @@ def move_postiz_post(pz: Any, brand_id: str, row: dict[str, Any], new_day: date)
 _GBP_WAITING = ("draft", "pending", "review", "needs_review")
 
 
+def gbp_image_url(image: str) -> str:
+    """A Google draft keeps its picture as a file path on the server
+    (/data/campaign-os/asset-media/x.jpg). The browser needs the web address
+    the app serves it from (/asset-media/x.jpg); a full URL stays as it is."""
+    if not image or image.startswith(("http://", "https://", "/asset-media/")):
+        return image
+    if "/asset-media/" in image:
+        return "/asset-media/" + image.rsplit("/", 1)[-1]
+    return image
+
+
 def gbp_entries(drafts: list[dict[str, Any]], brand_id: str, *, first_slot: date) -> list[dict[str, Any]]:
     """Google posts go out one a day in the order they were approved, so an
     approved post's day is its place in that queue. Waiting ones follow it."""
@@ -672,7 +683,7 @@ def gbp_entries(drafts: list[dict[str, Any]], brand_id: str, *, first_slot: date
     for i, d in enumerate(approved + waiting):
         day = date.fromordinal(first_slot.toordinal() + i)
         ok = d.get("status") == "approved"
-        image = str(d.get("imageUrl") or "")
+        image = gbp_image_url(str(d.get("imageUrl") or ""))
         out.append({
             "key": f"gbp:{d.get('id')}", "kind": "gbp", "view": "scheduled" if ok else "approval",
             "making": False, "state": "scheduled" if ok else "draft_ready",

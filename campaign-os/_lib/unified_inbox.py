@@ -324,6 +324,10 @@ def _board_reads():
     from _lib.board_cache import board_cache  # noqa: PLC0415
     from _lib.jobs.layer5.draft_assets import sidecar_lookup  # noqa: PLC0415
 
+    if _BOARD_CAMPAIGN_DATA.get() is not None:  # nested: the outer build already read it
+        with sidecar_lookup(), board_cache():
+            yield
+        return
     token = _BOARD_CAMPAIGN_DATA.set(_load_campaign_data())
     try:
         with sidecar_lookup(), board_cache():
@@ -1137,6 +1141,14 @@ class PostIndex:
 
 
 def build_post_index(*, brand_id: str) -> PostIndex:
+    """Inside a read-only board build the index is built once per brand (frozen, so sharing
+    it is safe); outside one it is built fresh every call."""
+    from _lib.board_cache import cached  # noqa: PLC0415
+
+    return cached(("post_index", brand_id), lambda: _build_post_index(brand_id=brand_id))
+
+
+def _build_post_index(*, brand_id: str) -> PostIndex:
     from _lib import ops_agents  # noqa: PLC0415
     from _lib.jobs.layer5 import image_jobs_state  # noqa: PLC0415
 
