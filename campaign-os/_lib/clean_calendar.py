@@ -12,6 +12,12 @@ This module only reads, words and renders; app.py does the approving.
 """
 from __future__ import annotations
 
+from contextvars import ContextVar
+
+from contextlib import contextmanager
+
+import time
+
 import html
 import json
 import os
@@ -67,6 +73,36 @@ _IDEA_WHAT = {
     "date": "Idea: a post for this date",
 }
 IDEA_NEXT = "Approve it and the post gets made. It then comes back under Needs your OK for a final yes."
+
+
+_TIMINGS: "ContextVar[dict[str, float] | None]" = ContextVar("clean_cal_timings", default=None)
+
+
+@contextmanager
+def timings():
+    """Collect section times for one month build; yields the dict (name -> ms)."""
+    token = _TIMINGS.set({})
+    try:
+        yield _TIMINGS.get()
+    finally:
+        _TIMINGS.reset(token)
+
+
+@contextmanager
+def timed(name: str):
+    """Add this block's time to the current month build's timings, if one is collecting."""
+    store = _TIMINGS.get()
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        if store is not None:
+            store[name] = store.get(name, 0.0) + (time.perf_counter() - start) * 1000
+
+
+def server_timing(store: dict[str, float]) -> str:
+    """The Server-Timing header value: shows per section in the browser's Network tab."""
+    return ", ".join(f"{k};dur={v:.0f}" for k, v in store.items())
 
 
 def _brand(brand_id: str) -> str:
@@ -433,12 +469,15 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
     elsewhere: Postiz-only posts, Google Business posts, draft plan steps."""
     _brand(brand_id)
     first, _ = month_bounds(month)
-    notes = comments_by_key(brand_id)
+    with timed("comments"):
+        notes = comments_by_key(brand_id)
     today = sast_today()
+    with timed("posts"):
+        pairs = post_rows(brand_id, month)
     entries = [
         post_entry(row, brand_id, caption=str((draft or {}).get("caption") or ""), today=today,
                    comments=notes.get(str(row.get("calendar_id") or "")))
-        for row, draft in post_rows(brand_id, month)
+        for row, draft in pairs
     ]
     for e in entries:
         e["image"] = f"/api/clean-calendar/{brand_id}/image/{e['key']}" if e["has_image"] else None
@@ -450,17 +489,21 @@ def month_view(brand_id: str, month: str, ideas: list[dict[str, Any]],
     counts = count_views(entries)
     from _lib import daily_target  # noqa: PLC0415
 
-    split = daily_target.target_for(brand_id)
+    with timed("target"):
+        split = daily_target.target_for(brand_id)
     month_end = month_bounds(month)[1]
     try:  # a reshare (a link shared to a story) is a made placement; a bad list must not break the calendar
         from _lib import story_queue  # noqa: PLC0415
 
-        shares = story_queue.shares(brand_id, first, month_end)
+        with timed("shares"):
+            shares = story_queue.shares(brand_id, first, month_end)
     except Exception:
         shares = []
-    targets = daily_target.day_progress(entries, split, first, month_end, shares=shares) if split else {}
+    with timed("progress"):
+        targets = daily_target.day_progress(entries, split, first, month_end, shares=shares) if split else {}
     if targets:
-        leads = daily_target.day_leads(brand_id, first, month_bounds(month)[1], sum(split.values()))
+        with timed("leads"):
+            leads = daily_target.day_leads(brand_id, first, month_bounds(month)[1], sum(split.values()))
         for day, t in targets.items():
             t["lead"] = leads[day]
     return {

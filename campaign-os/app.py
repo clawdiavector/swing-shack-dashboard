@@ -48547,19 +48547,24 @@ def _clean_cal_extras(brand_id, month):
     first, last = cc.month_bounds(month)
     out = []
     try:
-        out += cc.postiz_entries(_clean_cal_postiz_rows(brand_id, month), brand_id,
-                                 linked_ids=_clean_cal_linked_postiz_ids(brand_id), month=month)
+        with cc.timed("postiz"):
+            pz_rows = _clean_cal_postiz_rows(brand_id, month)
+        with cc.timed("linked"):
+            linked = _clean_cal_linked_postiz_ids(brand_id)
+        out += cc.postiz_entries(pz_rows, brand_id, linked_ids=linked, month=month)
     except Exception:
         _app_log.exception("clean calendar: Postiz entries failed for %s", brand_id)
     if _GBP_DAILY_AVAILABLE and _gdp is not None:
         try:
-            gbp = cc.gbp_entries(_gdp.load_drafts(brand_id, Path(GMB_DRAFTS_DIR)), brand_id,
-                                 first_slot=_clean_cal_gbp_first_slot())
+            with cc.timed("google"):
+                gbp = cc.gbp_entries(_gdp.load_drafts(brand_id, Path(GMB_DRAFTS_DIR)), brand_id,
+                                     first_slot=_clean_cal_gbp_first_slot())
             out += [e for e in gbp if first.isoformat() <= e["date"] <= last.isoformat()]
         except Exception:
             _app_log.exception("clean calendar: Google entries failed for %s", brand_id)
     try:
-        out += cc.plan_step_entries(_plan_import().month_steps(brand_id, first, last), brand_id)
+        with cc.timed("plans"):
+            out += cc.plan_step_entries(_plan_import().month_steps(brand_id, first, last), brand_id)
     except Exception:
         _app_log.exception("clean calendar: plan steps failed for %s", brand_id)
     return out
@@ -48634,7 +48639,10 @@ def _clean_cal_month(brand_id, month):
     # One read of campaign-data.json, the drafts folder and brands.json for the whole
     # month, not one per post: the month took ~7 s on live (17 Nov 2026).
     with ui._board_reads():
-        return cc.month_view(brand_id, month, _clean_cal_ideas(brand_id, month), _clean_cal_extras(brand_id, month))
+        with cc.timed("ideas"):
+            ideas = _clean_cal_ideas(brand_id, month)
+        extras = _clean_cal_extras(brand_id, month)
+        return cc.month_view(brand_id, month, ideas, extras)
 
 
 def _clean_cal_image(brand_id, key):
@@ -48810,8 +48818,13 @@ def clean_calendar_month(brand_id):
     bad = _cs_guard(brand_id)
     if bad:
         return bad
+    from _lib import clean_calendar as cc
     try:
-        return jsonify(_clean_cal_month(brand_id, request.args.get("month"))), 200
+        with cc.timings() as took, cc.timed("total"):
+            body = _clean_cal_month(brand_id, request.args.get("month"))
+        resp = jsonify(body)
+        resp.headers["Server-Timing"] = cc.server_timing(took)
+        return resp, 200
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
 
