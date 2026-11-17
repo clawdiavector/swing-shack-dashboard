@@ -48269,21 +48269,27 @@ def _cs_bundle(brand_id, month):
     from _lib import stock_pulse as sp
     first, last = cs.month_bounds(month)
     today = _dt.datetime.now(ZoneInfo('Africa/Johannesburg')).date()
-    note_rows, names = _cs_inputs(brand_id, sorted({first.year, last.year}))
-    decisions = cs.read_decisions(brand_id)
+    from _lib.req_timing import timed
+    with timed("i_inputs"):
+        note_rows, names = _cs_inputs(brand_id, sorted({first.year, last.year}))
+        decisions = cs.read_decisions(brand_id)
     try:
-        stock = sp.feed_candidates_for(brand_id)
+        with timed("i_stock_feed"):
+            stock = sp.feed_candidates_for(brand_id)
     except Exception:
         _app_log.exception("stock suggestions failed for %s", brand_id)
         stock = []
     from _lib import story_settings as ss
     from _lib import story_suggestion as sug
-    every = ss.read(brand_id, sug.daily_ids(brand_id))["stock_every_days"]
+    with timed("i_settings"):
+        every = ss.read(brand_id, sug.daily_ids(brand_id))["stock_every_days"]
+    with timed("i_pending"):
+        pending = _operator_pending_suggestions(brand_id)
     return cs.month_suggestions_bundle(
         brand_id,
         month,
         today,
-        _operator_pending_suggestions(brand_id),
+        pending,
         _typed_by_operator,
         note_rows,
         decisions,

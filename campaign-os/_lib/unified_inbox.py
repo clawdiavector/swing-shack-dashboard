@@ -1518,12 +1518,17 @@ def _post_row_from_record(
     index: PostIndex,
     now: datetime,
 ) -> dict[str, Any]:
-    joined = post_state(record, index=index, now=now)
+    from _lib.req_timing import timed  # noqa: PLC0415
+
+    with timed("row_state"):
+        joined = post_state(record, index=index, now=now)
     title = str(record.get("title") or record.get("event_key") or joined["calendar_id"])
+    with timed("row_angle"):
+        angle = _calendar_record_angle(record)
     return {
         **joined,
         "title": title,
-        "angle": _calendar_record_angle(record),
+        "angle": angle,
         "primary_channel": record.get("primary_channel"),
         "source_type": record.get("source_type"),
         "calendar_status": record.get("status"),
