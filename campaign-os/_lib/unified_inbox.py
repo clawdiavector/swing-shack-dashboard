@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import os
@@ -1364,7 +1365,31 @@ def post_state(
     index: PostIndex,
     now: datetime | None = None,
 ) -> dict[str, Any]:
-    """Single calendar moment joined to drafts, sandbox, and work orders."""
+    """Single calendar moment joined to drafts, sandbox, and work orders.
+
+    Inside a read-only board build each post is worked out once and every caller gets
+    its own copy: the calendar month built the same posts two or three times, ~20 ms
+    each (17 Nov 2026). Outside a board it is worked out fresh every call."""
+    from _lib.board_cache import _ACTIVE as board  # noqa: PLC0415
+
+    store = board.get()
+    if store is None:
+        return _post_state(record, index=index, now=now)
+    key = ("post_state", index.brand_id, id(index), json.dumps(record, sort_keys=True, default=str))
+    hit = store.get(key)
+    if hit is None or hit[0] is not index:  # keeps the index alive, so its id is never reused
+        hit = store[key] = (index, _post_state(record, index=index, now=now))
+    return copy.deepcopy(hit[1])
+
+
+def _post_state(
+    record: dict[str, Any],
+    *,
+    index: PostIndex,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    from _lib.req_timing import timed  # noqa: PLC0415
+
     now = now or datetime.now(timezone.utc)
     cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
     draft = index.drafts.get(cal_id)
@@ -1377,20 +1402,23 @@ def post_state(
         if draft
         else moment_inbox_id
     )
-    state, needs_fix_reason = _derive_post_state(
-        record,
-        index=index,
-        draft=draft,
-        queue_rows=queue_rows,
-        receipts=receipts,
-        work_rows=work_rows,
-        inbox_item_id=inbox_item_id,
-    )
+    with timed("s_derive"):
+        state, needs_fix_reason = _derive_post_state(
+            record,
+            index=index,
+            draft=draft,
+            queue_rows=queue_rows,
+            receipts=receipts,
+            work_rows=work_rows,
+            inbox_item_id=inbox_item_id,
+        )
     from _lib.visual_gate import decide  # noqa: PLC0415
 
     # Pass the record: without it decide reloads the whole calendar, once per post on the board.
-    visual_decision = decide(index.brand_id, moment_inbox_id, record=record)
-    flags = _compute_flags(record, state=state, now=now)
+    with timed("s_decide"):
+        visual_decision = decide(index.brand_id, moment_inbox_id, record=record)
+    with timed("s_flags"):
+        flags = _compute_flags(record, state=state, now=now)
     if (
         visual_decision.is_gap()
         and state in ("scheduled", "released", "posted")
@@ -1422,7 +1450,9 @@ def post_state(
     from _lib.campaigns import provenance_fields_from_record  # noqa: PLC0415
     from _lib.marketing_calendar import render_mode_for_record  # noqa: PLC0415
 
-    prov = provenance_fields_from_record(record)
+    with timed("s_prov"):
+        prov = provenance_fields_from_record(record)
+        render_mode = render_mode_for_record(record)
     out: dict[str, Any] = {
         "calendar_id": cal_id,
         "state": state,
@@ -1446,7 +1476,7 @@ def post_state(
         "lane": prov.get("lane"),
         "origin": prov.get("origin"),
         "process": prov.get("process"),
-        "render_mode": render_mode_for_record(record),
+        "render_mode": render_mode,
         "post_type": str(record.get("post_type") or "").strip() or None,
     }
     if needs_fix_reason:
@@ -1457,28 +1487,32 @@ def post_state(
         out["next_action"] = visual_decision.label or out.get("next_action")
     from _lib.template_catalog import attach_template_fields  # noqa: PLC0415
 
-    attach_template_fields(
-        index.brand_id,
-        out,
-        record=record,
-        archetype_meta=(draft or {}).get("archetype") if isinstance(draft, dict) else None,
-        source_inbox_item_id=inbox_item_id or None,
-    )
+    with timed("s_template"):
+        attach_template_fields(
+            index.brand_id,
+            out,
+            record=record,
+            archetype_meta=(draft or {}).get("archetype") if isinstance(draft, dict) else None,
+            source_inbox_item_id=inbox_item_id or None,
+        )
     asset: dict[str, Any] | None = None
     post_id = draft.get("asset_id") if draft else None
     if post_id:
-        _, asset = _campaign_asset_for_id(_load_campaign_data(), str(post_id))
+        with timed("s_asset"):
+            _, asset = _campaign_asset_for_id(_load_campaign_data(), str(post_id))
     from _lib import onepost, publish_sandbox  # noqa: PLC0415
 
-    picked, deliveries, delivery_summary = onepost.build_deliveries(
-        brand_id=index.brand_id,
-        asset=asset,
-        queue_rows=queue_rows,
-        receipts=receipts,
-        now=now,
-    )
+    with timed("s_deliveries"):
+        picked, deliveries, delivery_summary = onepost.build_deliveries(
+            brand_id=index.brand_id,
+            asset=asset,
+            queue_rows=queue_rows,
+            receipts=receipts,
+            now=now,
+        )
     out["post_id"] = post_id
-    out["channels_available"] = publish_sandbox.brand_channels(index.brand_id)
+    with timed("s_channels"):
+        out["channels_available"] = publish_sandbox.brand_channels(index.brand_id)
     out["channels_coming"] = sorted(onepost.COMING_SOON_CHANNELS)
     out["channels_picked"] = picked
     out["channels_locked"] = onepost.channels_locked_for_state(state)
@@ -1490,14 +1524,16 @@ def post_state(
     composed_map: dict[str, Any] = {}
     if isinstance(asset, dict) and isinstance(asset.get("composed"), dict):
         composed_map.update(asset["composed"])
-    sidecar = _load_draft_sidecar(str(post_id or "")) if post_id else {}
+    with timed("s_sidecar"):
+        sidecar = _load_draft_sidecar(str(post_id or "")) if post_id else {}
     if isinstance(sidecar.get("composed"), dict):
         composed_map.update(sidecar["composed"])
     if composed_map:
         out["composed"] = composed_map
         from _lib.feed_vertical_renders import vertical_renders_from_composed  # noqa: PLC0415
 
-        out["vertical_renders"] = vertical_renders_from_composed(composed_map)
+        with timed("s_vertical"):
+            out["vertical_renders"] = vertical_renders_from_composed(composed_map)
     return out
 
 
