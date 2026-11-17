@@ -48629,8 +48629,12 @@ def _clean_cal_gbp_approve(draft_id):
 
 def _clean_cal_month(brand_id, month):
     from _lib import clean_calendar as cc
+    from _lib import unified_inbox as ui
     month = (month or "").strip() or _jhb_today().strftime("%Y-%m")
-    return cc.month_view(brand_id, month, _clean_cal_ideas(brand_id, month), _clean_cal_extras(brand_id, month))
+    # One read of campaign-data.json, the drafts folder and brands.json for the whole
+    # month, not one per post: the month took ~7 s on live (17 Nov 2026).
+    with ui._board_reads():
+        return cc.month_view(brand_id, month, _clean_cal_ideas(brand_id, month), _clean_cal_extras(brand_id, month))
 
 
 def _clean_cal_image(brand_id, key):
