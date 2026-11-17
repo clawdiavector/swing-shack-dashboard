@@ -447,21 +447,28 @@ def month_suggestions_bundle(
     stock_every: int,
 ) -> Dict[str, Any]:
     """Faded suggestions plus primary posts per day for the month grid and Today."""
-    items = month_items(
-        brand_id, month, pending_rows, typed_by_operator, note_rows, decisions, approved_names, today
-    )
+    from _lib.req_timing import timed  # noqa: PLC0415
+
+    with timed("i_dates"):
+        items = month_items(
+            brand_id, month, pending_rows, typed_by_operator, note_rows, decisions, approved_names, today
+        )
     taken = [i["date"] for i in items]
-    posts_by_day = posts_by_day_for_month(brand_id, month)
+    with timed("i_week"):
+        posts_by_day = posts_by_day_for_month(brand_id, month)
     first, _last = month_bounds(month)
     since = (max(first, today) - _dt.timedelta(days=FEED_REPEAT_DAYS)).isoformat()
     prev_month = (first - _dt.timedelta(days=1)).strftime("%Y-%m")
-    looked_back = {**posts_by_day_for_month(brand_id, prev_month), **posts_by_day}
+    with timed("i_week_prev"):
+        looked_back = {**posts_by_day_for_month(brand_id, prev_month), **posts_by_day}
     recent = [p.get("title") or "" for iso, posts in looked_back.items() if iso >= since for p in posts]
-    items += stock_items(
-        brand_id, month, stock_candidates, decisions, approved_names, taken, today, stock_every,
-        recent_titles=recent,
-    )
-    items = filter_suggestions_nearby_scheduled(items, posts_by_day, brand_id)
+    with timed("i_stock_items"):
+        items += stock_items(
+            brand_id, month, stock_candidates, decisions, approved_names, taken, today, stock_every,
+            recent_titles=recent,
+        )
+    with timed("i_filter"):
+        items = filter_suggestions_nearby_scheduled(items, posts_by_day, brand_id)
     items.sort(key=lambda i: (i["date"], i["title"]))
     return {"items": items, "posts_by_day": posts_by_day}
 

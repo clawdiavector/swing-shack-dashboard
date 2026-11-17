@@ -12,12 +12,6 @@ This module only reads, words and renders; app.py does the approving.
 """
 from __future__ import annotations
 
-from contextvars import ContextVar
-
-from contextlib import contextmanager
-
-import time
-
 import html
 import json
 import os
@@ -75,34 +69,7 @@ _IDEA_WHAT = {
 IDEA_NEXT = "Approve it and the post gets made. It then comes back under Needs your OK for a final yes."
 
 
-_TIMINGS: "ContextVar[dict[str, float] | None]" = ContextVar("clean_cal_timings", default=None)
-
-
-@contextmanager
-def timings():
-    """Collect section times for one month build; yields the dict (name -> ms)."""
-    token = _TIMINGS.set({})
-    try:
-        yield _TIMINGS.get()
-    finally:
-        _TIMINGS.reset(token)
-
-
-@contextmanager
-def timed(name: str):
-    """Add this block's time to the current month build's timings, if one is collecting."""
-    store = _TIMINGS.get()
-    start = time.perf_counter()
-    try:
-        yield
-    finally:
-        if store is not None:
-            store[name] = store.get(name, 0.0) + (time.perf_counter() - start) * 1000
-
-
-def server_timing(store: dict[str, float]) -> str:
-    """The Server-Timing header value: shows per section in the browser's Network tab."""
-    return ", ".join(f"{k};dur={v:.0f}" for k, v in store.items())
+from _lib.req_timing import server_timing, timed, timings  # noqa: E402,F401
 
 
 def _brand(brand_id: str) -> str:
@@ -337,10 +304,13 @@ def post_rows(brand_id: str, month: str) -> list[tuple[dict[str, Any], dict[str,
     from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
 
     first, last = month_bounds(month)
-    index = ui.build_post_index(brand_id=brand_id)
+    with timed("p_index"):
+        index = ui.build_post_index(brand_id=brand_id)
     now = datetime.now(timezone.utc)
     out = []
-    for record in canonical_records(brand_id):
+    with timed("p_records"):
+        records = canonical_records(brand_id)
+    for record in records:
         if str(record.get("status") or "") not in ui._WEEK_MOMENT_STATUSES:
             continue
         go_live = ui._moment_go_live_date(record)
@@ -354,7 +324,8 @@ def post_rows(brand_id: str, month: str) -> list[tuple[dict[str, Any], dict[str,
         if "holiday" in (row.get("flags") or []) or bucket_for_state(str(row.get("state") or "")) is None:
             continue
         out.append((row, index.drafts.get(str(row.get("calendar_id") or ""))))
-    return dedupe_rows(_with_rejections(out))
+    with timed("p_rejects"):
+        return dedupe_rows(_with_rejections(out))
 
 
 # Record fields the row builder drops but the wording needs (outside posts,
