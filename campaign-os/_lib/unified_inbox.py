@@ -1375,7 +1375,9 @@ def post_state(
     store = board.get()
     if store is None:
         return _post_state(record, index=index, now=now)
-    key = ("post_state", index.brand_id, id(index), json.dumps(record, sort_keys=True, default=str))
+    # _go_live is the week board's own note on the record; post_state never reads it.
+    same = {k: v for k, v in record.items() if k != "_go_live"}
+    key = ("post_state", index.brand_id, id(index), json.dumps(same, sort_keys=True, default=str))
     hit = store.get(key)
     if hit is None or hit[0] is not index:  # keeps the index alive, so its id is never reused
         hit = store[key] = (index, _post_state(record, index=index, now=now))
