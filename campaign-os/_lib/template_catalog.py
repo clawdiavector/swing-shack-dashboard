@@ -126,13 +126,27 @@ def resolve_template_id(
     if source_inbox_item_id:
         from _lib.archetypes import _moment_context, select_archetype  # noqa: PLC0415
 
-        ctx = _moment_context(brand_id, source_inbox_item_id)
+        # When the inbox id points at this very record, hand it over: without it both calls
+        # below reload the whole calendar to find it, for every post on a board (~6 s of the
+        # calendar month on live, 17 Nov 2026). Any other id is looked up as before.
+        own = record if _is_own_moment(brand_id, source_inbox_item_id, record) else None
+        ctx = _moment_context(brand_id, source_inbox_item_id, own) if own else _moment_context(
+            brand_id, source_inbox_item_id
+        )
         tid = str(ctx.get("template_id") or "").strip()
         if tid:
             return tid
-        arch = select_archetype(brand_id, source_inbox_item_id)
+        arch = select_archetype(brand_id, source_inbox_item_id, record=own)
         return str(arch.get("id") or "").strip()
     return ""
+
+
+def _is_own_moment(brand_id: str, item_id: str, record: dict[str, Any] | None) -> bool:
+    """True when item_id is calendar_candidate:<brand>:<this record's calendar id>."""
+    if not isinstance(record, dict) or not record:
+        return False
+    cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
+    return bool(cal_id) and item_id == f"calendar_candidate:{brand_id}:{cal_id}"
 
 
 def attach_template_fields(
